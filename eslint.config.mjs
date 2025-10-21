@@ -2,6 +2,7 @@ import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import typescriptPlugin from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
+import checkFilePlugin from "eslint-plugin-check-file";
 import prettierConfig from "eslint-config-prettier";
 import importPlugin from "eslint-plugin-import";
 import jsxA11yPlugin from "eslint-plugin-jsx-a11y";
@@ -25,10 +26,10 @@ const eslintConfig = [
   // Base recommended configs
   js.configs.recommended,
 
-  // Next.js configs - THIS IS THE KEY FIX
+  // Next.js configs
   ...compat.config({
-  extends: ["next/core-web-vitals", "next/typescript", "next"],
-}),
+    extends: ["next/core-web-vitals", "next/typescript", "next"],
+  }),
 
   // Global ignores
   {
@@ -85,6 +86,7 @@ const eslintConfig = [
       "unused-imports": unusedImportsPlugin,
       "simple-import-sort": simpleImportSortPlugin,
       prettier: prettierPlugin,
+      "check-file": checkFilePlugin,
     },
     settings: {
       react: {
@@ -98,11 +100,9 @@ const eslintConfig = [
           extensions: [".js", ".jsx", ".ts", ".tsx"],
         },
       },
-      // Add Next.js settings if needed
       next: {
-        rootDir: ".", // Adjust if your Next.js app is in a subdirectory
+        rootDir: ".",
       },
-      // Configure simple-import-sort
       "simple-import-sort": {
         groups: [
           // React and Next.js imports
@@ -111,8 +111,6 @@ const eslintConfig = [
           ["^[a-zA-Z]"],
           // Internal absolute imports
           ["^@/"],
-          // Internal relative imports
-          ["^[./]"],
           // Type imports
           ["^.*\\u0000$"],
         ],
@@ -121,6 +119,30 @@ const eslintConfig = [
     rules: {
       // Prettier integration
       "prettier/prettier": "error",
+
+      // === FILE NAMING ENFORCEMENT (KEBAB-CASE) ===
+      "check-file/filename-naming-convention": [
+        "error",
+        {
+          "**/*.{ts,tsx}": "KEBAB_CASE",
+        },
+        {
+          ignoreMiddleExtensions: true,
+        },
+      ],
+      "check-file/folder-naming-convention": [
+        "error",
+        {
+          "src/**": "KEBAB_CASE",
+          "app/**": "KEBAB_CASE",
+          "components/**": "KEBAB_CASE",
+        },
+      ],
+
+      // === ABSOLUTE IMPORTS ENFORCEMENT ===
+      "import/no-relative-packages": "error",
+      "import/prefer-default-export": "off",
+      // Note: import/no-relative-parent-imports removed - we use @/ aliases for absolute imports
 
       // Import sorting and organization
       "simple-import-sort/imports": [
@@ -132,11 +154,17 @@ const eslintConfig = [
             // Internal (react-components in ascending order)
             ["^@/components"],
             // Internal (config, constants, hooks, lib/, server-actions, utils/, validation)
-            ["^@/config", "^@/constants", "^@/hooks", "^@/lib", "^@/server", "^@/utils", "^@/validation"],
+            [
+              "^@/config",
+              "^@/constants",
+              "^@/hooks",
+              "^@/lib",
+              "^@/server",
+              "^@/utils",
+              "^@/validation",
+            ],
             // Internal (types)
             ["^@/types"],
-            // Internal relative imports
-            ["^[./]"],
           ],
         },
       ],
@@ -144,7 +172,7 @@ const eslintConfig = [
       "import/first": "error",
       "import/newline-after-import": "error",
       "import/no-duplicates": "error",
-      "import/no-unresolved": "off", // TypeScript handles this
+      "import/no-unresolved": "off",
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "warn",
@@ -157,7 +185,7 @@ const eslintConfig = [
       ],
 
       // TypeScript specific rules
-      "@typescript-eslint/no-unused-vars": "off", // Handled by unused-imports
+      "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-non-null-assertion": "warn",
       "@typescript-eslint/prefer-nullish-coalescing": "error",
@@ -173,14 +201,14 @@ const eslintConfig = [
       ],
 
       // React specific rules
-      "react/react-in-jsx-scope": "off", // Not needed in Next.js
-      "react/prop-types": "off", // We use TypeScript
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
       "react/display-name": "warn",
       "react/no-unescaped-entities": "warn",
       "react/jsx-key": "error",
       "react/jsx-no-duplicate-props": "error",
       "react/jsx-no-undef": "error",
-      "react/jsx-uses-react": "off", // Not needed in React 17+
+      "react/jsx-uses-react": "off",
       "react/jsx-uses-vars": "error",
       "react/no-array-index-key": "warn",
       "react/no-danger": "warn",
@@ -211,7 +239,7 @@ const eslintConfig = [
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-debugger": "error",
       "no-alert": "warn",
-      "no-duplicate-imports": "off", // Handled by import plugin
+      "no-duplicate-imports": "off",
       "prefer-const": "error",
       "no-var": "error",
       "object-shorthand": "error",
@@ -228,8 +256,8 @@ const eslintConfig = [
       ],
 
       // Code quality rules
-      "eqeqeq": "error",
-      "curly": "error",
+      eqeqeq: "error",
+      curly: "error",
       "no-eval": "error",
       "no-implied-eval": "error",
       "no-new-func": "error",
@@ -239,7 +267,7 @@ const eslintConfig = [
       "no-useless-concat": "error",
       "no-useless-escape": "error",
       "no-void": "error",
-      "radix": "error",
+      radix: "error",
 
       // Performance rules
       "no-inner-declarations": "error",

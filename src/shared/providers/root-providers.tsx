@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { ThemeProvider } from "./theme-provider";
-
 import { BackToTop } from "@/ui/back-to-top";
 import { Toaster } from "@/ui/sonner";
 

@@ -15,7 +15,12 @@
     "prepare": "husky",
     "pre-commit": "lint-staged",
     "pre-push": "bun run lint && bun run build",
-    "validate": "bun run type-check && bun run lint && bun run prettier"
+    "validate": "bun run type-check && bun run lint && bun run prettier",
+    "rename:kebab-files": "find . -name '*.{ts,tsx}' -not -path './node_modules/*' -exec sh -c 'mv \"$1\" \"$(echo \"$1\" | sed \"s/\\([A-Z]\\)/-\\L\\1/g\" | sed \"s/^-//\")\"' _ {} \\;",
+    "rename:kebab-dirs": "find . -type d \\( -path './node_modules/*' -o -path './.next/*' -o -path './.git/*' \\) -prune -o -name '[A-Z]*' -exec sh -c 'mv \"$1\" \"$(echo \"$1\" | sed \"s/\\([A-Z]\\)/-\\L\\1/g\" | sed \"s/^-//\")\"' _ {} \\;",
+    "rename:kebab-all": "npm run rename:kebab-dirs && npm run rename:kebab-files",
+    "imports:fix-absolute": "eslint . --fix --rule 'import/no-relative-import:error'",
+    "imports:fix-all": "npm run imports:fix-absolute && npm run lint -- --fix"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
@@ -45,6 +50,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.6",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-check-file": "^3.3.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^5.5.4",

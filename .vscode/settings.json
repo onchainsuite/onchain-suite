@@ -1,0 +1,95 @@
+{
+  // === ESLINT + PRETTIER AUTO-FIX ===
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "always",
+    "source.fixAll.tslint": "never"
+  },
+
+  // === ESLINT ===
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.format.enable": true,
+  "eslint.lintTask.enable": true,
+  "eslint.rules.customizations": [
+    {
+      "rule": "@typescript-eslint/naming-convention",
+      "severity": "error"
+    }
+  ],
+
+  // === PRETTIER ===
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // === TYPE SCRIPT ===
+  "typescript.validate.enable": true,
+
+  // === FILES ===
+  "files.associations": {
+    "*.tsx": "typescriptreact",
+    "*.ts": "typescript"
+  },
+  "files.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/out": true,
+    "**/build": true,
+    "**/dist": true,
+    "**/coverage": true
+  },
+
+  // === WORKSPACE ===
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/out": true,
+    "**/.git": true
+  },
+
+  // === KEBAB-CASE SPECIFIC ===
+  "editor.suggestSelection": "first",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // === ABSOLUTE IMPORTS ===
+  "typescript.preferences.importModuleSpecifier": "shortest",
+  "typescript.suggest.autoImports": true,
+  "typescript.suggest.includeAutomaticOptionalChainCompletions": true,
+
+  // === PATH MAPPINGS ===
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "javascript.suggest.autoImports": true,
+
+  // === AUTO-IMPORT FORMAT ===
+  "typescript.preferences.importModuleSpecifierEnding": "auto",
+
+  // === QUICK FIX: Convert to Absolute ===
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": false
+  },
+
+  // === EXPERIMENTAL ===
+  "typescript.suggest.completeFunctionCalls": true
+
+
+}
