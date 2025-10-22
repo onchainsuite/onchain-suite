@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { v7 } from "uuid";
 
 import {
   MobileNav,
@@ -58,9 +59,9 @@ export function OnchainNavbar() {
           isOpen={isMobileMenuOpen}
           onClose={() => setIsMobileMenuOpen(false)}
         >
-          {navItems.map((item, idx) => (
+          {navItems.map((item) => (
             <a
-              key={`mobile-link-${idx}`}
+              key={v7()}
               href={item.link}
               onClick={() => setIsMobileMenuOpen(false)}
               className="relative text-foreground"

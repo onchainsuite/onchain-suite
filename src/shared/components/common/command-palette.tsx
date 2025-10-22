@@ -123,7 +123,7 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
       icon: Download,
       action: () => {
         // TODO: Implement export functionality
-        console.log("Export data");
+        console.warn("Export data");
       },
     },
     {
@@ -131,7 +131,7 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
       icon: Upload,
       action: () => {
         // TODO: Implement import functionality
-        console.log("Import contacts");
+        console.warn("Import contacts");
       },
     },
   ];
@@ -171,7 +171,7 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
       icon: Calculator,
       action: () => {
         // TODO: Show keyboard shortcuts modal
-        console.log("Show keyboard shortcuts");
+        console.warn("Show keyboard shortcuts");
       },
       shortcut: "⌘?",
     },

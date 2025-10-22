@@ -11,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import React, { useRef, useState } from "react";
+import { v7 } from "uuid";
 
 import { cn } from "@/lib/utils";
 
@@ -132,7 +133,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
           onMouseEnter={() => setHovered(idx)}
           onClick={onItemClick}
           className="relative px-4 py-2 text-muted-foreground hover:text-foreground"
-          key={`link-${idx}`}
+          key={v7()}
           href={item.link}
         >
           {hovered === idx && (

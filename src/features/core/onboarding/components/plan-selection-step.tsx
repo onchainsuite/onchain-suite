@@ -37,7 +37,7 @@ export function PlanSelectionStep({
   };
 
   const selectedPlan = form.watch("selectedPlan");
-  console.log("🚀 ~ selectedPlan:", selectedPlan);
+  console.warn("🚀 ~ selectedPlan:", selectedPlan);
 
   // Group features by category
   const featuresByCategory = features.reduce(
