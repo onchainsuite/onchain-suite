@@ -25,14 +25,21 @@ export default function HeroSection() {
         <div className="max-w-4xl">
           {/* Main heading with flip words */}
           <h1 className="mb-8 text-5xl font-bold leading-tight tracking-tight text-foreground md:text-6xl lg:text-7xl">
-            <span className="text-muted-foreground">{"From "}</span>
-            <span className="inline-block">
-              <FlipWords words={fromWords} className="text-foreground" />
+            <span className="flex items-center">
+              <span className="text-muted-foreground text-4xl font-light">
+                {"From "}
+              </span>
+              <span className="inline-block">
+                <FlipWords words={fromWords} className="text-foreground" />
+              </span>
             </span>
-            <br />
-            <span className="text-muted-foreground">{"to "}</span>
-            <span className="inline-block">
-              <FlipWords words={toWords} className="text-foreground" />
+            <span className="flex items-center">
+              <span className="text-muted-foreground text-4xl font-light">
+                {"to "}
+              </span>
+              <span className="inline-block">
+                <FlipWords words={toWords} className="text-foreground" />
+              </span>
             </span>
           </h1>
 
