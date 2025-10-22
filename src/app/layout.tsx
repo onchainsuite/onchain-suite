@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 
 import "@/styles/globals.css";
-import { generateMetadata } from "@/shared/config";
+import { StructuredData } from "@/onchain-suite-website/components";
+import { generateMetadata } from "@/onchain-suite-website/config";
 import { RootProviders } from "@/shared/providers";
-import { StructuredData } from "@/shared/website/components/meta";
 
 const inter = Inter({
   variable: "--font-inter",

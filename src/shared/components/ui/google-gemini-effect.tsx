@@ -2,7 +2,7 @@
 import { motion, type MotionValue, type Transition } from "motion/react";
 import React, { type ReactNode } from "react";
 
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 const transition: Transition = {
   duration: 0,

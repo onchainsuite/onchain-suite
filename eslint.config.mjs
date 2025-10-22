@@ -22,6 +22,18 @@ const compat = new FlatCompat({
   recommendedConfig: js.configs.recommended,
 });
 
+const ignorePatterns = [
+  "\\(.*\\)",
+  "\\[.*\\]",
+  "\\[\\.\\.\\.\\.*\\]",
+  "_app",
+  "_document",
+  "_error",
+  "_middleware",
+  "_components",
+  "_lib",
+];
+
 const eslintConfig = [
   // Base recommended configs
   js.configs.recommended,
@@ -130,14 +142,6 @@ const eslintConfig = [
           ignoreMiddleExtensions: true,
         },
       ],
-      "check-file/folder-naming-convention": [
-        "error",
-        {
-          "src/**": "KEBAB_CASE",
-          "app/**": "KEBAB_CASE",
-          "components/**": "KEBAB_CASE",
-        },
-      ],
 
       // === ABSOLUTE IMPORTS ENFORCEMENT ===
       "import/no-relative-packages": "error",
@@ -152,7 +156,7 @@ const eslintConfig = [
             // External packages (ascending order) including types - @ packages come first
             ["^@[a-zA-Z]", "^[a-zA-Z]"],
             // Internal (react-components in ascending order)
-            ["^@/components"],
+            ["^@/components", "^@/ui"],
             // Internal (config, constants, hooks, lib/, server-actions, utils/, validation)
             [
               "^@/config",

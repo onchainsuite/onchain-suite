@@ -19,11 +19,26 @@
       }
     ],
     "paths": {
+      "@/onchain-suite-website/*": ["./src/features/website/onchain-suite/*"],
+      "@/onchain-website/*": ["./src/features/website/onchain/*"],
+      "@/r3tain-website/*": ["./src/features/website/r3tain/*"],
+      "@/3ridge-website/*": ["./src/features/website/3ridge/*"],
+      "@/auth/*": ["./src/features/core/auth/*"],
+      "@/onboarding/*": ["./src/features/core/onboarding/*"],
+      "@/settings/*": ["./src/features/core/settings/*"],
+      "@/notifications/*": ["./src/features/core/notifications/*"],
+      "@/billing/*": ["./src/features/core/billing/*"],
+      "@/3ridge/*": ["./src/features/3ridge/*"],
+      "@/onchain/*": ["./src/features/onchain/*"],
+      "@/r3tain/*": ["./src/features/r3tain/*"],
       "@/ui/*": ["./src/shared/components/ui/*"],
       "@/components/*": ["./src/shared/components/*"],
+      "@/config/*": ["./src/shared/config/*"],
       "@/hooks/*": ["./src/shared/hooks/*"],
-      "@/lib/*": ["./src/shared/lib/*"],
+      "@/lib/*": ["./src/lib/*"],
       "@/types/*": ["./src/shared/types/*"],
+      "@/validations/*": ["./src/shared/validations/*"],
+      "@/prisma/*": ["./prisma/generated/prisma/*"],
       "@/*": ["./src/*"]
     }
   },
