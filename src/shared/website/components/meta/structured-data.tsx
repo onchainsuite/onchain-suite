@@ -11,7 +11,7 @@ export function StructuredData() {
         url: SITE_CONFIG.url,
         logo: {
           "@type": "ImageObject",
-          url: `${SITE_CONFIG.url}/logo.png`,
+          url: `${SITE_CONFIG.url}`,
         },
         description:
           "The first integrated communication layer built natively for Web3 product ecosystems.",

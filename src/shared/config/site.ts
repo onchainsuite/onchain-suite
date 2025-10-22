@@ -3,10 +3,12 @@ export const SITE_CONFIG = {
   url: "https://onchain-suite.vercel.app",
   description:
     "The first integrated communication layer built natively for Web3. Onchain Suite combines behavioral analytics, email marketing, and Web3 auth to drive user retention and engagement across blockchain ecosystems.",
-  ogImage: "/og-image.png",
-  twitterImage: "/twitter-image.png",
+  ogImage:
+    "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
+  twitterImage:
+    "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
   twitterHandle: "@onchainsuite",
-  logo: "/logo.png",
+  logo: "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761093444/onchain_suite_bf926w.png",
   social: {
     twitter: "https://twitter.com/onchainsuite",
     discord: "https://discord.gg/onchainsuite",
@@ -19,8 +21,10 @@ export const SITE_CONFIG_META = {
   url: "https://onchain-suite.vercel.app",
   description:
     "The first integrated communication layer built natively for Web3. Onchain Suite combines behavioral analytics, email marketing, and Web3 auth to drive user retention and engagement across blockchain ecosystems.",
-  ogImage: "/og-image.png",
-  twitterImage: "/twitter-image.png",
+  ogImage:
+    "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
+  twitterImage:
+    "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
   twitterHandle: "@onchainsuite",
 };
 
