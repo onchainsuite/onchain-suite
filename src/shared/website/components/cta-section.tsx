@@ -35,7 +35,7 @@ export function CTASection() {
           pathLengthFifth,
         ]}
       >
-        <div className="md:mt-34 mt-8 flex items-center justify-center z-30 gap-3">
+        <div className="md:mt-12 mt-8 flex items-center justify-center z-30 gap-3">
           <Button className="group min-w-[160px] md:text-base text-xs md:px-4 md:py-2 px-2 py-1">
             Get Started
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
