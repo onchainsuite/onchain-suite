@@ -51,7 +51,7 @@ const itemVariants = {
   },
 };
 
-export default function Footer() {
+export function Footer() {
   const { resolvedTheme } = useTheme();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({

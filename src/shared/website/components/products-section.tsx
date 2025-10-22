@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { ProductTabContent } from "./product-tab-content";
 import { Tabs } from "@/ui/tabs";
 
-export default function ProductsSection() {
+export function ProductsSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 

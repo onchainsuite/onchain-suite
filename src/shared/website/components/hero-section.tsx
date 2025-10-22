@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { FlipWords } from "@/components/ui/flip-words";
 
-export default function HeroSection() {
+export function HeroSection() {
   // Web3-relevant words for Onchain Suite
   const fromWords = [
     "Wallet Analytics",

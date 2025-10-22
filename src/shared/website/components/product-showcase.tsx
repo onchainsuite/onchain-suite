@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, useInView, useSpring } from "framer-motion";
-import { useRef } from "react";
+import { motion, useInView, useMotionValue, useTransform } from "framer-motion";
+import { animate } from "motion";
+import { useEffect, useRef } from "react";
 import { v7 as uuidv7 } from "uuid";
 
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
@@ -41,30 +42,33 @@ const stats = [
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const springValue = useSpring(0, {
-    stiffness: 50,
-    damping: 30,
-  });
+  const isInView = useInView(ref, { margin: "-100px" }); // Removed 'once: true'
+  const motionValue = useMotionValue(0);
+  const rounded = useTransform(motionValue, (latest) => Math.round(latest));
 
-  if (isInView && springValue.get() === 0) {
-    springValue.set(value);
-  }
+  useEffect(() => {
+    if (isInView) {
+      motionValue.set(0); // Reset to 0 before animating
+      const controls = animate(motionValue, value, {
+        duration: 2,
+        ease: "easeOut",
+      });
+      return controls.stop;
+    }
+  }, [isInView, value, motionValue]);
 
   return (
     <motion.div
       ref={ref}
       className="mb-1 text-2xl font-bold text-foreground md:mb-2 md:text-4xl lg:text-5xl"
     >
-      <motion.span>
-        {springValue.get() === 0 ? "0" : Math.round(springValue.get())}
-      </motion.span>
+      <motion.span>{rounded}</motion.span>
       {suffix}
     </motion.div>
   );
 }
 
-export default function ProductShowcase() {
+export function ProductShowcase() {
   return (
     <div className="relative flex w-full flex-col items-center justify-start">
       <ContainerScroll
@@ -116,7 +120,7 @@ export default function ProductShowcase() {
         </div>
       </ContainerScroll>
 
-      <div className="w-full border-t border-border bg-background/95 backdrop-blur-sm">
+      <div className="w-full bg-background/95 backdrop-blur-sm">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-8 md:grid-cols-3 md:gap-8 md:py-12 lg:grid-cols-6">
           {stats.map((stat) => (
             <div key={uuidv7()} className="text-center">

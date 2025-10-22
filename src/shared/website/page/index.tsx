@@ -1,9 +1,11 @@
-import CTASection from "../components/cta-section";
-import Footer from "../components/footer";
-import HeroSection from "../components/hero-section";
-import OnchainNavbar from "../components/navbar";
-import ProductShowcase from "../components/product-showcase";
-import ProductsSection from "../components/products-section";
+import {
+  CTASection,
+  Footer,
+  HeroSection,
+  OnchainNavbar,
+  ProductShowcase,
+  ProductsSection,
+} from "../components";
 
 export function OnchainSuiteHome() {
   return (

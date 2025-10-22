@@ -15,7 +15,7 @@ import {
 
 import { ThemeModeToggle } from "@/ui/theme-mode-toggle";
 
-export default function OnchainNavbar() {
+export function OnchainNavbar() {
   const navItems = [
     {
       name: "Products",
