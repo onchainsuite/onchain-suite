@@ -246,7 +246,13 @@ export const NavbarLogo = () => {
       href="/"
       className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal"
     >
-      <Image src={logoUrl} width={40} height={40} alt={"Onchain Logo"} />
+      <Image
+        src={logoUrl}
+        width={40}
+        height={40}
+        alt={"Onchain Logo"}
+        suppressHydrationWarning
+      />
     </Link>
   );
 };

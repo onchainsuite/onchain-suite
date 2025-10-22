@@ -91,6 +91,7 @@ export default function Footer() {
                 width={200}
                 height={100}
                 alt="OnchainSuite Logo"
+                suppressHydrationWarning
               />
             </Link>
             <p className="mb-4 text-sm text-muted-foreground">

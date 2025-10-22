@@ -1,14 +1,17 @@
 "use client";
 
+import { useTheme } from "next-themes";
 import { type ReactNode, useCallback } from "react";
 import Particles from "react-tsparticles";
 import { type Engine, type ISourceOptions } from "tsparticles-engine";
 import { loadSlim } from "tsparticles-slim";
 
 export const BlockchainBackground = ({ children }: { children: ReactNode }) => {
+  const { resolvedTheme } = useTheme();
   const particlesInit = useCallback(async (engine: Engine) => {
     await loadSlim(engine);
   }, []);
+  const isDark = resolvedTheme === "dark";
 
   const particlesOptions: ISourceOptions = {
     fpsLimit: 120,
@@ -37,10 +40,10 @@ export const BlockchainBackground = ({ children }: { children: ReactNode }) => {
     },
     particles: {
       color: {
-        value: "#ffffff",
+        value: isDark ? "#F0F7FF" : "#1727E0",
       },
       links: {
-        color: "#ffffff",
+        color: isDark ? "#F0F7FF" : "#1727E0",
         distance: 150,
         enable: true,
         opacity: 0.4,
