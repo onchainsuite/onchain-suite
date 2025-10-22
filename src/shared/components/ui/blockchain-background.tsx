@@ -81,10 +81,7 @@ export const BlockchainBackground = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="min-h-screen w-full relative bg-background">
-      <Particles
-        id="tsparticles"
-        init={particlesInit}
-        options={particlesOptions}
+      <div
         className="absolute inset-0 z-0"
         style={{
           background: `
@@ -101,6 +98,12 @@ export const BlockchainBackground = ({ children }: { children: ReactNode }) => {
             .replace(/\s+/g, " ")
             .trim(),
         }}
+      />
+      <Particles
+        id="tsparticles"
+        init={particlesInit}
+        options={particlesOptions}
+        className="absolute inset-0 z-0"
       />
 
       {children}
