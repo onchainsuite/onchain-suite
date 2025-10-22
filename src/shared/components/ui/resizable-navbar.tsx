@@ -1,13 +1,15 @@
 "use client";
 
 import { IconMenu2, IconX } from "@tabler/icons-react";
-import { Link } from "lucide-react";
 import {
   AnimatePresence,
   motion,
   useMotionValueEvent,
   useScroll,
 } from "motion/react";
+import Image from "next/image";
+import Link from "next/link";
+import { useTheme } from "next-themes";
 import React, { useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -70,7 +72,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
     <motion.div
       ref={ref}
       // IMPORTANT: Change this to class of `fixed` if you want the navbar to be fixed
-      className={cn("sticky inset-x-0 top-20 z-40 w-full", className)}
+      className={cn("sticky inset-x-0 top-5 z-40 w-full", className)}
     >
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
@@ -104,7 +106,7 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         minWidth: "800px",
       }}
       className={cn(
-        "relative z-[60] mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex",
+        "relative z-60 mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full bg-transparent px-4 py-2 lg:flex",
         visible && "bg-card/80 backdrop-blur-md",
         className
       )}
@@ -231,15 +233,20 @@ export const MobileNavToggle = ({
 };
 
 export const NavbarLogo = () => {
+  const { resolvedTheme } = useTheme();
+
+  const isDark = resolvedTheme === "dark";
+
+  const logoUrl = isDark
+    ? "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761094220/onchain_light_wylceb.png"
+    : "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761093444/onchain_suite_bf926w.png";
+
   return (
     <Link
       href="/"
       className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal"
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-        <span className="text-lg font-bold text-primary-foreground">O</span>
-      </div>
-      <span className="font-medium text-foreground">Onchain Suite</span>
+      <Image src={logoUrl} width={40} height={40} alt={"Onchain Logo"} />
     </Link>
   );
 };
