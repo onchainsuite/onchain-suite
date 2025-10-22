@@ -24,9 +24,9 @@ export function HeroSection() {
       <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col items-start justify-center px-6 py-32 md:px-12 lg:px-16">
         <div className="max-w-4xl">
           {/* Main heading with flip words */}
-          <h1 className="mb-8 text-5xl font-bold leading-tight tracking-tight text-foreground md:text-6xl lg:text-7xl">
+          <h1 className="mb-8 text-3xl font-bold leading-tight tracking-tight text-foreground md:text-4xl lg:text-7xl">
             <span className="flex items-center">
-              <span className="text-muted-foreground text-4xl font-light">
+              <span className="text-muted-foreground text-xs sm:text-2xl md:text-4xl font-light">
                 {"From "}
               </span>
               <span className="inline-block">
@@ -34,7 +34,7 @@ export function HeroSection() {
               </span>
             </span>
             <span className="flex items-center">
-              <span className="text-muted-foreground text-4xl font-light">
+              <span className="text-muted-foreground text-xs sm:text-2xl md:text-4xl font-light">
                 {"to "}
               </span>
               <span className="inline-block">

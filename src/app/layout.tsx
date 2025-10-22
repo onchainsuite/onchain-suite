@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 
 import "@/styles/globals.css";
+import { generateMetadata } from "@/shared/config";
 import { RootProviders } from "@/shared/providers";
+import { StructuredData } from "@/shared/website/components/meta";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -14,10 +16,7 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Onchain Suite",
-  description: "Onchain Suite",
-};
+export const metadata: Metadata = generateMetadata();
 
 export default function RootLayout({
   children,
@@ -26,6 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <head>
+        <StructuredData />
+      </head>
       <body className={`${inter.variable} ${manrope.variable} antialiased`}>
         <RootProviders>{children}</RootProviders>
       </body>
