@@ -1,8 +1,9 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Cloud } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 import { useRef } from "react";
 
 import { FooterLinks } from "./footer-links";
@@ -51,6 +52,7 @@ const itemVariants = {
 };
 
 export default function Footer() {
+  const { resolvedTheme } = useTheme();
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -58,6 +60,11 @@ export default function Footer() {
   });
 
   const y = useTransform(scrollYProgress, [0, 1], [100, 0]);
+  const isDark = resolvedTheme === "dark";
+
+  const logoUrl = isDark
+    ? "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095267/full_logo_horizontal_coloured_light_kl0irx.png"
+    : "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095341/full_logo_horizontal_coloured_dark_kpiv6u.png";
 
   return (
     <motion.footer
@@ -79,10 +86,12 @@ export default function Footer() {
           {/* Brand Section */}
           <motion.div className="lg:col-span-1" variants={itemVariants}>
             <Link href="/" className="mb-4 flex items-center gap-2">
-              <Cloud className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold text-foreground">
-                Onchain Suite
-              </span>
+              <Image
+                src={logoUrl}
+                width={200}
+                height={100}
+                alt="OnchainSuite Logo"
+              />
             </Link>
             <p className="mb-4 text-sm text-muted-foreground">
               The first integrated communication layer built natively for Web3
