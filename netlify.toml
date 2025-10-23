@@ -1,5 +1,5 @@
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "******"
+  SECRETS_SCAN_OMIT_KEYS = "NODE_ENV"
 
 [build]
   command = "sh -c 'prisma generate && next build'"
