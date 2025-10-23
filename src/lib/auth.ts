@@ -67,6 +67,13 @@ export const auth = betterAuth({
       },
     },
   },
+  onAPIError: {
+    throw: true,
+    onError: (error) => {
+      // Custom error handling
+      throw error;
+    },
+  },
   user: {
     additionalFields: {
       firstName: {

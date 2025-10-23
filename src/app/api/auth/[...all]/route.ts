@@ -55,7 +55,7 @@ async function protect(req: NextRequest): Promise<ArcjetDecision> {
   if (session?.user.id) {
     userId = session.user.id;
   } else {
-    userId = ip(req) || "127.0.0.1"; // Fall back to local IP if none
+    userId = ip(req) ?? "127.0.0.1"; // Fall back to local IP if none
   }
 
   // If this is a signup then use the special protectSignup rule

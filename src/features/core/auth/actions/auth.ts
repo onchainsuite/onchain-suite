@@ -26,21 +26,27 @@ export const signIn = async (data: SignInFormData) => {
 
 export const signUp = async (data: SignUpFormData) => {
   try {
-    await auth.api.signUpEmail({
+    const result = await auth.api.signUpEmail({
       body: {
         name: getFullName(data.firstName, data.lastName),
         email: data.email,
         password: data.password,
       },
     });
+    return { success: true, data: result };
   } catch (error) {
     console.error(error);
     if (error instanceof APIError) {
       return {
+        success: false,
         error: error.message,
         status: error.status,
       };
     }
+    return {
+      success: false,
+      error: "An unexpected error occurred",
+    };
   }
 };
 

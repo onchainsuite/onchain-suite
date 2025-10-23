@@ -23,7 +23,7 @@ import {
   PasswordField,
   PasswordStrengthIndicator,
 } from "./shared";
-import { signUp, syncUserDataWithGuard } from "@/auth/actions";
+import { signUp } from "@/auth/actions";
 import { type SignUpFormData, signUpSchema } from "@/auth/validation";
 
 interface SignUpFormProps {
@@ -53,13 +53,16 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
-      await signUp(data);
+      const result = await signUp(data);
+
+      // Check if sign up was successful
+      if (!result?.success) {
+        toast.error(result?.error ?? "Failed to create account");
+        return;
+      }
 
       // Store form data for onboarding
       setValue(data);
-
-      // Sync user to our database with additional profile data
-      await syncUserDataWithGuard(data);
 
       toast.success(
         "Account created successfully! Please check your email to verify your account."
