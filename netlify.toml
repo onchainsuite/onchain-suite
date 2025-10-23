@@ -1,0 +1,2 @@
+[build.environment]
+  NETLIFY_BUILD_SECRETS_SCAN_OMIT = "NODE_ENV"
