@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Clock, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/ui/badge";
@@ -17,39 +17,22 @@ import {
 } from "@/ui/card";
 import { Progress } from "@/ui/progress";
 
-import { useAuth } from "@/hooks/client";
+import { privateRoutes } from "@/config/app-routes";
 
-interface OnboardingStep {
-  id: string;
-  title: string;
-  description: string;
-  component: React.ComponentType<OnboardingStepProps>;
-}
+import { type Action } from "@/types/onboarding";
 
-interface OnboardingStepProps {
-  onNext: () => void;
-  onPrevious?: () => void;
-  onComplete: (stepData?: Record<string, boolean>) => void;
-  stepStartTime: number;
-}
-
-interface OnboardingProgress {
-  onboardingId: string;
-  totalTimeSeconds: number;
-  totalTimeFormatted: string;
-  completionPercentage: number;
-  isCompleted: boolean;
-  startedAt: Date;
-  completedAt: Date | null;
-  stepsCompleted: number;
-  totalSteps: number;
-}
+import { trackOnboardingStep } from "../actions";
+import {
+  type OnboardingStep,
+  type OnboardingStepProps,
+} from "@/onboarding/types";
+import { type OnboardingProgress } from "@/prisma/browser";
 
 // Sample onboarding steps
 const onboardingSteps: OnboardingStep[] = [
   {
     id: "welcome",
-    title: "Welcome to R3tain",
+    title: "Welcome to Onchain Suite",
     description: "Let's get you started with the basics",
     component: WelcomeStep,
   },
@@ -79,64 +62,29 @@ const onboardingSteps: OnboardingStep[] = [
   },
 ];
 
-export function OnboardingFlow() {
+export function OnboardingFlow({
+  progress,
+}: {
+  progress: OnboardingProgress | null;
+}) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [progress, setProgress] = useState<OnboardingProgress | null>(null);
   const [stepStartTime, setStepStartTime] = useState(Date.now());
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (user?.id) {
-      loadOnboardingProgress();
-    }
-  }, [user]);
-
-  const loadOnboardingProgress = async () => {
-    try {
-      const response = await fetch("/api/onboarding/track");
-      const data = await response.json();
-
-      if (data.progress) {
-        setProgress(data.progress);
-        // Find the current step based on completed steps
-        const completedSteps = data.progress.stepsCompleted;
-        const nextStepIndex = Math.min(
-          completedSteps,
-          onboardingSteps.length - 1
-        );
-        setCurrentStepIndex(nextStepIndex);
-      }
-    } catch (error) {
-      console.error("Failed to load onboarding progress:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const trackStep = async (
-    action: string,
+    action: Action,
     stepData?: Record<string, boolean>
   ) => {
-    if (!user?.id) return;
-
     const timeSpent = Math.floor((Date.now() - stepStartTime) / 1000);
     const currentStep = onboardingSteps[currentStepIndex];
 
     try {
-      await fetch("/api/onboarding/track", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          stepName: currentStep.id,
-          action,
-          timeSpentSeconds: timeSpent,
-          stepData,
-          userAgent: navigator.userAgent,
-        }),
+      await trackOnboardingStep({
+        stepName: currentStep.id,
+        action,
+        timeSpentSeconds: timeSpent,
+        stepData,
+        userAgent: navigator.userAgent,
       });
     } catch (error) {
       console.error("Failed to track onboarding step:", error);
@@ -152,8 +100,8 @@ export function OnboardingFlow() {
       await trackStep("started");
     } else {
       // Onboarding completed
-      toast.success("Onboarding completed! Welcome to R3tain!");
-      router.push("/dashboard");
+      toast.success("Onboarding completed! Welcome to Onchain Suite!");
+      router.push(privateRoutes.home);
     }
   };
 
@@ -169,21 +117,13 @@ export function OnboardingFlow() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
   const currentStep = onboardingSteps[currentStepIndex];
   const StepComponent = currentStep.component;
   const completionPercentage =
     ((currentStepIndex + 1) / onboardingSteps.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+    <div className="min-h-screen bg-linear-to-br from-background to-muted/20">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -198,7 +138,7 @@ export function OnboardingFlow() {
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {progress.totalTimeFormatted} spent
+                  {progress.timeSpentSeconds} spent
                 </span>
               </div>
             )}
@@ -290,7 +230,9 @@ function WelcomeStep({ onComplete }: OnboardingStepProps) {
         <Trophy className="h-8 w-8 text-primary" />
       </div>
       <div>
-        <h3 className="text-xl font-semibold mb-2">Welcome to R3tain!</h3>
+        <h3 className="text-xl font-semibold mb-2">
+          Welcome to Onchain Suite!
+        </h3>
         <p className="text-muted-foreground">
           You&apos;re about to discover the future of marketing automation.
           Let&apos;s get you set up in just a few minutes.
@@ -348,7 +290,8 @@ function IntegrationsStep({ onComplete, onNext }: OnboardingStepProps) {
     <div className="space-y-6">
       <h3 className="text-xl font-semibold">Connect Your Tools</h3>
       <p className="text-muted-foreground">
-        Connect your existing marketing tools to get the most out of R3tain.
+        Connect your existing marketing tools to get the most out of Onchain
+        Suite.
       </p>
       <div className="flex gap-2">
         <Button onClick={() => onComplete({ integrationsSetup: true })}>

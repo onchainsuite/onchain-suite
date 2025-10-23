@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { Mail, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -13,8 +12,7 @@ import { CheckboxFormField, InputFormField } from "@/components/form-fields";
 import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
-import { authRoutes } from "@/config/app-routes";
-import { useLocalStorage, useReCaptcha } from "@/hooks/client";
+import { useLocalStorage } from "@/hooks/client";
 import { signInWithGoogle } from "@/lib/auth-client";
 
 import {
@@ -34,9 +32,8 @@ interface SignUpFormProps {
 
 export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { push } = useRouter();
+
   const { setValue } = useLocalStorage<SignUpFormData | null>("user", null);
-  const { executeReCaptcha, isLoaded } = useReCaptcha();
 
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
@@ -56,31 +53,6 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
-      // Execute reCAPTCHA Enterprise
-      const recaptchaToken = await executeReCaptcha("signup");
-
-      if (!recaptchaToken) {
-        toast.error("reCAPTCHA verification failed. Please try again.");
-        return;
-      }
-
-      // Verify reCAPTCHA token on server
-      const recaptchaResponse = await fetch("/api/recaptcha/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: recaptchaToken,
-          action: "signup",
-        }),
-      });
-
-      if (!recaptchaResponse.ok) {
-        const recaptchaError = await recaptchaResponse.json();
-        toast.error("Security verification failed. Please try again.");
-        console.error("reCAPTCHA verification failed:", recaptchaError);
-        return;
-      }
-
       await signUp(data);
 
       // Store form data for onboarding
@@ -92,7 +64,6 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
       toast.success(
         "Account created successfully! Please check your email to verify your account."
       );
-      push(authRoutes.onboarding);
     } catch (error: unknown) {
       console.error("Sign up error:", error);
       const message = error instanceof Error ? error.message : undefined;
@@ -106,9 +77,6 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
     setIsLoading(true);
     try {
       await signInWithGoogle();
-
-      // Sync user to our database
-      // await fetch("/api/auth/sync-user", { method: "POST" });
     } catch (error: unknown) {
       console.error("OAuth error:", error);
       toast.error(`Failed to sign up with ${provider}`);
@@ -121,7 +89,7 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
     <>
       <AuthHeader
         title="Create your account"
-        subtitle="Join R3tain and revolutionize your marketing"
+        subtitle="Join Onchain Suite and revolutionize your marketing"
       />
 
       <OAuthButtons onOAuthSignIn={handleOAuthSignUp} isLoading={isLoading} />
@@ -209,16 +177,12 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
               <CheckboxFormField
                 form={form}
                 name="marketingEmails"
-                label="I'd like to receive marketing emails about R3tain
+                label="I'd like to receive marketing emails about Onchain Suite
                       updates and features"
               />
             </div>
 
-            <LoadingButton
-              isLoading={isLoading}
-              disabled={!isLoaded}
-              title={!isLoaded ? "Loading security verification..." : undefined}
-            >
+            <LoadingButton isLoading={isLoading} disabled={isLoading}>
               Create Account
             </LoadingButton>
           </form>

@@ -11,6 +11,8 @@ import { Button } from "@/ui/button";
 import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
+import { authClient } from "@/lib/auth-client";
+
 import { type ResetPasswordFormData, resetPasswordSchema } from "../validation";
 import { AuthHeader, PasswordField, PasswordStrengthIndicator } from "./shared";
 
@@ -36,28 +38,23 @@ export function ResetPasswordForm({
 
   const password = form.watch("password");
 
-  const onSubmit = async (data: ResetPasswordFormData) => {
+  const onSubmit = async (value: ResetPasswordFormData) => {
     setIsLoading(true);
+    const { password } = value;
 
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          password: data.password,
-        }),
+      const { error } = await authClient.resetPassword({
+        newPassword: password,
+        token, // required
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.error ?? "Failed to reset password");
+      if (error) {
+        toast.error(error.message);
         return;
+      } else {
+        setIsSuccess(true);
+        toast.success("Password reset successfully!");
       }
-
-      setIsSuccess(true);
-      toast.success("Password reset successfully!");
-
       // Redirect after success
       setTimeout(() => {
         onPasswordReset?.();

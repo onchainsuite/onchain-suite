@@ -9,10 +9,10 @@ import {
 } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useTheme } from "next-themes";
 import React, { useRef, useState } from "react";
 import { v7 } from "uuid";
 
+import { useGetLogo } from "@/hooks/client";
 import { cn } from "@/lib/utils";
 
 interface NavbarProps {
@@ -234,13 +234,7 @@ export const MobileNavToggle = ({
 };
 
 export const NavbarLogo = () => {
-  const { resolvedTheme } = useTheme();
-
-  const isDark = resolvedTheme === "dark";
-
-  const logoUrl = isDark
-    ? "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761094220/onchain_light_wylceb.png"
-    : "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761093444/onchain_suite_bf926w.png";
+  const { logoIcon } = useGetLogo();
 
   return (
     <Link
@@ -248,7 +242,7 @@ export const NavbarLogo = () => {
       className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal"
     >
       <Image
-        src={logoUrl}
+        src={logoIcon}
         width={40}
         height={40}
         alt={"Onchain Logo"}

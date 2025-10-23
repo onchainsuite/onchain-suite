@@ -25,3 +25,29 @@ export interface PersonalInfoStepProps {
 export interface OnboardingStepsProps extends PersonalInfoStepProps {
   onBack: () => void;
 }
+
+export interface OnboardingStep {
+  id: string;
+  title: string;
+  description: string;
+  component: React.ComponentType<OnboardingStepProps>;
+}
+
+export interface OnboardingStepProps {
+  onNext: () => void;
+  onPrevious?: () => void;
+  onComplete: (stepData?: Record<string, boolean>) => void;
+  stepStartTime: number;
+}
+
+export interface OnboardingProgress {
+  onboardingId: string;
+  totalTimeSeconds: number;
+  totalTimeFormatted: string;
+  completionPercentage: number;
+  isCompleted: boolean;
+  startedAt: Date;
+  completedAt: Date | null;
+  stepsCompleted: number;
+  totalSteps: number;
+}

@@ -12,6 +12,8 @@ import { Button } from "@/ui/button";
 import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
+import { authClient } from "@/lib/auth-client";
+
 import {
   type ForgotPasswordFormData,
   forgotPasswordSchema,
@@ -38,25 +40,23 @@ export function ForgotPasswordForm({
 
   const email = form.watch("email");
 
-  const onSubmit = async (data: ForgotPasswordFormData) => {
+  const onSubmit = async (value: ForgotPasswordFormData) => {
     setIsLoading(true);
 
+    const { email } = value;
+
     try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email }),
+      const { data, error } = await authClient.requestPasswordReset({
+        email,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.error ?? "Failed to send reset email");
-        return;
+      if (error) {
+        toast.error(error.message);
+      } else {
+        setIsEmailSent(true);
+        setCountdown(60);
+        toast.success(data.message);
       }
-
-      setIsEmailSent(true);
-      setCountdown(60);
-      toast.success("Password reset email sent successfully!");
     } catch (error) {
       console.error("Forgot password error:", error);
       toast.error("An unexpected error occurred");

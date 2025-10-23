@@ -13,7 +13,6 @@ import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
 import { authRoutes, privateRoutes } from "@/config/app-routes";
-import { useReCaptcha } from "@/hooks/client";
 import { signInWithGoogle } from "@/lib/auth-client";
 
 import {
@@ -38,7 +37,6 @@ export function SignInForm({
   const [isLoading, setIsLoading] = useState(false);
   const { push } = useRouter();
   const searchParams = useSearchParams();
-  const { executeReCaptcha, isLoaded } = useReCaptcha();
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -51,37 +49,9 @@ export function SignInForm({
   const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
     try {
-      // Execute reCAPTCHA Enterprise
-      const recaptchaToken = await executeReCaptcha("signin");
-
-      if (!recaptchaToken) {
-        toast.error("reCAPTCHA verification failed. Please try again.");
-        return;
-      }
-
-      // Verify reCAPTCHA token on server
-      const recaptchaResponse = await fetch("/api/recaptcha/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: recaptchaToken,
-          action: "signin",
-        }),
-      });
-
-      if (!recaptchaResponse.ok) {
-        const recaptchaError = await recaptchaResponse.json();
-        toast.error("Security verification failed. Please try again.");
-        console.error("reCAPTCHA verification failed:", recaptchaError);
-        return;
-      }
-
       await signIn(data);
 
       toast.success("Successfully signed in!");
-
-      // Sync user to our database
-      await fetch("/api/auth/sync-user", { method: "POST" });
 
       // Check onboarding status
       const onboardingResponse = await fetch("/api/onboarding/status");
@@ -173,11 +143,7 @@ export function SignInForm({
               </button>
             </div>
 
-            <LoadingButton
-              isLoading={isLoading}
-              disabled={!isLoaded}
-              title={!isLoaded ? "Loading security verification..." : undefined}
-            >
+            <LoadingButton isLoading={isLoading} disabled={isLoading}>
               Sign In
             </LoadingButton>
           </form>

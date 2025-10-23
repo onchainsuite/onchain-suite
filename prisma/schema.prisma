@@ -38,7 +38,7 @@ model User {
   accounts              Account[]
   organizationMembers   OrganizationMember[]
   projectMembers        ProjectMember[]
-  onboardingProgress    OnboardingProgress[]
+  onboardingProgress    OnboardingProgress?
   campaigns             Campaign[]
   automationFlows       AutomationFlow[]
   emailTemplates        EmailTemplate[]
@@ -152,7 +152,6 @@ model Project {
   emailTemplates     EmailTemplate[]
   integrations       Integration[]
   notifications      Notification[]
-  onboardingProgress OnboardingProgress[]
   analyticsEvents    AnalyticsEvent[]
   sessions           Session[]
   organization       Organization?        @relation(fields: [organizationId], references: [id])
@@ -186,8 +185,7 @@ model ProjectMember {
 
 model OnboardingProgress {
   id                   String              @id @default(cuid())
-  userId               String              @map("user_id")
-  projectId            String?             @map("project_id")
+  userId               String              @map("user_id") @unique
   currentStep          String              @default("welcome") @map("current_step")
   completedSteps       String[]            @default([]) @map("completed_steps")
   totalSteps           Int                 @default(5) @map("total_steps")
@@ -202,11 +200,9 @@ model OnboardingProgress {
   abandonedAt          DateTime?           @map("abandoned_at") @db.Timestamptz(6)
   createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  project              Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   onboardingStepLogs   OnboardingStepLog[]
 
-  @@unique([userId, projectId])
   @@map("onboarding_progress")
 }
 

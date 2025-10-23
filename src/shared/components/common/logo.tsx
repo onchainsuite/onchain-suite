@@ -1,29 +1,20 @@
-import { Blocks } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
-interface LogoProps {
-  className?: string;
-  isCollapsed?: boolean;
-  onClick?: () => void;
-}
+import { useGetLogo } from "@/hooks/client";
 
-export function Logo({ className, isCollapsed, onClick }: LogoProps) {
+export function Logo() {
+  const { logoIcon } = useGetLogo();
+
   return (
-    <button
-      type="button"
-      className={`flex cursor-pointer items-center gap-3 ${className}`}
-      onClick={onClick}
-    >
-      <div className="from-primary to-primary/80 text-primary-foreground shadow-primary/20 flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br shadow-md">
-        <Blocks className="h-5 w-5" />
-      </div>
-
-      {!isCollapsed && (
-        <div className="text-foreground flex items-baseline font-bold">
-          <span>R</span>
-          <span className="text-primary">3</span>
-          <span>tain</span>
-        </div>
-      )}
-    </button>
+    <Link href="/">
+      <Image
+        src={logoIcon}
+        width={40}
+        height={40}
+        alt="Onchain Suite Logo"
+        suppressHydrationWarning
+      />
+    </Link>
   );
 }

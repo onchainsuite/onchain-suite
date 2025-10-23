@@ -3,6 +3,7 @@
 import { APIError } from "better-auth/api";
 
 import { auth } from "@/lib/auth";
+import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
 
 import { type SignInFormData, type SignUpFormData } from "@/auth/validation";
@@ -42,3 +43,14 @@ export const signUp = async (data: SignUpFormData) => {
     }
   }
 };
+
+/**
+ * Helper to get authenticated user ID
+ */
+export async function getAuthenticatedUserId(): Promise<string> {
+  const session = await getAuthSession();
+  if (!session) {
+    throw new Error("User not authenticated");
+  }
+  return session.user.id;
+}

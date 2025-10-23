@@ -7,7 +7,7 @@ import arcjet, {
   slidingWindow,
 } from "@arcjet/next";
 
-import { env } from "@/validations/env";
+import { serverEnv } from "./env";
 
 export {
   detectBot,
@@ -19,7 +19,7 @@ export {
 };
 
 export default arcjet({
-  key: env.ARCJET_KEY,
+  key: serverEnv.ARCJET_KEY,
   characteristics: ["fingerprint"],
   rules: [shield({ mode: "LIVE" })],
 });

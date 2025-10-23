@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { v7 } from "uuid";
 
@@ -15,19 +16,19 @@ import {
 } from "@/ui/resizable-navbar";
 import { ThemeModeToggle } from "@/ui/theme-mode-toggle";
 
-export function OnchainNavbar() {
-  const navItems = [
-    {
-      name: "Products",
-      link: "#products",
-    },
-    {
-      name: "Blog",
-      link: "#blog",
-    },
-  ];
+import { authRoutes } from "@/config/app-routes";
 
+import { navItems } from "../constants";
+
+export function OnchainNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { push } = useRouter();
+
+  const handleRouting = (type: "login" | "signup") => {
+    const route = type === "login" ? authRoutes.login : authRoutes.register;
+    push(route);
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <Navbar>
@@ -37,8 +38,18 @@ export function OnchainNavbar() {
         <NavItems items={navItems} />
         <div className="flex items-center gap-4 relative">
           <ThemeModeToggle />
-          <NavbarButton variant="secondary">Login</NavbarButton>
-          <NavbarButton variant="primary">Get Started</NavbarButton>
+          <NavbarButton
+            variant="secondary"
+            onClick={() => handleRouting("login")}
+          >
+            Login
+          </NavbarButton>
+          <NavbarButton
+            variant="primary"
+            onClick={() => handleRouting("signup")}
+          >
+            Get Started
+          </NavbarButton>
         </div>
       </NavBody>
 
@@ -71,14 +82,14 @@ export function OnchainNavbar() {
           ))}
           <div className="flex w-full flex-col gap-4">
             <NavbarButton
-              onClick={() => setIsMobileMenuOpen(false)}
+              onClick={() => handleRouting("login")}
               variant="secondary"
               className="w-full"
             >
               Login
             </NavbarButton>
             <NavbarButton
-              onClick={() => setIsMobileMenuOpen(false)}
+              onClick={() => handleRouting("signup")}
               variant="primary"
               className="w-full"
             >

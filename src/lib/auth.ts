@@ -6,6 +6,10 @@ import { prisma } from "@/lib/prisma";
 
 import { serverEnv } from "./env";
 import { getFullName } from "./utils";
+import {
+  sendResetPasswordEmail,
+  sendVerificationEmail,
+} from "@/shared/emails/actions";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -14,6 +18,13 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendResetPasswordEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl: url,
+      });
+    },
   },
   socialProviders: {
     google: {
@@ -36,6 +47,13 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendVerificationEmail({
+        to: user.email,
+        verifyUrl: url,
+        name: user.name,
+      });
+    },
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
   },

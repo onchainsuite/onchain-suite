@@ -14,6 +14,7 @@ export const signInWithGoogle = async () => {
       callbackURL: privateRoutes.home,
       fetchOptions: {
         onError: (error) => {
+          console.error("🚀 ~ signInWithGoogle ~ error:", error);
           toast.error(error.error.message);
         },
       },

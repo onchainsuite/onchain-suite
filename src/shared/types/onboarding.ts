@@ -1,6 +1,8 @@
+export type Action = "started" | "completed" | "skipped" | "revisited";
+
 export interface OnboardingStepData {
   stepName: string;
-  action: "started" | "completed" | "skipped" | "revisited";
+  action: Action;
   timeSpentSeconds?: number;
   stepData?: Record<string, unknown>;
   userAgent?: string;
