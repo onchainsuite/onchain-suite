@@ -3,6 +3,5 @@
     "env": {
       "PRISMA_GENERATE_SKIP_AUTOINSTALL": "false"
     }
-  },
-  "includeFiles": ["prisma/generated/**"]
+  }
 }
