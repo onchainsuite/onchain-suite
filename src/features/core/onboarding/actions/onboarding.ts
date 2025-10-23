@@ -178,9 +178,9 @@ export async function completeOnboarding() {
 /**
  * Reset onboarding progress
  */
-export async function resetOnboarding(userId: string) {
+export async function resetOnboarding() {
   // Verify authentication (admin action)
-  await getAuthenticatedUserId();
+  const userId = await getAuthenticatedUserId();
 
   const onboarding = await prisma.onboardingProgress.findUnique({
     where: { userId },
@@ -191,7 +191,7 @@ export async function resetOnboarding(userId: string) {
     throw new Error("Onboarding progress not found");
   }
 
-  return await prisma.onboardingProgress.update({
+  await prisma.onboardingProgress.update({
     where: { id: onboarding.id },
     data: {
       currentStep: "welcome",

@@ -19,14 +19,13 @@ import { Progress } from "@/ui/progress";
 
 import { privateRoutes } from "@/config/app-routes";
 
-import { type Action } from "@/types/onboarding";
+import { type Action, type OnboardingCompletionTime } from "@/types/onboarding";
 
 import { trackOnboardingStep } from "../actions";
 import {
   type OnboardingStep,
   type OnboardingStepProps,
 } from "@/onboarding/types";
-import { type OnboardingProgress } from "@/prisma/browser";
 
 // Sample onboarding steps
 const onboardingSteps: OnboardingStep[] = [
@@ -65,7 +64,7 @@ const onboardingSteps: OnboardingStep[] = [
 export function OnboardingFlow({
   progress,
 }: {
-  progress: OnboardingProgress | null;
+  progress: OnboardingCompletionTime | null;
 }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [stepStartTime, setStepStartTime] = useState(Date.now());
@@ -138,7 +137,7 @@ export function OnboardingFlow({
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {progress.timeSpentSeconds} spent
+                  {progress.totalTimeFormatted} spent
                 </span>
               </div>
             )}
