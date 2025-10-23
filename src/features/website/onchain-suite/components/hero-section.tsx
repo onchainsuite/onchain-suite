@@ -1,9 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import { FlipWords } from "@/components/ui/flip-words";
 
+import { authRoutes } from "@/config/app-routes";
+
 export function HeroSection() {
+  const { push } = useRouter();
   // Web3-relevant words for Onchain Suite
   const fromWords = [
     "Wallet Analytics",
@@ -59,6 +64,7 @@ export function HeroSection() {
             <Button
               size="lg"
               className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => push(authRoutes.register)}
             >
               Get Started
             </Button>
