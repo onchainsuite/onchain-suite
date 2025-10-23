@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "./generated/prisma"
+  provider      = "prisma-client"
+  output        = "./generated/prisma"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -139,25 +140,25 @@ model OrganizationMember {
 }
 
 model Project {
-  id                 String               @id @default(cuid())
-  organizationId     String?              @map("organization_id")
-  name               String
-  description        String?
-  slug               String
-  settings           Json                 @default("{}")
-  isActive           Boolean              @default(true) @map("is_active")
-  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  automationFlows    AutomationFlow[]
-  emailTemplates     EmailTemplate[]
-  integrations       Integration[]
-  notifications      Notification[]
-  analyticsEvents    AnalyticsEvent[]
-  sessions           Session[]
-  organization       Organization?        @relation(fields: [organizationId], references: [id])
-  projectMembers     ProjectMember[]
-  campaigns          Campaign[]
-  subscribers        Subscriber[]
+  id              String           @id @default(cuid())
+  organizationId  String?          @map("organization_id")
+  name            String
+  description     String?
+  slug            String
+  settings        Json             @default("{}")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  automationFlows AutomationFlow[]
+  emailTemplates  EmailTemplate[]
+  integrations    Integration[]
+  notifications   Notification[]
+  analyticsEvents AnalyticsEvent[]
+  sessions        Session[]
+  organization    Organization?    @relation(fields: [organizationId], references: [id])
+  projectMembers  ProjectMember[]
+  campaigns       Campaign[]
+  subscribers     Subscriber[]
 
   @@unique([organizationId, slug])
   @@map("projects")
@@ -185,7 +186,7 @@ model ProjectMember {
 
 model OnboardingProgress {
   id                   String              @id @default(cuid())
-  userId               String              @map("user_id") @unique
+  userId               String              @unique @map("user_id")
   currentStep          String              @default("welcome") @map("current_step")
   completedSteps       String[]            @default([]) @map("completed_steps")
   totalSteps           Int                 @default(5) @map("total_steps")
