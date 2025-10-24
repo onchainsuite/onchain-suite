@@ -13,6 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { signOut, useSession } from "@/lib/auth-client";
+import { getInitials } from "@/lib/user-utils";
+
 import { TeamSwitcher } from "./team-switcher";
 
 interface Team {
@@ -37,6 +40,7 @@ export const UserMenu = React.memo(function UserMenu({
     () => teams.find((t) => t.name === currentTeam),
     [teams, currentTeam]
   );
+  const { data: session } = useSession();
 
   return (
     <DropdownMenu>
@@ -46,9 +50,12 @@ export const UserMenu = React.memo(function UserMenu({
           className="relative h-10 gap-2 rounded-full pl-2 pr-3 text-sidebar-foreground hover:bg-sidebar-foreground/10"
         >
           <Avatar className="h-7 w-7">
-            <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
+            <AvatarImage
+              src={session?.user.image ?? ""}
+              alt={session?.user.name}
+            />
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              OS
+              {getInitials(session?.user.name ?? "")}
             </AvatarFallback>
           </Avatar>
           <span className="hidden md:inline text-sm">{currentTeam}</span>
@@ -60,17 +67,17 @@ export const UserMenu = React.memo(function UserMenu({
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage
-                src="/placeholder.svg?height=40&width=40"
-                alt="User"
+                src={session?.user.image ?? ""}
+                alt={session?.user.name}
               />
               <AvatarFallback className="bg-primary text-primary-foreground">
-                OS
+                {getInitials(session?.user.name ?? "")}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="font-semibold">OnchainSuite</span>
+              <span className="font-semibold">{session?.user.name}</span>
               <span className="text-xs text-muted-foreground">
-                onchainsuite@gmail.com
+                {session?.user.email}
               </span>
             </div>
           </div>
@@ -109,13 +116,11 @@ export const UserMenu = React.memo(function UserMenu({
         <DropdownMenuItem>Pricing & Features</DropdownMenuItem>
         <DropdownMenuItem>Account & Billing</DropdownMenuItem>
         <DropdownMenuItem>Product Updates</DropdownMenuItem>
-        <DropdownMenuItem>HubSpot Academy</DropdownMenuItem>
-        <DropdownMenuItem>Training & Services</DropdownMenuItem>
         <DropdownMenuSeparator />
 
         <div className="flex items-center justify-between px-2 py-1.5">
-          <DropdownMenuItem className="p-0">Sign out</DropdownMenuItem>
-          <DropdownMenuItem className="p-0">Privacy policy</DropdownMenuItem>
+          <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+          <DropdownMenuItem>Privacy policy</DropdownMenuItem>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

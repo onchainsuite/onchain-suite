@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Star, X } from "lucide-react";
+import { PanelLeftIcon, Star, X } from "lucide-react";
 import React from "react";
 
 import { Logo } from "@/components/common";
@@ -226,12 +226,14 @@ export function DashboardSidebar({
               variant="ghost"
               size={isCollapsed ? "icon" : "sm"}
               onClick={onToggle}
-              className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar"
+              className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar items-center"
               aria-label={
                 isCollapsed ? "Expand navigation" : "Collapse navigation"
               }
             >
-              <Menu className="h-5 w-5" />
+              <PanelLeftIcon
+                className={cn("size-5", isCollapsed && "mx-auto")}
+              />
               {!isCollapsed && <span>Collapse the navigation</span>}
             </Button>
           </div>
