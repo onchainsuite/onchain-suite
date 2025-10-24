@@ -171,18 +171,18 @@ export const SearchBar = React.memo(function SearchBar() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sidebar-foreground/60" />
+          <Search className="absolute w-4 h-4 -translate-y-1/2 left-3 top-1/2 text-sidebar-foreground/60" />
           <Input
             ref={inputRef}
             type="search"
-            placeholder="Search HubSpot"
+            placeholder="Search OnchainSuite..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => setOpen(true)}
             className="w-full bg-sidebar-foreground/10 border-sidebar-foreground/20 pl-9 text-sidebar-foreground placeholder:text-sidebar-foreground/60 focus-visible:bg-sidebar-foreground/15 focus-visible:ring-sidebar-foreground/30"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1">
+          <div className="absolute items-center hidden gap-1 -translate-y-1/2 right-3 top-1/2 md:flex">
             <HelpTooltip
               content="Search for pages and features. Use arrow keys to navigate results, Enter to select, and Escape to close."
               side="bottom"
