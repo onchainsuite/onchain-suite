@@ -6,3 +6,4 @@ export * from "./navbar";
 export * from "./product-showcase";
 export * from "./product-tab-content";
 export * from "./products-section";
+export * from "./user-menu";

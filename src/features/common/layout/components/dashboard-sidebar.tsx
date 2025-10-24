@@ -1,31 +1,17 @@
 "use client";
 
-import {
-  BarChart3,
-  Bookmark,
-  Code,
-  Database,
-  FileText,
-  Grid3x3,
-  Headphones,
-  Home,
-  type LucideIcon,
-  Menu,
-  ShoppingCart,
-  Star,
-  TrendingUp,
-  Wind,
-  X,
-  Zap,
-} from "lucide-react";
+import { Menu, Star, X } from "lucide-react";
 import React from "react";
 
+import { Logo } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { cn } from "@/lib/utils";
 
+import { dashboardNavItems } from "../config/nav-items";
+import { type SidebarNavItem } from "../types";
 import { HelpTooltip } from "./help-tooltip";
 import { NavItem } from "./sidebar/nav-item"; // Import NavItem component
 import { SubmenuPanel } from "./sidebar/submenu-panel";
@@ -34,91 +20,6 @@ import {
   useRecentItems,
   useSidebar,
 } from "@/common/layout/hooks";
-
-interface SubmenuItem {
-  title: string;
-  href: string;
-  badge?: string;
-  submenu?: {
-    title: string;
-    href: string;
-  }[];
-}
-
-interface SidebarNavItem {
-  title: string;
-  icon: LucideIcon;
-  href?: string;
-  submenu?: SubmenuItem[];
-}
-
-const navItems: SidebarNavItem[] = [
-  { title: "Home", icon: Home, href: "/" },
-  { title: "Bookmarks", icon: Bookmark, href: "/bookmarks" },
-  { title: "CRM", icon: Grid3x3, href: "/crm" },
-  { title: "Marketing", icon: TrendingUp, href: "/marketing" },
-  {
-    title: "Content",
-    icon: FileText,
-    submenu: [
-      { title: "Website Pages", href: "/content/website" },
-      { title: "Landing Pages", href: "/content/landing" },
-      { title: "Blog", href: "/content/blog" },
-      {
-        title: "Videos",
-        href: "/content/videos",
-        submenu: [
-          { title: "Video Library", href: "/content/videos/library" },
-          { title: "Upload Video", href: "/content/videos/upload" },
-          { title: "Video Settings", href: "/content/videos/settings" },
-        ],
-      },
-      {
-        title: "Podcasts",
-        href: "/content/podcasts",
-        submenu: [
-          { title: "Episodes", href: "/content/podcasts/episodes" },
-          { title: "Series", href: "/content/podcasts/series" },
-        ],
-      },
-      {
-        title: "Case Studies",
-        href: "/content/case-studies",
-        submenu: [
-          { title: "Published", href: "/content/case-studies/published" },
-          { title: "Drafts", href: "/content/case-studies/drafts" },
-        ],
-      },
-      { title: "Embeds", href: "/content/embeds" },
-      { title: "Remix", href: "/content/remix" },
-      { title: "SEO", href: "/content/seo" },
-      { title: "Memberships", href: "/content/memberships" },
-      { title: "Design Manager", href: "/content/design" },
-      { title: "Brand", href: "/content/brand", badge: "Beta" },
-    ],
-  },
-  { title: "Sales", icon: ShoppingCart, href: "/sales" },
-  { title: "Commerce", icon: ShoppingCart, href: "/commerce" },
-  {
-    title: "Service",
-    icon: Headphones,
-    submenu: [
-      { title: "Help Desk", href: "/service/help-desk" },
-      { title: "Customer Success", href: "/service/customer-success" },
-      { title: "Customer Agent", href: "/service/customer-agent" },
-      { title: "Chatflows", href: "/service/chatflows" },
-      { title: "Knowledge Base", href: "/service/knowledge-base" },
-      { title: "Customer Portal", href: "/service/customer-portal" },
-      { title: "Feedback Surveys", href: "/service/feedback-surveys" },
-      { title: "Service Analytics", href: "/service/analytics" },
-    ],
-  },
-  { title: "Data Management", icon: Database, href: "/data" },
-  { title: "Automation", icon: Zap, href: "/automation" },
-  { title: "Reporting", icon: BarChart3, href: "/reporting" },
-  { title: "Breeze", icon: Wind, href: "/breeze" },
-  { title: "Development", icon: Code, href: "/development" },
-];
 
 interface DashboardSidebarProps {
   isCollapsed: boolean;
@@ -153,12 +54,12 @@ export function DashboardSidebar({
   const { addRecentItem } = useRecentItems();
 
   const navItemTitles = React.useMemo(
-    () => navItems.map((item) => item.title),
+    () => dashboardNavItems.map((item) => item.title),
     []
   );
 
   const handleNavItemClick = React.useCallback(
-    (item: { title: string; href?: string; submenu?: any }) => {
+    (item: SidebarNavItem) => {
       // Add to recent items if it has an href
       if (item.href) {
         addRecentItem({
@@ -218,17 +119,7 @@ export function DashboardSidebar({
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-            {!isCollapsed && (
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-linear-to-br from-orange-500 to-red-600" />
-                <span className="font-semibold text-sidebar-foreground">
-                  HubSpot
-                </span>
-              </div>
-            )}
-            {isCollapsed && (
-              <div className="mx-auto h-8 w-8 rounded-lg bg-linear-to-br from-orange-500 to-red-600" />
-            )}
+            <Logo />
             <Button
               variant="ghost"
               size="icon"
@@ -282,7 +173,7 @@ export function DashboardSidebar({
                 )}
 
                 <ul className="space-y-1" role="list">
-                  {navItems.map((item, index) => (
+                  {dashboardNavItems.map((item, index) => (
                     <div key={item.title} className="group relative">
                       <NavItem
                         title={item.title}
@@ -347,11 +238,13 @@ export function DashboardSidebar({
         </div>
 
         {hoveredItem &&
-          navItems.find((item) => item.title === hoveredItem)?.submenu && (
+          dashboardNavItems.find((item) => item.title === hoveredItem)
+            ?.submenu && (
             <SubmenuPanel
               title={hoveredItem}
               items={
-                navItems.find((item) => item.title === hoveredItem)!.submenu!
+                dashboardNavItems.find((item) => item.title === hoveredItem)
+                  ?.submenu ?? []
               }
               isCollapsed={isCollapsed}
               position={submenuPosition}

@@ -188,7 +188,7 @@ export const SearchBar = React.memo(function SearchBar() {
               side="bottom"
               className="mr-1"
             />
-            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded bg-sidebar-foreground/10 px-1.5 font-mono text-[10px] font-medium text-sidebar-foreground/60">
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded bg-sidebar-foreground/10 px-1.5 font-mono text-[12px] font-medium text-sidebar-foreground/60">
               {getModifierKey()}J
             </kbd>
           </div>

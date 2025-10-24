@@ -43,8 +43,8 @@ export const SubmenuPanel = React.memo(function SubmenuPanel({
     <div
       ref={panelRef}
       className={cn(
-        "fixed z-[60] w-64 rounded-lg border border-sidebar-border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95 duration-200",
-        isCollapsed ? "left-[4.5rem]" : "left-[17rem]"
+        "fixed z-60 w-64 rounded-lg border border-sidebar-border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95 duration-200",
+        isCollapsed ? "left-18" : "left-68"
       )}
       style={{ top: `${position.top}px` }}
       onMouseEnter={onMouseEnter}

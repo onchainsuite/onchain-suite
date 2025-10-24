@@ -1,13 +1,5 @@
 "use client";
 
-import {
-  HelpCircle,
-  Phone,
-  Plus,
-  Settings,
-  Sparkles,
-  Video,
-} from "lucide-react";
 import type * as React from "react";
 import { useEffect, useState } from "react";
 
@@ -15,12 +7,13 @@ import { FloatingDock } from "@/ui/floating-dock";
 
 import { cn } from "@/lib/utils";
 
+import { DOCK_ITEMS } from "../config";
 import { type BreadcrumbItem, Breadcrumbs } from "./breadcrumbs";
 import { CommandPalette } from "./command-palette";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog";
-import { NotificationsBellIcon, NotificationsCenter } from "./notifications";
+import { NotificationsCenter } from "./notifications";
 import { PreferencesDialog } from "./preferences-dialog";
 import { QuickTip } from "./quick-tip";
 import { useDashboardLayout, useQuickTips } from "@/common/layout/hooks";
@@ -29,49 +22,6 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
 }
-
-const DOCK_ITEMS = [
-  {
-    title: "Create",
-    icon: <Plus className="h-full w-full text-foreground" />,
-    href: "#",
-  },
-  {
-    title: "Upgrade",
-    icon: <HelpCircle className="h-full w-full text-foreground" />,
-    href: "#",
-  },
-  {
-    title: "Call",
-    icon: <Phone className="h-full w-full text-foreground" />,
-    href: "#",
-  },
-  {
-    title: "Video",
-    icon: <Video className="h-full w-full text-foreground" />,
-    href: "#",
-  },
-  {
-    title: "Help",
-    icon: <HelpCircle className="h-full w-full text-foreground" />,
-    href: "#",
-  },
-  {
-    title: "Settings",
-    icon: <Settings className="h-full w-full text-foreground" />,
-    href: "#",
-  },
-  {
-    title: "Notifications",
-    icon: <NotificationsBellIcon className="text-foreground" />,
-    href: "#",
-  },
-  {
-    title: "Assistant",
-    icon: <Sparkles className="h-full w-full text-foreground" />,
-    href: "#",
-  },
-];
 
 export function DashboardLayout({
   children,

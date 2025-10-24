@@ -1,6 +1,4 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { v7 } from "uuid";
 
 import {
@@ -16,19 +14,16 @@ import {
 } from "@/ui/resizable-navbar";
 import { ThemeModeToggle } from "@/ui/theme-mode-toggle";
 
-import { authRoutes } from "@/config/app-routes";
+import { useSession } from "@/lib/auth-client";
 
 import { navItems } from "../constants";
+import { useHandNavRouting } from "../hooks";
+import { DashboardButton, NavbarButtonsSkeleton, UserMenu } from "./user-menu";
 
 export function OnchainNavbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { push } = useRouter();
-
-  const handleRouting = (type: "login" | "signup") => {
-    const route = type === "login" ? authRoutes.login : authRoutes.register;
-    push(route);
-    setIsMobileMenuOpen(false);
-  };
+  const { isMobileMenuOpen, setIsMobileMenuOpen, handleRouting } =
+    useHandNavRouting();
+  const { data: session, isPending } = useSession();
 
   return (
     <Navbar>
@@ -38,18 +33,29 @@ export function OnchainNavbar() {
         <NavItems items={navItems} />
         <div className="flex items-center gap-4 relative">
           <ThemeModeToggle />
-          <NavbarButton
-            variant="secondary"
-            onClick={() => handleRouting("login")}
-          >
-            Login
-          </NavbarButton>
-          <NavbarButton
-            variant="primary"
-            onClick={() => handleRouting("signup")}
-          >
-            Get Started
-          </NavbarButton>
+          {isPending ? (
+            <NavbarButtonsSkeleton />
+          ) : session ? (
+            <>
+              <DashboardButton onClick={() => handleRouting("dashboard")} />
+              <UserMenu />
+            </>
+          ) : (
+            <>
+              <NavbarButton
+                variant="secondary"
+                onClick={() => handleRouting("login")}
+              >
+                Login
+              </NavbarButton>
+              <NavbarButton
+                variant="primary"
+                onClick={() => handleRouting("signup")}
+              >
+                Get Started
+              </NavbarButton>
+            </>
+          )}
         </div>
       </NavBody>
 
@@ -80,21 +86,39 @@ export function OnchainNavbar() {
               <span className="block">{item.name}</span>
             </a>
           ))}
+
           <div className="flex w-full flex-col gap-4">
-            <NavbarButton
-              onClick={() => handleRouting("login")}
-              variant="secondary"
-              className="w-full"
-            >
-              Login
-            </NavbarButton>
-            <NavbarButton
-              onClick={() => handleRouting("signup")}
-              variant="primary"
-              className="w-full"
-            >
-              Get Started
-            </NavbarButton>
+            {isPending ? (
+              <NavbarButtonsSkeleton />
+            ) : session ? (
+              <>
+                <NavbarButton
+                  onClick={() => handleRouting("dashboard")}
+                  variant="primary"
+                  className="w-full"
+                >
+                  Dashboard
+                </NavbarButton>
+                <UserMenu />
+              </>
+            ) : (
+              <>
+                <NavbarButton
+                  onClick={() => handleRouting("login")}
+                  variant="secondary"
+                  className="w-full"
+                >
+                  Login
+                </NavbarButton>
+                <NavbarButton
+                  onClick={() => handleRouting("signup")}
+                  variant="primary"
+                  className="w-full"
+                >
+                  Get Started
+                </NavbarButton>
+              </>
+            )}
           </div>
         </MobileNavMenu>
       </MobileNav>

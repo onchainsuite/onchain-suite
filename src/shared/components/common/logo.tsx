@@ -3,16 +3,24 @@ import Link from "next/link";
 
 import { useGetLogo } from "@/hooks/client";
 
-export function Logo() {
-  const { logoIcon } = useGetLogo();
+export function Logo({
+  type = "icon",
+  className,
+}: {
+  type?: "icon" | "full";
+  className?: string;
+}) {
+  const { logoIcon, fullLogo } = useGetLogo();
+  const src = type === "icon" ? logoIcon : fullLogo;
 
   return (
     <Link href="/">
       <Image
-        src={logoIcon}
+        src={src}
         width={40}
         height={40}
         alt="Onchain Suite Logo"
+        className={className}
         suppressHydrationWarning
       />
     </Link>
