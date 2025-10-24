@@ -31,6 +31,7 @@
       "@/3ridge/*": ["./src/features/3ridge/*"],
       "@/onchain/*": ["./src/features/onchain/*"],
       "@/r3tain/*": ["./src/features/r3tain/*"],
+      "@/common/*": ["./src/features/common/*"],
       "@/ui/*": ["./src/shared/components/ui/*"],
       "@/components/*": ["./src/shared/components/*"],
       "@/config/*": ["./src/shared/config/*"],

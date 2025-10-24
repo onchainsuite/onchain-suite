@@ -1,5 +1,11 @@
+import { DashboardLayout } from "@/common/layout";
+
 const DashboardPage = () => {
-  return <div>DashboardPage</div>;
+  const breadcrumbs = [{ label: "Home" }];
+
+  return (
+    <DashboardLayout breadcrumbs={breadcrumbs}>Onchain Suite</DashboardLayout>
+  );
 };
 
 export default DashboardPage;
