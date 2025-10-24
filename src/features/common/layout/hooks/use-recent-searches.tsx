@@ -4,11 +4,7 @@ import { useCallback } from "react";
 
 import { useLocalStorage } from "@/hooks/client";
 
-export interface RecentSearch {
-  id: string;
-  query: string;
-  timestamp: number;
-}
+import { type RecentSearch } from "@/common/layout/types";
 
 export function useRecentSearches() {
   const { value: recentSearches, setValue: setRecentSearches } =
