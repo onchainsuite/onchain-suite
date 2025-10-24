@@ -1,3 +1,5 @@
+import { type OnboardingStep } from "@/onboarding/types";
+
 export const contactRanges = [
   { value: "0-500", label: "0 - 500" },
   { value: "501-1500", label: "501 - 1,500" },
@@ -133,4 +135,26 @@ export const goalOptions = [
     id: "grow-subscribers",
     label: "Grow my list of email subscribers",
   },
+];
+
+export const COMPLETION_PERCENTAGES: Record<OnboardingStep, number> = {
+  welcome: 0,
+  personal_info: 14.3,
+  business_address: 28.6,
+  organization_type: 42.9,
+  business_goal: 57.1,
+  important_features: 71.4,
+  contact_count: 85.7,
+  plan_selection: 100,
+};
+
+export const STEP_ORDER: OnboardingStep[] = [
+  "welcome",
+  "personal_info",
+  "business_address",
+  "organization_type",
+  "business_goal",
+  "important_features",
+  "contact_count",
+  "plan_selection",
 ];

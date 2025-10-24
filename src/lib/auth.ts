@@ -90,6 +90,12 @@ export const auth = betterAuth({
         defaultValue: "USER",
         input: false, // don't allow user to set role
       },
+      isNewUser: {
+        type: "boolean",
+        required: false,
+        defaultValue: true,
+        input: false,
+      },
     },
   },
   plugins: [nextCookies()], // make sure this is the last plugin in the array

@@ -3,7 +3,7 @@
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "always",
-    "source.fixAll.tslint": "never"
+    "source.fixAll.tslint": "never",
   },
 
   // === ESLINT ===
@@ -11,30 +11,33 @@
     "javascript",
     "javascriptreact",
     "typescript",
-    "typescriptreact"
+    "typescriptreact",
   ],
   "eslint.format.enable": true,
   "eslint.lintTask.enable": true,
   "eslint.rules.customizations": [
     {
       "rule": "@typescript-eslint/naming-convention",
-      "severity": "error"
-    }
+      "severity": "error",
+    },
   ],
 
   // === PRETTIER ===
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
   },
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma",
   },
 
   // === TYPE SCRIPT ===
@@ -43,7 +46,7 @@
   // === FILES ===
   "files.associations": {
     "*.tsx": "typescriptreact",
-    "*.ts": "typescript"
+    "*.ts": "typescript",
   },
   "files.exclude": {
     "**/.next": true,
@@ -51,7 +54,7 @@
     "**/out": true,
     "**/build": true,
     "**/dist": true,
-    "**/coverage": true
+    "**/coverage": true,
   },
 
   // === WORKSPACE ===
@@ -59,7 +62,7 @@
     "**/node_modules": true,
     "**/.next": true,
     "**/out": true,
-    "**/.git": true
+    "**/.git": true,
   },
 
   // === KEBAB-CASE SPECIFIC ===
@@ -85,11 +88,24 @@
   "editor.quickSuggestions": {
     "other": true,
     "comments": false,
-    "strings": false
+    "strings": false,
   },
 
   // === EXPERIMENTAL ===
-  "typescript.suggest.completeFunctionCalls": true
+  "typescript.suggest.completeFunctionCalls": true,
 
+  // Auto-save settings
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
 
+  // Breadcrumb settings
+  "breadcrumbs.enabled": true,
+  "breadcrumbs.symbolPath": "on",
+
+  // IntelliSense settings
+  "typescript.inlayHints.parameterNames.enabled": "literals",
+  "typescript.inlayHints.parameterTypes.enabled": true,
+  "typescript.inlayHints.variableTypes.enabled": false,
+  "typescript.inlayHints.propertyDeclarationTypes.enabled": true,
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": true,
 }

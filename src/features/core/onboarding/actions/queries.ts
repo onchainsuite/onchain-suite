@@ -2,12 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 
+import { getAuthenticatedUserId } from "@/auth/actions";
 import {
   type OnboardingCompletionTime,
   type OnboardingStepData,
-} from "@/types/onboarding";
-
-import { getAuthenticatedUserId } from "@/auth/actions";
+} from "@/onboarding/types";
 import { type JsonValue } from "@/prisma/internal/prismaNamespace";
 
 // Constants
@@ -133,75 +132,4 @@ export async function getUserOnboardingCompletionTime(): Promise<OnboardingCompl
     stepsCompleted: onboarding.completedSteps.length,
     totalSteps: onboarding.totalSteps,
   };
-}
-
-/**
- * Get onboarding progress for a user
- */
-export async function getOnboardingProgress() {
-  const userId = await getAuthenticatedUserId();
-
-  return await prisma.onboardingProgress.findUnique({
-    where: { userId },
-  });
-}
-
-/**
- * Mark onboarding as completed
- */
-export async function completeOnboarding() {
-  const userId = await getAuthenticatedUserId();
-
-  const onboarding = await prisma.onboardingProgress.findUnique({
-    where: { userId },
-    select: { id: true, totalSteps: true },
-  });
-
-  if (!onboarding) {
-    throw new Error("Onboarding progress not found");
-  }
-
-  return await prisma.onboardingProgress.update({
-    where: { id: onboarding.id },
-    data: {
-      isCompleted: true,
-      completedAt: new Date(),
-      completionPercentage: 100,
-      completedSteps: Array.from(
-        { length: onboarding.totalSteps },
-        (_, i) => `step_${i + 1}`
-      ),
-    },
-  });
-}
-
-/**
- * Reset onboarding progress
- */
-export async function resetOnboarding() {
-  // Verify authentication (admin action)
-  const userId = await getAuthenticatedUserId();
-
-  const onboarding = await prisma.onboardingProgress.findUnique({
-    where: { userId },
-    select: { id: true },
-  });
-
-  if (!onboarding) {
-    throw new Error("Onboarding progress not found");
-  }
-
-  await prisma.onboardingProgress.update({
-    where: { id: onboarding.id },
-    data: {
-      currentStep: "welcome",
-      completedSteps: [],
-      completionPercentage: 0,
-      isCompleted: false,
-      completedAt: null,
-      timeSpentSeconds: 0,
-      sessionCount: 1,
-      startedAt: new Date(),
-    },
-  });
 }

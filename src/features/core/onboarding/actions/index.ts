@@ -1,1 +1,2 @@
-export * from "./onboarding";
+export * from "./mutations";
+export * from "./queries";

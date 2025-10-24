@@ -1,7 +1,9 @@
 "use server";
 
 import { APIError } from "better-auth/api";
+import { redirect } from "next/navigation";
 
+import { authRoutes } from "@/config/app-routes";
 import { auth } from "@/lib/auth";
 import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
@@ -55,8 +57,10 @@ export const signUp = async (data: SignUpFormData) => {
  */
 export async function getAuthenticatedUserId(): Promise<string> {
   const session = await getAuthSession();
+
   if (!session) {
-    throw new Error("User not authenticated");
+    redirect(authRoutes.login);
   }
+
   return session.user.id;
 }

@@ -1,7 +1,7 @@
 import { createAuthClient } from "better-auth/react";
 import { toast } from "sonner";
 
-import { privateRoutes } from "@/config/app-routes";
+import { authRoutes, privateRoutes } from "@/config/app-routes";
 
 export const authClient = createAuthClient();
 
@@ -12,6 +12,7 @@ export const signInWithGoogle = async () => {
     const data = await authClient.signIn.social({
       provider: "google",
       callbackURL: privateRoutes.home,
+      newUserCallbackURL: authRoutes.onboarding,
       fetchOptions: {
         onError: (error) => {
           console.error("🚀 ~ signInWithGoogle ~ error:", error);

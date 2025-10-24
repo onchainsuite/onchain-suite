@@ -26,6 +26,7 @@ model User {
   image                   String?
   role                    UserRole @default(USER)
   phone                   String?
+  isNewUser               Boolean  @default(true)
   timezone                String   @default("UTC")
   emailVerified           Boolean  @default(false) @map("email_verified")
   onboardingCompleted     Boolean  @default(false) @map("onboarding_completed")

@@ -33,6 +33,7 @@ export type UserMinAggregateOutputType = {
   image: string | null;
   role: $Enums.UserRole | null;
   phone: string | null;
+  isNewUser: boolean | null;
   timezone: string | null;
   emailVerified: boolean | null;
   onboardingCompleted: boolean | null;
@@ -51,6 +52,7 @@ export type UserMaxAggregateOutputType = {
   image: string | null;
   role: $Enums.UserRole | null;
   phone: string | null;
+  isNewUser: boolean | null;
   timezone: string | null;
   emailVerified: boolean | null;
   onboardingCompleted: boolean | null;
@@ -69,6 +71,7 @@ export type UserCountAggregateOutputType = {
   image: number;
   role: number;
   phone: number;
+  isNewUser: number;
   timezone: number;
   emailVerified: number;
   onboardingCompleted: number;
@@ -90,6 +93,7 @@ export type UserMinAggregateInputType = {
   image?: true;
   role?: true;
   phone?: true;
+  isNewUser?: true;
   timezone?: true;
   emailVerified?: true;
   onboardingCompleted?: true;
@@ -108,6 +112,7 @@ export type UserMaxAggregateInputType = {
   image?: true;
   role?: true;
   phone?: true;
+  isNewUser?: true;
   timezone?: true;
   emailVerified?: true;
   onboardingCompleted?: true;
@@ -126,6 +131,7 @@ export type UserCountAggregateInputType = {
   image?: true;
   role?: true;
   phone?: true;
+  isNewUser?: true;
   timezone?: true;
   emailVerified?: true;
   onboardingCompleted?: true;
@@ -226,6 +232,7 @@ export type UserGroupByOutputType = {
   image: string | null;
   role: $Enums.UserRole;
   phone: string | null;
+  isNewUser: boolean;
   timezone: string;
   emailVerified: boolean;
   onboardingCompleted: boolean;
@@ -264,6 +271,7 @@ export type UserWhereInput = {
   image?: Prisma.StringNullableFilter<"User"> | string | null;
   role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole;
   phone?: Prisma.StringNullableFilter<"User"> | string | null;
+  isNewUser?: Prisma.BoolFilter<"User"> | boolean;
   timezone?: Prisma.StringFilter<"User"> | string;
   emailVerified?: Prisma.BoolFilter<"User"> | boolean;
   onboardingCompleted?: Prisma.BoolFilter<"User"> | boolean;
@@ -300,6 +308,7 @@ export type UserOrderByWithRelationInput = {
   image?: Prisma.SortOrderInput | Prisma.SortOrder;
   role?: Prisma.SortOrder;
   phone?: Prisma.SortOrderInput | Prisma.SortOrder;
+  isNewUser?: Prisma.SortOrder;
   timezone?: Prisma.SortOrder;
   emailVerified?: Prisma.SortOrder;
   onboardingCompleted?: Prisma.SortOrder;
@@ -337,6 +346,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<
     image?: Prisma.StringNullableFilter<"User"> | string | null;
     role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole;
     phone?: Prisma.StringNullableFilter<"User"> | string | null;
+    isNewUser?: Prisma.BoolFilter<"User"> | boolean;
     timezone?: Prisma.StringFilter<"User"> | string;
     emailVerified?: Prisma.BoolFilter<"User"> | boolean;
     onboardingCompleted?: Prisma.BoolFilter<"User"> | boolean;
@@ -375,6 +385,7 @@ export type UserOrderByWithAggregationInput = {
   image?: Prisma.SortOrderInput | Prisma.SortOrder;
   role?: Prisma.SortOrder;
   phone?: Prisma.SortOrderInput | Prisma.SortOrder;
+  isNewUser?: Prisma.SortOrder;
   timezone?: Prisma.SortOrder;
   emailVerified?: Prisma.SortOrder;
   onboardingCompleted?: Prisma.SortOrder;
@@ -408,6 +419,7 @@ export type UserScalarWhereWithAggregatesInput = {
   image?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null;
   role?: Prisma.EnumUserRoleWithAggregatesFilter<"User"> | $Enums.UserRole;
   phone?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null;
+  isNewUser?: Prisma.BoolWithAggregatesFilter<"User"> | boolean;
   timezone?: Prisma.StringWithAggregatesFilter<"User"> | string;
   emailVerified?: Prisma.BoolWithAggregatesFilter<"User"> | boolean;
   onboardingCompleted?: Prisma.BoolWithAggregatesFilter<"User"> | boolean;
@@ -428,6 +440,7 @@ export type UserCreateInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -461,6 +474,7 @@ export type UserUncheckedCreateInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -494,6 +508,7 @@ export type UserUpdateInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -527,6 +542,7 @@ export type UserUncheckedUpdateInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -560,6 +576,7 @@ export type UserCreateManyInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -580,6 +597,7 @@ export type UserUpdateManyMutationInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -600,6 +618,7 @@ export type UserUncheckedUpdateManyInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -620,6 +639,7 @@ export type UserCountOrderByAggregateInput = {
   image?: Prisma.SortOrder;
   role?: Prisma.SortOrder;
   phone?: Prisma.SortOrder;
+  isNewUser?: Prisma.SortOrder;
   timezone?: Prisma.SortOrder;
   emailVerified?: Prisma.SortOrder;
   onboardingCompleted?: Prisma.SortOrder;
@@ -640,6 +660,7 @@ export type UserMaxOrderByAggregateInput = {
   image?: Prisma.SortOrder;
   role?: Prisma.SortOrder;
   phone?: Prisma.SortOrder;
+  isNewUser?: Prisma.SortOrder;
   timezone?: Prisma.SortOrder;
   emailVerified?: Prisma.SortOrder;
   onboardingCompleted?: Prisma.SortOrder;
@@ -658,6 +679,7 @@ export type UserMinOrderByAggregateInput = {
   image?: Prisma.SortOrder;
   role?: Prisma.SortOrder;
   phone?: Prisma.SortOrder;
+  isNewUser?: Prisma.SortOrder;
   timezone?: Prisma.SortOrder;
   emailVerified?: Prisma.SortOrder;
   onboardingCompleted?: Prisma.SortOrder;
@@ -1050,6 +1072,7 @@ export type UserCreateWithoutSessionsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1082,6 +1105,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1142,6 +1166,7 @@ export type UserUpdateWithoutSessionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1174,6 +1199,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1206,6 +1232,7 @@ export type UserCreateWithoutAccountsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1238,6 +1265,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1298,6 +1326,7 @@ export type UserUpdateWithoutAccountsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1330,6 +1359,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1362,6 +1392,7 @@ export type UserCreateWithoutOrganizationMembersInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1394,6 +1425,7 @@ export type UserUncheckedCreateWithoutOrganizationMembersInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1434,6 +1466,7 @@ export type UserCreateWithoutInvitedOrgMembersInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1466,6 +1499,7 @@ export type UserUncheckedCreateWithoutInvitedOrgMembersInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1526,6 +1560,7 @@ export type UserUpdateWithoutOrganizationMembersInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1558,6 +1593,7 @@ export type UserUncheckedUpdateWithoutOrganizationMembersInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1610,6 +1646,7 @@ export type UserUpdateWithoutInvitedOrgMembersInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1642,6 +1679,7 @@ export type UserUncheckedUpdateWithoutInvitedOrgMembersInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1674,6 +1712,7 @@ export type UserCreateWithoutInvitedProjectMembersInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1706,6 +1745,7 @@ export type UserUncheckedCreateWithoutInvitedProjectMembersInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1746,6 +1786,7 @@ export type UserCreateWithoutProjectMembersInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1778,6 +1819,7 @@ export type UserUncheckedCreateWithoutProjectMembersInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -1838,6 +1880,7 @@ export type UserUpdateWithoutInvitedProjectMembersInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1870,6 +1913,7 @@ export type UserUncheckedUpdateWithoutInvitedProjectMembersInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1922,6 +1966,7 @@ export type UserUpdateWithoutProjectMembersInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1954,6 +1999,7 @@ export type UserUncheckedUpdateWithoutProjectMembersInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -1986,6 +2032,7 @@ export type UserCreateWithoutOnboardingProgressInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2018,6 +2065,7 @@ export type UserUncheckedCreateWithoutOnboardingProgressInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2078,6 +2126,7 @@ export type UserUpdateWithoutOnboardingProgressInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2110,6 +2159,7 @@ export type UserUncheckedUpdateWithoutOnboardingProgressInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2142,6 +2192,7 @@ export type UserCreateWithoutCampaignsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2174,6 +2225,7 @@ export type UserUncheckedCreateWithoutCampaignsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2234,6 +2286,7 @@ export type UserUpdateWithoutCampaignsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2266,6 +2319,7 @@ export type UserUncheckedUpdateWithoutCampaignsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2298,6 +2352,7 @@ export type UserCreateWithoutAutomationFlowsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2330,6 +2385,7 @@ export type UserUncheckedCreateWithoutAutomationFlowsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2390,6 +2446,7 @@ export type UserUpdateWithoutAutomationFlowsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2422,6 +2479,7 @@ export type UserUncheckedUpdateWithoutAutomationFlowsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2454,6 +2512,7 @@ export type UserCreateWithoutEmailTemplatesInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2486,6 +2545,7 @@ export type UserUncheckedCreateWithoutEmailTemplatesInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2546,6 +2606,7 @@ export type UserUpdateWithoutEmailTemplatesInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2578,6 +2639,7 @@ export type UserUncheckedUpdateWithoutEmailTemplatesInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2610,6 +2672,7 @@ export type UserCreateWithoutAnalyticsEventsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2642,6 +2705,7 @@ export type UserUncheckedCreateWithoutAnalyticsEventsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2702,6 +2766,7 @@ export type UserUpdateWithoutAnalyticsEventsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2734,6 +2799,7 @@ export type UserUncheckedUpdateWithoutAnalyticsEventsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2766,6 +2832,7 @@ export type UserCreateWithoutNotificationsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2798,6 +2865,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2858,6 +2926,7 @@ export type UserUpdateWithoutNotificationsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2890,6 +2959,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -2922,6 +2992,7 @@ export type UserCreateWithoutIntegrationsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -2954,6 +3025,7 @@ export type UserUncheckedCreateWithoutIntegrationsInput = {
   image?: string | null;
   role?: $Enums.UserRole;
   phone?: string | null;
+  isNewUser?: boolean;
   timezone?: string;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -3014,6 +3086,7 @@ export type UserUpdateWithoutIntegrationsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -3046,6 +3119,7 @@ export type UserUncheckedUpdateWithoutIntegrationsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole;
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  isNewUser?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   timezone?: Prisma.StringFieldUpdateOperationsInput | string;
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean;
   onboardingCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean;
@@ -3256,6 +3330,7 @@ export type UserSelect<
     image?: boolean;
     role?: boolean;
     phone?: boolean;
+    isNewUser?: boolean;
     timezone?: boolean;
     emailVerified?: boolean;
     onboardingCompleted?: boolean;
@@ -3300,6 +3375,7 @@ export type UserSelectCreateManyAndReturn<
     image?: boolean;
     role?: boolean;
     phone?: boolean;
+    isNewUser?: boolean;
     timezone?: boolean;
     emailVerified?: boolean;
     onboardingCompleted?: boolean;
@@ -3326,6 +3402,7 @@ export type UserSelectUpdateManyAndReturn<
     image?: boolean;
     role?: boolean;
     phone?: boolean;
+    isNewUser?: boolean;
     timezone?: boolean;
     emailVerified?: boolean;
     onboardingCompleted?: boolean;
@@ -3348,6 +3425,7 @@ export type UserSelectScalar = {
   image?: boolean;
   role?: boolean;
   phone?: boolean;
+  isNewUser?: boolean;
   timezone?: boolean;
   emailVerified?: boolean;
   onboardingCompleted?: boolean;
@@ -3371,6 +3449,7 @@ export type UserOmit<
   | "image"
   | "role"
   | "phone"
+  | "isNewUser"
   | "timezone"
   | "emailVerified"
   | "onboardingCompleted"
@@ -3442,6 +3521,7 @@ export type $UserPayload<
       image: string | null;
       role: $Enums.UserRole;
       phone: string | null;
+      isNewUser: boolean;
       timezone: string;
       emailVerified: boolean;
       onboardingCompleted: boolean;
@@ -4202,6 +4282,7 @@ export interface UserFieldRefs {
   readonly image: Prisma.FieldRef<"User", "String">;
   readonly role: Prisma.FieldRef<"User", "UserRole">;
   readonly phone: Prisma.FieldRef<"User", "String">;
+  readonly isNewUser: Prisma.FieldRef<"User", "Boolean">;
   readonly timezone: Prisma.FieldRef<"User", "String">;
   readonly emailVerified: Prisma.FieldRef<"User", "Boolean">;
   readonly onboardingCompleted: Prisma.FieldRef<"User", "Boolean">;

@@ -94,3 +94,10 @@ export function getFullName(firstName?: string, lastName?: string): string {
   const full = `${capitalizeName(firstName, true)} ${capitalizeName(lastName)}`;
   return full.trim();
 }
+
+/**
+ * Type guard to check if a value is a valid JSON object
+ */
+export function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

@@ -16,6 +16,7 @@ interface Session {
     id: string;
     email: string;
     role?: string;
+    isNewUser: boolean;
     // Add other user properties as needed
   };
 }
