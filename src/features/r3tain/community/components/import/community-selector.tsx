@@ -46,7 +46,7 @@ export function CommunitySelector({
     >
       <label
         htmlFor="community-select"
-        className="text-foreground block text-sm font-medium"
+        className="block text-sm font-medium text-foreground"
       >
         Current Community
       </label>
@@ -54,7 +54,7 @@ export function CommunitySelector({
       <Select value={selectedCommunityId} onValueChange={onCommunityChange}>
         <SelectTrigger
           id="community-select"
-          className="bg-background border-border hover:border-primary/50 !h-12 w-full cursor-pointer transition-colors duration-200"
+          className="bg-background border-border hover:border-primary/50 h-12! w-full cursor-pointer transition-colors duration-200"
         >
           <SelectValue placeholder="Select a community..." />
         </SelectTrigger>
@@ -62,16 +62,16 @@ export function CommunitySelector({
         <SelectContent className="w-full">
           {communities.map((community) => (
             <SelectItem key={community.id} value={community.id} className="p-3">
-              <div className="flex w-full items-center justify-between">
+              <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
-                    <Users className="text-primary h-4 w-4" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+                    <Users className="w-4 h-4 text-primary" />
                   </div>
                   <div>
-                    <div className="text-foreground font-medium">
+                    <div className="font-medium text-foreground">
                       {community.name}
                     </div>
-                    <div className="text-muted-foreground text-xs">
+                    <div className="text-xs text-muted-foreground">
                       {community.subscriberCount.toLocaleString()} subscribers
                     </div>
                   </div>
@@ -90,9 +90,9 @@ export function CommunitySelector({
             className="p-3"
             onSelect={handleCreateNew}
           >
-            <div className="text-primary flex items-center gap-3">
-              <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
-                <Plus className="h-4 w-4" />
+            <div className="flex items-center gap-3 text-primary">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+                <Plus className="w-4 h-4" />
               </div>
               <span className="font-medium">Create New Community</span>
             </div>
@@ -105,12 +105,12 @@ export function CommunitySelector({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           transition={{ duration: 0.3 }}
-          className="bg-muted/30 border-border rounded-lg border p-3"
+          className="p-3 border rounded-lg bg-muted/30 border-border"
         >
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Selected Community:</span>
             <div className="flex items-center gap-2">
-              <span className="text-foreground font-medium">
+              <span className="font-medium text-foreground">
                 {selectedCommunity.name}
               </span>
               <Badge variant="outline" className="text-xs">
