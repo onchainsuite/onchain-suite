@@ -7,7 +7,7 @@ import {
   CreateTagModal,
   TagsHeader,
   TagsList,
-} from "@/tag/components";
+} from "@/r3tain/tag/components";
 
 export function TagsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);

@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle } from "lucide-react";
+import { v7 } from "uuid";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -30,8 +31,8 @@ export function EmailValidation({
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-1">
-              {errors.slice(0, maxErrorsShown).map((error, index) => (
-                <div key={index} className="text-sm">
+              {errors.slice(0, maxErrorsShown).map((error) => (
+                <div key={v7()} className="text-sm">
                   {error}
                 </div>
               ))}

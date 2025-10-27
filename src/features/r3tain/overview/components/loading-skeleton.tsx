@@ -1,3 +1,5 @@
+import { v7 } from "uuid";
+
 export function LoadingSkeleton() {
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -20,9 +22,9 @@ export function LoadingSkeleton() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {Array(4)
               .fill(0)
-              .map((_, i) => (
+              .map((_) => (
                 <div
-                  key={i}
+                  key={v7()}
                   className="bg-muted/10 space-y-3 rounded-lg border p-4"
                 >
                   <div className="bg-muted h-4 w-20 rounded-md" />
@@ -72,8 +74,11 @@ export function LoadingSkeleton() {
               </div>
               {Array(5)
                 .fill(0)
-                .map((_, i) => (
-                  <div key={i} className="grid grid-cols-4 items-center gap-4">
+                .map((_) => (
+                  <div
+                    key={v7()}
+                    className="grid grid-cols-4 items-center gap-4"
+                  >
                     <div className="bg-muted h-4 w-full rounded-md" />
                     <div className="bg-muted h-6 w-24 rounded-md" />
                     <div className="bg-muted h-4 w-16 rounded-md" />
@@ -107,9 +112,9 @@ export function LoadingSkeleton() {
           <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {Array(4)
               .fill(0)
-              .map((_, i) => (
+              .map((_) => (
                 <div
-                  key={i}
+                  key={v7()}
                   className="bg-muted/10 space-y-3 rounded-lg border p-4"
                 >
                   <div className="bg-muted h-4 w-32 rounded-md" />
@@ -122,8 +127,11 @@ export function LoadingSkeleton() {
             <div className="bg-muted mb-4 h-8 w-full rounded-md" />
             {Array(3)
               .fill(0)
-              .map((_, i) => (
-                <div key={i} className="bg-muted mb-2 h-16 w-full rounded-md" />
+              .map((_) => (
+                <div
+                  key={v7()}
+                  className="bg-muted mb-2 h-16 w-full rounded-md"
+                />
               ))}
           </div>
         </div>

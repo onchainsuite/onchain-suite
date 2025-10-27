@@ -1,4 +1,4 @@
-import { dashboardRoutes } from "@/config/routes";
+import { PRIVATE_ROUTES } from "@/config/app-routes";
 
 import { type FilterConfig, type Filters } from "../types";
 
@@ -13,7 +13,7 @@ export const FILTER_CONFIGS: FilterConfig[] = [
       { value: "new-subscribers", label: "New Subscribers" },
     ],
     manageOption: "Manage segments",
-    manageOptionUrl: dashboardRoutes.segments,
+    manageOptionUrl: PRIVATE_ROUTES.R3TAIN.SEGMENTS,
   },
   {
     key: "subscriptionStatus",
@@ -37,7 +37,7 @@ export const FILTER_CONFIGS: FilterConfig[] = [
     ],
     hasSearch: true,
     manageOption: "Manage tags",
-    manageOptionUrl: dashboardRoutes.tags,
+    manageOptionUrl: PRIVATE_ROUTES.R3TAIN.TAGS,
   },
   {
     key: "signupSource",

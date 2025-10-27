@@ -2,6 +2,7 @@
 
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { v7 } from "uuid";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,11 +67,11 @@ export function OnboardingCalendar() {
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
-          {days.map((day, index) => {
+          {days.map((day) => {
             const isToday = day === today && isCurrentMonth;
             return (
               <div
-                key={index}
+                key={v7()}
                 className={`flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors lg:h-9 lg:w-9 lg:text-sm ${
                   day === null
                     ? ""

@@ -134,7 +134,7 @@ export function ComparativeReports() {
               description: "Compare different campaign types and strategies",
               icon: "🎯",
             },
-          ].map((feature, index) => (
+          ].map((feature) => (
             <Card
               key={v7()}
               className="border-border/50 bg-card/30 backdrop-blur-sm"

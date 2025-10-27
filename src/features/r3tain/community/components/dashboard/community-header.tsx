@@ -12,9 +12,9 @@ import {
 import { useRouter } from "next/navigation";
 
 import { ReusableDropdownMenu } from "@/components/common";
-import { Button } from "@/components/ui";
+import { Button } from "@/ui/button";
 
-import { dashboardRoutes } from "@/config/routes";
+import { PRIVATE_ROUTES } from "@/config/app-routes";
 
 import type { CommunityStats } from "@/r3tain/community/types";
 
@@ -38,7 +38,7 @@ export function CommunityHeader({ stats }: CommunityHeaderProps) {
         <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:flex-row">
           <Button
             variant="outline"
-            onClick={() => push(dashboardRoutes.subscribers)}
+            onClick={() => push(PRIVATE_ROUTES.R3TAIN.ADD_SUBSCRIBERS)}
           >
             View Subscribers
           </Button>
@@ -61,12 +61,12 @@ function ManageCommunity() {
     {
       icon: UserPlus,
       label: "Add a subscriber",
-      onClick: () => push(dashboardRoutes.addSingleSubscriber),
+      onClick: () => push(PRIVATE_ROUTES.R3TAIN.ADD_SUBSCRIBERS),
     },
     {
       icon: Import,
       label: "Import contacts",
-      onClick: () => push(dashboardRoutes.addSubscribers),
+      onClick: () => push(PRIVATE_ROUTES.R3TAIN.ADD_SUBSCRIBERS),
     },
     {
       icon: FileText,
@@ -79,7 +79,7 @@ function ManageCommunity() {
     {
       icon: Inbox,
       label: "Inbox",
-      onClick: () => push(dashboardRoutes.inbox),
+      onClick: () => push(PRIVATE_ROUTES.R3TAIN.ADD_SUBSCRIBERS),
     },
     {
       icon: Settings,

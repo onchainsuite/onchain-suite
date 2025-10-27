@@ -13,16 +13,13 @@ import {
   InputFormField,
   StateFormField,
 } from "@/components/form-fields";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  Form,
-  LoadingButton,
-  PhoneInput,
-  Separator,
-} from "@/components/ui";
+import { Badge } from "@/ui/badge";
+import { Button } from "@/ui/button";
+import { Card, CardContent } from "@/ui/card";
+import { Form } from "@/ui/form";
+import { LoadingButton } from "@/ui/loading-button";
+import { PhoneInput } from "@/ui/phone-input";
+import { Separator } from "@/ui/separator";
 
 import { TagsModal } from "./tag-modal";
 import { PasswordField } from "@/auth/components/shared";

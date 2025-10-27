@@ -27,7 +27,7 @@ export function AllFlowsPageSkeleton() {
 
       {/* Flow Items Skeleton */}
       <div className="space-y-4">
-        {[...Array(4)].map((_, i) => (
+        {[...Array(4)].map((_) => (
           <div key={v7()} className="bg-card rounded-lg border p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1 space-y-3">
@@ -56,7 +56,7 @@ export function AllFlowsPageSkeleton() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="bg-muted h-4 w-48 animate-pulse rounded-md" />
         <div className="flex items-center gap-2">
-          {[...Array(7)].map((_, i) => (
+          {[...Array(7)].map((_) => (
             <div
               key={v7()}
               className="bg-muted h-8 w-8 animate-pulse rounded-md"

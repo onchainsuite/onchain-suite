@@ -3,15 +3,15 @@
 import { Filter, Search } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui";
+import { Button } from "@/ui/button";
 import {
   CustomTabs,
   CustomTabsContent,
   CustomTabsList,
   CustomTabsTrigger,
-} from "@/components/ui/custom-tabs";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+} from "@/ui/custom-tabs";
+import { Input } from "@/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/ui/sheet";
 
 import { CampaignFilters, ComparativeReports, EmptyState } from "../components";
 

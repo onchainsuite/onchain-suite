@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Info } from "lucide-react";
 import { useState } from "react";
+import { v7 } from "uuid";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -159,7 +160,7 @@ export function FieldMappingRow({
         <div className="max-w-xs space-y-1">
           {mapping.previewData.slice(0, 2).map((data, idx) => (
             <div
-              key={idx}
+              key={v7()}
               className={`truncate font-mono text-sm transition-colors duration-200 ${
                 mapping.isSelected ? "text-foreground" : "text-muted-foreground"
               }`}

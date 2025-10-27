@@ -45,7 +45,7 @@ export const useBulkTagForm = () => {
     const validation = validateFile(file);
     if (!validation.valid) {
       updateState({
-        validationErrors: [validation.error!],
+        validationErrors: [validation.error ?? "Invalid file"],
         isProcessing: false,
       });
       return;
