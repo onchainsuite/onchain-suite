@@ -24,7 +24,7 @@ export function ReportsPage() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Sticky Header */}
-      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 border-b backdrop-blur">
+      <div className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-10 border-b backdrop-blur">
         <div className="px-4 py-4 lg:px-6 lg:py-6">
           <div className="space-y-3 lg:space-y-4">
             <div className="flex items-center gap-3">
@@ -52,7 +52,7 @@ export function ReportsPage() {
       <div className="flex-1 overflow-hidden">
         <CustomTabs defaultValue="campaigns" className="flex h-full flex-col">
           {/* Sticky Tab Headers */}
-          <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 border-b backdrop-blur">
+          <div className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-10 border-b backdrop-blur">
             <div className="px-4 lg:px-6">
               <CustomTabsList>
                 <CustomTabsTrigger value="campaigns">
@@ -82,7 +82,7 @@ export function ReportsPage() {
                 {/* Main Content Area */}
                 <div className="flex flex-1 flex-col overflow-hidden">
                   {/* Sticky Search Bar */}
-                  <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 border-b p-4 backdrop-blur">
+                  <div className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-10 border-b p-4 backdrop-blur">
                     <div className="flex items-center gap-3">
                       {/* Mobile Filter Button */}
                       <Sheet
