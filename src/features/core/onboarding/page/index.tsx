@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import { privateRoutes } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/config/app-routes";
 
 import {
   completeOnboarding,
@@ -60,11 +60,11 @@ export function OnboardingFlow() {
 
       await completeOnboarding(finalData);
 
-      push(privateRoutes.home);
+      push(PRIVATE_ROUTES.ROOT);
     } catch (error) {
       console.error("Error completing onboarding:", error);
       // Still redirect to dashboard but show a warning
-      push(privateRoutes.home);
+      push(PRIVATE_ROUTES.ROOT);
     }
   };
 

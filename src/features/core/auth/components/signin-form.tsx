@@ -12,7 +12,7 @@ import { InputFormField } from "@/components/form-fields";
 import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
-import { authRoutes, privateRoutes } from "@/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
 import { signInWithGoogle } from "@/lib/auth-client";
 
 import {
@@ -64,9 +64,9 @@ export function SignInForm({
       } else {
         // Route based on onboarding status
         if (onboardingData.isCompleted) {
-          push(privateRoutes.home);
+          push(PRIVATE_ROUTES.ROOT);
         } else {
-          push(authRoutes.onboarding);
+          push(AUTH_ROUTES.ONBOARDING);
         }
       }
     } catch (error: unknown) {

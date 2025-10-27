@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { authRoutes, privateRoutes } from "@/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
 import { prisma } from "@/lib/prisma";
 import { safeExecute } from "@/lib/safe-execute";
 import { transformPrisma } from "@/lib/transform-prisma";
@@ -163,7 +163,7 @@ export async function updateOnboardingProgress(
       },
     });
 
-    revalidatePath(authRoutes.onboarding);
+    revalidatePath(AUTH_ROUTES.ONBOARDING);
 
     return updatedProgress;
   }, "Onboarding progress updated successfully");
@@ -223,8 +223,8 @@ export async function completeOnboarding(
       },
     });
 
-    revalidatePath(authRoutes.onboarding);
-    revalidatePath(privateRoutes.home);
+    revalidatePath(AUTH_ROUTES.ONBOARDING);
+    revalidatePath(PRIVATE_ROUTES.ROOT);
 
     return updatedProgress;
   }, "Onboarding completed successfully");
@@ -266,7 +266,7 @@ export async function resetOnboarding(): Promise<SafeExecuteResponse<void>> {
       },
     });
 
-    revalidatePath(authRoutes.onboarding);
+    revalidatePath(AUTH_ROUTES.ONBOARDING);
   }, "Onboarding reset successfully");
 }
 

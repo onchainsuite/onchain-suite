@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { FloatingParticle, FloatingSymbol } from "@/components/common";
 import { Button } from "@/ui/button";
 
-import { authRoutes } from "@/config/app-routes";
+import { AUTH_ROUTES } from "@/config/app-routes";
 
 export default function ForbiddenPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -229,7 +229,7 @@ export default function ForbiddenPage() {
               size="lg"
               className="group px-8 py-6 text-lg font-semibold"
             >
-              <Link href={authRoutes.login}>
+              <Link href={AUTH_ROUTES.LOGIN}>
                 <Key className="mr-2 h-5 w-5 transition-transform group-hover:rotate-12" />
                 Sign In
               </Link>

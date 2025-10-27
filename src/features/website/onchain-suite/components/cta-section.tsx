@@ -7,7 +7,7 @@ import React from "react";
 import { Button } from "@/ui/button";
 import { GoogleGeminiEffect } from "@/ui/google-gemini-effect";
 
-import { authRoutes } from "@/config/app-routes";
+import { AUTH_ROUTES } from "@/config/app-routes";
 
 export function CTASection() {
   const ref = React.useRef(null);
@@ -42,7 +42,7 @@ export function CTASection() {
         <div className="md:mt-12 mt-8 flex items-center justify-center z-30 gap-3">
           <Button
             className="group min-w-[160px] md:text-base text-xs md:px-4 md:py-2 px-2 py-1"
-            onClick={() => push(authRoutes.register)}
+            onClick={() => push(AUTH_ROUTES.REGISTER)}
           >
             Get Started
             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />

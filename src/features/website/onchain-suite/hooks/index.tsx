@@ -1,7 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { authRoutes, privateRoutes } from "@/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
 
 export const useHandNavRouting = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -12,13 +12,13 @@ export const useHandNavRouting = () => {
 
     switch (type) {
       case "login":
-        route = authRoutes.login;
+        route = AUTH_ROUTES.LOGIN;
         break;
       case "signup":
-        route = authRoutes.register;
+        route = AUTH_ROUTES.REGISTER;
         break;
       case "dashboard":
-        route = privateRoutes.home;
+        route = PRIVATE_ROUTES.ROOT;
         break;
     }
 

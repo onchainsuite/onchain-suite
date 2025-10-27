@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { type ComponentType, type JSX, type ReactNode } from "react";
 
-import { privateRoutes } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { auth } from "@/lib/auth";
 
 // Types
@@ -23,7 +23,7 @@ interface Session {
 // 1. Guest Guard Component - Redirects authenticated users
 export async function GuestGuard({
   children,
-  redirectTo = privateRoutes.home,
+  redirectTo = PRIVATE_ROUTES.ROOT,
 }: GuestGuardProps): Promise<JSX.Element> {
   const session = (await auth.api.getSession({
     headers: await headers(),
@@ -41,7 +41,7 @@ export async function GuestGuard({
 // 2. Higher-Order Component for Guest Pages
 export function withGuestOnly<P extends Record<string, unknown>>(
   WrappedComponent: ComponentType<P>,
-  redirectTo = privateRoutes.home
+  redirectTo = PRIVATE_ROUTES.ROOT
 ) {
   return async function GuestOnlyComponent(props: P): Promise<JSX.Element> {
     const session = (await auth.api.getSession({
@@ -59,7 +59,7 @@ export function withGuestOnly<P extends Record<string, unknown>>(
 // 3. Guest Layout - Protects entire auth section
 export async function GuestLayout({
   children,
-  redirectTo = privateRoutes.home,
+  redirectTo = PRIVATE_ROUTES.ROOT,
 }: GuestGuardProps): Promise<JSX.Element> {
   const session = (await auth.api.getSession({
     headers: await headers(),
@@ -113,7 +113,7 @@ export async function getAuthenticatedUserRedirect(
   options: SmartRedirectOptions = {}
 ): Promise<string | null> {
   const {
-    defaultRedirect = privateRoutes.home,
+    defaultRedirect = PRIVATE_ROUTES.ROOT,
     roleRedirects = {},
     checkOnboarding = false,
     onboardingRedirect = "/onboarding",

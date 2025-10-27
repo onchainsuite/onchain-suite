@@ -3,7 +3,7 @@
 import { APIError } from "better-auth/api";
 import { redirect } from "next/navigation";
 
-import { authRoutes } from "@/config/app-routes";
+import { AUTH_ROUTES } from "@/config/app-routes";
 import { auth } from "@/lib/auth";
 import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
@@ -59,7 +59,7 @@ export async function getAuthenticatedUserId(): Promise<string> {
   const session = await getAuthSession();
 
   if (!session) {
-    redirect(authRoutes.login);
+    redirect(AUTH_ROUTES.LOGIN);
   }
 
   return session.user.id;
