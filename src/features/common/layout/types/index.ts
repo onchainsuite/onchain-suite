@@ -10,9 +10,13 @@ export interface SubmenuItem {
   title: string;
   href: string;
   badge?: string;
+  icon?: LucideIcon;
+  roles?: string[];
   submenu?: {
     title: string;
     href: string;
+    icon?: LucideIcon;
+    roles?: string[];
   }[];
 }
 
@@ -20,6 +24,7 @@ export interface SidebarNavItem {
   title: string;
   icon: LucideIcon;
   href?: string;
+  roles?: string[];
   submenu?: SubmenuItem[];
 }
 

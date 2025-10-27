@@ -21,7 +21,7 @@ export function PromotionalBanner() {
               "Personalized onboarding",
             ].map((feature) => (
               <div key={feature} className="flex items-center gap-2">
-                <div className="h-2 w-2 flex-shrink-0 rounded-full bg-amber-500" />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
                 <span>{feature}</span>
               </div>
             ))}

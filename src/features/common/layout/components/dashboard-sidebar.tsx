@@ -10,7 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { cn } from "@/lib/utils";
 
-import { dashboardNavItems } from "../config/nav-items";
+import { PLATFORM_NAVIGATION } from "../config/nav-items";
 import { type SidebarNavItem } from "../types";
 import { HelpTooltip } from "./help-tooltip";
 import { NavItem } from "./sidebar/nav-item"; // Import NavItem component
@@ -54,7 +54,7 @@ export function DashboardSidebar({
   const { addRecentItem } = useRecentItems();
 
   const navItemTitles = React.useMemo(
-    () => dashboardNavItems.map((item) => item.title),
+    () => PLATFORM_NAVIGATION.map((item) => item.title),
     []
   );
 
@@ -173,7 +173,7 @@ export function DashboardSidebar({
                 )}
 
                 <ul className="space-y-1" role="list">
-                  {dashboardNavItems.map((item, index) => (
+                  {PLATFORM_NAVIGATION.map((item, index) => (
                     <div key={item.title} className="group relative">
                       <NavItem
                         title={item.title}
@@ -240,12 +240,12 @@ export function DashboardSidebar({
         </div>
 
         {hoveredItem &&
-          dashboardNavItems.find((item) => item.title === hoveredItem)
+          PLATFORM_NAVIGATION.find((item) => item.title === hoveredItem)
             ?.submenu && (
             <SubmenuPanel
               title={hoveredItem}
               items={
-                dashboardNavItems.find((item) => item.title === hoveredItem)
+                PLATFORM_NAVIGATION.find((item) => item.title === hoveredItem)
                   ?.submenu ?? []
               }
               isCollapsed={isCollapsed}

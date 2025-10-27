@@ -1,17 +1,35 @@
 import {
+  Activity,
+  BarChart,
   BarChart3,
   Bookmark,
+  CircuitBoard,
   Code,
   Database,
   FileText,
+  FolderGit2,
+  GitMerge,
   Grid3x3,
   Headphones,
   Home,
+  Layers,
+  LayoutDashboard,
+  LayoutTemplate,
+  Mail,
+  Megaphone,
+  PieChart,
+  Server,
+  Settings,
+  Shield,
   ShoppingCart,
   TrendingUp,
+  UserCheck,
+  Users,
   Wind,
   Zap,
 } from "lucide-react";
+
+import { PRIVATE_ROUTES } from "@/config/app-routes";
 
 import { type SidebarNavItem } from "../types";
 
@@ -81,4 +99,161 @@ export const dashboardNavItems: SidebarNavItem[] = [
   { title: "Reporting", icon: BarChart3, href: "/reporting" },
   { title: "Breeze", icon: Wind, href: "/breeze" },
   { title: "Development", icon: Code, href: "/development" },
+];
+
+export const PLATFORM_NAVIGATION: SidebarNavItem[] = [
+  { title: "Home", icon: Home, href: PRIVATE_ROUTES.ROOT },
+  // R3TAIN
+  {
+    title: "R3tain",
+    icon: LayoutDashboard,
+    submenu: [
+      {
+        title: "Overview",
+        href: PRIVATE_ROUTES.R3TAIN.OVERVIEW,
+      },
+      {
+        title: "Campaigns",
+        icon: Mail,
+        href: "",
+        submenu: [
+          {
+            title: "All Campaigns",
+            href: PRIVATE_ROUTES.R3TAIN.CAMPAIGNS,
+            icon: Megaphone,
+          },
+          {
+            title: "Create Campaign",
+            href: PRIVATE_ROUTES.R3TAIN.NEW_CAMPAIGN,
+          },
+        ],
+      },
+      {
+        title: "Automation",
+        icon: GitMerge,
+        href: "",
+        submenu: [
+          {
+            title: "Flows",
+            href: PRIVATE_ROUTES.R3TAIN.FLOWS,
+            icon: CircuitBoard,
+          },
+          {
+            title: "Templates",
+            href: PRIVATE_ROUTES.R3TAIN.TEMPLATES,
+            icon: LayoutTemplate,
+          },
+        ],
+      },
+      {
+        title: "Analytics",
+        icon: BarChart,
+        href: PRIVATE_ROUTES.R3TAIN.ANALYTICS,
+      },
+      {
+        title: "Community",
+        icon: Users,
+        href: "",
+        submenu: [
+          {
+            title: "Subscribers",
+            href: PRIVATE_ROUTES.R3TAIN.SUBSCRIBERS,
+            icon: UserCheck,
+          },
+          {
+            title: "Segments",
+            href: PRIVATE_ROUTES.R3TAIN.SEGMENTS,
+            icon: Layers,
+          },
+        ],
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        href: PRIVATE_ROUTES.R3TAIN.SETTINGS,
+      },
+    ],
+  },
+
+  // BRIDGE
+  {
+    title: "3ridge",
+    icon: Server,
+    submenu: [
+      {
+        title: "Profiles",
+        icon: Users,
+        href: PRIVATE_ROUTES.BRIDGE.PROFILES.ROOT,
+      },
+      {
+        title: "Events",
+        icon: Activity,
+        href: PRIVATE_ROUTES.BRIDGE.EVENTS.ROOT,
+      },
+      {
+        title: "Analytics",
+        icon: BarChart,
+        href: PRIVATE_ROUTES.BRIDGE.ANALYTICS.ROOT,
+      },
+      {
+        title: "Logs",
+        icon: Database,
+        href: PRIVATE_ROUTES.BRIDGE.LOGS.ROOT,
+      },
+      {
+        title: "Security",
+        icon: Shield,
+        href: PRIVATE_ROUTES.BRIDGE.SECURITY.ROOT,
+      },
+      {
+        title: "SDK",
+        icon: Server,
+        href: PRIVATE_ROUTES.BRIDGE.SDK.ROOT,
+      },
+    ],
+  },
+
+  // ONCHAIN
+  {
+    title: "Onchain",
+    icon: FolderGit2,
+    submenu: [
+      {
+        title: "Overview",
+        icon: LayoutDashboard,
+        href: PRIVATE_ROUTES.ONCHAIN.OVERVIEW,
+      },
+      {
+        title: "Data",
+        icon: FolderGit2,
+        href: PRIVATE_ROUTES.ONCHAIN.DATA,
+      },
+      {
+        title: "Insights",
+        icon: PieChart,
+        href: PRIVATE_ROUTES.ONCHAIN.INSIGHTS,
+      },
+      {
+        title: "Segments",
+        icon: Users,
+        href: PRIVATE_ROUTES.ONCHAIN.SEGMENTS,
+      },
+      {
+        title: "Alerts",
+        icon: Shield,
+        href: PRIVATE_ROUTES.ONCHAIN.ALERTS,
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        href: PRIVATE_ROUTES.ONCHAIN.SETTINGS,
+      },
+    ],
+  },
+
+  {
+    title: "Settings",
+    icon: Settings,
+    href: PRIVATE_ROUTES.SETTINGS,
+  },
 ];

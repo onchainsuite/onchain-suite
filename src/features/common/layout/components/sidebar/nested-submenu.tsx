@@ -28,7 +28,7 @@ export const NestedSubmenu = React.memo(function NestedSubmenu({
       <div>
         <button
           onClick={onToggle}
-          className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer"
         >
           <span className="flex items-center gap-2">
             {item.title}
