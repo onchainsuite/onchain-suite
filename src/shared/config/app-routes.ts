@@ -151,6 +151,7 @@ export const PRIVATE_ROUTES = {
     SETTINGS: "/dashboard/onchain/settings",
   },
 
+  BILLING: "/dashboard/billing",
   NOTIFICATIONS: "/dashboard/notifications",
   PROFILE: "/dashboard/profile",
   SETTINGS: "/dashboard/settings",

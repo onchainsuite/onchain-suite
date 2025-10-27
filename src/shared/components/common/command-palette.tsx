@@ -28,7 +28,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 
-import { r3tainRoutes } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/config/app-routes";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -87,27 +87,27 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
     {
       label: "Dashboard",
       icon: LayoutDashboard,
-      route: r3tainRoutes.home,
+      route: PRIVATE_ROUTES.R3TAIN.OVERVIEW,
     },
     {
       label: "Campaigns",
       icon: Megaphone,
-      route: r3tainRoutes.campaigns,
+      route: PRIVATE_ROUTES.R3TAIN.CAMPAIGNS,
     },
     {
       label: "Automation",
       icon: FileText,
-      route: r3tainRoutes.automation,
+      route: PRIVATE_ROUTES.R3TAIN.AUTOMATION,
     },
     {
       label: "Community",
       icon: Users,
-      route: r3tainRoutes.community,
+      route: PRIVATE_ROUTES.R3TAIN.COMMUNITY,
     },
     {
       label: "Analytics",
       icon: BarChart3,
-      route: r3tainRoutes.analytics,
+      route: PRIVATE_ROUTES.R3TAIN.ANALYTICS,
     },
   ];
 
@@ -115,7 +115,7 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
     {
       label: "Create New Campaign",
       icon: Plus,
-      action: () => navigateToRoute(r3tainRoutes.newCampaign),
+      action: () => navigateToRoute(PRIVATE_ROUTES.R3TAIN.NEW_CAMPAIGN),
       shortcut: "⌘N",
     },
     {
@@ -140,18 +140,18 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
     {
       label: "Settings",
       icon: Settings,
-      action: () => navigateToRoute(r3tainRoutes.settings),
+      action: () => navigateToRoute(PRIVATE_ROUTES.R3TAIN.SETTINGS),
       shortcut: "⌘,",
     },
     {
       label: "Profile",
       icon: User,
-      action: () => navigateToRoute(r3tainRoutes.profile),
+      action: () => navigateToRoute(PRIVATE_ROUTES.PROFILE),
     },
     {
       label: "Billing",
       icon: CreditCard,
-      action: () => navigateToRoute(r3tainRoutes.billing),
+      action: () => navigateToRoute(PRIVATE_ROUTES.BILLING),
     },
   ];
 
