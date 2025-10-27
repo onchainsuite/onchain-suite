@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { r3tainRoutes } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { cn } from "@/lib/utils";
 
 import type { Notification, NotificationType } from "@/types/notification";
@@ -166,7 +166,7 @@ export function NotificationBell() {
           asChild
           className="cursor-pointer justify-center text-center text-sm font-medium"
         >
-          <a href={r3tainRoutes.notifications}>View all notifications</a>
+          <a href={PRIVATE_ROUTES.NOTIFICATIONS}>View all notifications</a>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
