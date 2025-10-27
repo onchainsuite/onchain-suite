@@ -16,7 +16,7 @@ import { AnimatedTabs } from "@/ui/animated-tabs";
 import { ProductTabContent } from "./product-tab-content";
 
 export function ProductsSection() {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [_, setActiveIndex] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {

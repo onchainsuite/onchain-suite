@@ -1,3 +1,5 @@
+import { v7 } from "uuid";
+
 export function FlowTemplatesPageSkeleton() {
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -17,8 +19,8 @@ export function FlowTemplatesPageSkeleton() {
       </div>
 
       {/* Template Categories Skeleton */}
-      {[...Array(3)].map((_, categoryIndex) => (
-        <section key={categoryIndex} className="space-y-6">
+      {[...Array(3)].map((_) => (
+        <section key={v7()} className="space-y-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <div className="bg-muted h-6 w-48 animate-pulse rounded-md" />
@@ -28,11 +30,8 @@ export function FlowTemplatesPageSkeleton() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[...Array(4)].map((_, templateIndex) => (
-              <div
-                key={templateIndex}
-                className="bg-card rounded-lg border p-4"
-              >
+            {[...Array(4)].map((_) => (
+              <div key={v7()} className="bg-card rounded-lg border p-4">
                 <div className="mb-3 flex items-start justify-between">
                   <div className="bg-muted h-8 w-8 animate-pulse rounded-md" />
                   <div className="bg-muted h-5 w-16 animate-pulse rounded-full" />

@@ -39,6 +39,20 @@ export function FileUploadZone({
     setIsDragOver(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".csv,.txt";
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) onFileSelect(file);
+      };
+      input.click();
+    }
+  };
+
   if (uploadedFile) {
     return (
       <div className="bg-muted/20 rounded-lg border p-4">
@@ -70,6 +84,8 @@ export function FileUploadZone({
           ? "border-primary bg-primary/5"
           : "border-muted-foreground/25 hover:border-muted-foreground/50"
       }`}
+      role="button"
+      tabIndex={0}
       onClick={() => {
         const input = document.createElement("input");
         input.type = "file";
@@ -80,6 +96,7 @@ export function FileUploadZone({
         };
         input.click();
       }}
+      onKeyDown={handleKeyDown}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}

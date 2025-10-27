@@ -2,6 +2,7 @@
 
 import { Keyboard } from "lucide-react";
 import * as React from "react";
+import { v7 } from "uuid";
 
 import {
   Dialog,
@@ -79,9 +80,9 @@ export function KeyboardShortcutsDialog({
                 {section.category}
               </h3>
               <div className="space-y-2">
-                {section.items.map((shortcut, index) => (
+                {section.items.map((shortcut) => (
                   <div
-                    key={index}
+                    key={v7()}
                     className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50"
                   >
                     <span className="text-sm text-muted-foreground">
@@ -89,7 +90,7 @@ export function KeyboardShortcutsDialog({
                     </span>
                     <div className="flex items-center gap-1">
                       {shortcut.keys.map((key, keyIndex) => (
-                        <React.Fragment key={keyIndex}>
+                        <React.Fragment key={v7()}>
                           <kbd className="pointer-events-none inline-flex h-6 select-none items-center gap-1 rounded border bg-muted px-2 font-mono text-xs font-medium text-muted-foreground">
                             {key}
                           </kbd>

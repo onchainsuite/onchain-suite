@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { v7 } from "uuid";
 
 export function EmptyStateIllustration() {
   return (
@@ -13,7 +14,7 @@ export function EmptyStateIllustration() {
       >
         {/* Background Circle */}
         <motion.div
-          className="from-primary/5 via-primary/10 to-primary/5 absolute inset-0 -m-8 rounded-full bg-gradient-to-br"
+          className="from-primary/5 via-primary/10 to-primary/5 absolute inset-0 -m-8 rounded-full bg-linear-to-br"
           animate={{
             scale: [1, 1.05, 1],
             rotate: [0, 2, 0],
@@ -27,7 +28,7 @@ export function EmptyStateIllustration() {
 
         {/* Main Chart Container */}
         <motion.div
-          className="border-border/30 from-card via-card/90 to-card/80 relative h-32 w-40 rounded-xl border-2 bg-gradient-to-br shadow-lg backdrop-blur-sm"
+          className="border-border/30 from-card via-card/90 to-card/80 relative h-32 w-40 rounded-xl border-2 bg-linear-to-br shadow-lg backdrop-blur-sm"
           animate={{
             y: [0, -6, 0],
             rotateX: [0, 2, 0],
@@ -81,10 +82,10 @@ export function EmptyStateIllustration() {
                 delay: 1.0,
                 color: "from-cyan-400/60 to-cyan-500/80",
               },
-            ].map((bar, index) => (
+            ].map((bar) => (
               <motion.div
-                key={index}
-                className={`w-4 rounded-t-sm bg-gradient-to-t ${bar.color} shadow-sm`}
+                key={v7()}
+                className={`w-4 rounded-t-sm bg-linear-to-t ${bar.color} shadow-sm`}
                 style={{ height: bar.height }}
                 initial={{ scaleY: 0 }}
                 animate={{ scaleY: [0, 1, 0.9, 1] }}
@@ -102,7 +103,7 @@ export function EmptyStateIllustration() {
           <div className="absolute inset-4 top-10">
             {[...Array(3)].map((_, i) => (
               <motion.div
-                key={i}
+                key={v7()}
                 className="bg-muted/20 absolute right-0 left-0 h-px"
                 style={{ top: `${(i + 1) * 25}%` }}
                 initial={{ opacity: 0 }}
@@ -120,8 +121,8 @@ export function EmptyStateIllustration() {
         {/* Floating Data Points */}
         {[...Array(8)].map((_, i) => (
           <motion.div
-            key={i}
-            className="from-primary/40 to-primary/60 absolute h-2 w-2 rounded-full bg-gradient-to-br shadow-sm"
+            key={v7()}
+            className="from-primary/40 to-primary/60 absolute h-2 w-2 rounded-full bg-linear-to-br shadow-sm"
             style={{
               left: `${30 + Math.cos((i * 45 * Math.PI) / 180) * 80}px`,
               top: `${30 + Math.sin((i * 45 * Math.PI) / 180) * 80}px`,
@@ -154,7 +155,7 @@ export function EmptyStateIllustration() {
           }}
         >
           <div className="relative">
-            <div className="border-primary/40 from-primary/10 to-primary/20 h-12 w-12 rounded-full border-3 bg-gradient-to-br" />
+            <div className="border-primary/40 from-primary/10 to-primary/20 h-12 w-12 rounded-full border-3 bg-linear-to-br" />
             <motion.div
               className="bg-primary/50 absolute -right-2 -bottom-2 h-6 w-1 origin-top rotate-45 rounded-full"
               animate={{ rotate: [45, 50, 45] }}
@@ -185,7 +186,7 @@ export function EmptyStateIllustration() {
         >
           <div className="relative">
             <motion.div
-              className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-400/20 to-green-500/30 p-1.5"
+              className="h-8 w-8 rounded-lg bg-linear-to-br from-green-400/20 to-green-500/30 p-1.5"
               animate={{ rotate: [0, 5, 0, -3, 0] }}
               transition={{
                 duration: 3,
@@ -237,7 +238,7 @@ export function EmptyStateIllustration() {
             {/* Document stack */}
             {[...Array(3)].map((_, i) => (
               <motion.div
-                key={i}
+                key={v7()}
                 className="border-border/30 bg-card absolute h-6 w-8 rounded-sm border shadow-sm"
                 style={{
                   transform: `translate(${i * 2}px, ${i * -2}px)`,
@@ -264,7 +265,7 @@ export function EmptyStateIllustration() {
 
         {/* Ambient Light Effect */}
         <motion.div
-          className="bg-gradient-radial from-primary/5 absolute inset-0 -m-12 rounded-full via-transparent to-transparent"
+          className="bg-linear-radial from-primary/5 absolute inset-0 -m-12 rounded-full via-transparent to-transparent"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3],

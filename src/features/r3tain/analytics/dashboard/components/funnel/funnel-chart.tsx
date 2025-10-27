@@ -2,6 +2,7 @@
 
 import { TrendingDown } from "lucide-react";
 import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
+import { v7 } from "uuid";
 
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 
@@ -75,8 +76,8 @@ export function FunnelChart({ data, selectedChannel }: FunnelChartProps) {
         />
         <ChartTooltip content={<CustomTooltip />} />
         <Bar dataKey="value" name="Count" radius={[6, 6, 0, 0]}>
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
+          {data.map((entry) => (
+            <Cell key={v7()} fill={entry.color} />
           ))}
         </Bar>
       </BarChart>

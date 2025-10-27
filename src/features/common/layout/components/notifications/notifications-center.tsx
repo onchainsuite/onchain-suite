@@ -101,7 +101,9 @@ function NotificationsContent({ onClose }: { onClose?: () => void }) {
           <p className="text-sm font-medium text-foreground mb-1">
             No notifications
           </p>
-          <p className="text-xs text-muted-foreground">You're all caught up!</p>
+          <p className="text-xs text-muted-foreground">
+            You&apos;re all caught up!
+          </p>
         </div>
       ) : (
         <Tabs

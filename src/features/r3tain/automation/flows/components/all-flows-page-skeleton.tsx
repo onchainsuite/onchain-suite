@@ -1,3 +1,5 @@
+import { v7 } from "uuid";
+
 export function AllFlowsPageSkeleton() {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -26,7 +28,7 @@ export function AllFlowsPageSkeleton() {
       {/* Flow Items Skeleton */}
       <div className="space-y-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-card rounded-lg border p-6">
+          <div key={v7()} className="bg-card rounded-lg border p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1 space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
@@ -56,7 +58,7 @@ export function AllFlowsPageSkeleton() {
         <div className="flex items-center gap-2">
           {[...Array(7)].map((_, i) => (
             <div
-              key={i}
+              key={v7()}
               className="bg-muted h-8 w-8 animate-pulse rounded-md"
             />
           ))}

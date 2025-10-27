@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowUpRight, BarChart3, TrendingUp } from "lucide-react";
+import { v7 } from "uuid";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,7 @@ export function ComparativeReports() {
             },
           ].map((feature, index) => (
             <Card
-              key={index}
+              key={v7()}
               className="border-border/50 bg-card/30 backdrop-blur-sm"
             >
               <CardContent className="space-y-2 p-3 text-center lg:p-4">

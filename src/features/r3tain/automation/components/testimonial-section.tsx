@@ -3,6 +3,7 @@
 import { Quote, Star } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { v7 } from "uuid";
 
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -67,9 +68,9 @@ export function TestimonialSection() {
                 Head of Customer Experience at Wonder
               </p>
               <div className="mt-2 flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
+                {[...Array(5)].map((_) => (
                   <Star
-                    key={i}
+                    key={v7()}
                     className="h-4 w-4 fill-yellow-400 text-yellow-400"
                   />
                 ))}

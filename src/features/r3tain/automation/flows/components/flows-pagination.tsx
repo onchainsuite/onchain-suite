@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { v7 } from "uuid";
 
 import { Button } from "@/components/ui/button";
 
@@ -73,8 +74,8 @@ const FlowsPagination = ({
         </Button>
 
         <div className="flex items-center gap-1">
-          {getVisiblePages().map((page, index) => (
-            <div key={index}>
+          {getVisiblePages().map((page) => (
+            <div key={v7()}>
               {page === "..." ? (
                 <span className="text-muted-foreground px-2 py-1">...</span>
               ) : (

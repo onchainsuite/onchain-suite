@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { v7 } from "uuid";
 
 import { Button } from "@/components/ui/button";
 
@@ -54,9 +55,9 @@ export function PageHeader({
           transition={{ duration: 0.5, delay: delay + 0.3 }}
           className="flex flex-wrap justify-center gap-4 text-sm"
         >
-          {helpLinks.map((link, index) => (
+          {helpLinks.map((link) => (
             <Button
-              key={index}
+              key={v7()}
               variant="link"
               onClick={link.onClick}
               className="text-primary hover:text-primary/80 p-0"

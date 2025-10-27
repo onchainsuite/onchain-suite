@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
+import { v7 } from "uuid";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -198,9 +199,9 @@ export function CampaignFilters({
 
         {/* Folders List */}
         <div className="space-y-1">
-          {folders.map((folder, index) => (
+          {folders.map((folder) => (
             <div
-              key={index}
+              key={v7()}
               className="text-muted-foreground hover:text-foreground hover:bg-accent/50 flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm transition-colors"
             >
               <Folder className="h-4 w-4 shrink-0" />

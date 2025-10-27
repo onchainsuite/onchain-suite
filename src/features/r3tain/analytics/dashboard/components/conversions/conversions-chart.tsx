@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { v7 } from "uuid";
 
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 
@@ -41,9 +42,9 @@ export function ConversionsChart({
         <div className="bg-popover border-border rounded-lg border p-3 shadow-lg">
           <p className="text-foreground mb-2 font-medium">{label}</p>
           {payload.map(
-            (entry: TooltipPayloadEntry, index: number) =>
+            (entry: TooltipPayloadEntry) =>
               entry.value > 0 && (
-                <div key={index} className="flex items-center gap-2 text-sm">
+                <div key={v7()} className="flex items-center gap-2 text-sm">
                   <div
                     className="h-3 w-3 rounded"
                     style={{ backgroundColor: entry.color }}

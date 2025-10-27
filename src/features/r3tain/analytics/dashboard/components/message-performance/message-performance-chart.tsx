@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
+import { v7 } from "uuid";
 
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 
@@ -109,9 +110,9 @@ export function MessagePerformanceChart({
           name={getMPMetricLabel(selectedMetric)}
           radius={[6, 6, 0, 0]}
         >
-          {chartData.map((entry, index) => (
+          {chartData.map((entry) => (
             <Cell
-              key={`cell-${index}`}
+              key={v7()}
               fill={entry.type === "email" ? "#8b5cf6" : "#22c55e"}
             />
           ))}

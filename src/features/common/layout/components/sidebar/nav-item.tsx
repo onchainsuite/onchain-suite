@@ -30,7 +30,6 @@ interface NavItemProps {
 export const NavItem = React.memo(function NavItem({
   title,
   icon: Icon,
-  href,
   isActive,
   isCollapsed,
   hasSubmenu,

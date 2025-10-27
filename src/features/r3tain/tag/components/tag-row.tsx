@@ -1,6 +1,9 @@
+/* eslint-disable no-console */
 "use client";
 
-import { Badge, Checkbox, SplitButton } from "@/components/ui";
+import { Badge } from "@/ui/badge";
+import { Checkbox } from "@/ui/checkbox";
+import { SplitButton } from "@/ui/split-button";
 
 import { TagActionsDropdown } from "./tag-actions-dropdown";
 

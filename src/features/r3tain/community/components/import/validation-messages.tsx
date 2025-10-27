@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { v7 } from "uuid";
 
 import { Alert, AlertDescription } from "@/ui/alert";
 import { StatusIndicator } from "@/ui/status-indicator";
@@ -34,15 +35,15 @@ export function ValidationMessages({ validation }: ValidationMessagesProps) {
             </Alert>
           )}
 
-        {validation.errors.map((error, index) => (
-          <Alert key={`error-${index}`} variant="destructive">
+        {validation.errors.map((error) => (
+          <Alert key={v7()} variant="destructive">
             <StatusIndicator status="error" size="sm" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ))}
 
-        {validation.warnings.map((warning, index) => (
-          <Alert key={`warning-${index}`}>
+        {validation.warnings.map((warning) => (
+          <Alert key={v7()}>
             <StatusIndicator status="warning" size="sm" />
             <AlertDescription>{warning}</AlertDescription>
           </Alert>

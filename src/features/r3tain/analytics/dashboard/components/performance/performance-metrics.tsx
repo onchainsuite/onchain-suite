@@ -2,6 +2,7 @@
 
 import { Edit } from "lucide-react";
 import { useState } from "react";
+import { v7 } from "uuid";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,13 +81,13 @@ export function PerformanceMetrics({
 
         <CardContent>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-            {currentMetrics.map((metricValue, index) => {
+            {currentMetrics.map((metricValue) => {
               const metric = getMetricOption(metricValue);
               if (!metric) return null;
 
               return (
                 <div
-                  key={index}
+                  key={v7()}
                   className="bg-muted/30 border-border/30 space-y-3 rounded-lg border p-4"
                 >
                   <div className="text-muted-foreground flex items-center gap-2">
