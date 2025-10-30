@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRight, type LucideIcon } from "lucide-react";
+import Image from "next/image";
 import * as React from "react";
 
 import {
@@ -14,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 interface NavItemProps {
   title: string;
-  icon: LucideIcon;
+  icon?: LucideIcon | string;
   href?: string;
   isActive?: boolean;
   isCollapsed: boolean;
@@ -48,6 +49,34 @@ export const NavItem = React.memo(function NavItem({
     }
   }, [isFocused]);
 
+  const renderIcon = () => {
+    if (!Icon) return null;
+    if (typeof Icon === "string") {
+      return (
+        <Image
+          src={Icon}
+          alt=""
+          width={20}
+          height={20}
+          className={cn(
+            "h-5 w-5 shrink-0 object-contain",
+            isActive && "opacity-100",
+            "group-hover:opacity-100"
+          )}
+        />
+      );
+    }
+    const IconComponent = Icon as LucideIcon;
+    return (
+      <IconComponent
+        className={cn(
+          "h-5 w-5 shrink-0 text-sidebar-foreground/70 transition-colors group-hover:text-sidebar-accent-foreground",
+          isActive && "text-sidebar-accent-foreground"
+        )}
+      />
+    );
+  };
+
   const buttonContent = (
     <button
       ref={buttonRef}
@@ -66,19 +95,14 @@ export const NavItem = React.memo(function NavItem({
         isCollapsed && "justify-center"
       )}
     >
-      <Icon
-        className={cn(
-          "h-5 w-5 shrink-0 text-sidebar-foreground/70 transition-colors group-hover:text-sidebar-accent-foreground",
-          isActive && "text-sidebar-accent-foreground"
-        )}
-      />
+      {renderIcon()}
       {!isCollapsed && (
         <>
           <span className="flex-1 text-left text-sidebar-foreground">
             {title}
           </span>
           {hasSubmenu && (
-            <ChevronRight className="h-4 w-4 text-sidebar-foreground/50" />
+            <ChevronRight className="w-4 h-4 text-sidebar-foreground/50" />
           )}
         </>
       )}
