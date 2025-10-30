@@ -246,10 +246,10 @@ export const PLATFORM_NAVIGATION: SidebarNavItem[] = [
         icon: Package,
         href: PRIVATE_ROUTES.BRIDGE.SDK.ROOT,
         submenu: [
-          { title: "Setup", href: "/sdk/setup" },
-          { title: "Examples", href: "/sdk/examples" },
-          { title: "Chains", href: "/sdk/chains" },
-          { title: "API Keys", href: "/sdk/api-keys" },
+          { title: "Setup", href: PRIVATE_ROUTES.BRIDGE.SDK.SETUP },
+          { title: "Examples", href: PRIVATE_ROUTES.BRIDGE.SDK.EXAMPLES },
+          { title: "Chains", href: PRIVATE_ROUTES.BRIDGE.SDK.CHAINS },
+          { title: "API Keys", href: PRIVATE_ROUTES.BRIDGE.SDK.API_KEYS },
         ],
       },
       {
@@ -271,7 +271,11 @@ export const PLATFORM_NAVIGATION: SidebarNavItem[] = [
         icon: Lock,
       },
       { title: "Logs", href: PRIVATE_ROUTES.BRIDGE.LOGS.ROOT, icon: FileText },
-      { title: "Settings", href: "/settings", icon: Settings },
+      {
+        title: "Settings",
+        href: PRIVATE_ROUTES.BRIDGE.SETTINGS.ROOT,
+        icon: Settings,
+      },
     ],
   },
 
