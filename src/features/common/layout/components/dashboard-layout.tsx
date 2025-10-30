@@ -131,7 +131,9 @@ export function DashboardLayout({
           isCollapsed ? "lg:pl-16" : "lg:pl-64"
         )}
       >
-        <main>{children}</main>
+        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+          {children}
+        </main>
       </div>
 
       {showTip && activeTips[currentTipIndex] && (
