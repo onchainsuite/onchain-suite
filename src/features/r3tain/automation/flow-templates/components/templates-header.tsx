@@ -5,15 +5,15 @@ import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+import type { TemplateFilters, TemplateSortOption } from "../types";
+import { FilterDropdown } from "./filter-dropdown";
+import { SortDropdown } from "./sort-dropdown";
 import {
   appsIntegrationsOptions,
   channelOptions,
   sortOptions,
   topicOptions,
-} from "../data";
-import type { TemplateFilters, TemplateSortOption } from "../types";
-import { FilterDropdown } from "./filter-dropdown";
-import { SortDropdown } from "./sort-dropdown";
+} from "@/3ridge/event/data";
 
 interface TemplatesHeaderProps {
   filters: TemplateFilters;
