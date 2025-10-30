@@ -15,11 +15,11 @@ import { Slider } from "@/components/ui/slider";
 import { StatCard } from "@/components/ui/stat-card";
 import { Switch } from "@/components/ui/switch";
 
-import { circuitVersions, securityAlerts } from "../data";
 import {
   CircuitVersionCard,
   SecurityAlertItem,
 } from "@/3ridge/security/components";
+import { circuitVersions, securityAlerts } from "@/3ridge/security/data";
 
 export function SecurityPage() {
   return (
