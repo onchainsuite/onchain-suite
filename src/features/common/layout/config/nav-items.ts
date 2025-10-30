@@ -238,7 +238,7 @@ export const PLATFORM_NAVIGATION: SidebarNavItem[] = [
       },
       {
         title: "Playground",
-        href: PRIVATE_ROUTES.BRIDGE.PLAYGROUND.CODE,
+        href: PRIVATE_ROUTES.BRIDGE.PLAYGROUND.ROOT,
         icon: Code2,
       },
       {
