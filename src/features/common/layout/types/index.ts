@@ -22,7 +22,7 @@ export interface SubmenuItem {
 
 export interface SidebarNavItem {
   title: string;
-  icon: LucideIcon;
+  icon?: LucideIcon | string;
   href?: string;
   roles?: string[];
   submenu?: SubmenuItem[];
