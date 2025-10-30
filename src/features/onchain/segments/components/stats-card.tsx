@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { type Segment } from "../types";
+import { type Segment } from "@/onchain/segments/types";
 
 interface StatsCardProps {
   title: string;
