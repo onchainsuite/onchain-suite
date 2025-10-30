@@ -13,7 +13,7 @@ import {
   channelOptions,
   sortOptions,
   topicOptions,
-} from "@/3ridge/event/data";
+} from "@/r3tain/automation/flow-templates/data";
 
 interface TemplatesHeaderProps {
   filters: TemplateFilters;
