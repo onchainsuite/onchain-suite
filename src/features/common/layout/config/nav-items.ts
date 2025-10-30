@@ -3,6 +3,7 @@ import {
   BarChart,
   BarChart3,
   Bookmark,
+  Bot,
   CircuitBoard,
   Code,
   Code2,
@@ -299,11 +300,13 @@ export const PLATFORM_NAVIGATION: SidebarNavItem[] = [
         icon: PieChart,
         href: PRIVATE_ROUTES.ONCHAIN.INSIGHTS,
       },
+      { title: "Assistant", href: PRIVATE_ROUTES.ONCHAIN.ASSISTANT, icon: Bot },
       {
         title: "Segments",
         icon: Users,
         href: PRIVATE_ROUTES.ONCHAIN.SEGMENTS,
       },
+      { title: "API", href: PRIVATE_ROUTES.ONCHAIN.API, icon: Code },
       {
         title: "Alerts",
         icon: Shield,

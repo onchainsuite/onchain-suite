@@ -146,7 +146,11 @@ export const PRIVATE_ROUTES = {
     SEGMENTS: "/dashboard/onchain/segments",
     SEGMENTS_VERSIONED: "/dashboard/onchain/segments/versioned",
 
+    ASSISTANT: "/dashboard/onchain/assistant",
+
     ALERTS: "/dashboard/onchain/alerts",
+
+    API: "/dashboard/onchain/api",
 
     SETTINGS: "/dashboard/onchain/settings",
   },
