@@ -22,7 +22,7 @@ const config: runtime.GetPrismaClientConfig = {
       "value": "prisma-client"
     },
     "output": {
-      "value": "C:\\Users\\Hp 745\\onchain-suite\\prisma\\generated\\prisma",
+      "value": "/Users/mujeebahmad/Documents/OnchainSuite/onchain-suite/prisma/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -31,7 +31,7 @@ const config: runtime.GetPrismaClientConfig = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "windows",
+        "value": "darwin-arm64",
         "native": true
       },
       {
@@ -40,7 +40,7 @@ const config: runtime.GetPrismaClientConfig = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\Hp 745\\onchain-suite\\prisma\\schema.prisma",
+    "sourceFilePath": "/Users/mujeebahmad/Documents/OnchainSuite/onchain-suite/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativePath": "../..",
