@@ -7,6 +7,10 @@ export const serverEnv = createEnv({
     BETTER_AUTH_SECRET: z.string().min(1),
     BETTER_AUTH_URL: z.url(),
     DATABASE_URL: z.url(),
+    R3TAIN_INFRA_URL: z
+      .string()
+      .url()
+      .default("https://r3tain-infra.onrender.com"),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     RESEND_API_KEY: z.string().min(1),

@@ -25,7 +25,7 @@ export function CTASection() {
 
   return (
     <div
-      className="h-[300vh] bg-background w-full rounded-md relative pt-40 overflow-clip"
+      className="h-[400vh] bg-background w-full rounded-md relative pt-40 overflow-clip"
       ref={ref}
     >
       <GoogleGeminiEffect

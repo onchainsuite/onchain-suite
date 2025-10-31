@@ -413,3 +413,17 @@ enum ProjectRole {
   VIEWER
   CONTRIBUTOR
 }
+
+// Waitlist entries for marketing website products
+model Waitlist {
+  id        String   @id @default(cuid())
+  product   String
+  mode      String   // e.g. "light" or "dark"
+  email     String
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([product, email])
+  @@map("waitlist")
+}

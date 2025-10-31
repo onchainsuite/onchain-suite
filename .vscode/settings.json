@@ -71,6 +71,7 @@
   "editor.insertSpaces": true,
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
+  "files.eol": "\n",
 
   // === ABSOLUTE IMPORTS ===
   "typescript.preferences.importModuleSpecifier": "shortest",
