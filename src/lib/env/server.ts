@@ -5,7 +5,6 @@ export const serverEnv = createEnv({
   server: {
     ARCJET_KEY: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(1),
-    BETTER_AUTH_URL: z.url(),
     DATABASE_URL: z.url(),
     R3TAIN_INFRA_URL: z
       .string()
