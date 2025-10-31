@@ -100,21 +100,25 @@ export const FadeInDiv = ({
     return tab.value === tabs[0].value;
   };
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full min-h-[700px] md:min-h-[650px] lg:min-h-[600px]">
       {tabs.map((tab, idx) => (
         <motion.div
           key={tab.value}
           layoutId={tab.value}
           style={{
             scale: 1 - idx * 0.1,
-            top: hovering ? idx * -50 : 0,
-            zIndex: -idx,
+            top: hovering ? (tab.value === tabs[0].value ? 0 : idx * -50) : 0,
+            zIndex: 50 - idx,
             opacity: idx < 3 ? 1 - idx * 0.1 : 0,
           }}
           animate={{
             y: isActive(tab) ? [0, 40, 0] : 0,
           }}
-          className={cn("w-full h-full absolute top-0 left-0", className)}
+          className={cn(
+            "w-full",
+            isActive(tab) ? "relative" : "absolute inset-0",
+            className
+          )}
         >
           {tab.content}
         </motion.div>

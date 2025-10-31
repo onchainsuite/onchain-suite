@@ -2,7 +2,6 @@
 
 import {
   BarChart3,
-  Mail,
   Shield,
   Target,
   TrendingUp,
@@ -35,7 +34,7 @@ export function ProductsSection() {
       value: "r3tain",
       content: (
         <ProductTabContent
-          icon={<Mail className="h-6 w-6 text-primary" />}
+          icon="https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761714418/R_Icon_Gradient_Blue_jasvew.png"
           title="R3tain"
           description="Email marketing tool designed specifically to enhance user retention through personalized, behavior-triggered communication deeply integrated with blockchain analytics."
           features={[
@@ -64,6 +63,7 @@ export function ProductsSection() {
                 "Purpose-built for Web3 brands to maximize user engagement and reduce churn through targeted campaigns",
             },
           ]}
+          productSlug="r3tain"
         />
       ),
     },
@@ -72,7 +72,7 @@ export function ProductsSection() {
       value: "onch3n",
       content: (
         <ProductTabContent
-          icon={<BarChart3 className="h-6 w-6 text-primary" />}
+          icon="https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761714420/O_Icon_Gradient_Blue_wqzgcg.png"
           title="Onch3n"
           description="Retention-focused behavioral analytics tool that captures, processes, and interprets blockchain-based user behavior to boost retention through actionable insights."
           features={[
@@ -101,6 +101,7 @@ export function ProductsSection() {
                 "Analyzes activity across major blockchains including Ethereum, Solana, and Base",
             },
           ]}
+          productSlug="onch3n"
         />
       ),
     },
@@ -109,7 +110,7 @@ export function ProductsSection() {
       value: "3ridge",
       content: (
         <ProductTabContent
-          icon={<Shield className="h-6 w-6 text-primary" />}
+          icon="https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761714419/B_Icon_Gradient_Blue_v6ttgj.png"
           title="3ridge"
           description="Core authentication and data management platform enabling Web3 platforms to seamlessly integrate marketing and analytics with privacy-preserving user onboarding."
           features={[
@@ -138,6 +139,7 @@ export function ProductsSection() {
                 "Supports EVM chains like Ethereum and Polygon, plus non-EVM like Solana",
             },
           ]}
+          productSlug="3ridge"
         />
       ),
     },
@@ -161,7 +163,7 @@ export function ProductsSection() {
         </div>
 
         <div
-          className="relative [perspective:1000px]"
+          className="relative perspective-[1000px]"
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
