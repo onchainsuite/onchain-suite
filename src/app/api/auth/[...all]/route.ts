@@ -88,7 +88,23 @@ async function protect(req: NextRequest): Promise<ArcjetDecision> {
 
 const authHandlers = toNextJsHandler(auth.handler);
 
-export const { GET } = authHandlers;
+// Wrap the GET handler to log requests
+export const GET = async (req: NextRequest, props: any) => {
+  console.log(`[Auth] ${req.method} ${req.url}`);
+  if (!authHandlers.GET) {
+    console.error("[Auth] authHandlers.GET is undefined");
+    return new Response("Internal Server Error: Auth Handler Missing", {
+      status: 500,
+    });
+  }
+  try {
+    const res = await authHandlers.GET(req);
+    return res;
+  } catch (error) {
+    console.error("[Auth] Error in GET handler:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
+};
 
 // Wrap the POST handler with Arcjet protections
 export const POST = async (req: NextRequest) => {

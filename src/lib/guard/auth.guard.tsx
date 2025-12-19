@@ -15,8 +15,12 @@ interface Session {
   user: {
     id: string;
     email: string;
+    name?: string;
+    firstName?: string;
+    lastName?: string;
     role?: string;
     isNewUser: boolean;
+    timezone?: string;
     // Add other user properties as needed
   };
 }

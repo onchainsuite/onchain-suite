@@ -61,7 +61,7 @@ export function Footer() {
 
   const y = useTransform(scrollYProgress, [0, 1], [100, 0]);
 
-  const { fullLogo } = useGetLogo();
+  const { lightFull, darkFull } = useGetLogo();
 
   return (
     <motion.footer
@@ -84,11 +84,18 @@ export function Footer() {
           <motion.div className="lg:col-span-1" variants={itemVariants}>
             <Link href="/" className="mb-4 flex items-center gap-2">
               <Image
-                src={fullLogo}
+                src={lightFull}
                 width={200}
                 height={100}
                 alt="OnchainSuite Logo"
-                suppressHydrationWarning
+                className="dark:hidden"
+              />
+              <Image
+                src={darkFull}
+                width={200}
+                height={100}
+                alt="OnchainSuite Logo"
+                className="hidden dark:block"
               />
             </Link>
             <p className="mb-4 text-sm text-muted-foreground">

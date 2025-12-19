@@ -15,6 +15,7 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  baseURL: serverEnv.BETTER_AUTH_URL,
   trustedOrigins: [
     "https://onchain-suite.vercel.app",
     "https://onchainsuite.com",

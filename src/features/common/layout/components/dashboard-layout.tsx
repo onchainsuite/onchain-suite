@@ -1,192 +1,122 @@
 "use client";
 
-import type * as React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import type React from "react";
 
-import { FloatingDock } from "@/ui/floating-dock";
+import { DashboardHeader } from "./dashboard-header";
+import { DashboardNavbar } from "./dashboard-navbar";
+
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Megaphone,
+  Users,
+  Brain,
+  Settings,
+  Zap,
+  Mail
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { initialNotifications } from "@/data/notifications";
 
-import { DOCK_ITEMS } from "../config";
-import { type BreadcrumbItem, Breadcrumbs } from "./breadcrumbs";
-import { CommandPalette } from "./command-palette";
-import { DashboardHeader } from "./dashboard-header";
-import { DashboardSidebar } from "./dashboard-sidebar";
-import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog";
-import { NotificationsCenter } from "./notifications";
-import { PreferencesDialog } from "./preferences-dialog";
-import { QuickTip } from "./quick-tip";
-import { useDashboardLayout, useQuickTips } from "@/common/layout/hooks";
+type BreadcrumbItem = { href: string; label: string };
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
+  userFullName?: string;
 }
+
+export const dynamic = "force-dynamic";
 
 export function DashboardLayout({
   children,
   breadcrumbs,
+  userFullName,
 }: DashboardLayoutProps) {
-  const {
-    isCollapsed,
-    isMobileOpen,
-    commandPaletteOpen,
-    shortcutsDialogOpen,
-    mobileNotificationsOpen,
-    preferencesDialogOpen,
-    setCommandPaletteOpen,
-    setShortcutsDialogOpen,
-    setMobileNotificationsOpen,
-    setPreferencesDialogOpen,
-    toggleSidebar,
-    toggleMobileMenu,
-    closeMobileMenu,
-    openShortcutsDialog,
-    toggleMobileNotifications,
-    openPreferencesDialog,
-    handleNavigate,
-    handleOpenSettings,
-    handleOpenAssistant,
-    handleCreateNew,
-    handleShowShortcuts,
-  } = useDashboardLayout();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const pathname = usePathname();
+  const unreadCount = initialNotifications.filter((n) => !n.read).length;
 
-  const { activeTips, dismissTip } = useQuickTips();
-  const [currentTipIndex, setCurrentTipIndex] = useState(0);
-  const [showTip, setShowTip] = useState(false);
+  const navItems: { label: string; href: string; icon: React.ReactNode }[] = [
+    {
+      label: "Dashboard",
+      href: PRIVATE_ROUTES.DASHBOARD,
+      icon: <LayoutDashboard className="h-4 w-4" />,
+    },
+    {
+      label: "Campaigns",
+      href: PRIVATE_ROUTES.CAMPAIGNS,
+      icon: <Megaphone className="h-4 w-4" />,
+    },
+    {
+      label: "Audience",
+      href: PRIVATE_ROUTES.AUDIENCE,
+      icon: <Users className="h-4 w-4" />,
+    },
+    {
+      label: "Inbox",
+      href: PRIVATE_ROUTES.INBOX,
+      icon: <Mail className="h-4 w-4" />,
+    },
+    {
+      label: "Automations",
+      href: PRIVATE_ROUTES.AUTOMATIONS,
+      icon: <Zap className="h-4 w-4" />,
+    },
+    {
+      label: "Intelligence",
+      href: PRIVATE_ROUTES.INTELLIGENCE,
+      icon: <Brain className="h-4 w-4" />,
+    },
+    {
+      label: "Settings",
+      href: PRIVATE_ROUTES.SETTINGS,
+      icon: <Settings className="h-4 w-4" />,
+    },
+  ];
 
-  useEffect(() => {
-    if (activeTips.length > 0) {
-      const timer = setTimeout(() => {
-        setShowTip(true);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [activeTips]);
-
-  const handleDismissTip = () => {
-    if (activeTips[currentTipIndex]) {
-      dismissTip(activeTips[currentTipIndex].id);
-      setShowTip(false);
-
-      // Show next tip after a delay
-      if (currentTipIndex < activeTips.length - 1) {
-        setTimeout(() => {
-          setCurrentTipIndex(currentTipIndex + 1);
-          setShowTip(true);
-        }, 5000);
-      }
-    }
-  };
-
-  const hasBreadcrumbs = breadcrumbs && breadcrumbs.length > 0;
-
-  const handleDockItemClick = (title: string) => {
-    if (title === "Notifications") {
-      toggleMobileNotifications();
-    }
-    if (title === "Settings") {
-      openPreferencesDialog();
-    }
-  };
+  const hasBreadcrumbs = !!breadcrumbs && breadcrumbs.length > 0;
 
   return (
     <div className="relative min-h-screen">
-      <DashboardSidebar
+      <DashboardNavbar
         isCollapsed={isCollapsed}
-        onToggle={toggleSidebar}
-        isMobileOpen={isMobileOpen}
-        onMobileClose={closeMobileMenu}
-      />
-      <DashboardHeader
-        isCollapsed={isCollapsed}
-        onMobileMenuToggle={toggleMobileMenu}
-        onShowShortcuts={openShortcutsDialog}
+        setCollapsed={setIsCollapsed}
+        navItems={navItems}
+        activePath={pathname}
+        unreadCount={unreadCount}
+        isLocked={isLocked}
+        onToggleLock={() => setIsLocked((l) => !l)}
+        userFullName={userFullName}
       />
 
-      {hasBreadcrumbs && (
-        <div
-          className={cn(
-            "fixed top-16 right-0 z-20 h-12 border-b border-border/50",
-            "bg-linear-to-r from-sidebar via-sidebar-accent to-sidebar",
-            "backdrop-blur-sm supports-backdrop-filter:bg-linear-to-r supports-backdrop-filter:from-sidebar/90 supports-backdrop-filter:via-sidebar-accent/90 supports-backdrop-filter:to-sidebar/90",
-            "transition-all duration-300",
-            isCollapsed ? "left-16" : "left-64",
-            "max-lg:left-0"
-          )}
-        >
-          <div className="flex h-full items-center px-6">
-            <Breadcrumbs
-              items={breadcrumbs}
-              className="text-sidebar-foreground/90"
-            />
-          </div>
-        </div>
-      )}
+      <div className={cn(isCollapsed ? "pl-20" : "pl-64")}>
+        <DashboardHeader
+          breadcrumbs={breadcrumbs}
+          currentPage={
+            breadcrumbs && breadcrumbs.length > 0
+              ? breadcrumbs[breadcrumbs.length - 1].label
+              : undefined
+          }
+          setOpen={() => {}}
+        />
+      </div>
 
       <div
         className={cn(
           "transition-all duration-300",
-          hasBreadcrumbs ? "pt-28" : "pt-16",
-          isCollapsed ? "lg:pl-16" : "lg:pl-64"
+          hasBreadcrumbs ? "pt-0" : "pt-0",
+          isCollapsed ? "lg:pl-20" : "lg:pl-64"
         )}
       >
-        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-4 md:p-4 md:px-15">
           {children}
         </main>
       </div>
-
-      {showTip && activeTips[currentTipIndex] && (
-        <div className="fixed bottom-24 right-6 z-40 max-w-sm lg:bottom-6">
-          <QuickTip
-            title={activeTips[currentTipIndex].title}
-            description={activeTips[currentTipIndex].description}
-            onDismiss={handleDismissTip}
-          />
-        </div>
-      )}
-
-      {/* Floating Dock for mobile/tablet */}
-      <div className="fixed bottom-6 right-6 z-50 md:left-1/2 md:-translate-x-1/2 md:right-auto lg:hidden">
-        <FloatingDock
-          items={DOCK_ITEMS}
-          mobileClassName=""
-          onItemClick={handleDockItemClick}
-        />
-      </div>
-
-      {/* Mobile Notifications Drawer */}
-      <div className="lg:hidden">
-        <NotificationsCenter
-          mobile
-          open={mobileNotificationsOpen}
-          onOpenChange={setMobileNotificationsOpen}
-        />
-      </div>
-
-      {/* Command Palette */}
-      <CommandPalette
-        open={commandPaletteOpen}
-        onOpenChange={setCommandPaletteOpen}
-        onNavigate={handleNavigate}
-        onToggleSidebar={toggleSidebar}
-        onOpenSettings={handleOpenSettings}
-        onOpenAssistant={handleOpenAssistant}
-        onCreateNew={handleCreateNew}
-        onShowShortcuts={handleShowShortcuts}
-      />
-
-      {/* Keyboard Shortcuts Dialog */}
-      <KeyboardShortcutsDialog
-        open={shortcutsDialogOpen}
-        onOpenChange={setShortcutsDialogOpen}
-      />
-
-      {/* Preferences Dialog */}
-      <PreferencesDialog
-        open={preferencesDialogOpen}
-        onOpenChange={setPreferencesDialogOpen}
-      />
     </div>
   );
 }

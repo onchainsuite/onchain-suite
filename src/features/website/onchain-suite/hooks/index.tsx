@@ -18,7 +18,7 @@ export const useHandNavRouting = () => {
         route = AUTH_ROUTES.REGISTER;
         break;
       case "dashboard":
-        route = PRIVATE_ROUTES.ROOT;
+        route = PRIVATE_ROUTES.DASHBOARD;
         break;
     }
 

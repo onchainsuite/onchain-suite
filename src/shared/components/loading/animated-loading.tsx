@@ -39,7 +39,7 @@ export default function AnimatedLoading() {
   }, []);
 
   return (
-    <div className="from-background via-background to-primary/5 fixed inset-0 flex items-center justify-center overflow-hidden bg-gradient-to-br">
+    <div className="from-background via-background to-primary/5 fixed inset-0 flex items-center justify-center overflow-hidden bg-linear-to-br">
       {/* Enhanced Background Effects */}
       <div className="absolute inset-0">
         {/* Animated mesh gradient */}
@@ -114,7 +114,7 @@ export default function AnimatedLoading() {
             {/* Main logo */}
             <motion.div className="relative">
               <motion.h1
-                className="from-primary via-primary to-primary/70 bg-gradient-to-r bg-clip-text text-7xl font-black tracking-tight text-transparent md:text-8xl"
+                className="from-primary via-primary to-primary/70 bg-linear-to-r bg-clip-text text-7xl font-black tracking-tight text-transparent md:text-8xl"
                 initial={{ y: 30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
@@ -151,7 +151,7 @@ export default function AnimatedLoading() {
 
               {/* Sophisticated underline */}
               <motion.div
-                className="via-primary absolute right-0 -bottom-4 left-0 h-1 rounded-full bg-gradient-to-r from-transparent to-transparent"
+                className="via-primary absolute right-0 -bottom-4 left-0 h-1 rounded-full bg-linear-to-r from-transparent to-transparent"
                 initial={{ scaleX: 0, opacity: 0 }}
                 animate={{ scaleX: 1, opacity: 1 }}
                 transition={{ delay: 1.2, duration: 1, ease: "easeOut" }}
@@ -262,7 +262,7 @@ export default function AnimatedLoading() {
               {[0.3, 0.7, 0.5, 0.9, 0.6, 0.8].map((height, i) => (
                 <motion.div
                   key={uuidv4()}
-                  className="from-primary to-primary/60 w-2.5 rounded-t-sm bg-gradient-to-t"
+                  className="from-primary to-primary/60 w-2.5 rounded-t-sm bg-linear-to-t"
                   initial={{ height: 4 }}
                   animate={{ height: height * 32 }}
                   transition={{
@@ -373,14 +373,14 @@ export default function AnimatedLoading() {
           <div className="relative">
             <div className="bg-muted/50 h-3 w-full overflow-hidden rounded-full backdrop-blur-sm">
               <motion.div
-                className="from-primary via-primary/90 to-primary/70 relative h-full overflow-hidden rounded-full bg-gradient-to-r"
+                className="from-primary via-primary/90 to-primary/70 relative h-full overflow-hidden rounded-full bg-linear-to-r"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
               >
                 {/* Shimmer effect */}
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent"
                   animate={{ x: ["-100%", "100%"] }}
                   transition={{
                     duration: 2,

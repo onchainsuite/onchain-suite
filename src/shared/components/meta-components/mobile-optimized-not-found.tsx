@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Home, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-
+import { publicRoutes } from "@/config/app-routes";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function MobileOptimizedNotFound() {
   const [isClient, setIsClient] = useState(false);
@@ -24,10 +25,12 @@ export default function MobileOptimizedNotFound() {
           <p className="text-muted-foreground mb-8">
             The page you&apos;re looking for doesn&apos;t exist.
           </p>
-          <Button className="w-full">
-            <Home className="mr-2 h-4 w-4" />
-            Back to Home
-          </Button>
+          <Link href={publicRoutes.HOME}>
+            <Button className="w-full">
+              <Home className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
+          </Link>
         </div>
       </div>
     );

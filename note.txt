@@ -1,0 +1,12 @@
+Sidebar
+- Make it mobile responsive
+- The logo should display the logotype also
+- The Profile icon should render the profile's picture from google auth
+
+Campaign
+
+
+Audience
+
+
+Inbox

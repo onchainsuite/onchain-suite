@@ -1,12 +1,13 @@
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
-import { ArrowLeft, Globe, Home, Search, Sparkles, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-
-import { FloatingParticle, FloatingSymbol } from "@/components/common";
+import Link from "next/link";
 import { Button } from "@/ui/button";
+import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+import { FloatingParticle, FloatingSymbol } from "@/components/common";
+import { ArrowLeft, Globe, Home, Search, Sparkles, Zap } from "lucide-react";
 
 export default function NotFoundPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -281,21 +282,25 @@ export default function NotFoundPage() {
             transition={{ duration: 0.8, delay: 0.8 }}
             className="mb-8 flex flex-col items-center justify-center gap-4 sm:mb-12 sm:flex-row"
           >
-            <Button
-              size={isMobile ? "default" : "lg"}
-              className="group w-full px-6 py-4 text-base font-semibold sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
-            >
-              <Home className="mr-2 h-4 w-4 transition-transform group-hover:scale-110 sm:h-5 sm:w-5" />
-              Back to Home
-            </Button>
-            <Button
-              variant="outline"
-              size={isMobile ? "default" : "lg"}
-              className="group w-full px-6 py-4 text-base font-semibold sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1 sm:h-5 sm:w-5" />
-              Go Back
-            </Button>
+            <Link href={publicRoutes.HOME}>
+              <Button
+                size={isMobile ? "default" : "lg"}
+                className="group w-full px-6 py-4 text-base font-semibold sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
+              >
+                <Home className="mr-2 h-4 w-4 transition-transform group-hover:scale-110 sm:h-5 sm:w-5" />
+                Back to Home
+              </Button>
+            </Link>
+            <Link href={PRIVATE_ROUTES.DASHBOARD}>
+              <Button
+                variant="outline"
+                size={isMobile ? "default" : "lg"}
+                className="group w-full px-6 py-4 text-base font-semibold sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1 sm:h-5 sm:w-5" />
+                Go Back
+              </Button>
+            </Link>
           </motion.div>
 
           {/* Search Suggestion */}

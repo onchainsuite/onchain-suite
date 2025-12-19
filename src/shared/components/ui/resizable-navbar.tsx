@@ -234,7 +234,7 @@ export const MobileNavToggle = ({
 };
 
 export const NavbarLogo = () => {
-  const { logoIcon } = useGetLogo();
+  const { lightIcon, darkIcon } = useGetLogo();
 
   return (
     <Link
@@ -242,11 +242,18 @@ export const NavbarLogo = () => {
       className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal"
     >
       <Image
-        src={logoIcon}
+        src={lightIcon}
         width={40}
         height={40}
         alt={"Onchain Logo"}
-        suppressHydrationWarning
+        className="dark:hidden"
+      />
+      <Image
+        src={darkIcon}
+        width={40}
+        height={40}
+        alt={"Onchain Logo"}
+        className="hidden dark:block"
       />
     </Link>
   );
