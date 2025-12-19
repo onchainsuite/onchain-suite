@@ -1,18 +1,21 @@
-"use client"
+"use client";
 
-import type { Table } from "@tanstack/react-table"
-import { Button } from "@/ui/button"
-import type { Campaign } from "../../../campaigns/types"
+import type { Table } from "@tanstack/react-table";
+
+import { Button } from "@/ui/button";
+
+import type { Campaign } from "../../../campaigns/types";
 
 interface TablePaginationProps {
-  table: Table<Campaign>
+  table: Table<Campaign>;
 }
 
 export function TablePagination({ table }: TablePaginationProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="text-sm text-muted-foreground">
-        {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s) selected.
+        {table.getFilteredSelectedRowModel().rows.length} of{" "}
+        {table.getFilteredRowModel().rows.length} row(s) selected.
       </div>
       <div className="flex items-center gap-2">
         <Button
@@ -26,7 +29,8 @@ export function TablePagination({ table }: TablePaginationProps) {
         </Button>
         <div className="flex items-center gap-1">
           <span className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
           </span>
         </div>
         <Button
@@ -40,5 +44,5 @@ export function TablePagination({ table }: TablePaginationProps) {
         </Button>
       </div>
     </div>
-  )
+  );
 }

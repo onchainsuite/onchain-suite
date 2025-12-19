@@ -1,8 +1,9 @@
-"use client";
-
-import SettingsPage from "@/features/settings/pages/page";
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+
+import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import SettingsPage from "@/features/settings/pages/page";
+
+export const dynamic = "force-dynamic";
 
 const breadcrumbs = [
   { href: publicRoutes.HOME, label: "Home" },

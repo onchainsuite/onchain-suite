@@ -50,20 +50,17 @@ export function ProductTabContent({
         body: JSON.stringify({
           email,
           name,
-          product: productSlug ?? title.toLowerCase(),
-          mode: "light",
+          source: `product_tab_${productSlug ?? "unknown"}`,
         }),
       });
-      const data = await res.json();
-      if (data?.ok) {
-        setSuccess("You’re on the waitlist!");
-        setEmail("");
-        setName("");
-      } else {
-        setError(data?.error ?? "Something went wrong.");
-      }
-    } catch (err) {
-      setError("Network error. Please try again.");
+
+      if (!res.ok) throw new Error("Failed to join waitlist");
+
+      setSuccess("You're on the list! We'll be in touch soon.");
+      setEmail("");
+      setName("");
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }

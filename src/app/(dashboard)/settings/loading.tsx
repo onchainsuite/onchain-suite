@@ -9,16 +9,22 @@ export default function AccountLoading() {
           <div className="h-12 w-48 animate-pulse rounded-lg bg-gray-200" />
           <div className="mt-12 flex gap-8 border-b border-gray-200 pb-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-6 w-24 animate-pulse rounded bg-gray-200" />
+              <div
+                key={i}
+                className="h-6 w-24 animate-pulse rounded bg-gray-200"
+              />
             ))}
           </div>
           <div className="mt-16 space-y-8">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-48 animate-pulse rounded-xl bg-gray-200" />
+              <div
+                key={i}
+                className="h-48 animate-pulse rounded-xl bg-gray-200"
+              />
             ))}
           </div>
         </div>
       </main>
     </div>
-  )
+  );
 }

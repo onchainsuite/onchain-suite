@@ -10,3 +10,10 @@ Audience
 
 
 Inbox
+- Change the colours to match the brand designs.
+
+
+
+{{{We need two links.}}}
+- One for the empty state, this will be the live link where users can sign up.
+- Then another staging link where we can show the users what we intend to do.

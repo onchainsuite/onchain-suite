@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { motion } from "framer-motion";
 import {
+  AlertCircle,
   ArrowLeft,
-  Search,
-  Plus,
   CheckCircle2,
   Clock,
-  AlertCircle,
-  Mail,
-  Wallet,
   Link2,
+  Mail,
+  Plus,
   RefreshCw,
   RotateCcw,
+  Search,
+  Wallet,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import Link from "next/link";
+import { useState } from "react";
 
 const synthesisQueue = [
   {
@@ -78,22 +78,22 @@ export default function SynthesisPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-primary" />;
       case "processing":
-        return <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />;
+        return <RefreshCw className="h-4 w-4 animate-spin text-secondary" />;
       case "pending":
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-amber-500" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-destructive" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      completed: "bg-green-500/10 text-green-600",
-      processing: "bg-blue-500/10 text-blue-600",
-      pending: "bg-yellow-500/10 text-yellow-600",
-      failed: "bg-red-500/10 text-red-600",
+      completed: "bg-primary/10 text-primary",
+      processing: "bg-secondary/10 text-secondary",
+      pending: "bg-amber-500/10 text-amber-600",
+      failed: "bg-destructive/10 text-destructive",
     };
     return styles[status] || styles.failed;
   };
@@ -127,7 +127,6 @@ export default function SynthesisPage() {
       transition={{ duration: 0.3 }}
       className="flex min-h-screen gap-2 bg-background p-2 md:gap-4 md:p-4"
     >
-
       <main className="flex-1 py-10">
         {/* Header */}
         <div className="mb-8 px-2 pt-4 md:px-0 md:pt-6">
@@ -177,14 +176,14 @@ export default function SynthesisPage() {
             {
               label: "Completed",
               value: stats.completed,
-              color: "text-green-500",
+              color: "text-primary",
             },
             {
               label: "Processing",
               value: stats.processing,
-              color: "text-blue-500",
+              color: "text-secondary",
             },
-            { label: "Failed", value: stats.failed, color: "text-red-500" },
+            { label: "Failed", value: stats.failed, color: "text-destructive" },
           ].map((stat) => (
             <div
               key={stat.label}

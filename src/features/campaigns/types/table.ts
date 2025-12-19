@@ -1,5 +1,5 @@
-import type React from "react";
 import type { Column } from "@tanstack/react-table";
+import type React from "react";
 
 export interface FacetedFilterOption {
   label: string;

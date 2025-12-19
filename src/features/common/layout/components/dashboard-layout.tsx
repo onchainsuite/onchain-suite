@@ -1,24 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import {
+  Brain,
+  LayoutDashboard,
+  Mail,
+  Megaphone,
+  Settings,
+  Users,
+  Zap,
+} from "lucide-react";
+import { usePathname } from "next/navigation";
 import type React from "react";
+import { useState } from "react";
+
+import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { cn } from "@/lib/utils";
 
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardNavbar } from "./dashboard-navbar";
-
-import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Megaphone,
-  Users,
-  Brain,
-  Settings,
-  Zap,
-  Mail
-} from "lucide-react";
-
-import { cn } from "@/lib/utils";
-import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { initialNotifications } from "@/data/notifications";
 
 type BreadcrumbItem = { href: string; label: string };

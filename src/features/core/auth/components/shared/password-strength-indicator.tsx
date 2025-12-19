@@ -83,16 +83,12 @@ export function PasswordStrengthIndicator({
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
               className={`flex items-center text-xs ${
-                req.met
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-muted-foreground"
+                req.met ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <CheckCircle
                 className={`mr-2 h-3 w-3 ${
-                  req.met
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-muted-foreground/50"
+                  req.met ? "text-primary" : "text-muted-foreground/50"
                 }`}
               />
               {req.text}

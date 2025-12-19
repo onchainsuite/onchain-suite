@@ -1,12 +1,4 @@
-
-import {
-  User,
-  Building,
-  CreditCard,
-  Code,
-  Gift,
-} from "lucide-react";
-import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { Building, Code, CreditCard, Gift, User } from "lucide-react";
 
 export const fadeInUp = {
   initial: { opacity: 0, y: 20 },

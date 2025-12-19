@@ -1,9 +1,9 @@
 "use client";
 
-import { Search, SlidersHorizontal } from "lucide-react";
 import type { Table } from "@tanstack/react-table";
+import { Search, SlidersHorizontal } from "lucide-react";
+
 import { Button } from "@/ui/button";
-import { Input } from "@/ui/input";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -12,12 +12,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/ui/dropdown-menu";
-import { CampaignsTableFacetedFilter } from "./campaigns-table-faceted-filter";
+import { Input } from "@/ui/input";
+
 import {
   CAMPAIGN_STATUS_FILTERS,
   CAMPAIGN_TYPE_FILTERS,
 } from "../../../campaigns/constants";
 import type { Campaign } from "../../../campaigns/types";
+import { CampaignsTableFacetedFilter } from "./campaigns-table-faceted-filter";
 
 interface TableToolbarProps {
   table: Table<Campaign>;

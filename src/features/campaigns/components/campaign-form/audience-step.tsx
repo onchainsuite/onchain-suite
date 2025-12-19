@@ -1,20 +1,25 @@
 "use client";
 
+import { Info, TrendingUp, Users } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
-import { Users, TrendingUp, Info } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+
 import {
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+
+import {
+  CAMPAIGN_LISTS,
+  CAMPAIGN_SEGMENTS,
+} from "../../../campaigns/constants";
 import type { CampaignFormData } from "../../validations";
 import { AudienceSelector } from "./audience-selector";
-import { CAMPAIGN_LISTS, CAMPAIGN_SEGMENTS } from "../../../campaigns/constants";
 
 interface AudienceStepProps {
   form: UseFormReturn<CampaignFormData>;
@@ -26,7 +31,7 @@ export function AudienceStep({ form }: AudienceStepProps) {
   const estimatedRecipients = selectedAudiences.reduce((total, id) => {
     const list = CAMPAIGN_LISTS.find((l) => l.id === id);
     const segment = CAMPAIGN_SEGMENTS.find((s) => s.id === id);
-    return total + (list?.count || segment?.count || 0);
+    return total + (list?.count ?? segment?.count ?? 0);
   }, 0);
 
   return (
@@ -90,7 +95,7 @@ export function AudienceStep({ form }: AudienceStepProps) {
       {/* Don't Send To Section */}
       <div className="space-y-4 p-6 bg-muted/30 rounded-2xl border border-border">
         <Label className="text-base font-medium text-foreground">
-          Don't send to
+          Don&apos;t send to
         </Label>
         <FormField
           control={form.control}

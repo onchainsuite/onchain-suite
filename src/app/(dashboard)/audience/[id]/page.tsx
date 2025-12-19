@@ -1,6 +1,7 @@
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
-import  { ProfileDetailPage }  from "@/features/audience/components";
+
+import { ProfileDetailPage } from "@/features/audience/components";
+import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 
 const breadcrumbs = [
   { href: publicRoutes.HOME, label: "Home" },
@@ -10,7 +11,7 @@ const breadcrumbs = [
 export default async function ProfilesDataCreated() {
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
-       <ProfileDetailPage />
+      <ProfileDetailPage />
     </DashboardLayout>
   );
 }

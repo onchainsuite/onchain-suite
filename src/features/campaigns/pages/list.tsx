@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, LayoutGrid, CalendarIcon } from "lucide-react";
+import { CalendarIcon, LayoutGrid, Plus } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs";
-import { CampaignsTable } from "../../campaigns/components/table";
+
 import { CampaignsCalendar } from "../../campaigns/components/calendar";
+import { CampaignsTable } from "../../campaigns/components/table";
 import { MOCK_CAMPAIGNS } from "../../campaigns/constants";
 
 export function CampaignsListsView() {

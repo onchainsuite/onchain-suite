@@ -1,7 +1,7 @@
-
-import React from "react";
 import { motion } from "framer-motion";
-import { Gift, Sparkles, Mail } from "lucide-react";
+import { Gift, Mail, Sparkles } from "lucide-react";
+import React from "react";
+
 import { Button } from "@/components/ui/button";
 
 const RewardsContent = () => {

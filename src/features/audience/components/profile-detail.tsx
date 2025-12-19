@@ -1,26 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import type { Profile } from "@/features/audience/types";
 import {
+  AlertCircle,
   ArrowLeft,
-  Mail,
-  Copy,
-  ExternalLink,
+  ArrowRightLeft,
   CheckCircle2,
   Clock,
-  AlertCircle,
+  Coins,
+  Copy,
+  ExternalLink,
   Eye,
+  Gift,
+  Mail,
   MousePointer,
   Send,
   Tag,
-  ArrowRightLeft,
-  Coins,
-  Gift,
   Target,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useState } from "react";
+
+import type { Profile } from "@/features/audience/types";
 
 const createProfilesData = (): Record<string, Profile> => {
   const data: Record<string, Profile> = {
@@ -310,11 +311,11 @@ export function ProfileDetailPage() {
   const getStatusStyles = (status: string) => {
     switch (status) {
       case "verified":
-        return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
+        return "bg-primary/10 text-primary border-primary/20";
       case "pending":
         return "bg-amber-500/10 text-amber-600 border-amber-500/20";
       default:
-        return "bg-red-500/10 text-red-600 border-red-500/20";
+        return "bg-destructive/10 text-destructive border-destructive/20";
     }
   };
 
@@ -330,13 +331,13 @@ export function ProfileDetailPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#fafafa]">
+    <div className="flex min-h-screen bg-background">
       <main className="flex-1 px-6 py-12 md:px-16">
         <div className="mx-auto max-w-5xl">
           {/* Back */}
           <Link
             href="/audience"
-            className="mb-8 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Audience
@@ -345,12 +346,12 @@ export function ProfileDetailPage() {
           {/* Header */}
           <div className="mb-8 flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-emerald-400 to-emerald-600 text-xl font-semibold text-white shadow-lg">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/80 text-xl font-semibold text-primary-foreground shadow-lg">
                 {profile.name.charAt(0)}
               </div>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-light tracking-tight text-gray-900">
+                  <h1 className="text-2xl font-light tracking-tight text-foreground">
                     {profile.name}
                   </h1>
                   <span
@@ -360,18 +361,18 @@ export function ProfileDetailPage() {
                     {profile.status}
                   </span>
                 </div>
-                <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
+                <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
                   <span>{profile.email}</span>
-                  <span className="text-gray-300">|</span>
-                  <span className="font-mono text-xs text-gray-400">
+                  <span className="text-muted-foreground/50">|</span>
+                  <span className="font-mono text-xs text-muted-foreground/70">
                     {profile.wallet}
                   </span>
                   <button
                     onClick={copyWallet}
-                    className="hover:text-gray-900 transition-colors"
+                    className="hover:text-foreground transition-colors"
                   >
                     {copiedWallet ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                     ) : (
                       <Copy className="h-3.5 w-3.5" />
                     )}
@@ -380,14 +381,14 @@ export function ProfileDetailPage() {
                     href={`https://etherscan.io/address/${profile.walletFull}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-gray-900 transition-colors"
+                    className="hover:text-foreground transition-colors"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </div>
               </div>
             </div>
-            <button className="flex items-center gap-2 rounded-full bg-emerald-500 px-6 py-3 text-sm font-medium text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-600 hover:shadow-xl hover:shadow-emerald-500/30">
+            <button className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30">
               <Mail className="h-4 w-4" />
               Send Email
             </button>
@@ -398,7 +399,7 @@ export function ProfileDetailPage() {
             {profile.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm"
               >
                 {tag}
               </span>
@@ -408,12 +409,12 @@ export function ProfileDetailPage() {
           {/* Intelligence Cards */}
           <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
             {profile.intelligenceSegments.length > 0 && (
-              <div className="rounded-2xl border border-indigo-100 bg-linear-to-br from-indigo-50/50 to-white p-6 shadow-sm">
+              <div className="rounded-2xl border border-secondary/20 bg-linear-to-br from-secondary/5 to-card p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10">
-                    <Target className="h-4 w-4 text-indigo-500" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary/10">
+                    <Target className="h-4 w-4 text-secondary" />
                   </div>
-                  <h3 className="text-sm font-medium text-gray-900">
+                  <h3 className="text-sm font-medium text-foreground">
                     Intelligence Segments
                   </h3>
                 </div>
@@ -421,7 +422,7 @@ export function ProfileDetailPage() {
                   {profile.intelligenceSegments.map((seg) => (
                     <span
                       key={seg}
-                      className="rounded-full bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-600"
+                      className="rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary"
                     >
                       {seg}
                     </span>
@@ -430,30 +431,30 @@ export function ProfileDetailPage() {
               </div>
             )}
 
-            <div className="rounded-2xl border border-emerald-100 bg-linear-to-br from-emerald-50/50 to-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-primary/20 bg-linear-to-br from-primary/5 to-card p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10">
-                  <Coins className="h-4 w-4 text-emerald-500" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                  <Coins className="h-4 w-4 text-primary" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-900">
+                <h3 className="text-sm font-medium text-foreground">
                   Contract Activity
                 </h3>
               </div>
               <div className="space-y-3">
-                {profile.contractLabels.map((cl, idx) => (
+                {profile.contractLabels.map((cl) => (
                   <div
-                    key={idx}
+                    key={cl.contract}
                     className="flex items-center justify-between text-sm"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-foreground">
                         {cl.contract}
                       </span>
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-600">
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
                         {cl.label}
                       </span>
                     </div>
-                    <span className="text-gray-500">{cl.volume}</span>
+                    <span className="text-muted-foreground">{cl.volume}</span>
                   </div>
                 ))}
               </div>
@@ -462,33 +463,33 @@ export function ProfileDetailPage() {
             <div
               className={`rounded-2xl border p-6 shadow-sm ${
                 profile.churnRisk === "high"
-                  ? "border-red-100 bg-linear-to-br from-red-50/50 to-white"
+                  ? "border-destructive/20 bg-linear-to-br from-destructive/5 to-card"
                   : profile.churnRisk === "medium"
-                    ? "border-amber-100 bg-linear-to-br from-amber-50/50 to-white"
-                    : "border-emerald-100 bg-linear-to-br from-emerald-50/50 to-white"
+                    ? "border-secondary/20 bg-linear-to-br from-secondary/5 to-card"
+                    : "border-primary/20 bg-linear-to-br from-primary/5 to-card"
               }`}
             >
               <div className="flex items-center gap-2 mb-4">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-xl ${
                     profile.churnRisk === "high"
-                      ? "bg-red-500/10"
+                      ? "bg-destructive/10"
                       : profile.churnRisk === "medium"
-                        ? "bg-amber-500/10"
-                        : "bg-emerald-500/10"
+                        ? "bg-secondary/10"
+                        : "bg-primary/10"
                   }`}
                 >
                   <AlertCircle
                     className={`h-4 w-4 ${
                       profile.churnRisk === "high"
-                        ? "text-red-500"
+                        ? "text-destructive"
                         : profile.churnRisk === "medium"
-                          ? "text-amber-500"
-                          : "text-emerald-500"
+                          ? "text-secondary"
+                          : "text-primary"
                     }`}
                   />
                 </div>
-                <h3 className="text-sm font-medium text-gray-900">
+                <h3 className="text-sm font-medium text-foreground">
                   Churn Prediction
                 </h3>
               </div>
@@ -497,10 +498,10 @@ export function ProfileDetailPage() {
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-medium ${
                       profile.churnRisk === "high"
-                        ? "bg-red-500/10 text-red-600"
+                        ? "bg-destructive/10 text-destructive"
                         : profile.churnRisk === "medium"
                           ? "bg-amber-500/10 text-amber-600"
-                          : "bg-emerald-500/10 text-emerald-600"
+                          : "bg-primary/10 text-primary"
                     }`}
                   >
                     {profile.churnRisk === "high"
@@ -509,13 +510,13 @@ export function ProfileDetailPage() {
                         ? "Medium Risk"
                         : "Low Risk"}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     Score: {profile.churnScore}/100
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Predicted LTV</span>
-                  <span className="font-semibold text-gray-900">
+                  <span className="text-muted-foreground">Predicted LTV</span>
+                  <span className="font-semibold text-foreground">
                     {profile.predictedLtv}
                   </span>
                 </div>
@@ -525,42 +526,42 @@ export function ProfileDetailPage() {
 
           {/* Stats Row */}
           <div className="mb-10 grid grid-cols-2 gap-6 lg:grid-cols-4">
-            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Email Open Rate
               </p>
-              <p className="mt-2 text-3xl font-light text-gray-900">
+              <p className="mt-2 text-3xl font-light text-foreground">
                 {profile.emailStats.openRate}%
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Click Rate
               </p>
-              <p className="mt-2 text-3xl font-light text-gray-900">
+              <p className="mt-2 text-3xl font-light text-foreground">
                 {profile.emailStats.clickRate}%
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Total Txns
               </p>
-              <p className="mt-2 text-3xl font-light text-gray-900">
+              <p className="mt-2 text-3xl font-light text-foreground">
                 {profile.dappActivity.totalTxns}
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Total Volume
               </p>
-              <p className="mt-2 text-3xl font-light text-gray-900">
+              <p className="mt-2 text-3xl font-light text-foreground">
                 {profile.dappActivity.totalVolume}
               </p>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="mb-6 flex gap-1 border-b border-gray-200">
+          <div className="mb-6 flex gap-1 border-b border-border">
             {(["activity", "emails", "transactions"] as const).map((tab) => (
               <button
                 key={tab}
@@ -568,7 +569,7 @@ export function ProfileDetailPage() {
                 className={`px-6 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab
                     ? "border-b-2 border-emerald-500 text-emerald-600"
-                    : "text-gray-500 hover:text-gray-900"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {tab === "activity"
@@ -581,24 +582,28 @@ export function ProfileDetailPage() {
           </div>
 
           {/* Tab Content */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             {activeTab === "activity" && (
               <div className="space-y-4">
                 {activityTimeline.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-start gap-4 rounded-xl p-4 transition-colors hover:bg-gray-50"
+                    className="flex items-start gap-4 rounded-xl p-4 transition-colors hover:bg-muted/50"
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
-                      <item.icon className="h-4 w-4 text-gray-600" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                      <item.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{item.title}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-foreground">
+                        {item.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
                         {item.description}
                       </p>
                     </div>
-                    <span className="text-xs text-gray-400">{item.time}</span>
+                    <span className="text-xs text-muted-foreground/70">
+                      {item.time}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -609,7 +614,7 @@ export function ProfileDetailPage() {
                 {emailHistory.map((email) => (
                   <div
                     key={email.id}
-                    className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-gray-50"
+                    className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
                   >
                     <div className="flex items-center gap-4">
                       <div
@@ -618,7 +623,7 @@ export function ProfileDetailPage() {
                             ? "bg-emerald-100"
                             : email.status === "opened"
                               ? "bg-blue-100"
-                              : "bg-gray-100"
+                              : "bg-muted"
                         }`}
                       >
                         {email.status === "clicked" ? (
@@ -626,14 +631,14 @@ export function ProfileDetailPage() {
                         ) : email.status === "opened" ? (
                           <Eye className="h-4 w-4 text-blue-600" />
                         ) : (
-                          <Send className="h-4 w-4 text-gray-600" />
+                          <Send className="h-4 w-4 text-muted-foreground" />
                         )}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-foreground">
                           {email.subject}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                           Sent {email.sentAt}
                         </p>
                       </div>
@@ -641,10 +646,10 @@ export function ProfileDetailPage() {
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-medium ${
                         email.status === "clicked"
-                          ? "bg-emerald-100 text-emerald-700"
+                          ? "bg-primary/20 text-primary"
                           : email.status === "opened"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-700"
+                            ? "bg-secondary/20 text-secondary"
+                            : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {email.status}
@@ -659,20 +664,26 @@ export function ProfileDetailPage() {
                 {dappTransactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-gray-50"
+                    className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
-                        <Coins className="h-4 w-4 text-emerald-600" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <Coins className="h-4 w-4 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{tx.action}</p>
-                        <p className="text-sm text-gray-500">{tx.details}</p>
+                        <p className="font-medium text-foreground">
+                          {tx.action}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {tx.details}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900">{tx.value}</p>
-                      <p className="text-xs text-gray-400">{tx.time}</p>
+                      <p className="font-medium text-foreground">{tx.value}</p>
+                      <p className="text-xs text-muted-foreground/70">
+                        {tx.time}
+                      </p>
                     </div>
                   </div>
                 ))}

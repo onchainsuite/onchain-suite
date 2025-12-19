@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+
+import { type Email } from "../types";
 import ConversationHeader from "./conversation-header";
-import Thread from "./thread";
 import ReplyComposer from "./reply-composer";
-import { Email } from "../types";
+import Thread from "./thread";
 
 interface ConversationProps {
   selectedEmail: Email | null;

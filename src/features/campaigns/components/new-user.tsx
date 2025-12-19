@@ -1,6 +1,8 @@
-import Link from "next/link";
-import { Button } from "@/ui/button";
 import { Mail, Sparkles } from "lucide-react";
+import Link from "next/link";
+
+import { Button } from "@/ui/button";
+
 import { PRIVATE_ROUTES } from "@/config/app-routes";
 
 export const NewUserFlow = () => {
@@ -15,8 +17,8 @@ export const NewUserFlow = () => {
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground text-pretty leading-relaxed">
               Reach the right people with high-quality templates and AI-powered
-              insights. We'll guide you through creating impactful campaigns
-              that drive results.
+              insights. We&apos;ll guide you through creating impactful
+              campaigns that drive results.
             </p>
           </div>
 
@@ -82,9 +84,9 @@ export const NewUserFlow = () => {
                       title: "Re-engagement",
                       color: "bg-chart-4/10 border-chart-4/20",
                     },
-                  ].map((template, idx) => (
+                  ].map((template) => (
                     <div
-                      key={idx}
+                      key={template.title}
                       className={`${template.color} border rounded-xl p-4 transition-all duration-300 ease-in-out hover:scale-[1.03] hover:shadow-md cursor-pointer`}
                     >
                       <div className="aspect-4/3 bg-background/50 rounded-lg mb-2 flex items-center justify-center">

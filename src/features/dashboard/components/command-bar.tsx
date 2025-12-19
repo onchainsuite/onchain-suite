@@ -1,9 +1,8 @@
 "use client";
 
+import { ArrowUp, Mic, Search } from "lucide-react";
 import type React from "react";
-
-import { useState, useRef, useEffect } from "react";
-import { Search, Mic, ArrowUp } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const suggestions = [
   "What can you do?",
@@ -92,12 +91,12 @@ export function CommandBar() {
       {/* Suggestions Dropdown */}
       {showSuggestions && (
         <div className="absolute left-0 right-0 top-full z-10 mt-2 animate-in fade-in slide-in-from-top-2 rounded-xl border border-border bg-popover p-2 shadow-lg">
-          {filteredSuggestions.map((suggestion, index) => (
+          {filteredSuggestions.map((suggestion) => (
             <button
-              key={index}
+              key={suggestion}
               onClick={() => handleSuggestionClick(suggestion)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                index === selectedIndex
+                filteredSuggestions.indexOf(suggestion) === selectedIndex
                   ? "bg-accent text-accent-foreground"
                   : "text-popover-foreground hover:bg-accent hover:text-accent-foreground"
               }`}

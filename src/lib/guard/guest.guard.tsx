@@ -23,7 +23,7 @@ interface Session {
 // 1. Guest Guard Component - Redirects authenticated users
 export async function GuestGuard({
   children,
-  redirectTo = PRIVATE_ROUTES.ROOT,
+  redirectTo = PRIVATE_ROUTES.DASHBOARD,
 }: GuestGuardProps): Promise<JSX.Element> {
   const session = (await auth.api.getSession({
     headers: await headers(),
@@ -41,7 +41,7 @@ export async function GuestGuard({
 // 2. Higher-Order Component for Guest Pages
 export function withGuestOnly<P extends Record<string, unknown>>(
   WrappedComponent: ComponentType<P>,
-  redirectTo = PRIVATE_ROUTES.ROOT
+  redirectTo = PRIVATE_ROUTES.DASHBOARD
 ) {
   return async function GuestOnlyComponent(props: P): Promise<JSX.Element> {
     const session = (await auth.api.getSession({
@@ -59,7 +59,7 @@ export function withGuestOnly<P extends Record<string, unknown>>(
 // 3. Guest Layout - Protects entire auth section
 export async function GuestLayout({
   children,
-  redirectTo = PRIVATE_ROUTES.ROOT,
+  redirectTo = PRIVATE_ROUTES.DASHBOARD,
 }: GuestGuardProps): Promise<JSX.Element> {
   const session = (await auth.api.getSession({
     headers: await headers(),
@@ -113,7 +113,7 @@ export async function getAuthenticatedUserRedirect(
   options: SmartRedirectOptions = {}
 ): Promise<string | null> {
   const {
-    defaultRedirect = PRIVATE_ROUTES.ROOT,
+    defaultRedirect = PRIVATE_ROUTES.DASHBOARD,
     roleRedirects = {},
     checkOnboarding = false,
     onboardingRedirect = "/onboarding",

@@ -1,6 +1,9 @@
 import { Circle } from "lucide-react";
+
 import { Badge } from "@/ui/badge";
+
 import { cn } from "@/lib/utils";
+
 import type { Campaign } from "../../../campaigns/types";
 import {
   getCampaignStatusColor,
@@ -31,6 +34,13 @@ export function CalendarDayCell({
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
       className={cn(
         "min-h-[60px] sm:min-h-[100px] rounded-lg sm:rounded-xl border border-border bg-background/50 p-1 sm:p-2 transition-all duration-300",
         "hover:bg-muted/50 hover:shadow-md cursor-pointer",

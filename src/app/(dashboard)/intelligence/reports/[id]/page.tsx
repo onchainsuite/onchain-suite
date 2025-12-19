@@ -1,5 +1,6 @@
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+
+import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { ReportDetailPage } from "@/features/intelligence/components/reports/detail";
 
 const breadcrumbs = [

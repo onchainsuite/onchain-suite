@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
-import { getStatusColor } from "../../../campaigns/utils/campaign";
+
 import type { CampaignStatus } from "../../../campaigns/types";
+import { getStatusColor } from "../../../campaigns/utils/campaign";
 
 interface CampaignStatusCellProps {
   status: CampaignStatus;

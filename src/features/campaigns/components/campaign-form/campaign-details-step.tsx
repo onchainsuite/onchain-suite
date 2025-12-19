@@ -2,8 +2,18 @@
 
 import { Mail, TrendingUp, Users } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
+
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/ui/form";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -11,15 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/ui/radio-group";
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  FormDescription,
-} from "@/ui/form";
+
 import type { CampaignFormData } from "../../validations";
 
 interface CampaignDetailsStepProps {
@@ -55,7 +57,7 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
           Create campaign
         </h2>
         <p className="text-base text-muted-foreground text-pretty">
-          Let's start by setting up your campaign details
+          Let&apos;s start by setting up your campaign details
         </p>
       </div>
 
@@ -136,6 +138,13 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background hover:border-muted-foreground/30"
                     }`}
                     onClick={() => field.onChange(item.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        field.onChange(item.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <RadioGroupItem
                       value={item.id}

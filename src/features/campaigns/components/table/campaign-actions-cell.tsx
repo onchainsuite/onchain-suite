@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import { MoreHorizontal } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { MoreHorizontal } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,11 +10,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import type { Campaign } from "../../../campaigns/types"
+} from "@/components/ui/dropdown-menu";
+
+import type { Campaign } from "../../../campaigns/types";
 
 interface CampaignActionsCellProps {
-  campaign: Campaign
+  campaign: Campaign;
 }
 
 export function CampaignActionsCell({ campaign }: CampaignActionsCellProps) {
@@ -27,7 +29,11 @@ export function CampaignActionsCell({ campaign }: CampaignActionsCellProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[160px]">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(campaign.id)}>Copy ID</DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => navigator.clipboard.writeText(campaign.id)}
+        >
+          Copy ID
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem>View details</DropdownMenuItem>
         <DropdownMenuItem>Edit campaign</DropdownMenuItem>
@@ -36,5 +42,5 @@ export function CampaignActionsCell({ campaign }: CampaignActionsCellProps) {
         <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

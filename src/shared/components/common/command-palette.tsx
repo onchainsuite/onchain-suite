@@ -87,27 +87,27 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
     {
       label: "Dashboard",
       icon: LayoutDashboard,
-      route: PRIVATE_ROUTES.R3TAIN.OVERVIEW,
+      route: PRIVATE_ROUTES.DASHBOARD,
     },
     {
       label: "Campaigns",
       icon: Megaphone,
-      route: PRIVATE_ROUTES.R3TAIN.CAMPAIGNS,
+      route: PRIVATE_ROUTES.CAMPAIGNS,
     },
     {
       label: "Automation",
       icon: FileText,
-      route: PRIVATE_ROUTES.R3TAIN.AUTOMATION,
+      route: PRIVATE_ROUTES.AUTOMATIONS,
     },
     {
       label: "Community",
       icon: Users,
-      route: PRIVATE_ROUTES.R3TAIN.COMMUNITY,
+      route: PRIVATE_ROUTES.COMMUNITY,
     },
     {
       label: "Analytics",
       icon: BarChart3,
-      route: PRIVATE_ROUTES.R3TAIN.ANALYTICS,
+      route: PRIVATE_ROUTES.ANALYTICS,
     },
   ];
 
@@ -115,7 +115,7 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
     {
       label: "Create New Campaign",
       icon: Plus,
-      action: () => navigateToRoute(PRIVATE_ROUTES.R3TAIN.NEW_CAMPAIGN),
+      action: () => navigateToRoute(PRIVATE_ROUTES.NEW_CAMPAIGN),
       shortcut: "⌘N",
     },
     {
@@ -140,7 +140,7 @@ export function CommandPalette({ open, setOpen }: CommandPaletteProps) {
     {
       label: "Settings",
       icon: Settings,
-      action: () => navigateToRoute(PRIVATE_ROUTES.R3TAIN.SETTINGS),
+      action: () => navigateToRoute(PRIVATE_ROUTES.SETTINGS),
       shortcut: "⌘,",
     },
     {

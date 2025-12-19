@@ -1,5 +1,5 @@
+import { Archive, Check, Send, Star } from "lucide-react";
 import React from "react";
-import { Send, Star, Archive, Check } from "lucide-react";
 
 interface FloatingBulkProps {
   selectedEmails: number[];
@@ -19,19 +19,19 @@ const FloatingBulk = ({
       </span>
       <div className="h-4 w-px bg-border" />
       <button
-        className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-emerald-400"
+        className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
         title="Send Email"
       >
         <Send className="h-4 w-4" />
       </button>
       <button
-        className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-amber-400"
+        className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-secondary"
         title="Star"
       >
         <Star className="h-4 w-4" />
       </button>
       <button
-        className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-blue-400"
+        className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-secondary"
         title="Archive"
       >
         <Archive className="h-4 w-4" />

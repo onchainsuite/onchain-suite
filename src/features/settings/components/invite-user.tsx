@@ -1,77 +1,107 @@
-import React from "react";
+import { Loader2, Mail } from "lucide-react";
+import React, { useState } from "react";
 
-const InviteUser = () => {
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface InviteUserProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const InviteUser = ({ open, onOpenChange }: InviteUserProps) => {
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("editor");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (callback: () => void) => {
+    setSaving(true);
+    await new Promise((r) => setTimeout(r, 1000));
+    setSaving(false);
+    callback();
+  };
+
   return (
-    <div>
-      {/* Invite User Modal */}
-      <Dialog open={showInviteUserModal} onOpenChange={setShowInviteUserModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-light tracking-tight text-[#111827]">
-              Invite team member
-            </DialogTitle>
-            <DialogDescription className="text-[#6b7280]">
-              Send an invitation to join your team
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-6 space-y-6">
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-[#111827]">
-                Email address
-              </Label>
-              <Input
-                type="email"
-                placeholder="colleague@company.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="h-12 border-gray-200/80"
-              />
-            </div>
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-[#111827]">Role</Label>
-              <Select value={inviteRole} onValueChange={setInviteRole}>
-                <SelectTrigger className="h-12 border-gray-200/80">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin — Full access</SelectItem>
-                  <SelectItem value="editor">
-                    Editor — Create and edit
-                  </SelectItem>
-                  <SelectItem value="viewer">Viewer — Read only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-light tracking-tight text-foreground">
+            Invite team member
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Send an invitation to join your workspace.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Email address
+            </Label>
+            <Input
+              placeholder="colleague@company.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="h-12 border-border/80"
+            />
           </div>
-          <DialogFooter className="mt-6">
-            <Button
-              variant="outline"
-              onClick={() => setShowInviteUserModal(false)}
-              className="border-gray-200/80"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() =>
-                handleSave(() => {
-                  setShowInviteUserModal(false);
-                  setInviteEmail("");
-                })
-              }
-              disabled={saving || !inviteEmail}
-              className="bg-emerald-600 text-white hover:bg-emerald-700"
-            >
-              {saving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Mail className="mr-2 h-4 w-4" />
-              )}
-              Send invite
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">Role</Label>
+            <Select value={inviteRole} onValueChange={setInviteRole}>
+              <SelectTrigger className="h-12 border-border/80">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="editor">Editor</SelectItem>
+                <SelectItem value="viewer">Viewer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="border-border/80"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() =>
+              handleSave(() => {
+                onOpenChange(false);
+                setInviteEmail("");
+              })
+            }
+            disabled={saving || !inviteEmail}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {saving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-2 h-4 w-4" />
+            )}
+            Send invitation
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -3,12 +3,9 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ActivitySection } from "@/features/dashboard/components/activity-section";
 import { CommandBar } from "../components/command-bar";
+import { ActivitySection } from "@/features/dashboard/components/activity-section";
 import { GetStartedSection } from "@/features/dashboard/components/get-started";
-import type { SetupData } from "../types";
 
 interface UserData {
   projectName: string;
@@ -25,10 +22,10 @@ interface MainDashboardProps {
 }
 
 export function MainDashboard({ userData }: MainDashboardProps) {
-  const [showSetup, setShowSetup] = useState(false);
-  const [setupComplete, setSetupComplete] = useState(true);
-  const [showWalkthrough, setShowWalkthrough] = useState(false);
-  const [walkthroughComplete, setWalkthroughComplete] = useState(true);
+  const [_setupComplete, setSetupComplete] = useState(false);
+  const [_showWalkthrough, setShowWalkthrough] = useState(false);
+  const [_walkthroughComplete, setWalkthroughComplete] = useState(false);
+  const [_showSetup, setShowSetup] = useState(false);
 
   const getGreeting = (tz?: string) => {
     let hour = new Date().getHours();
@@ -74,30 +71,6 @@ export function MainDashboard({ userData }: MainDashboardProps) {
       );
     }
   }, [userData.isNewUser, userData.userType]);
-
-  const handleSetupComplete = (data: SetupData) => {
-    localStorage.setItem("setup_complete", "true");
-    localStorage.setItem("setup_data", JSON.stringify(data));
-    setSetupComplete(true);
-    setShowSetup(false);
-    setShowWalkthrough(true);
-    toast.success(
-      "Setup Complete!, Let's take a quick tour of your dashboard."
-    );
-  };
-
-  const handleWalkthroughComplete = () => {
-    localStorage.setItem("walkthrough_complete", "true");
-    setWalkthroughComplete(true);
-    setShowWalkthrough(false);
-    toast.success(
-      "Welcome to OnchainSuite!,Your retention platform is ready to go. Start building!"
-    );
-  };
-
-  const handleSetupDismiss = () => {
-    setShowSetup(false);
-  };
 
   return (
     <div className="min-h-screen rounded-2xl bg-linear-to-b from-background via-primary/10 to-secondary/5">

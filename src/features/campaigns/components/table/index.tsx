@@ -1,17 +1,17 @@
 "use client";
 
-import * as React from "react";
 import {
   type ColumnFiltersState,
-  type SortingState,
-  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
+  type VisibilityState,
 } from "@tanstack/react-table";
+import * as React from "react";
 
 import {
   Table,
@@ -21,10 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/ui/table";
+
 import type { Campaign } from "../../../campaigns/types";
 import { columns } from "./table-columns";
-import { TableToolbar } from "./table-toolbar";
 import { TablePagination } from "./table-pagination";
+import { TableToolbar } from "./table-toolbar";
 
 interface CampaignsTableProps {
   data: Campaign[];

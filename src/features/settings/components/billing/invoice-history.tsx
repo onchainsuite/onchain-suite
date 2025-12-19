@@ -1,8 +1,10 @@
-import React from "react";
 import { motion } from "framer-motion";
 import { Download } from "lucide-react";
+import React from "react";
+
 import { Button } from "@/components/ui/button";
-import { fadeInUp, staggerContainer, invoices } from "../../utils";
+
+import { fadeInUp, invoices, staggerContainer } from "../../utils";
 
 const InvoiceHistory = () => {
   return (

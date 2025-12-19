@@ -1,65 +1,34 @@
 "use client";
 
-import React from "react";
-
-import type { ReactElement } from "react";
-
-import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  getStatusIcon,
-  getHealthColor,
-  getHealthBarColor,
-} from "@/features/audience/utils";
-import {
-  Search,
+  ArrowDown,
+  ArrowRight,
+  ArrowRightLeft,
+  ArrowUp,
+  ArrowUpDown,
+  Brain,
   ChevronLeft,
   ChevronRight,
-  MousePointer,
-  Eye,
-  ArrowRightLeft,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Sparkles,
-  RefreshCw,
-  ArrowRight,
-  X,
-  Trash2,
   Download,
+  Eye,
+  MousePointer,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Trash2,
   UserPlus,
-  Brain,
+  X,
 } from "lucide-react";
+import Link from "next/link";
+import type { ReactElement } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
-const pageVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.4, ease: "easeOut" } },
-};
-
-const staggerContainer = {
-  animate: { transition: { staggerChildren: 0.05 } },
-};
-
-const rowVariants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
-};
-
-const expandVariants = {
-  initial: { opacity: 0, height: 0 },
-  animate: {
-    opacity: 1,
-    height: "auto",
-    transition: { duration: 0.3, ease: "easeOut" },
-  },
-  exit: {
-    opacity: 0,
-    height: 0,
-    transition: { duration: 0.2, ease: "easeIn" },
-  },
-};
+import {
+  getHealthBarColor,
+  getHealthColor,
+  getStatusIcon,
+} from "@/features/audience/utils";
 
 const generateMockProfiles = () => {
   const names = [
@@ -174,7 +143,6 @@ const generateMockProfiles = () => {
 };
 
 export function AudiencePages(): ReactElement {
-  const router = useRouter();
   const [profiles] = useState(generateMockProfiles);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [sortField, setSortField] = useState<
@@ -576,7 +544,15 @@ export function AudiencePages(): ReactElement {
                   </tr>
                 </thead>
                 <motion.tbody
-                  variants={staggerContainer}
+                  variants={{
+                    initial: { opacity: 0 },
+                    animate: {
+                      opacity: 1,
+                      transition: {
+                        staggerChildren: 0.04,
+                      },
+                    },
+                  }}
                   initial="initial"
                   animate="animate"
                 >

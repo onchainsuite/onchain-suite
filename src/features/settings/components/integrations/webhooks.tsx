@@ -1,9 +1,10 @@
-
-import React from "react";
 import { motion } from "framer-motion";
-import { Webhook, Plus } from "lucide-react";
+import { Plus, Webhook } from "lucide-react";
+import React from "react";
+
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+
 import { webhooks } from "../../utils";
 
 const Webhooks = () => {
@@ -32,9 +33,9 @@ const Webhooks = () => {
             </Button>
           </div>
           <div className="mt-5 space-y-3">
-            {webhooks.map((webhook, idx) => (
+            {webhooks.map((webhook) => (
               <div
-                key={idx}
+                key={webhook.url}
                 className="flex items-center justify-between rounded-xl border border-border/80 bg-muted/50 p-4"
               >
                 <div className="space-y-1">
@@ -55,8 +56,8 @@ const Webhooks = () => {
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
                     <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                     </span>
                     Active
                   </span>

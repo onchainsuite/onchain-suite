@@ -16,7 +16,7 @@ export const signInWithGoogle = async () => {
   try {
     const data = await authClient.signIn.social({
       provider: "google",
-      callbackURL: PRIVATE_ROUTES.ROOT,
+      callbackURL: PRIVATE_ROUTES.DASHBOARD,
       newUserCallbackURL: AUTH_ROUTES.ONBOARDING,
       fetchOptions: {
         onError: (error) => {

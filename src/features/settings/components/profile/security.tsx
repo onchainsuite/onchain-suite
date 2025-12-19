@@ -1,14 +1,19 @@
-
-import React from "react";
 import { motion } from "framer-motion";
+import React from "react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import { fadeInUp, staggerContainer } from "../../utils";
 
 const Security = () => {
   return (
-    <motion.section variants={staggerContainer} initial="initial" animate="animate">
+    <motion.section
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+    >
       <motion.h2
         variants={fadeInUp}
         className="text-xl font-light tracking-tight text-foreground lg:text-2xl"

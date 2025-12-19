@@ -1,23 +1,25 @@
 import { motion } from "framer-motion";
-import Link from "next/link";
 import {
-  Zap,
-  FileText,
-  Play,
-  Pause,
-  MoreHorizontal,
   ArrowUpRight,
   Copy,
-  Trash2,
+  FileText,
+  MoreHorizontal,
+  Pause,
+  Play,
   Plus,
+  Trash2,
+  Zap,
 } from "lucide-react";
+import Link from "next/link";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Automation } from "@/features/automation/types";
+
+import { type Automation } from "@/features/automation/types";
 
 interface ActiveAutomationsListProps {
   automations: Automation[];
@@ -57,7 +59,7 @@ export const ActiveAutomationsList = ({
             <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Revenue
             </th>
-            <th className="w-12 px-4 py-3"></th>
+            <th className="w-12 px-4 py-3" />
           </tr>
         </thead>
         <tbody>
@@ -72,7 +74,7 @@ export const ActiveAutomationsList = ({
               <td className="px-6 py-4">
                 <Link
                   href={`/automations/${automation.id}`}
-                  className="font-medium text-foreground hover:text-emerald-600 transition-colors"
+                  className="font-medium text-foreground hover:text-primary transition-colors"
                 >
                   {automation.name}
                 </Link>
@@ -84,8 +86,8 @@ export const ActiveAutomationsList = ({
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                     automation.trigger.type === "onchain"
-                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-secondary text-secondary-foreground"
                   }`}
                 >
                   {automation.trigger.type === "onchain" ? (
@@ -93,15 +95,15 @@ export const ActiveAutomationsList = ({
                   ) : (
                     <FileText className="h-3 w-3" />
                   )}
-                  {automation.trigger.contract || automation.trigger.event}
+                  {automation.trigger.contract ?? automation.trigger.event}
                 </span>
               </td>
               <td className="px-4 py-4">
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                     automation.status === "active"
-                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-secondary text-secondary-foreground"
                   }`}
                 >
                   {automation.status === "active" ? (
@@ -126,7 +128,7 @@ export const ActiveAutomationsList = ({
                 </span>
               </td>
               <td className="px-4 py-4 text-right">
-                <span className="text-sm font-medium text-emerald-600">
+                <span className="text-sm font-medium text-primary">
                   +${(automation.revenue / 1000).toFixed(0)}k
                 </span>
               </td>
@@ -172,7 +174,7 @@ export const ActiveAutomationsList = ({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDelete(automation)}
-                      className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                      className="flex items-center gap-2 text-destructive focus:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                       Delete
@@ -201,7 +203,7 @@ export const ActiveAutomationsList = ({
           {!searchQuery && (
             <Link
               href="/automations/new-id"
-              className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="h-4 w-4" />
               Create automation

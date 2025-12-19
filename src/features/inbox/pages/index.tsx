@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { emails, folders } from "../data";
-import { Email } from "../types";
+import { useEffect, useRef, useState } from "react";
+
 import ConversationPanel from "../components/conversation";
 import EmailListPanel from "../components/email-list-panel";
 import FloatingBulk from "../components/floating-bulk";
+import { emails, folders } from "../data";
+import { type Email } from "../types";
 
 export function InboxPages() {
   const [selectedFolder, setSelectedFolder] = useState("All");
@@ -124,7 +125,7 @@ export function InboxPages() {
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold">Inbox</h1>
             {unreadCount > 0 && (
-              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                 {unreadCount} unread
               </span>
             )}

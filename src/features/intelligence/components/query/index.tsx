@@ -1,23 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  Code,
-  Copy,
-  Loader2,
-  Play,
-  X,
-  Plus,
-  Zap,
-  Mail,
-  Anchor,
-  Flame,
-  Target,
-  Crosshair,
-  Layers,
-} from "lucide-react";
+import { Code, Copy, Loader2, Mail, Play, Plus, X, Zap } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useState } from "react";
 
 const DEFAULT_SQL_QUERY = `SELECT
   u.wallet,
@@ -174,69 +160,70 @@ const mockQueryResults = [
   },
 ];
 
-const exampleQueries = [
-  {
-    name: "Your Pudgy Holders",
-    description: "Your users who hold Pudgy Penguins NFTs",
-    icon: Anchor,
-    query: `SELECT u.wallet, u.email, u.engagement_score, pp.volume_usd
-FROM users u
-INNER JOIN pudgy_penguins.holders pp ON u.wallet = pp.wallet
-WHERE pp.volume_usd > 5000
-ORDER BY pp.volume_usd DESC`,
-  },
-  {
-    name: "Your Base Power Users",
-    description: "Your users active on Base chain",
-    icon: Flame,
-    query: `SELECT u.wallet, u.email, u.ltv, b.tvl_usd, b.tx_count
-FROM users u
-INNER JOIN base.wallet_stats b ON u.wallet = b.wallet
-WHERE b.tvl_usd > 10000
-ORDER BY b.tvl_usd DESC`,
-  },
-  {
-    name: "Your DeFi Stakers",
-    description: "Your users with DeFi positions",
-    icon: Target,
-    query: `SELECT u.wallet, u.email, d.staked_usd, d.protocol
-FROM users u
-INNER JOIN ethereum.defi_positions d ON u.wallet = d.wallet
-WHERE d.staked_usd > 25000`,
-  },
-  {
-    name: "Your Dormant Whales",
-    description: "Your high-value users inactive 90+ days",
-    icon: Crosshair,
-    query: `SELECT u.wallet, u.email, u.ltv, u.last_active_date
-FROM users u
-WHERE u.ltv > 5000
-  AND u.last_active_date < NOW() - INTERVAL '90 days'`,
-  },
-  {
-    name: "Your Multi-chain Users",
-    description: "Your users active on 3+ chains",
-    icon: Layers,
-    query: `SELECT u.wallet, u.email, COUNT(DISTINCT c.chain) as chains
-FROM users u
-INNER JOIN all_chains.activity c ON u.wallet = c.wallet
-GROUP BY u.wallet, u.email
-HAVING COUNT(DISTINCT c.chain) >= 3`,
-  },
-];
+// const exampleQueries = [
+//   {
+//     name: "Your Pudgy Holders",
+//     description: "Your users who hold Pudgy Penguins NFTs",
+//     icon: Anchor,
+//     query: `SELECT u.wallet, u.email, u.engagement_score, pp.volume_usd
+// FROM users u
+// INNER JOIN pudgy_penguins.holders pp ON u.wallet = pp.wallet
+// WHERE pp.volume_usd > 5000
+// ORDER BY pp.volume_usd DESC`,
+//   },
+//   {
+//     name: "Your Base Power Users",
+//     description: "Your users active on Base chain",
+//     icon: Flame,
+//     query: `SELECT u.wallet, u.email, u.ltv, b.tvl_usd, b.tx_count
+// FROM users u
+// INNER JOIN base.wallet_stats b ON u.wallet = b.wallet
+// WHERE b.tvl_usd > 10000
+// ORDER BY b.tvl_usd DESC`,
+//   },
+//   {
+//     name: "Your DeFi Stakers",
+//     description: "Your users with DeFi positions",
+//     icon: Target,
+//     query: `SELECT u.wallet, u.email, d.staked_usd, d.protocol
+// FROM users u
+// INNER JOIN ethereum.defi_positions d ON u.wallet = d.wallet
+// WHERE d.staked_usd > 25000`,
+//   },
+//   {
+//     name: "Your Dormant Whales",
+//     description: "Your high-value users inactive 90+ days",
+//     icon: Crosshair,
+//     query: `SELECT u.wallet, u.email, u.ltv, u.last_active_date
+// FROM users u
+// WHERE u.ltv > 5000
+//   AND u.last_active_date < NOW() - INTERVAL '90 days'`,
+//   },
+//   {
+//     name: "Your Multi-chain Users",
+//     description: "Your users active on 3+ chains",
+//     icon: Layers,
+//     query: `SELECT u.wallet, u.email, COUNT(DISTINCT c.chain) as chains
+// FROM users u
+// INNER JOIN all_chains.activity c ON u.wallet = c.wallet
+// GROUP BY u.wallet, u.email
+// HAVING COUNT(DISTINCT c.chain) >= 3`,
+//   },
+// ];
 
 interface QueryTabProps {
-  openEmailComposer: (recipient: any) => void;
+  openEmailComposer: (recipient: unknown) => void;
   setActiveTab: (tab: string) => void;
 }
 
 export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
   const [sqlQuery, setSqlQuery] = useState(DEFAULT_SQL_QUERY);
   const [isQueryRunning, setIsQueryRunning] = useState(false);
-  const [queryResults, setQueryResults] = useState<typeof mockQueryResults>(mockQueryResults);
+  const [queryResults, setQueryResults] =
+    useState<typeof mockQueryResults>(mockQueryResults);
   const [hasRunQuery, setHasRunQuery] = useState(true);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  // const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
   const totalRows = 714;
   const potentialRevenue = "$127k";
@@ -251,7 +238,9 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
   }, []);
 
   const toggleRowSelection = useCallback((id: string) => {
-    setSelectedRows((prev) => (prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]));
+    setSelectedRows((prev) =>
+      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
+    );
   }, []);
 
   const toggleAllRows = useCallback(() => {
@@ -265,11 +254,11 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
   const getEngagementColor = useCallback((engagement: string) => {
     switch (engagement) {
       case "Hot":
-        return "bg-emerald-500/10 text-emerald-600";
+        return "bg-secondary/10 text-secondary";
       case "Warm":
-        return "bg-amber-500/10 text-amber-600";
+        return "bg-primary/10 text-primary";
       case "Cold":
-        return "bg-red-500/10 text-red-600";
+        return "bg-destructive/10 text-destructive";
       default:
         return "bg-secondary text-muted-foreground";
     }
@@ -277,25 +266,31 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-border bg-[#1e1e1e] overflow-hidden">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
+        <div className="flex items-center justify-between border-b border-primary/90 px-4 py-2">
           <div className="flex items-center gap-2">
-            <Code className="h-4 w-4 text-emerald-400" />
-            <span className="text-xs font-medium text-white/70">SQL Editor</span>
+            <Code className="h-4 w-4 text-primary" />
+            <span className="text-xs font-medium text-primary/90">
+              SQL Editor
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigator.clipboard.writeText(sqlQuery)}
-              className="rounded p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+              className="rounded p-1.5 text-primary/90 transition-colors hover:bg-white/10 hover:text-white"
             >
               <Copy className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={runQuery}
               disabled={isQueryRunning}
-              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-emerald-600 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
             >
-              {isQueryRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+              {isQueryRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="h-3.5 w-3.5" />
+              )}
               Run
             </button>
           </div>
@@ -303,29 +298,41 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
         <textarea
           value={sqlQuery}
           onChange={(e) => setSqlQuery(e.target.value)}
-          className="h-[200px] w-full resize-none bg-transparent p-4 font-mono text-sm text-emerald-400 placeholder-white/30 focus:outline-none"
+          className="h-[200px] w-full resize-none bg-transparent p-4 font-mono text-sm text-primary placeholder-white/30 focus:outline-none"
           spellCheck={false}
         />
       </div>
 
       {hasRunQuery && queryResults.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-border bg-card overflow-hidden"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/30 px-4 py-3">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-foreground">
                 {totalRows} of your users
                 <span className="ml-2 text-muted-foreground">·</span>
-                <span className="ml-2 text-muted-foreground">interacted with Pudgy Penguins</span>
+                <span className="ml-2 text-muted-foreground">
+                  interacted with Pudgy Penguins
+                </span>
               </span>
               <span className="text-sm text-muted-foreground">
-                Win-back potential: <span className="font-medium text-emerald-600">{potentialRevenue}</span>
+                Win-back potential:{" "}
+                <span className="font-medium text-primary">
+                  {potentialRevenue}
+                </span>
               </span>
             </div>
             <div className="flex items-center gap-2">
               {selectedRows.length > 0 && (
                 <span className="text-xs text-muted-foreground">
                   {selectedRows.length} selected
-                  <button onClick={() => setSelectedRows([])} className="ml-2 inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-muted/40">
+                  <button
+                    onClick={() => setSelectedRows([])}
+                    className="ml-2 inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-muted/40"
+                  >
                     <X className="h-3 w-3" />
                     Clear
                   </button>
@@ -333,7 +340,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
               )}
               <Link
                 href="/intelligence/segments/create"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-linear-to-r from-indigo-500 to-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:shadow-[0_0_16px_rgba(99,102,241,0.4)]"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:shadow-[0_0_16px_rgba(var(--primary),0.4)]"
                 onClick={() => setActiveTab("segments")}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -347,7 +354,11 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-left text-xs font-medium text-muted-foreground">
                   <th className="px-4 py-3">
-                    <input type="checkbox" checked={selectedRows.length === queryResults.length} onChange={toggleAllRows} />
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.length === queryResults.length}
+                      onChange={toggleAllRows}
+                    />
                   </th>
                   <th className="px-4 py-3">User</th>
                   <th className="px-4 py-3">Engagement</th>
@@ -360,29 +371,46 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
               </thead>
               <tbody>
                 {queryResults.map((row) => (
-                  <tr key={row.id} className="border-b border-border/50 transition-colors hover:bg-muted/50" onMouseEnter={() => setHoveredRow(row.id)} onMouseLeave={() => setHoveredRow(null)}>
+                  <tr
+                    key={row.id}
+                    className="border-b border-border/50 transition-colors hover:bg-muted/50"
+                    // onMouseEnter={() => setHoveredRow(row.id)}
+                    // onMouseLeave={() => setHoveredRow(null)}
+                  >
                     <td className="px-4 py-3">
-                      <input type="checkbox" checked={selectedRows.includes(row.id)} onChange={() => toggleRowSelection(row.id)} />
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.includes(row.id)}
+                        onChange={() => toggleRowSelection(row.id)}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
-                          <span className="text-xs font-medium">{row.avatar}</span>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <span className="text-xs font-medium">
+                            {row.avatar}
+                          </span>
                         </div>
                         <div>
                           <p className="font-medium">{row.name}</p>
-                          <p className="text-xs text-muted-foreground">{row.email}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {row.email}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getEngagementColor(row.engagement)}`}>{row.engagement}</span>
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getEngagementColor(row.engagement)}`}
+                      >
+                        {row.engagement}
+                      </span>
                     </td>
                     <td className="px-4 py-3">{row.volume}</td>
                     <td className="px-4 py-3">{row.ltv}</td>
                     <td className="px-4 py-3">{row.lastActive}d</td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs bg-indigo-500/10 text-indigo-600">
+                      <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs bg-primary/10 text-primary">
                         <Zap className="h-3 w-3" />
                         {row.contractLabel}
                       </span>
@@ -390,13 +418,18 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex items-center gap-2">
                         <button
-                          className="rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-500/10"
-                          onClick={() => openEmailComposer({ name: row.name, email: row.email })}
+                          className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+                          onClick={() =>
+                            openEmailComposer({
+                              name: row.name,
+                              email: row.email,
+                            })
+                          }
                         >
                           <Mail className="mr-1 inline-block h-3.5 w-3.5" />
                           Email
                         </button>
-                        <button className="rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-500/10">
+                        <button className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10">
                           <Copy className="mr-1 inline-block h-3.5 w-3.5" />
                           Copy
                         </button>

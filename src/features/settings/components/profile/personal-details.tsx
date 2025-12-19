@@ -1,6 +1,7 @@
-
-import React from "react";
 import { motion } from "framer-motion";
+import React from "react";
+
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,12 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { fadeInUp, staggerContainer } from "../../utils";
 
 const PersonalDetails = () => {
   return (
-    <motion.section variants={staggerContainer} initial="initial" animate="animate">
+    <motion.section
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+    >
       <motion.h2
         variants={fadeInUp}
         className="text-xl font-light tracking-tight text-foreground lg:text-2xl"
@@ -92,7 +97,10 @@ const PersonalDetails = () => {
                   defaultChecked
                   className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
-                <label htmlFor="product" className="text-sm text-muted-foreground">
+                <label
+                  htmlFor="product"
+                  className="text-sm text-muted-foreground"
+                >
                   Product updates and announcements
                 </label>
               </div>
@@ -101,7 +109,10 @@ const PersonalDetails = () => {
                   id="marketing"
                   className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
-                <label htmlFor="marketing" className="text-sm text-muted-foreground">
+                <label
+                  htmlFor="marketing"
+                  className="text-sm text-muted-foreground"
+                >
                   Marketing and promotional emails
                 </label>
               </div>
@@ -112,7 +123,10 @@ const PersonalDetails = () => {
                   disabled
                   className="border-border opacity-50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
-                <label htmlFor="security" className="text-sm text-muted-foreground">
+                <label
+                  htmlFor="security"
+                  className="text-sm text-muted-foreground"
+                >
                   Security alerts (required)
                 </label>
               </div>

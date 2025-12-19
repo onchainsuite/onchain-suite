@@ -1,9 +1,8 @@
-
 "use client";
 
 import { motion } from "framer-motion";
-import { fadeInUp } from "../../utils";
 
+import { fadeInUp } from "../../utils";
 import PersonalDetails from "./personal-details";
 import Security from "./security";
 
@@ -18,7 +17,7 @@ export default function ProfileSettings() {
       className="grid gap-16 lg:gap-24 lg:grid-cols-2"
     >
       <PersonalDetails />
-      
+
       <Security />
     </motion.div>
   );

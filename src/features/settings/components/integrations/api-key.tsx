@@ -1,6 +1,7 @@
-import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Key, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, Key } from "lucide-react";
+import React, { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 
 const ApiKey = () => {

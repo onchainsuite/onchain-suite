@@ -1,21 +1,21 @@
 "use client";
 
-import type React from "react";
 import { motion } from "framer-motion";
-import { useState, useRef } from "react";
-import Link from "next/link";
 import {
-  ArrowLeft,
-  Upload,
-  Download,
-  FileText,
-  FileJson,
-  CheckCircle2,
   AlertCircle,
-  ChevronRight,
-  X,
+  ArrowLeft,
   Check,
+  CheckCircle2,
+  ChevronRight,
+  Download,
+  FileJson,
+  FileText,
+  Upload,
+  X,
 } from "lucide-react";
+import Link from "next/link";
+import type React from "react";
+import { useRef, useState } from "react";
 
 const fieldOptions = [
   { value: "", label: "Skip this column" },
@@ -99,7 +99,8 @@ export default function ImportExportPage() {
 
   const parseCSV = (text: string) => {
     const lines = text.trim().split("\n");
-    const headers = lines[0]
+    const [headerLine] = lines;
+    const headers = headerLine
       .split(",")
       .map((h) => h.trim().replace(/^"|"$/g, ""));
 
@@ -146,7 +147,7 @@ export default function ImportExportPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    const file = e.dataTransfer.files[0];
+    const [file] = Array.from(e.dataTransfer.files);
     if (file && (file.name.endsWith(".csv") || file.name.endsWith(".json"))) {
       handleFileSelect(file);
     }
@@ -188,7 +189,6 @@ export default function ImportExportPage() {
       transition={{ duration: 0.3 }}
       className="flex min-h-screen gap-2 bg-(--color-background) p-2 text-(--color-text) md:gap-4 md:p-4"
     >
-
       <main className="flex-1 px-4 py-10 md:px-8">
         <div className="mx-auto max-w-5xl space-y-10">
           <Link
@@ -203,7 +203,7 @@ export default function ImportExportPage() {
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="relative overflow-hidden rounded-2xl bg-linear-to-br from-emerald-500/10 via-transparent to-emerald-500/5 p-10 shadow-md hover:shadow-lg transition-shadow"
+            className="relative overflow-hidden rounded-2xl bg-linear-to-br from-primary/10 via-transparent to-primary/5 p-10 shadow-md hover:shadow-lg transition-shadow"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -220,7 +220,7 @@ export default function ImportExportPage() {
                     onClick={() => setActiveTab("import")}
                     className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
                       activeTab === "import"
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-primary text-primary-foreground"
                         : "text-(--color-text-muted) hover:text-(--color-text)"
                     }`}
                   >
@@ -230,7 +230,7 @@ export default function ImportExportPage() {
                     onClick={() => setActiveTab("export")}
                     className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
                       activeTab === "export"
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-primary text-primary-foreground"
                         : "text-(--color-text-muted) hover:text-(--color-text)"
                     }`}
                   >
@@ -262,9 +262,9 @@ export default function ImportExportPage() {
                         <div
                           className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-all ${
                             isCompleted
-                              ? "bg-emerald-500 text-white"
+                              ? "bg-primary text-primary-foreground"
                               : isActive
-                                ? "bg-emerald-500/20 text-emerald-400 ring-2 ring-emerald-500/50"
+                                ? "bg-primary/20 text-primary ring-2 ring-primary/50"
                                 : "bg-(--color-elevated) text-(--color-text-muted)"
                           }`}
                         >
@@ -277,7 +277,7 @@ export default function ImportExportPage() {
                         <span
                           className={`text-sm font-medium ${
                             isActive
-                              ? "text-emerald-400"
+                              ? "text-primary"
                               : isCompleted
                                 ? "text-(--color-text)"
                                 : "text-(--color-text-muted)"
@@ -289,9 +289,7 @@ export default function ImportExportPage() {
                       {!isLast && (
                         <div
                           className={`mx-4 h-0.5 w-16 rounded-full transition-colors ${
-                            isCompleted
-                              ? "bg-emerald-500"
-                              : "bg-(--color-border)"
+                            isCompleted ? "bg-primary" : "bg-(--color-border)"
                           }`}
                         />
                       )}
@@ -325,12 +323,12 @@ export default function ImportExportPage() {
                     onDrop={handleDrop}
                     className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-20 text-center transition-all shadow-md hover:shadow-lg ${
                       dragActive
-                        ? "border-emerald-500 bg-emerald-500/10 scale-105"
-                        : "border-(--color-border) hover:border-emerald-500/50 hover:bg-(--color-card)"
+                        ? "border-primary bg-primary/10 scale-105"
+                        : "border-(--color-border) hover:border-primary/50 hover:bg-(--color-card)"
                     }`}
                   >
-                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10">
-                      <Upload className="h-8 w-8 text-emerald-400" />
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+                      <Upload className="h-8 w-8 text-primary" />
                     </div>
                     <p className="text-lg font-medium">
                       Drop files here or click to upload
@@ -340,7 +338,7 @@ export default function ImportExportPage() {
                     </p>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/20"
+                      className="mt-6 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20"
                     >
                       Select File
                     </button>
@@ -352,9 +350,9 @@ export default function ImportExportPage() {
                         Recent Imports
                       </h3>
                       <div className="space-y-2">
-                        {recentImports.map((file, index) => (
+                        {recentImports.map((file) => (
                           <div
-                            key={index}
+                            key={file.name}
                             className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-card) p-4"
                           >
                             <div className="flex items-center gap-3">
@@ -370,9 +368,9 @@ export default function ImportExportPage() {
                               </div>
                             </div>
                             {file.status === "completed" ? (
-                              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                              <CheckCircle2 className="h-5 w-5 text-primary" />
                             ) : (
-                              <AlertCircle className="h-5 w-5 text-red-500" />
+                              <AlertCircle className="h-5 w-5 text-destructive" />
                             )}
                           </div>
                         ))}
@@ -385,9 +383,9 @@ export default function ImportExportPage() {
               {activeTab === "export" && (
                 <section>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <button className="group flex items-center gap-4 rounded-2xl border border-(--color-border) bg-(--color-card) p-6 text-left transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-(--color-elevated) transition-colors group-hover:bg-emerald-500/10">
-                        <FileText className="h-6 w-6 text-(--color-text-muted) transition-colors group-hover:text-emerald-400" />
+                    <button className="group flex items-center gap-4 rounded-2xl border border-(--color-border) bg-(--color-card) p-6 text-left transition-all hover:border-primary/50 hover:bg-primary/5">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-(--color-elevated) transition-colors group-hover:bg-primary/10">
+                        <FileText className="h-6 w-6 text-(--color-text-muted) transition-colors group-hover:text-primary" />
                       </div>
                       <div>
                         <p className="font-medium">Export as CSV</p>
@@ -396,9 +394,9 @@ export default function ImportExportPage() {
                         </p>
                       </div>
                     </button>
-                    <button className="group flex items-center gap-4 rounded-2xl border border-(--color-border) bg-(--color-card) p-6 text-left transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-(--color-elevated) transition-colors group-hover:bg-emerald-500/10">
-                        <FileJson className="h-6 w-6 text-(--color-text-muted) transition-colors group-hover:text-emerald-400" />
+                    <button className="group flex items-center gap-4 rounded-2xl border border-(--color-border) bg-(--color-card) p-6 text-left transition-all hover:border-primary/50 hover:bg-primary/5">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-(--color-elevated) transition-colors group-hover:bg-primary/10">
+                        <FileJson className="h-6 w-6 text-(--color-text-muted) transition-colors group-hover:text-primary" />
                       </div>
                       <div>
                         <p className="font-medium">Export as JSON</p>
@@ -415,9 +413,9 @@ export default function ImportExportPage() {
                         Recent Exports
                       </h3>
                       <div className="space-y-2">
-                        {recentExports.map((file, index) => (
+                        {recentExports.map((file) => (
                           <div
-                            key={index}
+                            key={file.name}
                             className="flex items-center justify-between rounded-xl border border-(--color-border) bg-(--color-card) p-4"
                           >
                             <div className="flex items-center gap-3">
@@ -469,7 +467,7 @@ export default function ImportExportPage() {
               <div className="space-y-3">
                 {csvColumns.map((column, index) => (
                   <div
-                    key={index}
+                    key={column.header}
                     className="flex items-center gap-4 rounded-xl border border-(--color-border) bg-(--color-card) p-4"
                   >
                     <div className="flex-1 min-w-0">
@@ -484,7 +482,7 @@ export default function ImportExportPage() {
                       <select
                         value={column.mappedTo}
                         onChange={(e) => updateMapping(index, e.target.value)}
-                        className="w-full rounded-lg border border-(--color-border) bg-(--color-background) px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                        className="w-full rounded-lg border border-(--color-border) bg-(--color-background) px-3 py-2 text-sm focus:border-primary focus:outline-none"
                       >
                         {fieldOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -495,7 +493,7 @@ export default function ImportExportPage() {
                     </div>
                     <div className="w-6 shrink-0">
                       {column.mappedTo && (
-                        <Check className="h-5 w-5 text-emerald-500" />
+                        <Check className="h-5 w-5 text-primary" />
                       )}
                     </div>
                   </div>

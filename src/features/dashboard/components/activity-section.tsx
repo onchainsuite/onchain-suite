@@ -17,11 +17,11 @@ export function ActivitySection() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-3 md:gap-4">
-        {metrics.map((metric, index) => {
+        {metrics.map((metric) => {
           const Icon = metric.icon;
           return (
             <div
-              key={index}
+              key={metric.label}
               className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md"
             >
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-accent">

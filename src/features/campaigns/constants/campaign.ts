@@ -1,10 +1,10 @@
 import type {
-  List,
-  Segment,
-  EmailTemplate,
-  MergeTag,
-  Timezone,
   Campaign,
+  EmailTemplate,
+  List,
+  MergeTag,
+  Segment,
+  Timezone,
 } from "../../campaigns/types";
 
 export const CAMPAIGN_LISTS: List[] = [

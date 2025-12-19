@@ -28,7 +28,7 @@ export interface AutomationNodeData {
   template?: string;
   subject?: string;
   dynamicFields?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AutomationStats {

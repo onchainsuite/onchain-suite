@@ -1,10 +1,9 @@
 "use client";
 
-import type * as React from "react";
 import type { Column } from "@tanstack/react-table";
 import { Check, PlusCircle } from "lucide-react";
+import type * as React from "react";
 
-import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import {
@@ -18,6 +17,8 @@ import {
 } from "@/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
 import { Separator } from "@/ui/separator";
+
+import { cn } from "@/lib/utils";
 
 interface CampaignsTableFacetedFilterProps<TData, TValue> {
   column?: Column<TData, TValue>;

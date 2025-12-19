@@ -1,24 +1,17 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { tabs, modalSlideUp } from "../utils";
-import ProfileSettings from "../components/profile/profile";
+
 import AccountSettings from "../components/account/account";
 import BillingSettings from "../components/billing/billing";
 import IntegrationsSettings from "../components/integrations/integrations";
+import ProfileSettings from "../components/profile/profile";
 import RewardsSettings from "../components/rewards/rewards";
+import { tabs } from "../utils";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setSaving(false);
-  };
 
   return (
     <div className="min-h-screen bg-background">

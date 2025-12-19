@@ -27,13 +27,13 @@ export const AutomationTabs = ({
             onClick={() => setActiveTab(tab)}
             className={`pb-2 text-sm font-medium transition-colors ${
               activeTab === tab
-                ? "border-b-2 border-emerald-500 text-foreground"
+                ? "border-b-2 border-primary text-foreground"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
             {tab === "active" && (
-              <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-600">
+              <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
                 {counts.active}
               </span>
             )}
@@ -52,7 +52,7 @@ export const AutomationTabs = ({
           placeholder="Search automations..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="h-9 w-64 rounded-lg border border-border bg-background pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className="h-9 w-64 rounded-lg border border-border bg-background pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
     </div>

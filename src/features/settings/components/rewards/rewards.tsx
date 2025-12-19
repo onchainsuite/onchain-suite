@@ -1,7 +1,7 @@
-
 "use client";
 
 import { motion } from "framer-motion";
+
 import { fadeInUp } from "../../utils";
 import FloatingSparkles from "./floating-sparkles";
 import RewardsContent from "./rewards-content";

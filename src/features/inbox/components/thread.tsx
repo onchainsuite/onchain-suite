@@ -1,5 +1,6 @@
 import React from "react";
-import { Email } from "../types";
+
+import { type Email } from "../types";
 
 interface ThreadProps {
   selectedEmail: Email;
@@ -22,7 +23,7 @@ const Thread = ({ selectedEmail }: ThreadProps) => {
                 <div
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
                     isYou
-                      ? "bg-emerald-500 text-white"
+                      ? "bg-primary text-primary-foreground"
                       : "bg-muted text-foreground"
                   }`}
                 >
@@ -32,7 +33,7 @@ const Thread = ({ selectedEmail }: ThreadProps) => {
                   <div
                     className={`rounded-2xl px-4 py-3 ${
                       isYou
-                        ? "rounded-br-md bg-emerald-500 text-white"
+                        ? "rounded-br-md bg-primary text-primary-foreground"
                         : "rounded-bl-md bg-card text-foreground border border-border"
                     }`}
                   >

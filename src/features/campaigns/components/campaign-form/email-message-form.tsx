@@ -1,17 +1,19 @@
 "use client";
 
+import { AlertCircle, Mail } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
-import { Mail, AlertCircle } from "lucide-react";
-import { Input } from "@/ui/input";
+
 import { Checkbox } from "@/ui/checkbox";
 import {
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
   FormMessage,
-  FormDescription,
 } from "@/ui/form";
+import { Input } from "@/ui/input";
+
 import type { CampaignFormData } from "../../validations";
 import { SubjectLineInput } from "./subject-line-input";
 

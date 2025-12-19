@@ -1,17 +1,23 @@
-"use client"
+"use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/ui/button"
-import { CardDescription, CardHeader, CardTitle } from "@/ui/card"
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+import { Button } from "@/ui/button";
+import { CardDescription, CardHeader, CardTitle } from "@/ui/card";
 
 interface CalendarHeaderProps {
-  monthName: string
-  year: number
-  onPreviousMonth: () => void
-  onNextMonth: () => void
+  monthName: string;
+  year: number;
+  onPreviousMonth: () => void;
+  onNextMonth: () => void;
 }
 
-export function CalendarHeader({ monthName, year, onPreviousMonth, onNextMonth }: CalendarHeaderProps) {
+export function CalendarHeader({
+  monthName,
+  year,
+  onPreviousMonth,
+  onNextMonth,
+}: CalendarHeaderProps) {
   return (
     <CardHeader className="space-y-1 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -43,5 +49,5 @@ export function CalendarHeader({ monthName, year, onPreviousMonth, onNextMonth }
         </div>
       </div>
     </CardHeader>
-  )
+  );
 }

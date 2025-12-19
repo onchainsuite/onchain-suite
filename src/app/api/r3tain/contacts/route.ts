@@ -23,11 +23,9 @@ export async function GET() {
     const res = await fetch(`${base}/api/contacts`, { cache: "no-store" });
     const data = await res.json();
     return NextResponse.json({ ok: true, data }, { status: res.status });
-  } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message ?? "Failed to fetch contacts" },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to fetch contacts";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
 
@@ -48,10 +46,8 @@ export async function POST(req: Request) {
     });
     const data = await res.json();
     return NextResponse.json({ ok: true, data }, { status: res.status });
-  } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message ?? "Failed to create contact" },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to create contact";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

@@ -1,13 +1,9 @@
 "use client";
 
+import { Check, ChevronsUpDown, List, Star, Zap } from "lucide-react";
 import { useState } from "react";
-import { Check, ChevronsUpDown, Star, List, Zap } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -16,8 +12,18 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
 import { cn } from "@/lib/utils";
-import { CAMPAIGN_LISTS, CAMPAIGN_SEGMENTS } from "../../../campaigns/constants";
+
+import {
+  CAMPAIGN_LISTS,
+  CAMPAIGN_SEGMENTS,
+} from "../../../campaigns/constants";
 
 interface AudienceSelectorProps {
   value: string[];

@@ -1,108 +1,83 @@
 "use client";
 
-import type React from "react";
-import { useState, useCallback, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Play,
-  Pause,
-  Copy,
-  Trash2,
-  Zap,
-  Users,
-  TrendingUp,
-  ArrowUpRight,
-  Mail,
-  Clock,
-  GitBranch,
-  Wallet,
-  Check,
   CheckCircle2,
-  XCircle,
-  Save,
-  X,
-  Tag,
-  Plus,
-  Search,
-  ChevronDown,
-  ChevronRight,
-  Snowflake,
-  Flame,
-  MoreHorizontal,
-  Loader2,
   ChevronLeft,
-  Target,
+  ChevronRight,
   DollarSign,
-  GripVertical,
-  Sparkles,
+  Loader2,
+  Save,
+  Search,
+  Target,
+  Trash2,
+  Users,
+  X,
+  XCircle,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import type React from "react";
+import { useCallback, useState } from "react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
   addEdge,
-  useNodesState,
-  useEdgesState,
+  Background,
   type Connection,
-  type Node,
-  type Edge,
-  MarkerType,
-  ReactFlowProvider,
   ConnectionLineType,
+  Controls,
+  MarkerType,
+  MiniMap,
+  type Node,
+  ReactFlow,
+  ReactFlowProvider,
+  useEdgesState,
+  useNodesState,
   useReactFlow,
 } from "reactflow";
-import "reactflow/dist/style.css";
 import {
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Line,
 } from "recharts";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import "reactflow/dist/style.css";
+import { Confetti } from "../confetti";
 import {
-  TriggerNode,
-  WaitNode,
   BranchNode,
   EmailNode,
   PlaceholderNode,
+  TriggerNode,
+  WaitNode,
 } from "./nodes";
-import { Confetti } from "../confetti";
 import {
-  triggerNodes,
   actionNodes,
-  statsChartData,
-  recentEntries,
-  pathPerformance,
   emailTemplates,
-  mockContracts,
   eventTypes,
-  chainOptions,
+  mockContracts,
+  pathPerformance,
+  recentEntries,
+  statsChartData,
+  triggerNodes,
 } from "@/features/automation/data";
 import {
-  isValidConnection,
-  getAutomationData,
   autoLayoutNodes,
-  getInitialNodes,
+  getAutomationData,
   getInitialEdges,
+  getInitialNodes,
+  isValidConnection,
 } from "@/features/automation/utils";
 
 // This is a known benign error with ReactFlow that can be safely ignored
-if (typeof window == "undefined") {
+if (typeof window === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const originalError = (window as any).onerror;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).onerror = (
     message: string | Event,
     source?: string,
@@ -123,21 +98,6 @@ if (typeof window == "undefined") {
   };
 }
 
-// Animation variants
-const pageVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.4, ease: "easeOut" } },
-};
-
-const staggerContainer = {
-  animate: { transition: { staggerChildren: 0.05 } },
-};
-
-const cardVariants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
-};
-
 const nodeTypes = {
   trigger: TriggerNode,
   wait: WaitNode,
@@ -147,7 +107,6 @@ const nodeTypes = {
 };
 
 const CreateAutomationContent = () => {
-  const router = useRouter();
   const params = useParams();
   const automationId = params?.id as string;
   const isNew = automationId === "new-id";
@@ -173,7 +132,7 @@ const CreateAutomationContent = () => {
     sourceNode?: string;
   }>({ show: false, x: 0, y: 0 });
 
-  const { project, fitView } = useReactFlow();
+  const { project } = useReactFlow();
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -246,7 +205,7 @@ const CreateAutomationContent = () => {
               : type,
         position,
         data: {
-          label: label,
+          label,
           ...(type === "onchain" && {
             contract: "Select Contract",
             event: "Select Event",
@@ -329,7 +288,7 @@ const CreateAutomationContent = () => {
                 }
                 className="bg-transparent text-sm font-semibold text-foreground focus:outline-none"
               />
-              <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+              <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                 <CheckCircle2 className="h-3 w-3" />
                 Saved
               </span>
@@ -364,7 +323,7 @@ const CreateAutomationContent = () => {
             Discard
           </button>
           <button
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
+            className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             onClick={handleSave}
             disabled={isSaving}
           >
@@ -397,7 +356,7 @@ const CreateAutomationContent = () => {
                       <input
                         type="text"
                         placeholder="Search nodes..."
-                        className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-4 text-xs placeholder:text-muted-foreground focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-4 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                     </div>
                   </div>
@@ -423,10 +382,10 @@ const CreateAutomationContent = () => {
                                   node.label
                                 );
                               }}
-                              className="group flex cursor-grab items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:border-emerald-500/50 hover:shadow-sm active:cursor-grabbing"
+                              className="group flex cursor-grab items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:border-primary/50 hover:shadow-sm active:cursor-grabbing"
                             >
                               <div
-                                className={`flex h-8 w-8 items-center justify-center rounded-md bg-${node.color}-500/10 text-${node.color}-500`}
+                                className={`flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary`}
                               >
                                 {node.icon}
                               </div>
@@ -462,10 +421,10 @@ const CreateAutomationContent = () => {
                                   node.label
                                 );
                               }}
-                              className="group flex cursor-grab items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:border-indigo-500/50 hover:shadow-sm active:cursor-grabbing"
+                              className="group flex cursor-grab items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:border-secondary/50 hover:shadow-sm active:cursor-grabbing"
                             >
                               <div
-                                className={`flex h-8 w-8 items-center justify-center rounded-md bg-${node.color}-500/10 text-${node.color}-500`}
+                                className={`flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground`}
                               >
                                 {node.icon}
                               </div>
@@ -586,7 +545,7 @@ const CreateAutomationContent = () => {
                         </label>
                         <input
                           type="text"
-                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
                           defaultValue={
                             nodes.find((n) => n.id === selectedNode)?.data.label
                           }
@@ -601,7 +560,7 @@ const CreateAutomationContent = () => {
                             <label className="text-xs font-medium text-muted-foreground">
                               Contract
                             </label>
-                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none">
                               {mockContracts.map((c) => (
                                 <option key={c.address}>{c.name}</option>
                               ))}
@@ -611,7 +570,7 @@ const CreateAutomationContent = () => {
                             <label className="text-xs font-medium text-muted-foreground">
                               Event
                             </label>
-                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none">
                               {eventTypes.map((e) => (
                                 <option key={e}>{e}</option>
                               ))}
@@ -627,7 +586,7 @@ const CreateAutomationContent = () => {
                             <label className="text-xs font-medium text-muted-foreground">
                               Template
                             </label>
-                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none">
                               {emailTemplates.map((t) => (
                                 <option key={t.id}>{t.name}</option>
                               ))}
@@ -642,12 +601,74 @@ const CreateAutomationContent = () => {
                                 Subject: We miss you, vitalik.eth
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Hi vitalik.eth, we noticed you haven't...
+                                Hi vitalik.eth, we noticed you haven&apos;t...
                               </p>
                             </div>
                           </div>
                         </>
                       )}
+
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                          <div className="rounded-full bg-primary/10 p-2">
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">
+                              Total Conversions
+                            </div>
+                            <div className="text-2xl font-bold text-foreground">
+                              {nodes.find((n) => n.id === selectedNode)?.data
+                                .stats?.conversions ?? 0}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                          <div className="rounded-full bg-primary/10 p-2">
+                            <Users className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">
+                              Active Users
+                            </div>
+                            <div className="text-2xl font-bold text-foreground">
+                              {nodes.find((n) => n.id === selectedNode)?.data
+                                .stats?.active ?? 0}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                          <div className="rounded-full bg-secondary/10 p-2">
+                            <Target className="h-4 w-4 text-secondary" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">
+                              Click Rate
+                            </div>
+                            <div className="text-2xl font-bold text-foreground">
+                              {nodes.find((n) => n.id === selectedNode)?.data
+                                .stats?.clickRate ?? 0}
+                              %
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                          <div className="rounded-full bg-primary/10 p-2">
+                            <DollarSign className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-foreground">
+                              Revenue
+                            </div>
+                            <div className="text-2xl font-bold text-foreground">
+                              $
+                              {nodes.find((n) => n.id === selectedNode)?.data
+                                .stats?.revenue ?? 0}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
                       {/* Actions */}
                       <div className="pt-6 border-t border-border">
@@ -686,7 +707,7 @@ const CreateAutomationContent = () => {
                     label: "Conversions",
                     value: "342",
                     change: "+8.2%",
-                    icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
+                    icon: <CheckCircle2 className="h-4 w-4 text-primary" />,
                   },
                   {
                     label: "Conv. Rate",
@@ -705,7 +726,11 @@ const CreateAutomationContent = () => {
                     key={stat.label}
                     variants={{
                       initial: { opacity: 0, y: 20 },
-                      animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+                      animate: {
+                        opacity: 1,
+                        y: 0,
+                        transition: { duration: 0.4, ease: "easeOut" },
+                      },
                     }}
                     initial="initial"
                     animate="animate"
@@ -725,8 +750,8 @@ const CreateAutomationContent = () => {
                       <span
                         className={`text-xs font-medium ${
                           stat.change.startsWith("+")
-                            ? "text-emerald-500"
-                            : "text-red-500"
+                            ? "text-primary"
+                            : "text-destructive"
                         }`}
                       >
                         {stat.change}
@@ -753,12 +778,12 @@ const CreateAutomationContent = () => {
                           >
                             <stop
                               offset="5%"
-                              stopColor="#10b981"
+                              stopColor="var(--primary)"
                               stopOpacity={0.1}
                             />
                             <stop
                               offset="95%"
-                              stopColor="#10b981"
+                              stopColor="var(--primary)"
                               stopOpacity={0}
                             />
                           </linearGradient>
@@ -786,7 +811,7 @@ const CreateAutomationContent = () => {
                         <Area
                           type="monotone"
                           dataKey="revenue"
-                          stroke="#10b981"
+                          stroke="var(--primary)"
                           strokeWidth={2}
                           fillOpacity={1}
                           fill="url(#colorRevenue)"
@@ -799,19 +824,19 @@ const CreateAutomationContent = () => {
                 <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                   <h3 className="mb-6 font-semibold">Path Performance</h3>
                   <div className="space-y-6">
-                    {pathPerformance.map((path, i) => (
-                      <div key={i} className="space-y-2">
+                    {pathPerformance.map((path) => (
+                      <div key={path.path} className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-medium text-muted-foreground">
                             {path.path}
                           </span>
-                          <span className="font-bold text-emerald-600">
+                          <span className="font-bold text-primary">
                             {path.rate}%
                           </span>
                         </div>
                         <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                           <div
-                            className="h-full rounded-full bg-emerald-500"
+                            className="h-full rounded-full bg-primary"
                             style={{ width: `${path.rate}%` }}
                           />
                         </div>
@@ -849,7 +874,7 @@ const CreateAutomationContent = () => {
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
                                 <Users className="h-4 w-4" />
                               </div>
                               <div>
@@ -864,10 +889,10 @@ const CreateAutomationContent = () => {
                             <span
                               className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                                 entry.outcome === "converted"
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                  ? "bg-primary/10 text-primary"
                                   : entry.outcome === "exited"
-                                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-secondary text-secondary-foreground"
                               }`}
                             >
                               {entry.outcome}
@@ -876,7 +901,7 @@ const CreateAutomationContent = () => {
                           <td className="px-6 py-4 text-muted-foreground">
                             {entry.path}
                           </td>
-                          <td className="px-6 py-4 text-right font-medium text-emerald-600">
+                          <td className="px-6 py-4 text-right font-medium text-primary">
                             {entry.revenue > 0 ? `$${entry.revenue}` : "-"}
                           </td>
                           <td className="px-6 py-4 text-right text-muted-foreground">

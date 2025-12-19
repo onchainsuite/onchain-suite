@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { type EmojiClickData, Theme } from "emoji-picker-react";
+import { Hash, Smile } from "lucide-react";
 import dynamic from "next/dynamic";
-import { Theme, type EmojiClickData } from "emoji-picker-react";
-import { Smile, Hash } from "lucide-react";
-import { Input } from "@/ui/input";
+import { useState } from "react";
+
 import { Button } from "@/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -15,6 +14,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/ui/command";
+import { Input } from "@/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
+
 import { MERGE_TAGS } from "../../../campaigns/constants";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
@@ -41,7 +43,7 @@ export function SubjectLineInput({ value, onChange }: SubjectLineInputProps) {
   };
 
   const insertMergeTag = (tag: string) => {
-    onChange(value + " " + tag);
+    onChange(`${value} ${tag}`);
     setMergeTagsOpen(false);
   };
 

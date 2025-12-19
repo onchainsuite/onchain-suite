@@ -1,8 +1,8 @@
-
-import React from "react";
 import { motion } from "framer-motion";
+import { Plus, ShieldCheck, Trash2 } from "lucide-react";
+import React from "react";
+
 import { Button } from "@/components/ui/button";
-import { Plus, ShieldCheck, AlertCircle, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import { fadeInUp, staggerContainer, teamMembers } from "../../utils";
 
 interface TeamMembersProps {

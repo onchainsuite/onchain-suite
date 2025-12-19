@@ -1,7 +1,8 @@
+import { Mail } from "lucide-react";
 import React from "react";
 import { Handle, Position } from "reactflow";
-import { Mail } from "lucide-react";
-import { AutomationNodeData } from "@/features/automation/types";
+
+import { type AutomationNodeData } from "@/features/automation/types";
 
 interface EmailNodeProps {
   data: AutomationNodeData;
@@ -10,24 +11,24 @@ interface EmailNodeProps {
 
 export const EmailNode = ({ data, selected }: EmailNodeProps) => (
   <div
-    className={`min-w-[260px] rounded-xl border-2 bg-card p-4 shadow-lg transition-all ${selected ? "border-indigo-500 shadow-indigo-500/30" : "border-indigo-500/50"}`}
+    className={`min-w-[260px] rounded-xl border-2 bg-card p-4 shadow-lg transition-all ${selected ? "border-primary shadow-primary/30" : "border-primary/50"}`}
   >
     <Handle
       type="target"
       position={Position.Top}
-      className="h-3 w-3 border-2 border-indigo-500 bg-background"
+      className="h-3 w-3 border-2 border-primary bg-background"
     />
     <Handle
       type="source"
       position={Position.Bottom}
-      className="h-3 w-3 border-2 border-indigo-500 bg-background"
+      className="h-3 w-3 border-2 border-primary bg-background"
     />
     <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/20">
-        <Mail className="h-5 w-5 text-indigo-500" />
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20">
+        <Mail className="h-5 w-5 text-primary" />
       </div>
       <div className="flex-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-indigo-500">
+        <p className="text-xs font-medium uppercase tracking-wide text-primary">
           Send Email
         </p>
         <p className="font-semibold text-foreground">{data.label}</p>
@@ -35,8 +36,8 @@ export const EmailNode = ({ data, selected }: EmailNodeProps) => (
     </div>
     {data.template && (
       <div className="mt-3 space-y-2">
-        <div className="rounded-lg bg-indigo-500/10 px-3 py-2">
-          <p className="text-xs font-medium text-indigo-400">{data.template}</p>
+        <div className="rounded-lg bg-primary/10 px-3 py-2">
+          <p className="text-xs font-medium text-primary">{data.template}</p>
           {data.subject && (
             <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
               {data.subject}

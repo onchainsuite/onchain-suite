@@ -1,8 +1,9 @@
-"use client";
-
-import IntelligencePage from "@/features/intelligence/components/intelligence.page";
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+
+import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import IntelligencePage from "@/features/intelligence/components/intelligence.page";
+
+export const dynamic = "force-dynamic";
 
 const breadcrumbs = [
   { href: publicRoutes.HOME, label: "Home" },

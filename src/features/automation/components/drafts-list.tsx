@@ -1,13 +1,15 @@
 import { motion } from "framer-motion";
+import { ArrowUpRight, FileText, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-import { FileText, MoreHorizontal, ArrowUpRight } from "lucide-react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Draft } from "@/features/automation/types";
+
+import { type Draft } from "@/features/automation/types";
 
 interface DraftsListProps {
   drafts: Draft[];
@@ -35,7 +37,7 @@ export const DraftsList = ({ drafts }: DraftsListProps) => {
           key={draft.id}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-all hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10"
+          className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
         >
           <div className="mb-4 flex items-start justify-between">
             <div className="rounded-lg bg-secondary p-2">
@@ -48,7 +50,7 @@ export const DraftsList = ({ drafts }: DraftsListProps) => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem className="text-destructive">
                   Delete draft
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -62,7 +64,7 @@ export const DraftsList = ({ drafts }: DraftsListProps) => {
             <span>Edited {draft.lastEdited}</span>
             <Link
               href={`/automations/${draft.id}`}
-              className="flex items-center gap-1 font-medium text-emerald-600 hover:text-emerald-700"
+              className="flex items-center gap-1 font-medium text-primary hover:text-primary/90"
             >
               Continue editing
               <ArrowUpRight className="h-3 w-3" />

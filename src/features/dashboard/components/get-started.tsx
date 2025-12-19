@@ -1,23 +1,23 @@
 "use client";
 
-import { useState } from "react";
 import {
+  Bell,
+  Calendar,
   Check,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
-  Mail,
-  Calendar,
-  Users,
-  FileText,
   CreditCard,
-  Settings,
   Database,
-  Zap,
-  Bell,
+  FileText,
+  Mail,
+  Settings,
+  Sparkles,
   Target,
+  Users,
   Workflow,
+  Zap,
 } from "lucide-react";
+import { useState } from "react";
 
 const tasks = [
   {
@@ -101,10 +101,6 @@ export function GetStartedSection() {
 
   const cardsPerPage = 3;
   const totalPages = Math.ceil(tasks.length / cardsPerPage);
-  const currentPageTasks = tasks.slice(
-    currentIndex * cardsPerPage,
-    (currentIndex + 1) * cardsPerPage
-  );
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => Math.max(0, prev - 1));
@@ -161,13 +157,14 @@ export function GetStartedSection() {
               (pageIndex + 1) * cardsPerPage
             );
             return (
+              // eslint-disable-next-line react/no-array-index-key
               <div key={pageIndex} className="min-w-full p-4 md:p-8">
                 <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
-                  {pageTasks.map((task, taskIndex) => {
+                  {pageTasks.map((task) => {
                     const Icon = task.icon;
                     return (
                       <div
-                        key={taskIndex}
+                        key={task.title}
                         className="flex flex-col rounded-xl border border-border bg-background p-5 transition-all hover:shadow-md md:p-6"
                       >
                         <div
@@ -209,6 +206,7 @@ export function GetStartedSection() {
       <div className="mt-4 flex items-center justify-center gap-2">
         {Array.from({ length: totalPages }).map((_, index) => (
           <button
+            // eslint-disable-next-line react/no-array-index-key
             key={index}
             onClick={() => goToSlide(index)}
             className={`h-2 rounded-full transition-all cursor-pointer duration-300 ${

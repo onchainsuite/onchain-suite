@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
-  CheckCircle,
+  ArrowRight,
   Calendar,
+  CheckCircle,
   Clock,
   Mail,
-  ArrowRight,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+
 import { PRIVATE_ROUTES } from "@/config/app-routes";
 
 interface ConfirmationPageProps {
@@ -171,8 +173,8 @@ export function ConfirmationPage({
                   <span className="font-semibold text-primary">
                     What happens next?
                   </span>{" "}
-                  We'll send your campaign at the scheduled time. You can manage
-                  or cancel this campaign from your dashboard.
+                  We&apos;ll send your campaign at the scheduled time. You can
+                  manage or cancel this campaign from your dashboard.
                 </>
               ) : (
                 <>

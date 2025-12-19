@@ -1,25 +1,25 @@
+import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import type { ReactElement } from "react";
-import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 
 export function getStatusIcon(status: string): ReactElement {
   switch (status) {
     case "verified":
-      return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-primary" />;
     case "pending":
-      return <Clock className="h-3.5 w-3.5 text-amber-500" />;
+      return <Clock className="h-3.5 w-3.5 text-secondary" />;
     default:
-      return <AlertCircle className="h-3.5 w-3.5 text-red-500" />;
+      return <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
   }
 }
 
 export function getHealthColor(score: number): string {
-  if (score >= 70) return "text-emerald-400";
-  if (score >= 40) return "text-amber-400";
-  return "text-red-400";
+  if (score >= 70) return "text-primary";
+  if (score >= 40) return "text-secondary";
+  return "text-destructive";
 }
 
 export function getHealthBarColor(score: number): string {
-  if (score >= 70) return "bg-emerald-500";
-  if (score >= 40) return "bg-amber-500";
-  return "bg-red-500";
+  if (score >= 70) return "bg-primary";
+  if (score >= 40) return "bg-secondary";
+  return "bg-destructive";
 }

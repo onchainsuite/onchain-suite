@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface Condition {
   id: string;
@@ -21,7 +21,12 @@ export function CreateSegmentPage() {
   const addCondition = () => {
     setConditions([
       ...conditions,
-      { id: crypto.randomUUID(), field: "wallet_balance", operator: "gt", value: "" },
+      {
+        id: crypto.randomUUID(),
+        field: "wallet_balance",
+        operator: "gt",
+        value: "",
+      },
     ]);
   };
 
@@ -29,7 +34,11 @@ export function CreateSegmentPage() {
     setConditions(conditions.filter((c) => c.id !== id));
   };
 
-  const updateCondition = (id: string, field: keyof Condition, value: string) => {
+  const updateCondition = (
+    id: string,
+    field: keyof Condition,
+    value: string
+  ) => {
     setConditions(
       conditions.map((c) => (c.id === id ? { ...c, [field]: value } : c))
     );
@@ -52,7 +61,9 @@ export function CreateSegmentPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Create Segment</h1>
-          <p className="text-sm text-muted-foreground">Define rules to segment your users</p>
+          <p className="text-sm text-muted-foreground">
+            Define rules to segment your users
+          </p>
         </div>
       </div>
 
@@ -66,7 +77,7 @@ export function CreateSegmentPage() {
                 value={segmentName}
                 onChange={(e) => setSegmentName(e.target.value)}
                 placeholder="e.g. High Value Active Users"
-                className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+                className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
               />
             </div>
 
@@ -77,7 +88,9 @@ export function CreateSegmentPage() {
                   <button
                     onClick={() => setLogicOperator("AND")}
                     className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                      logicOperator === "AND" ? "bg-indigo-500 text-white" : "hover:bg-muted"
+                      logicOperator === "AND"
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
                     }`}
                   >
                     AND
@@ -85,7 +98,9 @@ export function CreateSegmentPage() {
                   <button
                     onClick={() => setLogicOperator("OR")}
                     className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                      logicOperator === "OR" ? "bg-indigo-500 text-white" : "hover:bg-muted"
+                      logicOperator === "OR"
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
                     }`}
                   >
                     OR
@@ -101,16 +116,26 @@ export function CreateSegmentPage() {
                     </span>
                     <select
                       value={condition.field}
-                      onChange={(e) => updateCondition(condition.id, "field", e.target.value)}
+                      onChange={(e) =>
+                        updateCondition(condition.id, "field", e.target.value)
+                      }
                       className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
                     >
                       <option value="wallet_balance">Wallet Balance</option>
                       <option value="last_active">Last Active</option>
-                      <option value="transaction_count">Transaction Count</option>
+                      <option value="transaction_count">
+                        Transaction Count
+                      </option>
                     </select>
                     <select
                       value={condition.operator}
-                      onChange={(e) => updateCondition(condition.id, "operator", e.target.value)}
+                      onChange={(e) =>
+                        updateCondition(
+                          condition.id,
+                          "operator",
+                          e.target.value
+                        )
+                      }
                       className="w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm"
                     >
                       <option value="gt">Greater than</option>
@@ -120,13 +145,15 @@ export function CreateSegmentPage() {
                     <input
                       type="text"
                       value={condition.value}
-                      onChange={(e) => updateCondition(condition.id, "value", e.target.value)}
+                      onChange={(e) =>
+                        updateCondition(condition.id, "value", e.target.value)
+                      }
                       className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
                       placeholder="Value"
                     />
                     <button
                       onClick={() => removeCondition(condition.id)}
-                      className="rounded p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-500"
+                      className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -136,7 +163,7 @@ export function CreateSegmentPage() {
 
               <button
                 onClick={addCondition}
-                className="inline-flex items-center gap-2 text-sm font-medium text-indigo-500 hover:text-indigo-600"
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
               >
                 <Plus className="h-4 w-4" />
                 Add condition
@@ -150,14 +177,16 @@ export function CreateSegmentPage() {
             <h3 className="font-medium mb-4">Summary</h3>
             <div className="space-y-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Estimated Audience</span>
+                <span className="text-muted-foreground">
+                  Estimated Audience
+                </span>
                 <span className="font-medium">0 users</span>
               </div>
               <div className="pt-4 border-t border-border">
                 <button
                   onClick={handleSave}
                   disabled={!segmentName}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   <Save className="h-4 w-4" />
                   Save Segment

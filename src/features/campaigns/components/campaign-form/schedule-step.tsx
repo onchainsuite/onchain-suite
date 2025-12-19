@@ -1,14 +1,16 @@
 "use client";
 
-import type { UseFormReturn } from "react-hook-form";
-import { Send, Clock, CalendarIcon, Info } from "lucide-react";
 import { format } from "date-fns";
-import { Label } from "@/ui/label";
-import { Input } from "@/ui/input";
+import { CalendarIcon, Clock, Info, Send } from "lucide-react";
+import type { UseFormReturn } from "react-hook-form";
+
 import { Button } from "@/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/ui/radio-group";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
 import { Calendar } from "@/ui/calendar";
+import { FormControl, FormField, FormItem, FormLabel } from "@/ui/form";
+import { Input } from "@/ui/input";
+import { Label } from "@/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -16,10 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/ui/select";
-import { FormField, FormItem, FormLabel, FormControl } from "@/ui/form";
+
 import { cn } from "@/lib/utils";
-import type { CampaignFormData } from "../../validations";
+
 import { TIMEZONES } from "../../../campaigns/constants";
+import type { CampaignFormData } from "../../validations";
 
 interface ScheduleStepProps {
   form: UseFormReturn<CampaignFormData>;
@@ -59,6 +62,13 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                         : "border-border bg-card hover:border-muted-foreground/30"
                     )}
                     onClick={() => field.onChange("now")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        field.onChange("now");
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <RadioGroupItem
                       value="now"
@@ -95,6 +105,13 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                         : "border-border bg-card hover:border-muted-foreground/30"
                     )}
                     onClick={() => field.onChange("schedule")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        field.onChange("schedule");
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <RadioGroupItem
                       value="schedule"

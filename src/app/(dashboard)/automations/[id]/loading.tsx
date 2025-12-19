@@ -1,4 +1,3 @@
-
 export default function AutomationDetailLoading() {
   return (
     <div className="flex min-h-screen bg-background">
@@ -10,13 +9,19 @@ export default function AutomationDetailLoading() {
         </div>
         <div className="flex-1 p-8">
           <div className="grid gap-6 md:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />
-            ))}
+            {[...Array(4)].map((_, i) => {
+              return (
+                <div
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={`skeleton-${i}`}
+                  className="h-32 animate-pulse rounded-xl bg-muted"
+                />
+              );
+            })}
           </div>
           <div className="mt-6 h-64 animate-pulse rounded-xl bg-muted" />
         </div>
       </main>
     </div>
-  )
+  );
 }

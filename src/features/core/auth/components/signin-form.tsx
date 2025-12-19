@@ -64,7 +64,7 @@ export function SignInForm({
       } else {
         // Route based on onboarding status
         if (onboardingData.isCompleted) {
-          push(PRIVATE_ROUTES.ROOT);
+          push(PRIVATE_ROUTES.DASHBOARD);
         } else {
           push(AUTH_ROUTES.ONBOARDING);
         }

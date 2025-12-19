@@ -1,5 +1,5 @@
-import React from "react";
 import { Paperclip, Send } from "lucide-react";
+import React from "react";
 
 interface ReplyComposerProps {
   replyText: string;
@@ -27,7 +27,7 @@ const ReplyComposer = ({
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
               target.style.height = "auto";
-              target.style.height = Math.min(target.scrollHeight, 128) + "px";
+              target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
             }}
           />
           <div className="mt-2 flex items-center justify-between">
@@ -38,14 +38,14 @@ const ReplyComposer = ({
               <button
                 onClick={generateAIReply}
                 disabled={isGeneratingReply}
-                className="rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-emerald-400 disabled:opacity-50"
+                className="rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary disabled:opacity-50"
               >
                 {isGeneratingReply ? "..." : "Cerebra"}
               </button>
             </div>
           </div>
         </div>
-        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white transition-colors hover:bg-emerald-600">
+        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
           <Send className="h-4 w-4" />
         </button>
       </div>

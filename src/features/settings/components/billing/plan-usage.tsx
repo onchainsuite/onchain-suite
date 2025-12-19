@@ -1,6 +1,8 @@
-import React from "react";
 import { motion } from "framer-motion";
+import React from "react";
+
 import { Switch } from "@/components/ui/switch";
+
 import { fadeInUp, staggerContainer } from "../../utils";
 
 interface PlanUsageProps {

@@ -1,20 +1,22 @@
 "use client";
 
 import { useState } from "react";
+
 import { Card, CardContent } from "@/components/ui/card";
+
 import type { Campaign } from "../../../campaigns/types";
-import { CalendarHeader } from "./calendar-header";
-import { CalendarLegend } from "./calendar-legend";
-import { CalendarDayCell } from "./calendar-day-cell";
-import { CampaignDetailModal } from "./campaign-detail-modal";
 import {
+  generateCalendarDays,
+  getCampaignsForDate,
+  isToday,
   MONTH_NAMES,
   WEEK_DAYS,
   WEEK_DAYS_MOBILE,
-  getCampaignsForDate,
-  isToday,
-  generateCalendarDays,
 } from "../../../campaigns/utils";
+import { CalendarDayCell } from "./calendar-day-cell";
+import { CalendarHeader } from "./calendar-header";
+import { CalendarLegend } from "./calendar-legend";
+import { CampaignDetailModal } from "./campaign-detail-modal";
 
 interface CampaignsCalendarProps {
   campaigns: Campaign[];
@@ -99,7 +101,8 @@ export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
                   : [];
                 return (
                   <CalendarDayCell
-                    key={index}
+                    // eslint-disable-next-line react/no-array-index-key
+                    key={`day-${index}-${day}`}
                     day={day}
                     campaigns={dayCampaigns}
                     isToday={isToday(day, currentMonth, currentYear)}

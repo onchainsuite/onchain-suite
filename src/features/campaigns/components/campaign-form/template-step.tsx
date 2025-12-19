@@ -1,9 +1,10 @@
 "use client";
 
 import type { UseFormReturn } from "react-hook-form";
+
 import type { CampaignFormData } from "../../validations";
-import { TemplateSelector } from "./template-selector";
 import { EmailMessageForm } from "./email-message-form";
+import { TemplateSelector } from "./template-selector";
 
 interface TemplateStepProps {
   form: UseFormReturn<CampaignFormData>;

@@ -1,7 +1,8 @@
-import React from "react";
+import { Archive, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { Archive, Trash2, MoreHorizontal } from "lucide-react";
-import { Email } from "../types";
+import React from "react";
+
+import { type Email } from "../types";
 
 interface ConversationHeaderProps {
   selectedEmail: Email;
@@ -14,12 +15,12 @@ const ConversationHeader = ({ selectedEmail }: ConversationHeaderProps) => {
         <div>
           <h2 className="mb-1 text-lg font-medium">{selectedEmail.subject}</h2>
           <div className="flex items-center gap-2">
-            <span className="inline-block rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
+            <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
               {selectedEmail.campaign}
             </span>
             <Link
               href={`/audience/${selectedEmail.profileId}`}
-              className="text-xs text-muted-foreground underline-offset-2 hover:text-emerald-400 hover:underline"
+              className="text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
             >
               View profile
             </Link>

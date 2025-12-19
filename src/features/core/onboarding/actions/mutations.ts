@@ -224,7 +224,7 @@ export async function completeOnboarding(
     });
 
     revalidatePath(AUTH_ROUTES.ONBOARDING);
-    revalidatePath(PRIVATE_ROUTES.ROOT);
+    revalidatePath(PRIVATE_ROUTES.DASHBOARD);
 
     return updatedProgress;
   }, "Onboarding completed successfully");

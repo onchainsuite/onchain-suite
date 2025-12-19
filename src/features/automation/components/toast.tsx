@@ -1,5 +1,5 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, AlertCircle, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { AlertCircle, CheckCircle2, X } from "lucide-react";
 
 interface ToastProps {
   show: boolean;
@@ -21,8 +21,8 @@ export const Toast = ({ show, message, type, onClose }: ToastProps) => {
           <div
             className={`rounded-full p-1 ${
               type === "success"
-                ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-                : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                ? "bg-primary/10 text-primary"
+                : "bg-destructive/10 text-destructive"
             }`}
           >
             {type === "success" ? (

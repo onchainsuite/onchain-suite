@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Search,
-  Calendar,
-  Mail,
   Bot,
-  TrendingUp,
-  TrendingDown,
+  Calendar,
   Eye,
+  Mail,
+  Search,
   Send,
   Sparkles,
+  TrendingDown,
+  TrendingUp,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 
 export const reportsData = [
   {
@@ -163,7 +163,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
             placeholder="Search campaigns..."
             value={reportSearch}
             onChange={(e) => setReportSearch(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -173,8 +173,12 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
           </div>
           <select
             value={reportTypeFilter}
-            onChange={(e) => setReportTypeFilter(e.target.value as any)}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            onChange={(e) =>
+              setReportTypeFilter(
+                e.target.value as "all" | "email" | "automation"
+              )
+            }
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:border-primary focus:outline-none"
           >
             <option value="all">All Types</option>
             <option value="email">Email</option>
@@ -182,8 +186,12 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
           </select>
           <select
             value={reportStatusFilter}
-            onChange={(e) => setReportStatusFilter(e.target.value as any)}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            onChange={(e) =>
+              setReportStatusFilter(
+                e.target.value as "all" | "active" | "completed" | "paused"
+              )
+            }
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:border-primary focus:outline-none"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -237,8 +245,8 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                     <div
                       className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                         report.type === "email"
-                          ? "bg-indigo-500/10 text-indigo-500"
-                          : "bg-emerald-500/10 text-emerald-500"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-secondary/10 text-secondary"
                       }`}
                     >
                       {report.type === "email" ? (
@@ -255,8 +263,8 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                         <span
                           className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
                             report.type === "email"
-                              ? "bg-indigo-500/10 text-indigo-600"
-                              : "bg-emerald-500/10 text-emerald-600"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-secondary/10 text-secondary"
                           }`}
                         >
                           {report.type === "email" ? "Email" : "Automation"}
@@ -264,16 +272,16 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                         <span
                           className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
                             report.status === "active"
-                              ? "bg-emerald-500/10 text-emerald-600"
+                              ? "bg-secondary/10 text-secondary"
                               : report.status === "completed"
                                 ? "bg-secondary text-muted-foreground"
-                                : "bg-amber-500/10 text-amber-600"
+                                : "bg-accent/10 text-accent-foreground"
                           }`}
                         >
                           {report.status}
                         </span>
                         {report.type === "automation" && report.topTrigger && (
-                          <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs bg-violet-500/10 text-violet-600">
+                          <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs bg-accent/10 text-accent-foreground">
                             <Zap className="h-3 w-3" />
                             {report.topTrigger}
                           </span>
@@ -296,11 +304,11 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                   <div className="flex items-center gap-2">
                     <div className="h-1.5 w-16 rounded-full bg-secondary">
                       <div
-                        className="h-full rounded-full bg-emerald-500"
+                        className="h-full rounded-full bg-primary"
                         style={{ width: `${report.openRate}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium text-emerald-600">
+                    <span className="text-sm font-medium text-primary">
                       {report.openRate}%
                     </span>
                   </div>
@@ -313,7 +321,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                 <td className="px-4 py-3">
                   {report.type === "automation" && report.conversions ? (
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-emerald-600">
+                      <span className="text-sm font-medium text-secondary">
                         {report.conversions.toLocaleString()} conv
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -326,20 +334,20 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
-                    <span className="text-sm font-bold text-emerald-600">
+                    <span className="text-sm font-bold text-secondary">
                       {report.revenueChange}
                     </span>
                     {report.revenueChange.includes("+") ? (
-                      <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                      <TrendingUp className="h-3.5 w-3.5 text-secondary" />
                     ) : (
-                      <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                      <TrendingDown className="h-3.5 w-3.5 text-destructive" />
                     )}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link
                     href={`/intelligence/reports/${report.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-indigo-600 hover:shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_12px_rgba(var(--primary),0.4)]"
                   >
                     <Eye className="h-3.5 w-3.5" />
                     View Report
@@ -364,8 +372,8 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                   <div
                     className={`flex h-10 w-10 items-center justify-center rounded-lg ${
                       report.type === "email"
-                        ? "bg-indigo-500/10 text-indigo-500"
-                        : "bg-emerald-500/10 text-emerald-500"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-secondary/10 text-secondary"
                     }`}
                   >
                     {report.type === "email" ? (
@@ -381,7 +389,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                     </p>
                   </div>
                 </div>
-                <span className="font-bold text-emerald-600">
+                <span className="font-bold text-secondary">
                   {report.revenueChange}
                 </span>
               </div>
@@ -394,7 +402,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Open Rate</p>
-                  <p className="font-medium text-emerald-600">
+                  <p className="font-medium text-secondary">
                     {report.openRate}%
                   </p>
                 </div>
@@ -405,7 +413,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
               </div>
               <Link
                 href={`/intelligence/reports/${report.id}`}
-                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-medium text-white"
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
               >
                 <Eye className="h-4 w-4" />
                 View Report
@@ -421,8 +429,8 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center justify-center py-20 text-center"
         >
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-500/10 to-emerald-500/10">
-            <Send className="h-10 w-10 text-indigo-500/50" />
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-secondary/10">
+            <Send className="h-10 w-10 text-primary/50" />
           </div>
           <h3 className="text-xl font-medium text-foreground">
             No campaigns sent yet
@@ -433,7 +441,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
           </p>
           <button
             onClick={() => setActiveTab("query")}
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:shadow-[0_0_16px_rgba(99,102,241,0.4)]"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-md transition-all hover:shadow-lg"
           >
             <Sparkles className="h-4 w-4" />
             Create your first campaign

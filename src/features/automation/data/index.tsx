@@ -1,6 +1,7 @@
-import type { AutomationTemplate, HelpResource } from "../types";
+import { Clock, GitBranch, Mail, Tag, Users, Wallet } from "lucide-react";
 import React from "react";
-import { Wallet, Mail, Users, Clock, GitBranch, Tag } from "lucide-react";
+
+import type { AutomationTemplate, HelpResource } from "../types";
 
 export const emailTemplates = [
   {
@@ -64,8 +65,21 @@ export const mockContracts = [
   { address: "0x3Bf2...5e9D", name: "Base Bridge", chain: "Base", users: 1247 },
 ];
 
-export const eventTypes = ["Transfer", "Mint", "Bridge", "Swap", "Approval", "Stake"];
-export const chainOptions = ["All Chains", "Ethereum", "Base", "Polygon", "Arbitrum"];
+export const eventTypes = [
+  "Transfer",
+  "Mint",
+  "Bridge",
+  "Swap",
+  "Approval",
+  "Stake",
+];
+export const chainOptions = [
+  "All Chains",
+  "Ethereum",
+  "Base",
+  "Polygon",
+  "Arbitrum",
+];
 
 export const mockDynamicData = {
   ens_name: "vitalik.eth",
@@ -80,21 +94,21 @@ export const triggerNodes = [
     type: "onchain",
     label: "On-chain Event",
     description: "When your users interact with a contract",
-    icon: <Wallet className="h-5 w-5 text-emerald-500" />,
+    icon: <Wallet className="h-5 w-5 text-primary" />,
     color: "emerald",
   },
   {
     type: "email_opened",
     label: "Email Opened",
     description: "When your user opens an email",
-    icon: <Mail className="h-5 w-5 text-emerald-500" />,
+    icon: <Mail className="h-5 w-5 text-primary" />,
     color: "emerald",
   },
   {
     type: "segment_entered",
     label: "Segment Entered",
     description: "When user joins a segment",
-    icon: <Users className="h-5 w-5 text-emerald-500" />,
+    icon: <Users className="h-5 w-5 text-primary" />,
     color: "emerald",
   },
 ];
@@ -341,7 +355,6 @@ export const pathPerformance = [
     revenue: 38000,
   },
 ];
-
 
 export const recommendedFlows: AutomationTemplate[] = [
   {

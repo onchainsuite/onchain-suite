@@ -2,11 +2,13 @@
 
 import { motion } from "framer-motion";
 import { ArrowLeft, Home, Search } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { publicRoutes } from "@/config/app-routes";
+
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+
+import { publicRoutes } from "@/config/app-routes";
 
 export default function MobileOptimizedNotFound() {
   const [isClient, setIsClient] = useState(false);

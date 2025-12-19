@@ -1,14 +1,18 @@
+import { Plus } from "lucide-react";
 import React from "react";
 import { Handle, Position } from "reactflow";
-import { Plus } from "lucide-react";
-import { AutomationNodeData } from "@/features/automation/types";
+
+import { type AutomationNodeData } from "@/features/automation/types";
 
 interface PlaceholderNodeProps {
   data: AutomationNodeData;
   selected: boolean;
 }
 
-export const PlaceholderNode = ({ data, selected }: PlaceholderNodeProps) => (
+export const PlaceholderNode = ({
+  data,
+  selected: _selected,
+}: PlaceholderNodeProps) => (
   <div className="min-w-[200px] rounded-xl border-2 border-dashed border-muted-foreground/30 bg-card/50 p-4">
     <Handle
       type="target"

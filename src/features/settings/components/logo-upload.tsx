@@ -1,6 +1,32 @@
+import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, Upload } from "lucide-react";
 import React from "react";
 
-const LogoUpload = () => {
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+interface LogoUploadProps {
+  showLogoUploadModal: boolean;
+  setShowLogoUploadModal: (show: boolean) => void;
+  logoUploadType: "primary" | "dark" | "favicon";
+  saving: boolean;
+  handleSave: (callback: () => void) => void;
+}
+
+const LogoUpload = ({
+  showLogoUploadModal,
+  setShowLogoUploadModal,
+  logoUploadType,
+  saving,
+  handleSave,
+}: LogoUploadProps) => {
   return (
     <div>
       {/* Modals with slide-up animation */}
@@ -81,7 +107,7 @@ const LogoUpload = () => {
                   </Button>
                   <Button
                     onClick={() =>
-                      handleSave(() => setShowLogoUploadModal(false), true)
+                      handleSave(() => setShowLogoUploadModal(false))
                     }
                     disabled={saving}
                     className="bg-indigo-600 text-white hover:bg-indigo-700"

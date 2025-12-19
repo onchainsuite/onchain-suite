@@ -1,10 +1,13 @@
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
-import { getAuthSession } from "@/lib/guard";
-import { getFullName } from "@/lib/utils";
 import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+import { getAuthSession } from "@/lib/guard";
 import { prisma } from "@/lib/prisma";
+import { getFullName } from "@/lib/utils";
+
 import { NewUserFlow } from "@/features/campaigns/components/new-user";
 import { CampaignsListsView } from "@/features/campaigns/pages";
+import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+
+export const dynamic = "force-dynamic";
 
 const breadcrumbs = [
   { href: publicRoutes.HOME, label: "Home" },
@@ -30,9 +33,9 @@ export default async function CampaignsListsPage() {
   const shouldShowNewUserFlow =
     !!session?.user?.isNewUser && campaignsCount === 0;
 
-  if (shouldShowNewUserFlow && hasUser) {
+  if (shouldShowNewUserFlow && userId) {
     await prisma.user.update({
-      where: { id: userId! },
+      where: { id: userId },
       data: { isNewUser: false },
     });
   }

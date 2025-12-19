@@ -24,14 +24,20 @@ export default function ProfileLoading() {
           {/* Tags skeleton */}
           <div className="flex gap-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-6 w-20 animate-pulse rounded-full bg-gray-200" />
+              <div
+                key={i}
+                className="h-6 w-20 animate-pulse rounded-full bg-gray-200"
+              />
             ))}
           </div>
 
           {/* Intelligence cards skeleton */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-200" />
+              <div
+                key={i}
+                className="h-32 animate-pulse rounded-xl bg-gray-200"
+              />
             ))}
           </div>
 
@@ -44,11 +50,14 @@ export default function ProfileLoading() {
           {/* Stats grid skeleton */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 animate-pulse rounded-xl bg-gray-200" />
+              <div
+                key={i}
+                className="h-24 animate-pulse rounded-xl bg-gray-200"
+              />
             ))}
           </div>
         </div>
       </main>
     </div>
-  )
+  );
 }

@@ -1,12 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
+
 import { cn } from "@/lib/utils";
+
 import type { Campaign } from "../../../campaigns/types";
 import {
   getCampaignStatusColor,
@@ -32,12 +29,11 @@ export function CampaignDetailModal({
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">
             Campaigns on{" "}
-            {selectedDate &&
-              selectedDate.toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
+            {selectedDate?.toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-4">
@@ -102,9 +98,10 @@ export function CampaignDetailModal({
                         Audience
                       </p>
                       <div className="flex flex-wrap gap-1">
-                        {campaign.audience.map((aud, idx) => (
+                        {campaign.audience.map((aud, i) => (
                           <Badge
-                            key={idx}
+                            // eslint-disable-next-line react/no-array-index-key
+                            key={`${aud}-${i}`}
                             variant="secondary"
                             className="rounded-lg text-xs"
                           >

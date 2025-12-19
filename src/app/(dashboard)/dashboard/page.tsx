@@ -1,11 +1,14 @@
-import { MainDashboard } from "@/features/dashboard/page";
 import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
+
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { MainDashboard } from "@/features/dashboard/page";
+
+export const dynamic = "force-dynamic";
 
 function toTitleName(email?: string): string | undefined {
   if (!email) return undefined;
-  const local = email.split("@")[0];
+  const [local] = email.split("@");
   const parts = local.split(/[._-]/).filter(Boolean);
   if (parts.length === 0) return undefined;
   return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");

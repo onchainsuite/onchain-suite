@@ -2,14 +2,16 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
+
 import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
+
 import type { Campaign } from "../../../campaigns/types";
-import { formatPercentage, formatDate } from "../../../campaigns/utils";
+import { formatDate, formatPercentage } from "../../../campaigns/utils";
+import { CampaignActionsCell } from "./campaign-actions-cell";
 import { CampaignNameCell } from "./campaign-name-cell";
 import { CampaignStatusCell } from "./campaign-status-cell";
 import { CampaignTypeCell } from "./campaign-type-cell";
-import { CampaignActionsCell } from "./campaign-actions-cell";
 
 export const columns: ColumnDef<Campaign>[] = [
   {

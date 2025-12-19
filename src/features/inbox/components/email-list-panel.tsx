@@ -1,15 +1,16 @@
-import React, { RefObject } from "react";
-import Link from "next/link";
 import {
-  Search,
-  Send,
-  Star,
   Archive,
   Check,
   Clock,
   Paperclip,
+  Search,
+  Send,
+  Star,
 } from "lucide-react";
-import { Email } from "../types";
+import Link from "next/link";
+import React, { type RefObject } from "react";
+
+import { type Email } from "../types";
 
 interface Folder {
   name: string;
@@ -64,7 +65,7 @@ const EmailListPanel = ({
             placeholder="Search... ( / )"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-emerald-500/50"
+            className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
           />
         </div>
 
@@ -76,31 +77,35 @@ const EmailListPanel = ({
                 type="checkbox"
                 checked={selectedEmails.length === filteredEmails.length}
                 onChange={toggleSelectAll}
-                className="h-3.5 w-3.5 rounded border-border accent-emerald-500"
+                className="h-3.5 w-3.5 rounded border-border accent-primary"
               />
-              <span className="text-xs font-medium text-emerald-400">
+              <span className="text-xs font-medium text-primary">
                 {selectedEmails.length}
               </span>
               <div className="mx-1 h-4 w-px bg-border" />
               <button
-                className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-emerald-400"
+                type="button"
+                className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 title="Send Email"
               >
                 <Send className="h-3.5 w-3.5" />
               </button>
               <button
+                type="button"
                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-amber-400"
                 title="Star"
               >
                 <Star className="h-3.5 w-3.5" />
               </button>
               <button
+                type="button"
                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-blue-400"
                 title="Archive"
               >
                 <Archive className="h-3.5 w-3.5" />
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedEmails([])}
                 className="ml-auto rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted"
                 title="Clear selection"
@@ -116,18 +121,19 @@ const EmailListPanel = ({
                 const isActive = selectedFolder === folder.name;
                 return (
                   <button
+                    type="button"
                     key={folder.name}
                     onClick={() => setSelectedFolder(folder.name)}
                     className={`relative flex items-center justify-center rounded-lg p-2 text-xs font-medium transition-colors ${
                       isActive
-                        ? "bg-emerald-500/10 text-emerald-400"
+                        ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-card"
                     }`}
                     title={`${folder.name} (${folder.count})`}
                   >
                     <Icon className="h-4 w-4" />
                     {folder.count > 0 && folder.name === "Unread" && (
-                      <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+                      <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                         {folder.count}
                       </span>
                     )}
@@ -146,7 +152,7 @@ const EmailListPanel = ({
             key={email.id}
             className={`group relative transition-colors ${
               selectedEmail?.id === email.id
-                ? "bg-emerald-500/10"
+                ? "bg-primary/10"
                 : focusedIndex === index
                   ? "bg-card"
                   : "hover:bg-card"
@@ -160,7 +166,7 @@ const EmailListPanel = ({
                   e.stopPropagation();
                   toggleEmailSelection(email.id);
                 }}
-                className="h-3.5 w-3.5 rounded border-border opacity-0 accent-emerald-500 transition-opacity group-hover:opacity-100"
+                className="h-3.5 w-3.5 rounded border-border opacity-0 accent-primary transition-opacity group-hover:opacity-100"
                 style={{
                   opacity: selectedEmails.includes(email.id) ? 1 : undefined,
                 }}
@@ -169,6 +175,13 @@ const EmailListPanel = ({
 
             <div
               onClick={() => setSelectedEmail(email)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setSelectedEmail(email);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               className="w-full cursor-pointer p-4 pl-8 text-left"
             >
               <div className="mb-1 flex items-center justify-between">
@@ -176,15 +189,11 @@ const EmailListPanel = ({
                   <Link
                     href={`/audience/${email.profileId}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-transform hover:scale-110"
-                    style={{
-                      backgroundColor: email.unread
-                        ? "rgba(16, 185, 129, 0.2)"
-                        : "var(--color-elevated)",
-                      color: email.unread
-                        ? "rgb(52, 211, 153)"
-                        : "var(--color-text-muted)",
-                    }}
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-transform hover:scale-110 ${
+                      email.unread
+                        ? "bg-primary/20 text-primary"
+                        : "bg-muted text-muted-foreground"
+                    }`}
                   >
                     {email.avatar}
                   </Link>
@@ -231,7 +240,7 @@ const EmailListPanel = ({
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-emerald-400"
+                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-primary"
                     title="Archive"
                   >
                     <Archive className="h-3.5 w-3.5" />

@@ -1,10 +1,11 @@
 "use client";
 
-import type React from "react";
+import { Lock, Unlock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import type React from "react";
 
-import { getInitials } from "@/lib/user-utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -12,13 +13,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { Lock, Unlock } from "lucide-react";
-import { useGetLogo } from "@/hooks/client";
-
-import { cn } from "@/lib/utils";
 import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { useGetLogo } from "@/hooks/client";
+import { getInitials } from "@/lib/user-utils";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   label: string;

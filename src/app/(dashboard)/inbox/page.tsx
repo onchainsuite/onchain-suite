@@ -1,6 +1,9 @@
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
-import  { InboxPages }  from "@/features/inbox/pages";
+
+import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { InboxPages } from "@/features/inbox/pages";
+
+export const dynamic = "force-dynamic";
 
 const breadcrumbs = [
   { href: publicRoutes.HOME, label: "Home" },
@@ -10,7 +13,7 @@ const breadcrumbs = [
 export default async function InboxPage() {
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
-       <InboxPages />
+      <InboxPages />
     </DashboardLayout>
   );
 }

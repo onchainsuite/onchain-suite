@@ -1,25 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { Plus } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import {
-  initialAutomationsData,
-  draftsData,
-  templatesData,
-} from "@/features/automation/data";
-import { Automation, Draft, Template } from "@/features/automation/types";
 
 // Components
 import { ActiveAutomationsList } from "./active";
+import { DeleteModal } from "./delete-modal";
 import { DraftsList } from "./drafts-list";
-import { TemplatesList } from "./templates-list";
 import { AutomationStats } from "./stats";
 import { AutomationTabs } from "./tabs";
-import { DeleteModal } from "./delete-modal";
+import { TemplatesList } from "./templates-list";
 import { Toast } from "./toast";
+import {
+  draftsData,
+  initialAutomationsData,
+  templatesData,
+} from "@/features/automation/data";
+import {
+  type Automation,
+  type Draft,
+  type Template,
+} from "@/features/automation/types";
 
 export const AutomationList = () => {
   const [activeTab, setActiveTab] = useState("active");
@@ -43,11 +48,6 @@ export const AutomationList = () => {
     type: "success" | "error";
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const filteredAutomations = automations.filter((a) =>
     a.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -131,13 +131,13 @@ export const AutomationList = () => {
                 Automations
               </h1>
               <p className="mt-1 text-muted-foreground">
-                Trigger personalized flows based on your users' on-chain and
-                behavioral signals
+                Trigger personalized flows based on your users&apos; on-chain
+                and behavioral signals
               </p>
             </div>
             <Link
               href="/automations/new-id"
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Plus className="h-4 w-4" />
               Create automation
@@ -195,8 +195,8 @@ export const AutomationList = () => {
 
       <Toast
         show={!!toast}
-        message={toast?.message || ""}
-        type={toast?.type || "success"}
+        message={toast?.message ?? ""}
+        type={toast?.type ?? "success"}
         onClose={() => setToast(null)}
       />
     </motion.div>

@@ -1,24 +1,27 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft, ArrowRight, Clock, Send } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ArrowRight, Send, Clock } from "lucide-react";
-import Link from "next/link";
+
 import { Button } from "@/ui/button";
 import { Form } from "@/ui/form";
+
+import { PRIVATE_ROUTES } from "@/config/app-routes";
+
 import {
   type CampaignFormData,
   campaignFormSchema,
 } from "../../campaigns/validations";
 import {
-  CampaignDetailsStep,
   AudienceStep,
-  TemplateStep,
-  ScheduleStep,
+  CampaignDetailsStep,
   ConfirmationPage,
+  ScheduleStep,
+  TemplateStep,
 } from "../components/campaign-form";
-import { PRIVATE_ROUTES } from "@/config/app-routes";
 
 const TOTAL_STEPS = 4;
 
@@ -80,8 +83,7 @@ export function CreateCampaignPage() {
     }
   };
 
-  const onSubmit = (data: CampaignFormData) => {
-    console.log("Campaign form submitted:", data);
+  const onSubmit = (_data: CampaignFormData) => {
     setShowConfirmation(true);
   };
 

@@ -1,8 +1,37 @@
-import React from "react";
+import { Loader2, Send } from "lucide-react";
+import React, { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const VerifySender = () => {
+  const [showVerifySenderModal, setShowVerifySenderModal] = useState(false);
+  const [newSenderEmail, setNewSenderEmail] = useState("");
+  const [newSenderName, setNewSenderName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (callback: () => void) => {
+    setSaving(true);
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setSaving(false);
+    callback();
+  };
+
   return (
     <div>
+      <Button onClick={() => setShowVerifySenderModal(true)}>
+        Verify Sender
+      </Button>
       {/* Verify Sender Modal */}
       <Dialog
         open={showVerifySenderModal}

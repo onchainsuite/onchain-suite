@@ -1,8 +1,9 @@
-
-import React from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
+import React from "react";
+
 import { Label } from "@/components/ui/label";
+
 import { fadeInUp, staggerContainer } from "../../utils";
 
 interface BrandingProps {

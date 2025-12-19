@@ -1,4 +1,4 @@
-import { Connection, Node, Edge } from "reactflow";
+import { type Connection, type Edge, type Node } from "reactflow";
 
 // Connection validation
 export const isValidConnection = (
@@ -11,9 +11,15 @@ export const isValidConnection = (
     return { valid: false, message: "Invalid nodes" };
   if (connection.source === connection.target)
     return { valid: false, message: "Cannot connect to self" };
-  if (targetNode && (targetNode as any).type === "trigger")
+  if (
+    targetNode &&
+    (targetNode as unknown as { type: string }).type === "trigger"
+  )
     return { valid: false, message: "Triggers can only be starting points" };
-  if (sourceNode && (sourceNode as any).type === "placeholder")
+  if (
+    sourceNode &&
+    (sourceNode as unknown as { type: string }).type === "placeholder"
+  )
     return { valid: false, message: "Replace placeholder first" };
   return { valid: true, message: "Valid connection" };
 };
@@ -40,7 +46,8 @@ export const getAutomationData = (id: string) => {
 
 export const autoLayoutNodes = (
   nodes: Node[],
-  newNode: Node
+
+  _newNode: Node
 ): { x: number; y: number } => {
   if (nodes.length === 0) return { x: 400, y: 50 };
 

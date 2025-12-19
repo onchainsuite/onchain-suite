@@ -1,5 +1,6 @@
-import { Inbox, Mail, Star, Archive } from "lucide-react";
-import { Email } from "../types";
+import { Archive, Inbox, Mail, Star } from "lucide-react";
+
+import { type Email } from "../types";
 
 export const emails: Email[] = [
   {

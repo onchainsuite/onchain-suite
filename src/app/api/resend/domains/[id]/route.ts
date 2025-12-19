@@ -15,10 +15,8 @@ export async function GET(
     });
     const data = await res.json();
     return NextResponse.json({ ok: true, data }, { status: res.status });
-  } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message ?? "Failed to get domain" },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to get domain";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { fadeInUp, staggerContainer } from "../../utils";
 
+import { fadeInUp, staggerContainer } from "../../utils";
 import ApiKey from "./api-key";
-import Webhooks from "./webhooks";
 import ConnectedApps from "./connected-apps";
+import Webhooks from "./webhooks";
 
 export default function IntegrationsSettings() {
   return (

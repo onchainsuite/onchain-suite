@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Copy, Plus, Layout } from "lucide-react";
-import { Template } from "@/features/automation/types";
+import { Layout, Plus } from "lucide-react";
+
+import { type Template } from "@/features/automation/types";
 
 interface TemplatesListProps {
   templates: Template[];
@@ -30,7 +31,7 @@ export const TemplatesList = ({ templates }: TemplatesListProps) => {
           key={template.id}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-all hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10"
+          className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
         >
           <div className="mb-4 flex items-start justify-between">
             <div className="rounded-lg bg-secondary p-2">
@@ -46,7 +47,7 @@ export const TemplatesList = ({ templates }: TemplatesListProps) => {
           </p>
           <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
             <span>{template.uses.toLocaleString()} uses</span>
-            <button className="flex items-center gap-1 font-medium text-emerald-600 hover:text-emerald-700">
+            <button className="flex items-center gap-1 font-medium text-primary hover:text-primary/90">
               <Plus className="h-3 w-3" />
               Use template
             </button>

@@ -1,6 +1,8 @@
-import React from "react";
 import { motion } from "framer-motion";
+import React from "react";
+
 import { Button } from "@/components/ui/button";
+
 import { fadeInUp, staggerContainer } from "../../utils";
 
 const PaymentMethod = () => {

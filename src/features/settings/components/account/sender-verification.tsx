@@ -1,15 +1,18 @@
-
-import React from "react";
 import { motion } from "framer-motion";
+import { AlertCircle, Check, Loader2, Plus, ShieldCheck } from "lucide-react";
+import React from "react";
+
 import { Button } from "@/components/ui/button";
-import { Plus, ShieldCheck, AlertCircle, Check, Loader2 } from "lucide-react";
-import { fadeInUp, staggerContainer, senders } from "../../utils";
+
+import { fadeInUp, senders, staggerContainer } from "../../utils";
 
 interface SenderVerificationProps {
   setShowVerifySenderModal: (show: boolean) => void;
 }
 
-const SenderVerification = ({ setShowVerifySenderModal }: SenderVerificationProps) => {
+const SenderVerification = ({
+  setShowVerifySenderModal,
+}: SenderVerificationProps) => {
   return (
     <motion.section
       variants={staggerContainer}
@@ -67,9 +70,13 @@ const SenderVerification = ({ setShowVerifySenderModal }: SenderVerificationProp
             >
               <div className="col-span-2">
                 <p className="font-medium text-foreground">{sender.email}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{sender.name}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {sender.name}
+                </p>
               </div>
-              <div className="text-sm text-muted-foreground">{sender.domain}</div>
+              <div className="text-sm text-muted-foreground">
+                {sender.domain}
+              </div>
               <div>
                 {sender.dkim ? (
                   <span className="inline-flex items-center gap-1 text-primary">

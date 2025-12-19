@@ -1,13 +1,15 @@
 "use client";
 
 import { motion, useAnimation } from "framer-motion";
+import { ArrowLeft, Globe, Home, Search, Sparkles, Zap } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import Link from "next/link";
-import { Button } from "@/ui/button";
-import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+
 import { FloatingParticle, FloatingSymbol } from "@/components/common";
-import { ArrowLeft, Globe, Home, Search, Sparkles, Zap } from "lucide-react";
+import { Button } from "@/ui/button";
+
+import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
 
 export default function NotFoundPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });

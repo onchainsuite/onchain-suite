@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
 import {
-  Search,
+  Check,
   Grid3x3,
   LayoutList,
-  Plus,
   MoreVertical,
-  Check,
+  Plus,
+  Search,
 } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
+import type { UseFormReturn } from "react-hook-form";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -20,9 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
+
 import { cn } from "@/lib/utils";
-import type { CampaignFormData } from "../../validations";
+
 import { EMAIL_TEMPLATES } from "../../../campaigns/constants";
+import type { CampaignFormData } from "../../validations";
 
 interface TemplateSelectorProps {
   form: UseFormReturn<CampaignFormData>;
@@ -130,6 +134,14 @@ export function TemplateSelector({ form }: TemplateSelectorProps) {
           <div
             key={temp.id}
             onClick={() => form.setValue("selectedTemplate", temp.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                form.setValue("selectedTemplate", temp.id);
+              }
+            }}
+            role="button"
+            tabIndex={0}
             className={cn(
               "group cursor-pointer rounded-2xl border-2 bg-card overflow-hidden transition-all duration-300 hover:shadow-lg",
               selectedTemplate === temp.id
@@ -138,10 +150,11 @@ export function TemplateSelector({ form }: TemplateSelectorProps) {
             )}
           >
             <div className="aspect-3/2 bg-muted relative overflow-hidden">
-              <img
+              <Image
                 src={temp.preview || "/placeholder.svg"}
                 alt={temp.title}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
               {selectedTemplate === temp.id && (
                 <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">

@@ -1,4 +1,5 @@
 import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { SegmentDetailPage } from "@/features/intelligence/components/segments/detail";
 

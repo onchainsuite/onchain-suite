@@ -1,12 +1,17 @@
-
-import React from "react";
 import { motion } from "framer-motion";
+import React from "react";
+
 import { Switch } from "@/components/ui/switch";
-import { fadeInUp, staggerContainer, integrationsList } from "../../utils";
+
+import { fadeInUp, integrationsList, staggerContainer } from "../../utils";
 
 const ConnectedApps = () => {
   return (
-    <motion.section variants={staggerContainer} initial="initial" animate="animate">
+    <motion.section
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+    >
       <motion.h2
         variants={fadeInUp}
         className="text-xl font-light tracking-tight text-foreground lg:text-2xl"
