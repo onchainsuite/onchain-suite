@@ -11,15 +11,40 @@ import {
   sendVerificationEmail,
 } from "@/shared/emails/actions";
 
+const vercelBase =
+  process.env.VERCEL_ENV === "production"
+    ? (process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL)
+    : process.env.VERCEL_URL;
+
+const envBetterAuthUrl = process.env.BETTER_AUTH_URL?.split("||")[0]?.trim();
+const shouldUseEnvUrl =
+  envBetterAuthUrl &&
+  !(
+    process.env.NODE_ENV === "production" &&
+    envBetterAuthUrl.includes("localhost")
+  );
+
+const runtimeBaseURL = shouldUseEnvUrl
+  ? envBetterAuthUrl
+  : vercelBase
+    ? `https://${vercelBase}`
+    : process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : "https://onchain-suite.vercel.app";
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  baseURL: serverEnv.BETTER_AUTH_URL,
+  baseURL: runtimeBaseURL,
   trustedOrigins: [
+    runtimeBaseURL,
     "https://onchain-suite.vercel.app",
+    "https://onchain-suite-nu.vercel.app",
     "https://onchainsuite.com",
     "https://www.onchainsuite.com",
+    // Add all preview deployments for onchain-suite
+    "https://onchain-suite-*-jorshimayors-projects.vercel.app",
   ],
   emailAndPassword: {
     enabled: true,
