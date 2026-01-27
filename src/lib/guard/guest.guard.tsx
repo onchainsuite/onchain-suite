@@ -1,9 +1,8 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { type ComponentType, type JSX, type ReactNode } from "react";
 
 import { PRIVATE_ROUTES } from "@/config/app-routes";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth-session";
 
 // Types
 interface GuestGuardProps {
@@ -17,6 +16,7 @@ interface Session {
     email: string;
     name?: string;
     role?: string;
+    [key: string]: any;
   };
 }
 
@@ -25,9 +25,7 @@ export async function GuestGuard({
   children,
   redirectTo = PRIVATE_ROUTES.DASHBOARD,
 }: GuestGuardProps): Promise<JSX.Element> {
-  const session = (await auth.api.getSession({
-    headers: await headers(),
-  })) as Session | null;
+  const session = await getSession();
 
   // If user is authenticated, redirect away from auth pages
   if (session?.user) {
@@ -44,9 +42,7 @@ export function withGuestOnly<P extends Record<string, unknown>>(
   redirectTo = PRIVATE_ROUTES.DASHBOARD
 ) {
   return async function GuestOnlyComponent(props: P): Promise<JSX.Element> {
-    const session = (await auth.api.getSession({
-      headers: await headers(),
-    })) as Session | null;
+    const session = await getSession();
 
     if (session?.user) {
       redirect(redirectTo);
@@ -61,9 +57,7 @@ export async function GuestLayout({
   children,
   redirectTo = PRIVATE_ROUTES.DASHBOARD,
 }: GuestGuardProps): Promise<JSX.Element> {
-  const session = (await auth.api.getSession({
-    headers: await headers(),
-  })) as Session | null;
+  const session = await getSession();
 
   if (session?.user) {
     redirect(redirectTo);
@@ -84,13 +78,11 @@ export async function shouldRedirectAuthenticated(): Promise<{
   session: Session | null;
 }> {
   try {
-    const session = (await auth.api.getSession({
-      headers: await headers(),
-    })) as Session | null;
+    const session = await getSession();
 
     return {
       shouldRedirect: !!session?.user,
-      session,
+      session: session as unknown as Session,
     };
   } catch (error) {
     console.error("Failed to check auth status:", error);
@@ -99,66 +91,4 @@ export async function shouldRedirectAuthenticated(): Promise<{
       session: null,
     };
   }
-}
-
-// 5. Smart redirect based on user role/onboarding status
-interface SmartRedirectOptions {
-  defaultRedirect?: string;
-  roleRedirects?: Record<string, string>;
-  checkOnboarding?: boolean;
-  onboardingRedirect?: string;
-}
-
-export async function getAuthenticatedUserRedirect(
-  options: SmartRedirectOptions = {}
-): Promise<string | null> {
-  const {
-    defaultRedirect = PRIVATE_ROUTES.DASHBOARD,
-    roleRedirects = {},
-    checkOnboarding = false,
-    onboardingRedirect = "/onboarding",
-  } = options;
-
-  try {
-    const session = (await auth.api.getSession({
-      headers: await headers(),
-    })) as (Session & { user: { onboardingCompleted?: boolean } }) | null;
-
-    if (!session?.user) {
-      return null; // Not authenticated
-    }
-
-    // Check onboarding status
-    if (checkOnboarding && !session.user.onboardingCompleted) {
-      return onboardingRedirect;
-    }
-
-    // Check role-based redirects
-    if (session.user.role && roleRedirects[session.user.role]) {
-      return roleRedirects[session.user.role];
-    }
-
-    // Default redirect
-    return defaultRedirect;
-  } catch (error) {
-    console.error("Failed to determine redirect:", error);
-    return null;
-  }
-}
-
-// 6. Advanced Guest Guard with smart redirect
-export async function SmartGuestGuard({
-  children,
-  options = {},
-}: {
-  children: ReactNode;
-  options?: SmartRedirectOptions;
-}): Promise<JSX.Element> {
-  const redirectTo = await getAuthenticatedUserRedirect(options);
-
-  if (redirectTo) {
-    redirect(redirectTo);
-  }
-
-  return <>{children}</>;
 }

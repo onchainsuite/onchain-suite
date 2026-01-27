@@ -5,11 +5,20 @@ import { prisma } from "@/lib/prisma";
 import { getFullName } from "@/lib/utils";
 
 import { type SignUpFormData } from "@/auth/validation";
+import { redirect } from "next/navigation";
 
 interface UserSyncResult {
   success: boolean;
   error?: string;
   redirectTo?: string;
+}
+
+export async function getAuthenticatedUserId(): Promise<string> {
+  const session = await getAuthSession();
+  if (!session?.user) {
+    redirect("/");
+  }
+  return session.user.id;
 }
 
 export async function syncUserDataWithGuard(

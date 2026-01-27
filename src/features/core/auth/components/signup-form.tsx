@@ -13,7 +13,7 @@ import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
 import { useLocalStorage } from "@/hooks/client";
-import { signInWithGoogle } from "@/lib/auth-client";
+import { authClient, signInWithGoogle } from "@/lib/auth-client";
 
 import {
   AuthHeader,
@@ -23,7 +23,7 @@ import {
   PasswordField,
   PasswordStrengthIndicator,
 } from "./shared";
-import { signUp } from "@/auth/actions";
+import { syncUserDataWithGuard } from "@/auth/actions";
 import { type SignUpFormData, signUpSchema } from "@/auth/validation";
 
 interface SignUpFormProps {
@@ -53,20 +53,30 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
-      const result = await signUp(data);
+      await authClient.signUp.email({
+        email: data.email,
+        password: data.password,
+        name: `${data.firstName} ${data.lastName}`,
+        fetchOptions: {
+          onSuccess: async () => {
+            try {
+              // Sync user data to ensure firstName/lastName are saved properly
+              await syncUserDataWithGuard(data);
+            } catch (err) {
+              console.error("Failed to sync user data:", err);
+            }
 
-      // Check if sign up was successful
-      if (!result?.success) {
-        toast.error(result?.error ?? "Failed to create account");
-        return;
-      }
-
-      // Store form data for onboarding
-      setValue(data);
-
-      toast.success(
-        "Account created successfully! Please check your email to verify your account."
-      );
+            // Store form data for onboarding
+            setValue(data);
+            toast.success(
+              "Account created successfully! Please check your email to verify your account."
+            );
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error.message);
+          },
+        },
+      });
     } catch (error: unknown) {
       console.error("Sign up error:", error);
       const message = error instanceof Error ? error.message : undefined;

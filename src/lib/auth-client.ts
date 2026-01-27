@@ -1,13 +1,10 @@
-import { inferAdditionalFields } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { toast } from "sonner";
 
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
 
-import { type auth } from "./auth";
-
 export const authClient = createAuthClient({
-  plugins: [inferAdditionalFields<typeof auth>()],
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
 });
 
 export const { useSession } = authClient;

@@ -13,7 +13,7 @@ import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
-import { signInWithGoogle } from "@/lib/auth-client";
+import { authClient, signInWithGoogle } from "@/lib/auth-client";
 
 import {
   AuthHeader,
@@ -22,7 +22,6 @@ import {
   OAuthButtons,
   PasswordField,
 } from "./shared";
-import { signIn } from "@/auth/actions";
 import { type SignInFormData, signInSchema } from "@/auth/validation";
 
 interface SignInFormProps {
@@ -49,26 +48,26 @@ export function SignInForm({
   const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
     try {
-      await signIn(data);
-
-      toast.success("Successfully signed in!");
-
-      // Check onboarding status
-      const onboardingResponse = await fetch("/api/onboarding/status");
-      const onboardingData = await onboardingResponse.json();
-
-      // Check for redirect parameter
-      const redirectTo = searchParams.get("redirectTo");
-      if (redirectTo) {
-        push(redirectTo);
-      } else {
-        // Route based on onboarding status
-        if (onboardingData.isCompleted) {
-          push(PRIVATE_ROUTES.DASHBOARD);
-        } else {
-          push(AUTH_ROUTES.ONBOARDING);
-        }
-      }
+      await authClient.signIn.email({
+        email: data.email,
+        password: data.password,
+        callbackURL: PRIVATE_ROUTES.DASHBOARD,
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Successfully signed in!");
+            // Check for redirect parameter
+            const redirectTo = searchParams.get("redirectTo");
+            if (redirectTo) {
+              push(redirectTo);
+            } else {
+              push(PRIVATE_ROUTES.DASHBOARD);
+            }
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error.message);
+          },
+        },
+      });
     } catch (error: unknown) {
       console.error("Sign in error:", error);
       const message = error instanceof Error ? error.message : undefined;

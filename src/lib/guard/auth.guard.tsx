@@ -1,8 +1,7 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 
-import { auth } from "@/lib/auth"; // Your Better Auth instance
+import { getSession } from "@/lib/auth-session";
 
 // Types
 interface AuthGuardProps {
@@ -11,17 +10,16 @@ interface AuthGuardProps {
   requireRole?: string;
 }
 
+// Re-export Session type if needed or define a compatible one
+// Using the one from auth-session implies we get what the API returns
 interface Session {
   user: {
     id: string;
     email: string;
     name?: string;
-    firstName?: string;
-    lastName?: string;
     role?: string;
-    isNewUser: boolean;
-    timezone?: string;
-    // Add other user properties as needed
+    // Add other properties as needed, matching what backend returns
+    [key: string]: any;
   };
 }
 
@@ -31,9 +29,7 @@ export async function AuthGuard({
   redirectTo = "/",
   requireRole,
 }: AuthGuardProps) {
-  const session = (await auth.api.getSession({
-    headers: await headers(),
-  })) as Session | null;
+  const session = await getSession();
 
   // No session - redirect to login
   if (!session) {
@@ -49,15 +45,15 @@ export async function AuthGuard({
   return <>{children}</>;
 }
 
+export const ProtectedLayout = AuthGuard;
+
 // 2. Higher-Order Function for Pages
 export function withAuth<T extends Record<string, unknown>>(
   WrappedComponent: React.ComponentType<T & { session: Session }>,
   options: { redirectTo?: string; requireRole?: string } = {}
 ) {
   return async function AuthenticatedComponent(props: T) {
-    const session = (await auth.api.getSession({
-      headers: await headers(),
-    })) as Session | null;
+    const session = await getSession();
 
     if (!session) {
       redirect(options.redirectTo ?? "/");
@@ -67,44 +63,22 @@ export function withAuth<T extends Record<string, unknown>>(
       redirect("/unauthorized");
     }
 
-    return <WrappedComponent {...props} session={session} />;
+    return <WrappedComponent {...props} session={session as unknown as Session} />;
   };
 }
 
 // 3. Auth Hook for Session Data
-export async function getAuthSession(): Promise<Session | null> {
-  try {
-    const session = (await auth.api.getSession({
-      headers: await headers(),
-    })) as Session | null;
-
-    return session;
-  } catch (error) {
-    console.error("Failed to get session:", error);
-    return null;
-  }
+export async function getAuthSession() {
+  return await getSession();
 }
 
 // 4. Auth Action (for Server Actions)
-export async function requireAuth(): Promise<Session> {
-  const session = (await auth.api.getSession({
-    headers: await headers(),
-  })) as Session | null;
+export async function requireAuth() {
+  const session = await getSession();
 
   if (!session) {
     redirect("/");
   }
 
   return session;
-}
-
-// 5. Layout Guard (for protecting entire sections)
-export async function ProtectedLayout({ children }: { children: ReactNode }) {
-  const session = await getAuthSession();
-
-  if (!session) {
-    redirect("/");
-  }
-
-  return <>{children}</>;
 }

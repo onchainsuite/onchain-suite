@@ -4,20 +4,11 @@ import { z } from "zod";
 export const serverEnv = createEnv({
   server: {
     ARCJET_KEY: z.string().min(1),
-    BETTER_AUTH_SECRET: z.string().min(1),
-    BETTER_AUTH_URL: z
-      .preprocess(
-        (v) => (typeof v === "string" ? v.split("||")[0].trim() : v),
-        z.string().url()
-      )
-      .default("http://localhost:3000"),
     DATABASE_URL: z.url(),
     R3TAIN_INFRA_URL: z
       .string()
       .url()
       .default("https://r3tain-infra.onrender.com"),
-    GOOGLE_CLIENT_ID: z.string().min(1),
-    GOOGLE_CLIENT_SECRET: z.string().min(1),
     RESEND_API_KEY: z.string().min(1),
     NODE_ENV: z
       .enum(["development", "test", "production"])
