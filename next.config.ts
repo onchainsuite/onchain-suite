@@ -13,10 +13,15 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!backendUrl) {
+      console.warn("BACKEND_URL or NEXT_PUBLIC_BACKEND_URL is not set");
+      return [];
+    }
     return [
       {
         source: "/api/v1/:path*",
-        destination: `${process.env.BACKEND_URL}/:path*`,
+        destination: `${backendUrl}/:path*`,
       },
     ];
   },

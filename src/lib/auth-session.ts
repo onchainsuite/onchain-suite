@@ -34,7 +34,15 @@ export async function getSession(): Promise<Session | null> {
       return null;
     }
 
-    const response = await fetch(`${process.env.BACKEND_URL}/session`, {
+    const backendUrl =
+      process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    if (!backendUrl) {
+      console.error("BACKEND_URL is not configured");
+      return null;
+    }
+
+    const response = await fetch(`${backendUrl}/session`, {
       headers: {
         cookie: cookieHeader,
       },

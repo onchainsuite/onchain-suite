@@ -4,7 +4,8 @@ import { z } from "zod";
 export const serverEnv = createEnv({
   server: {
     ARCJET_KEY: z.string().min(1),
-    BACKEND_URL: z.string().url(),
+    // BACKEND_URL is optional because we fallback to NEXT_PUBLIC_BACKEND_URL if needed
+    BACKEND_URL: z.string().url().optional(),
     DATABASE_URL: z.url(),
     R3TAIN_INFRA_URL: z
       .string()
