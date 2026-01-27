@@ -4,7 +4,11 @@ import { toast } from "sonner";
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL,
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL?.startsWith("http")
+    ? process.env.NEXT_PUBLIC_BACKEND_URL
+    : typeof window !== "undefined"
+    ? window.location.origin + process.env.NEXT_PUBLIC_BACKEND_URL
+    : "http://localhost:3000" + process.env.NEXT_PUBLIC_BACKEND_URL,
 });
 
 export const { useSession } = authClient;

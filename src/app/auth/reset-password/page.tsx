@@ -1,23 +1,13 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-
-import { AnimatedLoading } from "@/components/loading";
-
 import AuthContainer from "@/auth/pages";
 
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={<AnimatedLoading />}>
-      <ResetPasswordPageContent />
-    </Suspense>
-  );
-}
+export const dynamic = "force-dynamic";
 
-function ResetPasswordPageContent() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  const { token } = await searchParams;
 
   return (
     <AuthContainer

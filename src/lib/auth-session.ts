@@ -34,15 +34,12 @@ export async function getSession(): Promise<Session | null> {
       return null;
     }
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/session`,
-      {
-        headers: {
-          cookie: cookieHeader,
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${process.env.BACKEND_URL}/session`, {
+      headers: {
+        cookie: cookieHeader,
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       return null;
