@@ -1,5 +1,6 @@
 import { Loader2, Mail } from "lucide-react";
 import React, { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { authClient } from "@/lib/auth-client";
 
 interface InviteUserProps {
   open: boolean;
@@ -26,15 +28,33 @@ interface InviteUserProps {
 }
 
 const InviteUser = ({ open, onOpenChange }: InviteUserProps) => {
+  const { data: session } = authClient.useSession();
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("editor");
   const [saving, setSaving] = useState(false);
 
-  const handleSave = async (callback: () => void) => {
+  const handleSendInvite = async () => {
+    if (!inviteEmail) return;
+    if (!session?.session?.activeOrganizationId) {
+        toast.error("No active organization");
+        return;
+    }
+
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setSaving(false);
-    callback();
+    try {
+        await authClient.organization.inviteMember({
+            email: inviteEmail,
+            role: inviteRole as any,
+            organizationId: session.session.activeOrganizationId
+        });
+        toast.success("Invitation sent successfully");
+        onOpenChange(false);
+        setInviteEmail("");
+    } catch (error: any) {
+        toast.error(error.message || "Failed to send invitation");
+    } finally {
+        setSaving(false);
+    }
   };
 
   return (
@@ -83,12 +103,7 @@ const InviteUser = ({ open, onOpenChange }: InviteUserProps) => {
             Cancel
           </Button>
           <Button
-            onClick={() =>
-              handleSave(() => {
-                onOpenChange(false);
-                setInviteEmail("");
-              })
-            }
+            onClick={handleSendInvite}
             disabled={saving || !inviteEmail}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >

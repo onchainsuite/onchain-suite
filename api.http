@@ -1,0 +1,901 @@
+@baseUrl = https://onchain-backend-dvxw.onrender.com/api/v1
+# @baseUrl = http://localhost:3000/api/v1
+@apiKey = GiC6Nqy7k538IOrS4Qsts7hsfZBjfQV01rqXbZcT
+@email = jorshimayor@gmail.com
+@password = NewP@ssw0rd123
+@token = LtVj9qUJgGELR45DMC45wb7NEXtkHtOs
+@cookieVal = better-auth.session_token=LtVj9qUJgGELR45DMC45wb7NEXtkHtOs.NF9WYMELgrd9k8EzQzMRvm46pdAT08biqo3M93URmx0%3D
+
+### ------------------------------------------------------------------------
+
+### HEALTH & SYSTEM
+
+### ------------------------------------------------------------------------
+
+### Check System Health
+
+GET {{baseUrl}}/health
+x-api-key: {{apiKey}}
+
+### App Root
+
+GET {{baseUrl}}/
+x-api-key: {{apiKey}}
+
+### Test Database Connection
+
+GET {{baseUrl}}/test-db
+x-api-key: {{apiKey}}
+
+### ------------------------------------------------------------------------
+
+### AUTHENTICATION
+
+### ------------------------------------------------------------------------
+
+### 1. Sign Up
+
+POST {{baseUrl}}/auth/sign-up/email
+Content-Type: application/json
+x-api-key: {{apiKey}}
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}",
+    "name": "Joshua Obafemi"
+}
+
+### 2. Sign In (Email)
+
+# @name login
+
+POST {{baseUrl}}/auth/sign-in/email
+Content-Type: application/json
+
+# Expects Set-Cookie or session token in response
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}"
+}
+
+### Sign In (Username)
+
+POST {{baseUrl}}/auth/sign-in/username
+Content-Type: application/json
+
+{
+    "username": "Joshua Obafemi",
+    "password": "{{password}}"
+}
+
+### Sign In (Social - Initiate)
+# Returns a redirect URL to Google
+POST {{baseUrl}}/auth/sign-in/social
+Content-Type: application/json
+
+{
+    "provider": "google",
+    "callbackURL": "/dashboard"
+}
+
+### Google One-Click Auth (ID Token Exchange) - Sign In / Sign Up
+# Requires a valid Google ID Token obtained from client-side
+# Creates a new user if one doesn't exist, otherwise signs them in.
+POST {{baseUrl}}/auth/social/google
+Content-Type: application/json
+
+{
+    "idToken": "{{googleIdToken}}"
+}
+
+### 3. Get Session / Verify Auth
+
+GET {{baseUrl}}/auth/get-session
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+### Debug Auth
+
+GET {{baseUrl}}/auth/debug
+Authorization: Bearer {{token}}
+
+### Verify Email (Replace {{token}})
+
+GET {{baseUrl}}/auth/verify-email?token=UbdKZ9B5lTmbzBQmu7MgzQ.Mfr-AuIDofh9SGKmSld1go5d8E439C-xRmx8PqvQCzc
+
+### Forgot Password
+
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": "{{email}}"
+}
+
+### Reset Password
+
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+    "token": "reset_token_here",
+    "newPassword": "NewP@ssw0rd123!"
+}
+
+### Sign Out
+
+POST {{baseUrl}}/auth/sign-out
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------
+
+### USER MANAGEMENT
+
+### ------------------------------------------------------------------------
+
+### Get User Profile
+
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{token}}
+
+### Update User Profile
+
+PUT {{baseUrl}}/user/profile
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "Updated Test User"
+}
+
+### ------------------------------------------------------------------------
+
+### ORGANIZATION
+
+### ------------------------------------------------------------------------
+
+### List Organizations
+
+GET {{baseUrl}}/organization/list
+Authorization: Bearer {{token}}
+# Cookie: better-auth.session_token={{token}}
+
+### Create Organization
+
+POST {{baseUrl}}/organization/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "My New Organization"
+}
+
+### Set Active Organization
+
+POST {{baseUrl}}/organization/set-active
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "organizationId": "ORG_ID_HERE"
+}
+
+### Get Organization Details
+
+GET {{baseUrl}}/organization
+Authorization: Bearer {{token}}
+x-org-id: ORG_ID_HERE
+
+### Update Organization
+
+PUT {{baseUrl}}/organization
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: ORG_ID_HERE
+
+{
+    "name": "Updated Organization Name"
+}
+
+### Validate Subdomain
+
+POST {{baseUrl}}/organization/subdomain/validate
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "subdomain": "my-org-subdomain"
+}
+
+PUT {{baseUrl}}/user/password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "currentPassword": "{{password}}",
+    "newPassword": "NewP@ssw0rd123"
+}
+
+### Toggle 2FA
+
+PUT {{baseUrl}}/user/2fa
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "enable": true
+}
+
+### Setup 2FA (Get Secret & otpauth URI)
+
+POST {{baseUrl}}/user/2fa/setup
+Authorization: Bearer {{token}}
+
+### Verify 2FA Setup
+
+POST {{baseUrl}}/user/2fa/verify
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "code": "123456"
+}
+
+### Request Email Change
+
+PUT {{baseUrl}}/user/email
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "newEmail": "newemail@example.com"
+}
+
+### Verify Email Change
+
+POST {{baseUrl}}/user/email/verify
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "token": "verification_token"
+}
+
+### Update Email Preferences
+
+PUT {{baseUrl}}/user/preferences/email
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "marketing": true,
+    "transactional": true
+}
+
+### List Timezones
+
+GET {{baseUrl}}/timezones
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------
+
+### ORGANIZATION MANAGEMENT
+
+### ------------------------------------------------------------------------
+
+@orgId = aa05d4cf-f928-42c2-b02d-18e5f24c3193
+
+### List Organizations
+
+GET {{baseUrl}}/organization/list
+Authorization: Bearer {{token}}
+
+### Create Organization
+# @name createOrg
+POST {{baseUrl}}/organization/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "New Organization",
+    "slug": "new-org"
+}
+
+### Set Active Organization
+
+POST {{baseUrl}}/organization/set-active
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "organizationId": "{{orgId}}"
+}
+
+### Get Organization Details
+
+GET {{baseUrl}}/organization
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### Update Organization Details
+
+PUT {{baseUrl}}/organization
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "name": "My Updated Organization"
+}
+
+### Validate Subdomain
+
+POST {{baseUrl}}/organization/subdomain/validate
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "subdomain": "my-cool-org"
+}
+
+### List Landing Page Templates
+
+GET {{baseUrl}}/organization/landing-pages
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+### ------------------------------------------------------------------------
+
+### BRANDING
+
+### ------------------------------------------------------------------------
+
+### Get Branding
+
+GET {{baseUrl}}/organization/branding
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+### Update Brand Colors
+
+PUT {{baseUrl}}/organization/branding/colors
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+{
+    "primary": "#FF5733",
+    "secondary": "#33FF57",
+    "accent": "#3357FF"
+}
+
+### Reset Brand Colors
+
+POST {{baseUrl}}/organization/branding/colors/reset
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+### Upload Primary Logo (Multipart)
+
+POST {{baseUrl}}/organization/branding/logo/primary
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="logo.png"
+Content-Type: image/png
+
+< ./logo.png>
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Upload Dark Logo (Multipart)
+
+POST {{baseUrl}}/organization/branding/logo/dark
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="logo_dark.png"
+Content-Type: image/png
+
+< ./logo_dark.png>
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Upload Favicon (Multipart)
+
+POST {{baseUrl}}/organization/branding/logo/favicon
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="favicon.png"
+Content-Type: image/png
+
+< ./favicon.png>
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Delete Primary Logo
+
+DELETE {{baseUrl}}/organization/branding/logo/primary
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+### ------------------------------------------------------------------------
+
+### BILLING
+
+### ------------------------------------------------------------------------
+
+### Get Billing Info
+
+GET {{baseUrl}}/billing
+Authorization: Bearer {{token}}
+
+### Toggle Auto-Optimize
+
+PUT {{baseUrl}}/billing/auto-optimize
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "enabled": true
+}
+
+### Get Usage History
+
+GET {{baseUrl}}/billing/usage
+Authorization: Bearer {{token}}
+
+### List Plans
+
+GET {{baseUrl}}/billing/plans
+Authorization: Bearer {{token}}
+
+### Change Plan
+
+PUT {{baseUrl}}/billing/plan
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "planId": "pro_monthly"
+}
+
+
+### Get Payment Methods
+
+GET {{baseUrl}}/billing/payment-method
+Authorization: Bearer {{token}}
+
+### Update Payment Method
+
+PUT {{baseUrl}}/billing/payment-method
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "paymentMethodId": "pm_123456"
+}
+
+## Delete Payment Method (Replace {{id}})
+DELETE {{baseUrl}}/billing/payment-method/{{id}}
+Authorization: Bearer {{token}}
+
+### List Invoices
+
+GET {{baseUrl}}/billing/invoices
+Authorization: Bearer {{token}}
+
+## Get Invoice Details (Replace {{id}})
+GET {{baseUrl}}/billing/invoices/{{id}}
+Authorization: Bearer {{token}}
+
+## Get Invoice PDF (Replace {{id}})
+GET {{baseUrl}}/billing/invoices/{{id}}/pdf
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------------
+
+### SENDER IDENTITIES
+
+### ------------------------------------------------------------------------
+
+### List Sender Identities
+
+GET {{baseUrl}}/sender-identities
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+### Add Sender Identity
+
+POST {{baseUrl}}/sender-identities
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+{
+    "email": "hello@example.com",
+    "name": "Hello Team"
+}
+
+### Set Default Sender Identity
+
+PUT {{baseUrl}}/sender-identities/default
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+{
+    "senderIdentityId": "sender_id_here"
+}
+
+### Get Domain Authentication Overview
+
+GET {{baseUrl}}/sender-identities/domains/authentication
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+## Get Sender Identity DNS (Replace {{senderId}})
+GET {{baseUrl}}/sender-identities/{{senderId}}/dns
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+## Recheck Sender Identity (Replace {{senderId}})
+POST {{baseUrl}}/sender-identities/{{senderId}}/recheck
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+## Auto DNS for Sender Identity (Replace {{senderId}})
+POST {{baseUrl}}/sender-identities/{{senderId}}/dns/auto
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+{
+    "provider": "godaddy",
+    "credentials": {
+        "apiKey": "your_api_key",
+        "apiSecret": "your_api_secret"
+    }
+}
+
+## Remove Sender Identity (Replace {{senderId}})
+DELETE {{baseUrl}}/sender-identities/{{senderId}}
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+### ------------------------------------------------------------------------
+
+### MEMBERS & INVITES
+
+### ------------------------------------------------------------------------
+
+### List Members
+
+GET {{baseUrl}}/organizations/{{orgId}}/members
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+### Invite Member
+
+POST {{baseUrl}}/organizations/{{orgId}}/invites
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+{
+    "email": "invitee@example.com",
+    "role": "EDITOR"
+}
+
+### List Invites
+
+GET {{baseUrl}}/organizations/{{orgId}}/invites
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+## Update Member Role (Replace {{userId}})
+PATCH {{baseUrl}}/organizations/{{orgId}}/members/{{userId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+{
+    "role": "ADMIN",
+    "isEnabled": true
+}
+
+## Remove Member (Replace {{userId}})
+DELETE {{baseUrl}}/organizations/{{orgId}}/members/{{userId}}
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+Cookie: {{cookieVal}}
+
+## Accept Invite (Replace {{token}})
+POST {{baseUrl}}/invites/{{token}}/accept
+Authorization: Bearer {{token}}
+Cookie: {{cookieVal}}
+
+### ------------------------------------------------------------------------
+
+### CAMPAIGNS
+
+### ------------------------------------------------------------------------
+
+### List Campaigns
+
+GET {{baseUrl}}/campaigns
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### Create Campaign
+
+POST {{baseUrl}}/campaigns
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "name": "My First Campaign",
+    "type": "EMAIL_BLAST",
+    "subject": "Welcome to our Newsletter",
+    "htmlContent": "<h1>Hello!</h1><p>This is a test campaign.</p>",
+    "recipients": {
+        "emails": [
+            "test@example.com"
+        ]
+    }
+}
+
+### Get Campaign Calendar
+
+GET {{baseUrl}}/campaigns/calendar
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+## Get Campaign Details (Replace {{campaignId}})
+GET {{baseUrl}}/campaigns/{{campaignId}}
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+## Update Campaign (Replace {{campaignId}})
+PUT {{baseUrl}}/campaigns/{{campaignId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "name": "Updated Campaign Name"
+}
+
+## Launch Campaign (Replace {{campaignId}})
+POST {{baseUrl}}/campaigns/{{campaignId}}/launch
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### ------------------------------------------------------------------------
+
+### AUDIENCE (CONTACTS & TAGS)
+
+### ------------------------------------------------------------------------
+
+### Audience Overview
+
+GET {{baseUrl}}/audience/overview
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### List Contacts
+
+GET {{baseUrl}}/audience/profiles
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### Create Contact
+
+POST {{baseUrl}}/audience/profiles
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "email": "contact@example.com",
+    "firstName": "John",
+    "lastName": "Doe"
+}
+
+## Get Contact (Replace {{id}})
+GET {{baseUrl}}/audience/profiles/{{id}}
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+## Update Contact (Replace {{id}})
+PUT {{baseUrl}}/audience/profiles/{{id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "firstName": "Johnny"
+}
+
+### List Tags
+
+GET {{baseUrl}}/audience/tags
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### Create Tag
+
+POST {{baseUrl}}/audience/tags
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "name": "VIP",
+    "color": "#FFD700"
+}
+
+## Add Tags to Contact (Replace {{id}})
+PUT {{baseUrl}}/audience/profiles/{{id}}/tags
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "tags": ["VIP"]
+}
+
+## Remove Tag from Contact (Replace {{id}} and {{tagName}})
+DELETE {{baseUrl}}/audience/profiles/{{id}}/tags/{{tagName}}
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### Export Contacts
+
+POST {{baseUrl}}/audience/export
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### Get Recent Exports
+
+GET {{baseUrl}}/audience/export/recent
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### ------------------------------------------------------------------------
+
+### EMAIL SERVICES (TRANSACTIONAL)
+
+### ------------------------------------------------------------------------
+
+### Send Transactional Email
+
+# Note: 'from' must be a verified sender identity or system email (if admin)
+
+POST {{baseUrl}}/email/send
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "to": "recipient@example.com",
+    "subject": "Transactional Email Test",
+    "html": "<p>This is a transactional email.</p>",
+    "text": "This is a transactional email.",
+    "from": "hello@example.com"
+}
+
+### ------------------------------------------------------------------------
+
+### DOMAIN MANAGEMENT
+
+### ------------------------------------------------------------------------
+
+### Register Domain
+
+POST {{baseUrl}}/domain
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "domain": "example-domain.com"
+}
+
+### List Domains
+
+GET {{baseUrl}}/domain
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+## Check Domain Status (Replace {{domainId}})
+GET {{baseUrl}}/domain/{{domainId}}/status
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+## Manual Recheck Status (Replace {{domainId}})
+POST {{baseUrl}}/domain/{{domainId}}/recheck
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+## Get DNS Records (Replace {{domainId}})
+GET {{baseUrl}}/domain/{{domainId}}/dns
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+## Auto Add DNS (Replace {{domainId}})
+POST {{baseUrl}}/domain/{{domainId}}/dns/auto
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "provider": "godaddy",
+    "credentials": { "apiKey": "..." }
+}
+
+## Trigger Verification (Replace {{domainId}})
+POST {{baseUrl}}/domain/{{domainId}}/verify
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+## Add Sender to Domain (Replace {{domainId}})
+POST {{baseUrl}}/domain/{{domainId}}/senders
+Content-Type: application/json
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+{
+    "username": "info",
+    "displayName": "Info Team"
+}
+
+## Delete Domain (Replace {{domainId}})
+DELETE {{baseUrl}}/domain/{{domainId}}
+Authorization: Bearer {{token}}
+x-org-id: {{orgId}}
+
+### ------------------------------------------------------------------------
+
+### WEBHOOKS
+
+### ------------------------------------------------------------------------
+
+### Blockradar Webhook
+
+POST {{baseUrl}}/webhook/blockradar
+Content-Type: application/json
+
+{
+    "event": "payment_received",
+    "data": {
+        "txId": "0x123",
+        "amount": 100
+    }
+}

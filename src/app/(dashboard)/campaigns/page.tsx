@@ -1,6 +1,5 @@
 import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
 import { getAuthSession } from "@/lib/guard";
-import { prisma } from "@/lib/prisma";
 import { getFullName } from "@/lib/utils";
 
 import { NewUserFlow } from "@/features/campaigns/components/new-user";
@@ -24,20 +23,17 @@ export default async function CampaignsListsPage() {
     session?.user?.name ??
     (firstLast && firstLast.length > 0 ? firstLast : undefined);
 
-  const userId = session?.user?.id;
-  const hasUser = !!userId;
-  const campaignsCount = hasUser
-    ? await prisma.campaign.count({ where: { userId } })
-    : 0;
+  // TODO: Implement API call to check if user has campaigns
+  // For now, assuming user has campaigns to skip new user flow, or logic based on user profile
+  // const campaignsCount = await apiClient.get('/campaigns').then(res => res.data.length).catch(() => 0);
+  const campaignsCount = 1; // Mocked to show campaigns list by default
 
   const shouldShowNewUserFlow =
-    !!session?.user?.isNewUser && campaignsCount === 0;
+    !!session?.user?.isNewUser && (campaignsCount as number) === 0;
 
-  if (shouldShowNewUserFlow && userId) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isNewUser: false },
-    });
+  if (shouldShowNewUserFlow && session?.user?.id) {
+    // TODO: Update user isNewUser status via API
+    // await apiClient.put('/user/profile', { isNewUser: false });
   }
 
   return (

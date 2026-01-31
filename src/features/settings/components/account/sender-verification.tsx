@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
-import { AlertCircle, Check, Loader2, Plus, ShieldCheck } from "lucide-react";
-import React from "react";
+import { AlertCircle, Check, Loader2, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-import { fadeInUp, senders, staggerContainer } from "../../utils";
+import { fadeInUp, staggerContainer } from "../../utils";
+import { authClient } from "@/lib/auth-client";
 
 interface SenderVerificationProps {
   setShowVerifySenderModal: (show: boolean) => void;
@@ -13,6 +15,45 @@ interface SenderVerificationProps {
 const SenderVerification = ({
   setShowVerifySenderModal,
 }: SenderVerificationProps) => {
+  const { data: session } = authClient.useSession();
+  const [senders, setSenders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchSenders = async () => {
+        if (!session?.session?.activeOrganizationId) return;
+        setLoading(true);
+        try {
+            const response = await fetch("/api/v1/organization/sender-identities");
+            if (response.ok) {
+                const data = await response.json();
+                setSenders(Array.isArray(data) ? data : []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch senders", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchSenders();
+  }, [session]);
+
+  const handleRemoveSender = async (id: string) => {
+      try {
+          const response = await fetch(`/api/v1/organization/sender-identities/${id}`, {
+              method: "DELETE"
+          });
+          if (response.ok) {
+              toast.success("Sender removed");
+              setSenders(senders.filter(s => s.id !== id));
+          } else {
+              toast.error("Failed to remove sender");
+          }
+      } catch (error) {
+          toast.error("Failed to remove sender");
+      }
+  };
+
   return (
     <motion.section
       variants={staggerContainer}
@@ -55,9 +96,14 @@ const SenderVerification = ({
             <div>SPF</div>
             <div className="text-right">Status</div>
           </div>
+          {senders.length === 0 && (
+              <div className="py-8 text-center text-muted-foreground">
+                  No verified senders found.
+              </div>
+          )}
           {senders.map((sender, idx) => (
             <motion.div
-              key={sender.email}
+              key={sender.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
@@ -104,18 +150,14 @@ const SenderVerification = ({
                 )}
               </div>
               <div className="text-right">
-                {sender.status === "verified" && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1.5 text-xs font-medium text-primary">
-                    <Check className="h-3 w-3" />
-                    Verified
-                  </span>
-                )}
-                {sender.status === "pending" && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-100 px-3 py-1.5 text-xs font-medium text-yellow-700">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Pending
-                  </span>
-                )}
+                   <Button
+                     variant="ghost"
+                     size="icon"
+                     className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                     onClick={() => handleRemoveSender(sender.id)}
+                   >
+                       <Trash2 className="h-4 w-4" />
+                   </Button>
               </div>
             </motion.div>
           ))}

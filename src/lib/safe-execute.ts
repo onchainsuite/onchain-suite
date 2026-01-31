@@ -1,7 +1,5 @@
 import { ZodError } from "zod";
 
-import { handlePrismaError } from "@/lib/prisma-error";
-
 import type {
   PaginatedResponse,
   SafeExecuteResponse,
@@ -37,8 +35,13 @@ export async function safeExecute<T>(
       };
     }
 
-    // ✅ Delegate to Prisma error handler
-    return handlePrismaError(error);
+    // ✅ Handle generic errors
+    const message = error instanceof Error ? error.message : "An unexpected error occurred";
+    return {
+      isSuccessful: false,
+      message,
+      statusCode: 500,
+    };
   }
 }
 
@@ -91,7 +94,12 @@ export async function safePaginatedExecute<T>(
       };
     }
 
-    // ✅ Delegate to Prisma error handler
-    return handlePrismaError(error);
+    // ✅ Handle generic errors
+    const message = error instanceof Error ? error.message : "An unexpected error occurred";
+    return {
+      isSuccessful: false,
+      message,
+      statusCode: 500,
+    };
   }
 }

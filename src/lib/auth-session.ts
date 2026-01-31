@@ -1,50 +1,13 @@
 import { headers } from "next/headers";
 
-interface Session {
-  user: {
-    id: string;
-    email: string;
-    name?: string;
-    image?: string;
-    emailVerified?: boolean;
-    createdAt?: Date;
-    updatedAt?: Date;
-    firstName?: string;
-    lastName?: string;
-    isNewUser?: boolean;
-    timezone?: string;
-    // Add other fields as needed
-    role?: string;
-  };
-  session: {
-    id: string;
-    expiresAt: Date;
-    ipAddress?: string;
-    userAgent?: string;
-    userId: string;
-  };
-}
-
-export async function getSession(): Promise<Session | null> {
+export async function getSession() {
   try {
     const headersList = await headers();
-    const cookieHeader = headersList.get("cookie");
+    const cookie = headersList.get("cookie") || "";
 
-    if (!cookieHeader) {
-      return null;
-    }
-
-    const backendUrl =
-      process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
-
-    if (!backendUrl) {
-      console.error("BACKEND_URL is not configured");
-      return null;
-    }
-
-    const response = await fetch(`${backendUrl}/session`, {
+    const response = await fetch("https://onchain-backend-dvxw.onrender.com/api/v1/auth/get-session", {
       headers: {
-        cookie: cookieHeader,
+        Cookie: cookie,
       },
       cache: "no-store",
     });
@@ -54,6 +17,12 @@ export async function getSession(): Promise<Session | null> {
     }
 
     const data = await response.json();
+    
+    // better-auth usually returns { session: {...}, user: {...} } or null
+    if (!data || !data.session || !data.user) {
+      return null;
+    }
+
     return data;
   } catch (error) {
     console.error("Failed to fetch session:", error);

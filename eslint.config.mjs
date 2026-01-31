@@ -47,7 +47,6 @@ const eslintConfig = [
   {
     ignores: [
       "node_modules/**",
-      "prisma/generated/**",
       ".next/**",
       "out/**",
       "build/**",

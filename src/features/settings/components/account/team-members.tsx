@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Plus, ShieldCheck, Trash2 } from "lucide-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,14 +11,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { authClient } from "@/lib/auth-client";
 
-import { fadeInUp, staggerContainer, teamMembers } from "../../utils";
+import { fadeInUp, staggerContainer } from "../../utils";
 
 interface TeamMembersProps {
   setShowInviteUserModal: (show: boolean) => void;
 }
 
 const TeamMembers = ({ setShowInviteUserModal }: TeamMembersProps) => {
+  const { data: session } = authClient.useSession();
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (session?.session?.activeOrganizationId) {
+        setLoading(true);
+        try {
+          // Use authClient to fetch members if possible, otherwise use action
+          const orgId = session.session.activeOrganizationId;
+          const membersData = await authClient.organization.listMembers({
+              query: {
+                  limit: 100
+              }
+          });
+          if (membersData.data) {
+              setMembers(membersData.data.members);
+          }
+        } catch (error) {
+          console.error("Failed to fetch members", error);
+        } finally {
+            setLoading(false);
+        }
+      }
+    };
+    fetchMembers();
+  }, [session]);
+
+  const handleRoleChange = async (memberId: string, newRole: string) => {
+    if (!session?.session?.activeOrganizationId) return;
+    try {
+        await authClient.organization.updateMemberRole({
+            organizationId: session.session.activeOrganizationId,
+            memberId,
+            role: newRole as any
+        });
+        toast.success("Role updated");
+        // Refresh members list ideally
+    } catch (error) {
+        toast.error("Failed to update role");
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+      if (!session?.session?.activeOrganizationId) return;
+      try {
+          await authClient.organization.removeMember({
+              organizationId: session.session.activeOrganizationId,
+              memberIdOrEmail: memberId
+          });
+          toast.success("Member removed");
+          setMembers(members.filter(m => m.id !== memberId));
+      } catch (error) {
+          toast.error("Failed to remove member");
+      }
+  };
+
   return (
     <motion.section
       variants={staggerContainer}
@@ -51,17 +111,21 @@ const TeamMembers = ({ setShowInviteUserModal }: TeamMembersProps) => {
         variants={fadeInUp}
         className="mt-8 border-t border-border/60 pt-8 lg:mt-10 lg:pt-10"
       >
+        {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading members...</div>
+        ) : (
+        <>
         {/* Desktop table */}
         <div className="hidden space-y-3 lg:block">
           <div className="grid grid-cols-5 gap-4 px-6 py-4 text-sm font-medium text-muted-foreground">
             <div className="col-span-2">User</div>
-            <div>2FA</div>
+            <div>Status</div>
             <div>Role</div>
             <div className="text-right">Actions</div>
           </div>
-          {teamMembers.map((member, idx) => (
+          {members.map((member, idx) => (
             <motion.div
-              key={member.email}
+              key={member.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
@@ -75,55 +139,51 @@ const TeamMembers = ({ setShowInviteUserModal }: TeamMembersProps) => {
               <div className="col-span-2 flex items-center gap-4">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/20">
                   <span className="text-sm font-medium text-primary">
-                    {member.avatar}
+                    {member.user?.name?.charAt(0) || member.user?.email?.charAt(0) || "U"}
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">{member.name}</p>
+                  <p className="font-medium text-foreground">{member.user?.name || "Unknown"}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {member.email}
+                    {member.user?.email}
                   </p>
                 </div>
               </div>
               <div>
-                {member.twoFA ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3 py-1.5 text-xs font-medium text-primary">
-                    <ShieldCheck className="h-3 w-3" />
-                    Enabled
+                    Active
                   </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                    Disabled
-                  </span>
-                )}
               </div>
               <div>
-                <Select defaultValue={member.role.toLowerCase()}>
-                  <SelectTrigger className="h-10 w-32 border-border/80 bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="owner">Owner</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="editor">Editor</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                  </SelectContent>
+                <Select
+                  defaultValue={member.role}
+                  onValueChange={(val) => handleRoleChange(member.id, val)}
+                >
+                    <SelectTrigger className="h-9 w-32 border-border/80 bg-background/50">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="owner">Owner</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="member">Member</SelectItem>
+                    </SelectContent>
                 </Select>
               </div>
-              <div className="text-right">
-                {member.role !== "Owner" && (
+              <div className="flex justify-end">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10"
+                    className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => handleRemoveMember(member.id)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                   </Button>
-                )}
               </div>
             </motion.div>
           ))}
         </div>
+        </>
+        )}
       </motion.div>
     </motion.section>
   );

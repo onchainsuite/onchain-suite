@@ -1,12 +1,18 @@
 import { createAuthClient } from "better-auth/react";
+import {
+  organizationClient,
+  twoFactorClient,
+} from "better-auth/client/plugins";
 import { toast } from "sonner";
 
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
 
 export const authClient = createAuthClient({
-  baseURL: typeof window !== "undefined"
-    ? window.location.origin + "/api/v1"
-    : "http://localhost:3000/api/v1",
+  baseURL:
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/v1/auth`
+      : "https://onchain-backend-dvxw.onrender.com/api/v1/auth",
+  plugins: [organizationClient(), twoFactorClient()],
 });
 
 export const { useSession } = authClient;

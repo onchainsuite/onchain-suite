@@ -16,7 +16,7 @@ import {
 
 import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { useGetLogo } from "@/hooks/client";
-import { getInitials } from "@/lib/user-utils";
+import { getInitials, getAvatarColor } from "@/lib/user-utils";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -34,6 +34,7 @@ interface DashboardNavbarProps {
   isLocked: boolean;
   onToggleLock: () => void;
   userFullName?: string;
+  userId?: string;
 }
 
 export function DashboardNavbar({
@@ -45,8 +46,10 @@ export function DashboardNavbar({
   isLocked,
   onToggleLock,
   userFullName,
+  userId,
 }: DashboardNavbarProps) {
   const initials = userFullName ? getInitials(userFullName) : "U";
+  const avatarColor = userId ? getAvatarColor(userId) : undefined;
   const { lightIcon, darkIcon } = useGetLogo();
 
   return (
@@ -111,13 +114,17 @@ export function DashboardNavbar({
                           "gap-3 rounded-full",
                           isCollapsed ? "h-10 w-10" : "h-10 w-full px-3",
                           active
-                            ? "bg-accent text-foreground shadow-[0_6px_20px_rgba(34,42,53,0.12)]"
-                            : "text-muted-foreground hover:bg-muted"
+                            ? "bg-accent text-(--brand-oxford-blue) dark:text-foreground shadow-[0_6px_20px_rgba(34,42,53,0.12)]"
+                            : "text-(--brand-oxford-blue) dark:text-muted-foreground hover:bg-muted"
                         )}
                       >
-                        <div className="h-4 w-4">{item.icon}</div>
+                        <div className="h-4 w-4 text-(--brand-blue) dark:text-inherit">
+                          {item.icon}
+                        </div>
                         {!isCollapsed && (
-                          <span className="text-sm">{item.label}</span>
+                          <span className="text-sm text-(--brand-oxford-blue) dark:text-foreground">
+                            {item.label}
+                          </span>
                         )}
                         {item.label === "Notifications" && unreadCount > 0 && (
                           <span className="absolute right-1 top-1 flex h-2 w-2 items-center justify-center rounded-full bg-red-500" />
@@ -148,9 +155,13 @@ export function DashboardNavbar({
             )}
           </Button>
           <div className={cn("flex items-center gap-2")}>
-            <Avatar className="h-9 w-9 ring-1 ring-border shadow-sm">
+            <Avatar className="h-8 w-8 lg:h-10 lg:w-10 ring-1 ring-border shadow-sm">
               <AvatarImage alt="User avatar" src="/avatar.png" />
-              <AvatarFallback>{initials}</AvatarFallback>
+              <AvatarFallback
+                style={{ backgroundColor: avatarColor, color: "#fff" }}
+              >
+                {initials}
+              </AvatarFallback>
             </Avatar>
             {!isCollapsed && userFullName && (
               <span className="text-sm font-medium">{userFullName}</span>

@@ -1,6 +1,3 @@
-import { type Prisma } from "@/prisma/client";
-import { type Decimal } from "@/prisma/internal/prismaNamespace";
-
 export type OnboardingStep =
   | "welcome"
   | "personal_info"
@@ -94,12 +91,12 @@ export interface OnboardingProgressWithLogs {
   currentStep: string;
   completedSteps: string[];
   totalSteps: number;
-  completionPercentage: Decimal;
+  completionPercentage: number;
   isCompleted: boolean;
   startedAt: Date;
   completedAt: Date | null;
   lastActivityAt: Date;
-  stepData: Prisma.JsonValue;
+  stepData: Record<string, any>;
   timeSpentSeconds: number;
   sessionCount: number;
   abandonedAt: Date | null;
@@ -111,7 +108,7 @@ export interface OnboardingProgressWithLogs {
     stepName: string;
     action: string;
     timeSpentSeconds: number;
-    stepData: Prisma.JsonValue;
+    stepData: Record<string, any>;
     userAgent: string | null;
     ipAddress: string | null;
     createdAt: Date;

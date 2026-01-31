@@ -19,7 +19,7 @@ export {
 };
 
 export default arcjet({
-  key: serverEnv.ARCJET_KEY,
+  key: serverEnv.ARCJET_KEY!,
   characteristics: ["fingerprint"],
   rules: [shield({ mode: "LIVE" })],
 });

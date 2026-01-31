@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,15 +41,41 @@ export default function AccountSettings() {
     setShowLogoUploadModal(true);
   };
 
-  const openColorPicker = (_type: "primary" | "secondary") => {
-    // In a real app, this might open a color picker modal or popover
-  };
-
   const handleSave = async (callback?: () => void) => {
     setSaving(true);
     await new Promise((r) => setTimeout(r, 1000));
     setSaving(false);
     callback?.();
+  };
+
+  const handleAddSender = async () => {
+    if (!newSenderEmail) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/v1/organization/sender-identities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: newSenderEmail,
+          name: newSenderName,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Sender identity added");
+        setShowVerifySenderModal(false);
+        setNewSenderEmail("");
+        setNewSenderName("");
+        // Ideally force refresh SenderVerification list
+        window.location.reload();
+      } else {
+        toast.error("Failed to add sender identity");
+      }
+    } catch (error) {
+      toast.error("Failed to add sender identity");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -62,10 +89,7 @@ export default function AccountSettings() {
     >
       <CompanyInfo saving={saving} handleSave={handleSave} />
 
-      <Branding
-        openLogoUpload={openLogoUpload}
-        openColorPicker={openColorPicker}
-      />
+      <Branding openLogoUpload={openLogoUpload} />
 
       <TeamMembers setShowInviteUserModal={setShowInviteUserModal} />
 
@@ -76,8 +100,6 @@ export default function AccountSettings() {
         showLogoUploadModal={showLogoUploadModal}
         setShowLogoUploadModal={setShowLogoUploadModal}
         logoUploadType={logoUploadType}
-        saving={saving}
-        handleSave={handleSave}
       />
 
       <InviteUser
@@ -122,7 +144,8 @@ export default function AccountSettings() {
               Cancel
             </Button>
             <Button
-              onClick={() => handleSave(() => setShowVerifySenderModal(false))}
+              onClick={handleAddSender}
+              disabled={saving || !newSenderEmail}
             >
               {saving ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,7 +1,6 @@
 "use server";
 
 import { getAuthSession } from "@/lib/guard";
-import { prisma } from "@/lib/prisma";
 import { getFullName } from "@/lib/utils";
 
 import { type SignUpFormData } from "@/auth/validation";
@@ -37,21 +36,19 @@ export async function syncUserDataWithGuard(
     }
     const { user } = session;
 
-    await prisma.user.upsert({
-      where: { id: user.id },
-      update: {
-        name: getFullName(userData.firstName, userData.lastName),
-        email: userData.email ?? user.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-      },
-      create: {
-        name: getFullName(userData.firstName, userData.lastName),
-        email: userData.email ?? user.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        onboardingCompleted: false,
-      },
+    // TODO: Implement API call to sync user data with Render backend
+    // await apiClient.post('/users/sync', {
+    //   id: user.id,
+    //   email: userData.email ?? user.email,
+    //   name: getFullName(userData.firstName, userData.lastName),
+    //   firstName: userData.firstName,
+    //   lastName: userData.lastName,
+    // });
+    
+    console.log("Syncing user data (mock):", {
+      id: user.id,
+      email: userData.email ?? user.email,
+      name: getFullName(userData.firstName, userData.lastName),
     });
 
     return { success: true };

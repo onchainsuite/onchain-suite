@@ -69,6 +69,13 @@
     hsl(235.2239 81.3765% 48.4314% / 0.25);
   --tracking-normal: normal;
   --spacing: 0.25rem;
+
+  /* Brand Palette */
+  --brand-oxford-blue: #010F31;
+  --brand-alice-blue: #F0F7FF;
+  --brand-blue: #1727E0;
+  --brand-dodger-blue: #2F94FF;
+  --brand-orange: #FF6828;
 }
 
 .dark {

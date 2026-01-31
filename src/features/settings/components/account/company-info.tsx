@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { authClient } from "@/lib/auth-client";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 
@@ -21,6 +23,49 @@ interface CompanyInfoProps {
 }
 
 const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
+  const { data: session } = authClient.useSession();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    slug: "",
+    website: "", // Placeholder if not in org model yet
+  });
+
+  useEffect(() => {
+    const fetchOrg = async () => {
+      const org = await authClient.organization.list();
+      if (org.data && org.data.length > 0) {
+        // Assuming first org for now
+        const currentOrg = org.data[0];
+        setFormData({
+          name: currentOrg.name,
+          slug: currentOrg.slug,
+          website: "",
+        });
+      }
+    };
+    fetchOrg();
+  }, [session]);
+
+  const onSave = async () => {
+    setLoading(true);
+    try {
+      // Use authClient for organization updates
+      await authClient.organization.update({
+        organizationId: session?.session?.activeOrganizationId || "", // We need active org ID
+        data: {
+            name: formData.name,
+            slug: formData.slug
+        }
+      });
+      toast.success("Organization updated");
+    } catch (error) {
+      toast.error("Failed to update organization");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <motion.section
       variants={staggerContainer}
@@ -47,7 +92,8 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
               Company name
             </Label>
             <Input
-              defaultValue="OnchainSuite Inc."
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="h-12 border-border/80 bg-background text-foreground transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
@@ -56,16 +102,18 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
               Website URL
             </Label>
             <Input
-              defaultValue="https://onchain.suite"
+              value={formData.website}
+              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
               className="h-12 border-border/80 bg-background text-foreground transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
           <div className="space-y-3">
             <Label className="text-sm font-medium text-foreground">
-              Account domain
+              Account slug
             </Label>
             <Input
-              defaultValue="onchain-suite"
+              value={formData.slug}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
               className="h-12 border-border/80 bg-background text-foreground transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
@@ -91,11 +139,11 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
           className="inline-block"
         >
           <Button
-            onClick={() => handleSave()}
-            disabled={saving}
+            onClick={onSave}
+            disabled={loading}
             className="mt-8 h-11 bg-primary px-8 text-primary-foreground transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/10"
           >
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save changes
           </Button>
         </motion.div>

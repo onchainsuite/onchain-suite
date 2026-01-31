@@ -39,7 +39,6 @@
       "@/lib/*": ["./src/lib/*"],
       "@/types/*": ["./src/shared/types/*"],
       "@/validations/*": ["./src/shared/validations/*"],
-      "@/prisma/*": ["./prisma/generated/prisma/*"],
       "@/*": ["./src/*"]
     }
   },
