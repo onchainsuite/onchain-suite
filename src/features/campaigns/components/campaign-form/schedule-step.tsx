@@ -21,7 +21,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-import { TIMEZONES } from "../../../campaigns/constants";
+import { useTimezones } from "@/shared/hooks/client/use-timezones";
 import type { CampaignFormData } from "../../validations";
 
 interface ScheduleStepProps {
@@ -33,6 +33,7 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
   const scheduleDate = form.watch("scheduleDate");
   const scheduleTime = form.watch("scheduleTime");
   const timezone = form.watch("timezone");
+  const { items: tzItems, loading: tzLoading } = useTimezones();
 
   return (
     <div className="space-y-8 p-6 md:p-8 lg:p-10 animate-in fade-in duration-500">
@@ -226,15 +227,19 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent className="rounded-xl border-border bg-card max-h-[300px]">
-                                    {TIMEZONES.map((tz) => (
-                                      <SelectItem
-                                        key={tz.value}
-                                        value={tz.value}
-                                        className="rounded-lg"
-                                      >
-                                        {tz.label}
-                                      </SelectItem>
-                                    ))}
+                                    {tzLoading ? (
+                                      <div className="p-2 text-sm text-muted-foreground">Loading…</div>
+                                    ) : (
+                                      tzItems.map((tz) => (
+                                        <SelectItem
+                                          key={tz.id}
+                                          value={tz.id}
+                                          className="rounded-lg"
+                                        >
+                                          {tz.label}
+                                        </SelectItem>
+                                      ))
+                                    )}
                                   </SelectContent>
                                 </Select>
                               </FormItem>

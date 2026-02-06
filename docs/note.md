@@ -1,6 +1,7 @@
 - Design a good email verification page like Supabase
-- Any login or signup error should be rendered well not obsure error.
-- The timezone should be better rendered.
-- The company information should be displayed then also be editable.
-- The sidebar profile display should show the user's initials not a generic letter 'U'.
-- The two-factor authentication should have a modal to activate it.
+
+- The two-factor authentication button should have a modal to activate it.
+
+- The Timezone should display the time of the user.
+
+- The organization section should show if it's active.

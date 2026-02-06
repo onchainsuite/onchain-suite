@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { Mail, User } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ interface SignUpFormProps {
 }
 
 export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const { setValue } = useLocalStorage<SignUpFormData | null>("user", null);

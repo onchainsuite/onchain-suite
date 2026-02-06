@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
 import { fadeInUp, staggerContainer } from "../../utils";
+import TwoFactorAuthModal from "../two-factor-auth-modal";
 
 const Security = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [twoFALoading, setTwoFALoading] = useState(false);
+  const [showTwoFAModal, setShowTwoFAModal] = useState(false);
+  const { data: session } = authClient.useSession();
 
   const handlePasswordChange = async () => {
     if (!currentPassword || !newPassword) {
@@ -22,24 +24,23 @@ const Security = () => {
     }
     setLoading(true);
     try {
-        await authClient.changePassword({
-            currentPassword,
-            newPassword,
-            revokeOtherSessions: true
-        });
-        toast.success("Password changed successfully");
-        setCurrentPassword("");
-        setNewPassword("");
+      await authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: true,
+      });
+      toast.success("Password changed successfully");
+      setCurrentPassword("");
+      setNewPassword("");
     } catch (error) {
-        toast.error("Failed to change password");
+      toast.error("Failed to change password");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
-  const toggleTwoFA = async () => {
-      // Placeholder for 2FA toggle
-      toast.info("2FA toggle coming soon");
+  const toggleTwoFA = () => {
+    setShowTwoFAModal(true);
   };
 
   return (
@@ -48,6 +49,10 @@ const Security = () => {
       initial="initial"
       animate="animate"
     >
+      <TwoFactorAuthModal
+        open={showTwoFAModal}
+        onOpenChange={setShowTwoFAModal}
+      />
       <motion.h2
         variants={fadeInUp}
         className="text-xl font-light tracking-tight text-foreground lg:text-2xl"
@@ -85,9 +90,9 @@ const Security = () => {
               className="h-12 border-border/80 bg-background text-foreground transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
           </div>
-          
-          <Button 
-            onClick={handlePasswordChange} 
+
+          <Button
+            onClick={handlePasswordChange}
             disabled={loading}
             className="w-full h-11"
           >
@@ -101,8 +106,14 @@ const Security = () => {
               className="w-full justify-between h-12 border-border/80 text-foreground hover:bg-muted hover:text-foreground"
             >
               <span>Two-factor authentication</span>
-              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                Disabled
+              <span
+                className={`text-xs font-medium px-2 py-1 rounded-full ${
+                  session?.user?.twoFactorEnabled
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {session?.user?.twoFactorEnabled ? "Enabled" : "Disabled"}
               </span>
             </Button>
           </div>

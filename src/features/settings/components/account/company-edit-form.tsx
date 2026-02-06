@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAllTimezones } from "@/lib/timezone";
+import { useTimezones } from "@/shared/hooks/client/use-timezones";
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -76,7 +76,7 @@ export default function CompanyEditForm() {
   });
 
   const { data: session } = authClient.useSession();
-  const timezones = getAllTimezones();
+  const { items: timezones, loading: tzLoading } = useTimezones();
 
   useEffect(() => {
     async function fetchOrg() {
@@ -229,11 +229,15 @@ export default function CompanyEditForm() {
                       <SelectValue placeholder="Select timezone" />
                     </SelectTrigger>
                     <SelectContent>
-                      {timezones.map((tz) => (
-                        <SelectItem key={tz.timeZone} value={tz.timeZone}>
-                          {tz.long} ({tz.offset})
-                        </SelectItem>
-                      ))}
+                      {tzLoading ? (
+                        <div className="p-2 text-sm text-muted-foreground">Loading…</div>
+                      ) : (
+                        timezones.map((tz) => (
+                          <SelectItem key={tz.id} value={tz.id}>
+                            {tz.label}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

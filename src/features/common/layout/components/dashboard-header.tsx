@@ -3,6 +3,7 @@ import {
   SearchTrigger,
   ThemeModeToggle,
 } from "@/components/common";
+import { OrganizationSwitcher } from "./organization-switcher";
 
 export const DashboardHeader = ({
   breadcrumbs,
@@ -38,6 +39,7 @@ export const DashboardHeader = ({
       </div>
 
       <div className="flex items-center gap-2 px-4 md:ml-auto">
+        <OrganizationSwitcher />
         <SearchTrigger onClick={() => setOpen?.(true)} />
         <NotificationBell />
         <ThemeModeToggle />

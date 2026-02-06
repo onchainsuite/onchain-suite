@@ -14,28 +14,32 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 
 const PersonalDetails = () => {
   const { data: session } = authClient.useSession();
+  const { items: timezones, loading: tzLoading } = useTimezones();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     firstName: "",
     lastName: "",
+    timezone: "",
   });
 
   useEffect(() => {
     if (session?.user) {
-      const { name, email } = session.user;
+      const { name, email, timezone } = session.user as any;
       const [firstName = "", lastName = ""] = name.split(" ");
       setFormData({
         name,
         email,
         firstName,
         lastName,
+        timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
     }
   }, [session]);
@@ -46,7 +50,8 @@ const PersonalDetails = () => {
     try {
       await authClient.updateUser({
         name: `${formData.firstName} ${formData.lastName}`.trim(),
-      });
+        timezone: formData.timezone,
+      } as any);
       toast.success("Profile updated successfully");
     } catch (error) {
       toast.error("Failed to update profile");
@@ -120,16 +125,26 @@ const PersonalDetails = () => {
               <Label className="text-sm font-medium text-foreground">
                 Timezone
               </Label>
-              <Select defaultValue="pst">
+              <Select
+                value={formData.timezone}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, timezone: value })
+                }
+                disabled={tzLoading}
+              >
                 <SelectTrigger className="h-12 border-border/80 bg-background text-foreground">
-                  <SelectValue />
+                  <SelectValue
+                    placeholder={
+                      tzLoading ? "Loading timezones..." : "Select timezone"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pst">Pacific Time (PT)</SelectItem>
-                  <SelectItem value="est">Eastern Time (ET)</SelectItem>
-                  <SelectItem value="utc">UTC</SelectItem>
-                  <SelectItem value="gmt">GMT</SelectItem>
-                  <SelectItem value="cet">Central European (CET)</SelectItem>
+                  {timezones.map((tz) => (
+                    <SelectItem key={tz.id} value={tz.id}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

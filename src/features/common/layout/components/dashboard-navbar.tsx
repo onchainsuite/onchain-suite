@@ -3,7 +3,7 @@
 import { Lock, Unlock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import type React from "react";
+import React, { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 
 import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { useGetLogo } from "@/hooks/client";
-import { getInitials, getAvatarColor } from "@/lib/user-utils";
+import { getInitials, getAvatarColor, isValidImageUrl } from "@/lib/user-utils";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -35,6 +35,7 @@ interface DashboardNavbarProps {
   onToggleLock: () => void;
   userFullName?: string;
   userId?: string;
+  userImageUrl?: string;
 }
 
 export function DashboardNavbar({
@@ -47,10 +48,14 @@ export function DashboardNavbar({
   onToggleLock,
   userFullName,
   userId,
+  userImageUrl,
 }: DashboardNavbarProps) {
   const initials = userFullName ? getInitials(userFullName) : "U";
   const avatarColor = userId ? getAvatarColor(userId) : undefined;
   const { lightIcon, darkIcon } = useGetLogo();
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const validImage = userImageUrl && isValidImageUrl(userImageUrl);
 
   return (
     <aside
@@ -155,13 +160,28 @@ export function DashboardNavbar({
             )}
           </Button>
           <div className={cn("flex items-center gap-2")}>
-            <Avatar className="h-8 w-8 lg:h-10 lg:w-10 ring-1 ring-border shadow-sm">
-              <AvatarImage alt="User avatar" src="/avatar.png" />
-              <AvatarFallback
-                style={{ backgroundColor: avatarColor, color: "#fff" }}
-              >
-                {initials}
-              </AvatarFallback>
+            <Avatar
+              className="h-8 w-8 lg:h-10 lg:w-10 ring-1 ring-border shadow-sm"
+              aria-label="User avatar"
+              title={userFullName || "User"}
+            >
+              {validImage && !imgError ? (
+                <AvatarImage
+                  alt={userFullName || "User"}
+                  src={userImageUrl as string}
+                  loading="lazy"
+                  onLoad={() => setImgLoaded(true)}
+                  onError={() => setImgError(true)}
+                  className="object-cover"
+                />
+              ) : null}
+              {!validImage || imgError ? (
+                <AvatarFallback
+                  style={{ backgroundColor: avatarColor, color: "#fff" }}
+                >
+                  {initials}
+                </AvatarFallback>
+              ) : null}
             </Avatar>
             {!isCollapsed && userFullName && (
               <span className="text-sm font-medium">{userFullName}</span>

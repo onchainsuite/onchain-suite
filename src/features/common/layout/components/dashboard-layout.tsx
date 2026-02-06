@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardNavbar } from "./dashboard-navbar";
 import { initialNotifications } from "@/data/notifications";
+import { authClient } from "@/lib/auth-client";
 
 type BreadcrumbItem = { href: string; label: string };
 
@@ -39,6 +40,10 @@ export function DashboardLayout({
   const [isLocked, setIsLocked] = useState(false);
   const pathname = usePathname();
   const unreadCount = initialNotifications.filter((n) => !n.read).length;
+  const { data: session } = authClient.useSession();
+  const fullName = userFullName ?? session?.user?.name ?? undefined;
+  const userId = session?.user?.id ?? undefined;
+  const imageUrl = session?.user?.image ?? undefined;
 
   const navItems: { label: string; href: string; icon: React.ReactNode }[] = [
     {
@@ -90,7 +95,9 @@ export function DashboardLayout({
         unreadCount={unreadCount}
         isLocked={isLocked}
         onToggleLock={() => setIsLocked((l) => !l)}
-        userFullName={userFullName}
+        userFullName={fullName}
+        userId={userId}
+        userImageUrl={imageUrl}
       />
 
       <div className={cn(isCollapsed ? "pl-20" : "pl-64")}>
