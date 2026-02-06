@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronDown, Globe, User } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { Logo } from "@/components/common";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { publicRoutes } from "@/config/routes";
 import { useLocalStorage } from "@/hooks/client";
 import { getInitials } from "@/lib/utils";
 
@@ -23,13 +21,12 @@ export function LayoutHeader() {
   const { value: user } = useLocalStorage<SignUpFormData | null>("user", null);
   const userEmail = user?.email ?? "";
   const userInitials = getInitials(user?.firstName, user?.lastName);
-  const { push } = useRouter();
 
   return (
     <header className="border-border bg-card border-b px-3 py-3 sm:px-4 sm:py-4">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <div className="flex items-center gap-2">
-          <Logo onClick={() => push(publicRoutes.HOME)} />
+          <Logo />
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">

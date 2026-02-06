@@ -1,14 +1,11 @@
 "use client";
 
-import { useUser } from "@stackframe/stack";
+import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
 import { PRIVATE_ROUTES } from "@/config/app-routes";
 
-import {
-  OrganizationSetupStep,
-  PlanSelectionStep,
-} from "./components";
+import { OrganizationSetupStep, PlanSelectionStep } from "./components";
 import { OnboardingLayout } from "./components/onboarding-layout";
 import {
   getCompletionPercentage,
@@ -20,7 +17,8 @@ import { type OnboardingData } from "./types";
 
 export function OnboardingFlow() {
   const { push } = useRouter();
-  const user = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
   const {
     step: currentStep,
     data: formData,
@@ -68,7 +66,7 @@ export function OnboardingFlow() {
           "Onboarding completed with data:",
           JSON.stringify(finalData, null, 2)
         );
-        push(dashboardRoutes.home);
+        push(PRIVATE_ROUTES.DASHBOARD);
       } else {
         console.error("Failed to complete onboarding");
         // Still redirect to dashboard but show a warning

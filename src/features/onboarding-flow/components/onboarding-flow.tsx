@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@stackframe/stack";
+import { useSession } from "@/lib/auth-client";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Clock, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -83,7 +83,8 @@ export function OnboardingFlow() {
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);
   const [stepStartTime, setStepStartTime] = useState(Date.now());
   const [isLoading, setIsLoading] = useState(true);
-  const user = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
   const router = useRouter();
 
   useEffect(() => {

@@ -1,11 +1,17 @@
 "use client";
 
-import { useUser } from "@stackframe/stack";
+import { useSession } from "@/lib/auth-client";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type OnboardingStep =
   | "welcome"
+  | "personal_info"
+  | "business_address"
+  | "organization_type"
+  | "business_goal"
+  | "important_features"
+  | "contact_count"
   | "organization_setup"
   | "plan_selection";
 
@@ -40,12 +46,19 @@ const STEP_MAPPING: Record<number, OnboardingStep> = {
 
 const COMPLETION_PERCENTAGES: Record<OnboardingStep, number> = {
   welcome: 0,
+  personal_info: 14,
+  business_address: 28,
+  organization_type: 42,
+  business_goal: 57,
+  important_features: 71,
+  contact_count: 85,
   organization_setup: 50,
   plan_selection: 100,
 };
 
 export function useOnboardingTracking(): UseOnboardingTracking {
-  const user = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
