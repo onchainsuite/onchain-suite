@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "@/components/ui/button";
 
-import { publicRoutes } from "@/config/app-routes";
+import { publicRoutes } from "@/shared/config/app-routes";
 
 export default function MobileOptimizedNotFound() {
   const [isClient, setIsClient] = useState(false);

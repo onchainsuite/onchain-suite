@@ -5,6 +5,8 @@ import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { authClient } from "@/lib/auth-client";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,6 +28,7 @@ import SenderVerification from "./sender-verification";
 import TeamMembers from "./team-members";
 
 export default function AccountSettings() {
+  const { data: session } = authClient.useSession();
   const [showLogoUploadModal, setShowLogoUploadModal] = useState(false);
   const [logoUploadType, setLogoUploadType] = useState<
     "primary" | "dark" | "favicon"
@@ -35,6 +38,9 @@ export default function AccountSettings() {
   const [newSenderEmail, setNewSenderEmail] = useState("");
   const [newSenderName, setNewSenderName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const triggerUpdate = () => setRefreshTrigger((prev) => prev + 1);
 
   const openLogoUpload = (type: "primary" | "dark" | "favicon") => {
     setLogoUploadType(type);
@@ -50,11 +56,19 @@ export default function AccountSettings() {
 
   const handleAddSender = async () => {
     if (!newSenderEmail) return;
+    if (!session?.session?.activeOrganizationId) {
+      toast.error("No active organization");
+      return;
+    }
+
     setSaving(true);
     try {
       const response = await fetch("/api/v1/organization/sender-identities", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-org-id": session.session.activeOrganizationId,
+        },
         body: JSON.stringify({
           email: newSenderEmail,
           name: newSenderName,
@@ -67,7 +81,7 @@ export default function AccountSettings() {
         setNewSenderEmail("");
         setNewSenderName("");
         // Ideally force refresh SenderVerification list
-        window.location.reload();
+        triggerUpdate();
       } else {
         toast.error("Failed to add sender identity");
       }
@@ -91,9 +105,15 @@ export default function AccountSettings() {
 
       <Branding openLogoUpload={openLogoUpload} />
 
-      <TeamMembers setShowInviteUserModal={setShowInviteUserModal} />
+      <TeamMembers
+        setShowInviteUserModal={setShowInviteUserModal}
+        refreshTrigger={refreshTrigger}
+      />
 
-      <SenderVerification setShowVerifySenderModal={setShowVerifySenderModal} />
+      <SenderVerification
+        setShowVerifySenderModal={setShowVerifySenderModal}
+        refreshTrigger={refreshTrigger}
+      />
 
       {/* Modals */}
       <LogoUpload
@@ -105,6 +125,7 @@ export default function AccountSettings() {
       <InviteUser
         open={showInviteUserModal}
         onOpenChange={setShowInviteUserModal}
+        onSuccess={triggerUpdate}
       />
 
       <Dialog

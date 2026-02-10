@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 import { FloatingParticle, FloatingSymbol } from "@/components/common";
 import { Button } from "@/ui/button";
 
-import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export default function NotFoundPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });

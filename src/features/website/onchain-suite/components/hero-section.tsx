@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { FlipWords } from "@/components/ui/flip-words";
 
-import { AUTH_ROUTES } from "@/config/app-routes";
+import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 export function HeroSection() {
   const { push } = useRouter();

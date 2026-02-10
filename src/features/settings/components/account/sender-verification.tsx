@@ -1,19 +1,29 @@
 import { motion } from "framer-motion";
-import { AlertCircle, Check, Loader2, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Loader2,
+  Plus,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
 interface SenderVerificationProps {
   setShowVerifySenderModal: (show: boolean) => void;
+  refreshTrigger?: number;
 }
 
 const SenderVerification = ({
   setShowVerifySenderModal,
+  refreshTrigger,
 }: SenderVerificationProps) => {
   const { data: session } = authClient.useSession();
   const [senders, setSenders] = useState<any[]>([]);
@@ -21,37 +31,48 @@ const SenderVerification = ({
 
   useEffect(() => {
     const fetchSenders = async () => {
-        if (!session?.session?.activeOrganizationId) return;
-        setLoading(true);
-        try {
-            const response = await fetch("/api/v1/organization/sender-identities");
-            if (response.ok) {
-                const data = await response.json();
-                setSenders(Array.isArray(data) ? data : []);
-            }
-        } catch (error) {
-            console.error("Failed to fetch senders", error);
-        } finally {
-            setLoading(false);
+      if (!session?.session?.activeOrganizationId) return;
+      setLoading(true);
+      try {
+        const response = await fetch("/api/v1/organization/sender-identities", {
+          headers: {
+            "x-org-id": session.session.activeOrganizationId,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSenders(Array.isArray(data) ? data : []);
         }
+      } catch (error) {
+        console.error("Failed to fetch senders", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchSenders();
-  }, [session]);
+  }, [session, refreshTrigger]);
 
   const handleRemoveSender = async (id: string) => {
-      try {
-          const response = await fetch(`/api/v1/organization/sender-identities/${id}`, {
-              method: "DELETE"
-          });
-          if (response.ok) {
-              toast.success("Sender removed");
-              setSenders(senders.filter(s => s.id !== id));
-          } else {
-              toast.error("Failed to remove sender");
-          }
-      } catch (error) {
-          toast.error("Failed to remove sender");
+    if (!session?.session?.activeOrganizationId) return;
+    try {
+      const response = await fetch(
+        `/api/v1/organization/sender-identities/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "x-org-id": session.session.activeOrganizationId,
+          },
+        }
+      );
+      if (response.ok) {
+        toast.success("Sender removed");
+        setSenders(senders.filter((s) => s.id !== id));
+      } else {
+        toast.error("Failed to remove sender");
       }
+    } catch (error) {
+      toast.error("Failed to remove sender");
+    }
   };
 
   return (
@@ -89,19 +110,22 @@ const SenderVerification = ({
       >
         {/* Desktop table */}
         <div className="hidden space-y-3 lg:block">
-          <div className="grid grid-cols-6 gap-4 px-6 py-4 text-sm font-medium text-muted-foreground">
+          <div className="grid grid-cols-7 gap-4 px-6 py-4 text-sm font-medium text-muted-foreground">
             <div className="col-span-2">Sender</div>
-            <div>Domain</div>
+            <div className="col-span-1">Domain</div>
             <div>DKIM</div>
             <div>SPF</div>
-            <div className="text-right">Status</div>
+            <div>Status</div>
+            <div className="text-right">Actions</div>
           </div>
           {senders.length === 0 && (
-              <div className="py-8 text-center text-muted-foreground">
-                  No verified senders found.
-              </div>
+            <div className="py-8 text-center text-muted-foreground">
+              No verified senders found.
+            </div>
           )}
-          {senders.map((sender, idx) => (
+          {senders.map((sender, idx) => {
+            const isVerified = sender.dkim && sender.spf;
+            return (
             <motion.div
               key={sender.id}
               initial={{ opacity: 0, y: 10 }}
@@ -111,7 +135,7 @@ const SenderVerification = ({
                 y: -2,
                 boxShadow: "0 25px 50px -12px rgba(var(--primary-rgb), 0.08)",
               }}
-              className="group grid grid-cols-6 items-center gap-4 rounded-xl border border-border/60 bg-card px-6 py-5 transition-all duration-300"
+              className="group grid grid-cols-7 items-center gap-4 rounded-xl border border-border/60 bg-card px-6 py-5 transition-all duration-300"
               style={{ minHeight: "80px" }}
             >
               <div className="col-span-2">
@@ -120,7 +144,7 @@ const SenderVerification = ({
                   {sender.name}
                 </p>
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="col-span-1 text-sm text-muted-foreground">
                 {sender.domain}
               </div>
               <div>
@@ -149,18 +173,26 @@ const SenderVerification = ({
                   </span>
                 )}
               </div>
+              <div>
+                 <span className={cn(
+                     "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium",
+                     isVerified ? "bg-primary/20 text-primary" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                 )}>
+                   {isVerified ? "Verified" : "Pending"}
+                 </span>
+              </div>
               <div className="text-right">
-                   <Button
-                     variant="ghost"
-                     size="icon"
-                     className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                     onClick={() => handleRemoveSender(sender.id)}
-                   >
-                       <Trash2 className="h-4 w-4" />
-                   </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => handleRemoveSender(sender.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             </motion.div>
-          ))}
+          )})}
         </div>
       </motion.div>
     </motion.section>

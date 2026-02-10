@@ -28,9 +28,6 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 
 - `GET /organization`: Get current organization details.
 - `PUT /organization`: Update organization details.
-- `GET /organization/branding`: Get branding settings.
-- `PUT /organization/branding/colors`: Update brand colors.
-- `POST /organization/branding/colors/reset`: Reset brand colors to default.
 - `POST /organization/branding/logo/primary`: Upload primary logo (multipart/form-data).
 - `POST /organization/branding/logo/dark`: Upload dark mode logo (multipart/form-data).
 - `POST /organization/branding/logo/favicon`: Upload favicon (multipart/form-data).

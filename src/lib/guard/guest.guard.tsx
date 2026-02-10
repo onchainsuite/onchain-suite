@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { type ComponentType, type JSX, type ReactNode } from "react";
 
-import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { getSession } from "@/lib/auth-session";
 
 // Types

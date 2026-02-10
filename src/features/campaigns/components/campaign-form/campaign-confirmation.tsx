@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface ConfirmationPageProps {
   sendOption: "now" | "schedule";

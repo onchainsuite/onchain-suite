@@ -11,15 +11,16 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { cn } from "@/lib/utils";
 
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardNavbar } from "./dashboard-navbar";
 import { initialNotifications } from "@/data/notifications";
 import { authClient } from "@/lib/auth-client";
+import { OrganizationStatusBanner } from "./organization-status-banner";
 
 type BreadcrumbItem = { href: string; label: string };
 
@@ -41,9 +42,16 @@ export function DashboardLayout({
   const pathname = usePathname();
   const unreadCount = initialNotifications.filter((n) => !n.read).length;
   const { data: session } = authClient.useSession();
-  const fullName = userFullName ?? session?.user?.name ?? undefined;
-  const userId = session?.user?.id ?? undefined;
-  const imageUrl = session?.user?.image ?? undefined;
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const fullName =
+    userFullName ?? (isMounted ? session?.user?.name : undefined) ?? undefined;
+  const userId = isMounted ? (session?.user?.id ?? undefined) : undefined;
+  const imageUrl = isMounted ? (session?.user?.image ?? undefined) : undefined;
 
   const navItems: { label: string; href: string; icon: React.ReactNode }[] = [
     {
@@ -119,6 +127,7 @@ export function DashboardLayout({
           isCollapsed ? "lg:pl-20" : "lg:pl-64"
         )}
       >
+        <OrganizationStatusBanner />
         <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-4 md:p-4 md:px-15">
           {children}
         </main>

@@ -2,7 +2,7 @@ import { Loader2, Mail } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,24 +10,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/shared/components/ui/dialog";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 
 interface InviteUserProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-const InviteUser = ({ open, onOpenChange }: InviteUserProps) => {
+const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
   const { data: session } = authClient.useSession();
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("editor");
@@ -46,6 +47,10 @@ const InviteUser = ({ open, onOpenChange }: InviteUserProps) => {
             email: inviteEmail,
             role: inviteRole as any,
             organizationId: session.session.activeOrganizationId
+        }, {
+            headers: {
+                "x-org-id": session.session.activeOrganizationId
+            }
         });
         toast.success("Invitation sent successfully");
         onOpenChange(false);

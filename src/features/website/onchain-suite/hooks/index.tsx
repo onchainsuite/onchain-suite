@@ -1,7 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export const useHandNavRouting = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

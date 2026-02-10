@@ -359,24 +359,6 @@ Authorization: Bearer {{token}}
 x-org-id: {{orgId}}
 Cookie: {{cookieVal}}
 
-### Update Brand Colors
-
-PUT {{baseUrl}}/organization/branding/colors
-Content-Type: application/json
-Authorization: Bearer {{token}}
-x-org-id: {{orgId}}
-Cookie: {{cookieVal}}
-
-{
-    "primary": "#FF5733",
-    "secondary": "#33FF57",
-    "accent": "#3357FF"
-}
-
-### Reset Brand Colors
-
-POST {{baseUrl}}/organization/branding/colors/reset
-Authorization: Bearer {{token}}
 x-org-id: {{orgId}}
 Cookie: {{cookieVal}}
 

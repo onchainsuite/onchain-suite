@@ -7,7 +7,7 @@ import React from "react";
 import { Button } from "@/ui/button";
 import { GoogleGeminiEffect } from "@/ui/google-gemini-effect";
 
-import { AUTH_ROUTES } from "@/config/app-routes";
+import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 export function CTASection() {
   const ref = React.useRef(null);

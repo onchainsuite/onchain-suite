@@ -3,7 +3,7 @@
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
-import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 import { OrganizationSetupStep, PlanSelectionStep } from "./components";
 import { OnboardingLayout } from "./components/onboarding-layout";

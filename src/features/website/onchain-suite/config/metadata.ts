@@ -4,7 +4,7 @@ import { KEYWORDS, SITE_CONFIG_META } from "./site";
 
 export function generateMetadata(): Metadata {
   return {
-    title: `${SITE_CONFIG_META.name} - Web3 Marketing & Retention Platform | R3tain, Onch3n, 3ridge`,
+    title: `${SITE_CONFIG_META.name} - Web3 Marketing & Retention Platform`,
     description: SITE_CONFIG_META.description,
     keywords: KEYWORDS,
     authors: [{ name: SITE_CONFIG_META.name }],

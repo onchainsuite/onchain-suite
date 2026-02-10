@@ -5,7 +5,7 @@ import {
 } from "better-auth/client/plugins";
 import { toast } from "sonner";
 
-import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export const authClient = createAuthClient({
   baseURL:

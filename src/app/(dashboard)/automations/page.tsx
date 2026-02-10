@@ -1,4 +1,4 @@
-import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 import { AutomationsPage } from "@/features/automation/pages";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";

@@ -12,7 +12,7 @@ import { InputFormField } from "@/components/form-fields";
 import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
-import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { authClient, signInWithGoogle } from "@/lib/auth-client";
 
 import {

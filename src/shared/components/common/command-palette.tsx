@@ -28,7 +28,7 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 
-import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface CommandPaletteProps {
   open: boolean;

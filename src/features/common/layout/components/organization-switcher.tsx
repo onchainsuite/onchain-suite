@@ -16,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 
 interface Organization {
@@ -31,6 +32,11 @@ export function OrganizationSwitcher() {
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
   const [activeOrgId, setActiveOrgId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (session?.session?.activeOrganizationId) {
@@ -49,9 +55,9 @@ export function OrganizationSwitcher() {
         console.error("Failed to fetch organizations", error);
       }
     };
-    
+
     if (session) {
-        fetchOrganizations();
+      fetchOrganizations();
     }
   }, [session]);
 
@@ -59,7 +65,7 @@ export function OrganizationSwitcher() {
 
   const handleSwitchOrg = async (orgId: string) => {
     if (orgId === activeOrgId) return;
-    
+
     setIsLoading(true);
     try {
       await authClient.organization.setActive({ organizationId: orgId });
@@ -74,7 +80,23 @@ export function OrganizationSwitcher() {
     }
   };
 
-  if (!session) return null;
+  if (!isMounted || !session) {
+    return (
+      <Button
+        variant="outline"
+        role="combobox"
+        aria-label="Loading organization"
+        className="w-[200px] justify-between"
+        disabled
+      >
+        <div className="flex items-center gap-2 overflow-hidden">
+          <Skeleton className="h-5 w-5 rounded-full shrink-0" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -86,18 +108,20 @@ export function OrganizationSwitcher() {
           className="w-[200px] justify-between"
           disabled={isLoading}
         >
-          <Avatar className="mr-2 h-5 w-5">
-            <AvatarImage
-              src={activeOrg?.logo || activeOrg?.logoUrl}
-              alt={activeOrg?.name ?? "Org"}
-            />
-            <AvatarFallback>
-              {activeOrg?.name?.substring(0, 2).toUpperCase() ?? "OR"}
-            </AvatarFallback>
-          </Avatar>
-          <span className="truncate">
-            {activeOrg?.name ?? "Select Organization"}
-          </span>
+          <div className="flex items-center gap-2 overflow-hidden">
+            <Avatar className="h-5 w-5 shrink-0">
+              <AvatarImage
+                src={activeOrg?.logo || activeOrg?.logoUrl}
+                alt={activeOrg?.name ?? "Org"}
+              />
+              <AvatarFallback>
+                {activeOrg?.name?.substring(0, 2).toUpperCase() ?? "OR"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="truncate">
+              {activeOrg?.name ?? "Select Organization"}
+            </span>
+          </div>
           <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
@@ -111,10 +135,7 @@ export function OrganizationSwitcher() {
               className="text-sm cursor-pointer"
             >
               <Avatar className="mr-2 h-5 w-5">
-                <AvatarImage
-                  src={org.logo || org.logoUrl}
-                  alt={org.name}
-                />
+                <AvatarImage src={org.logo || org.logoUrl} alt={org.name} />
                 <AvatarFallback>
                   {org.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>

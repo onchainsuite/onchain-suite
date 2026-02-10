@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/ui/button";
 import { Form } from "@/ui/form";
 
-import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 import {
   type CampaignFormData,

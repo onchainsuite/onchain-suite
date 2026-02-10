@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { safeExecute } from "@/lib/safe-execute";
 import { isJsonObject } from "@/lib/utils";
 

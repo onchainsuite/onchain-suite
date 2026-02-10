@@ -3,16 +3,16 @@ import { Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 
 import { fadeInUp, staggerContainer } from "../../utils";
@@ -62,13 +62,20 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
     setLoading(true);
     try {
       // Use authClient for organization updates
-      await authClient.organization.update({
-        organizationId: session?.session?.activeOrganizationId || "", // We need active org ID
-        data: {
-          name: formData.name,
-          slug: formData.slug,
+      await authClient.organization.update(
+        {
+          organizationId: session?.session?.activeOrganizationId || "", // We need active org ID
+          data: {
+            name: formData.name,
+            slug: formData.slug,
+          },
         },
-      });
+        {
+          headers: {
+            "x-org-id": session?.session?.activeOrganizationId || "",
+          },
+        }
+      );
       toast.success("Organization updated");
     } catch (error) {
       toast.error("Failed to update organization");

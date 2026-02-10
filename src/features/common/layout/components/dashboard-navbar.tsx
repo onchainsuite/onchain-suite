@@ -14,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { PRIVATE_ROUTES } from "@/config/app-routes";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { useGetLogo } from "@/hooks/client";
 import { getInitials, getAvatarColor, isValidImageUrl } from "@/lib/user-utils";
 import { cn } from "@/lib/utils";

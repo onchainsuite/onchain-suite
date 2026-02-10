@@ -1,4 +1,4 @@
-import { PRIVATE_ROUTES, publicRoutes } from "@/config/app-routes";
+import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
 

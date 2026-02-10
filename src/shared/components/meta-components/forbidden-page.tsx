@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { FloatingParticle, FloatingSymbol } from "@/components/common";
 import { Button } from "@/ui/button";
 
-import { AUTH_ROUTES } from "@/config/app-routes";
+import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 export default function ForbiddenPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
