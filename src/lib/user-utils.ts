@@ -9,12 +9,12 @@ export function getInitials(name: string): string {
   }
 
   const trimmedName = name.trim();
-  
+
   // Handle hyphenated names by treating hyphens as separators
   const nameParts = trimmedName.split(/[\s-]+/);
 
   // Filter out empty parts
-  const validParts = nameParts.filter(part => part.length > 0);
+  const validParts = nameParts.filter((part) => part.length > 0);
 
   if (validParts.length === 0) return "U";
 
@@ -22,7 +22,7 @@ export function getInitials(name: string): string {
   if (validParts.length === 1) {
     const part = validParts[0];
     // Use iterator to correctly handle unicode characters (like emojis or non-latin scripts)
-    const chars = [...part]; 
+    const chars = [...part];
     return (chars[0] + (chars.length > 1 ? chars[1] : "")).toUpperCase();
   }
 

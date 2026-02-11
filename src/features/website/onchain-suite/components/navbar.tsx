@@ -103,7 +103,7 @@ export function OnchainNavbar() {
               </>
             ) : (
               <>
-                <NavbarButton
+                {/* <NavbarButton
                   onClick={() => handleRouting("login")}
                   variant="secondary"
                   className="w-full"
@@ -116,7 +116,7 @@ export function OnchainNavbar() {
                   className="w-full"
                 >
                   Get Started
-                </NavbarButton>
+                </NavbarButton> */}
               </>
             )}
           </div>

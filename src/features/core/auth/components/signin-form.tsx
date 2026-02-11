@@ -12,7 +12,6 @@ import { InputFormField } from "@/components/form-fields";
 import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
-import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { authClient, signInWithGoogle } from "@/lib/auth-client";
 
 import {
@@ -23,6 +22,7 @@ import {
   PasswordField,
 } from "./shared";
 import { type SignInFormData, signInSchema } from "@/auth/validation";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface SignInFormProps {
   onSwitchToSignUp: () => void;

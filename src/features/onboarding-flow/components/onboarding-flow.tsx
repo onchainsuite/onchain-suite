@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Clock, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -17,6 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+
+import { useSession } from "@/lib/auth-client";
 
 interface OnboardingStep {
   id: string;

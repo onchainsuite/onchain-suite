@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { type ComponentType, type JSX, type ReactNode } from "react";
 
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { getSession } from "@/lib/auth-session";
+
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 // Types
 interface GuestGuardProps {

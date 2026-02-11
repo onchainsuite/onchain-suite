@@ -9,8 +9,6 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/ui/button";
 import { Form } from "@/ui/form";
 
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
-
 import {
   type CampaignFormData,
   campaignFormSchema,
@@ -22,6 +20,7 @@ import {
   ScheduleStep,
   TemplateStep,
 } from "../components/campaign-form";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 const TOTAL_STEPS = 4;
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+
+import { useSession } from "@/lib/auth-client";
 
 type OnboardingStep =
   | "welcome"

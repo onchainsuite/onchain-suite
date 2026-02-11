@@ -121,7 +121,9 @@ const ChartTooltip = RechartsPrimitive.Tooltip;
 interface ChartTooltipContentProps<
   TValue extends ChartValueType = ChartValueType,
   TName extends ChartNameType = ChartNameType,
-> extends React.ComponentProps<typeof RechartsPrimitive.Tooltip>,
+>
+  extends
+    React.ComponentProps<typeof RechartsPrimitive.Tooltip>,
     Omit<React.ComponentProps<"div">, "content"> {
   hideLabel?: boolean;
   hideIndicator?: boolean;

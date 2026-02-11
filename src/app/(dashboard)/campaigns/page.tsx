@@ -1,10 +1,10 @@
-import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
 
 import { NewUserFlow } from "@/features/campaigns/components/new-user";
 import { CampaignsListsView } from "@/features/campaigns/pages";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export const dynamic = "force-dynamic";
 

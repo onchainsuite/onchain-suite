@@ -1,31 +1,30 @@
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Loader2,
-  QrCode,
-  ShieldCheck,
-  Copy,
-  Check,
-  Lock,
   AlertCircle,
+  Check,
+  Copy,
+  Loader2,
+  Lock,
+  QrCode,
   RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
 
 interface TwoFactorAuthModalProps {
   open: boolean;
@@ -72,7 +71,7 @@ const TwoFactorAuthModal = ({
     setError("");
     try {
       const res = await authClient.twoFactor.enable({
-        password: password,
+        password,
       });
 
       if (res.data) {

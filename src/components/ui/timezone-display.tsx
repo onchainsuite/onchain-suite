@@ -1,9 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { getUserTimezone, getTimezoneDisplay, TimezoneInfo } from "@/lib/timezone";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Clock } from "lucide-react";
+import React, { useEffect, useState } from "react";
+
+import { Skeleton } from "@/components/ui/skeleton";
+
+import {
+  getTimezoneDisplay,
+  getUserTimezone,
+  type TimezoneInfo,
+} from "@/lib/timezone";
 
 export function TimezoneDisplay() {
   const [info, setInfo] = useState<TimezoneInfo | null>(null);

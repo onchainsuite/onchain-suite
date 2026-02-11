@@ -15,12 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { cn } from "@/lib/utils";
 
 import type { Notification, NotificationType } from "@/types/notification";
 
 import { initialNotifications } from "@/data/notifications";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function NotificationBell() {
   const [notifications, setNotifications] =

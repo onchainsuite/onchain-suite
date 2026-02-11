@@ -15,8 +15,9 @@ interface BaseLocationFieldProps<T extends FieldValues> {
 }
 
 // Country Form Field Component
-interface CountryFormFieldProps<T extends FieldValues>
-  extends BaseLocationFieldProps<T> {
+interface CountryFormFieldProps<
+  T extends FieldValues,
+> extends BaseLocationFieldProps<T> {
   name: FieldPath<T>;
   label?: string;
   description?: string;
@@ -52,8 +53,9 @@ export function CountryFormField<T extends FieldValues>({
 }
 
 // State Form Field Component
-interface StateFormFieldProps<T extends FieldValues>
-  extends BaseLocationFieldProps<T> {
+interface StateFormFieldProps<
+  T extends FieldValues,
+> extends BaseLocationFieldProps<T> {
   name: FieldPath<T>;
   countryName: FieldPath<T>;
   label?: string;
@@ -98,8 +100,9 @@ export function StateFormField<T extends FieldValues>({
 }
 
 // City Form Field Component
-interface CityFormFieldProps<T extends FieldValues>
-  extends BaseLocationFieldProps<T> {
+interface CityFormFieldProps<
+  T extends FieldValues,
+> extends BaseLocationFieldProps<T> {
   name: FieldPath<T>;
   countryName: FieldPath<T>;
   stateName: FieldPath<T>;

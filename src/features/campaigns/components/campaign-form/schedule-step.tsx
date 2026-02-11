@@ -21,8 +21,8 @@ import {
 
 import { cn } from "@/lib/utils";
 
-import { useTimezones } from "@/shared/hooks/client/use-timezones";
 import type { CampaignFormData } from "../../validations";
+import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
 interface ScheduleStepProps {
   form: UseFormReturn<CampaignFormData>;
@@ -228,7 +228,9 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                                   </FormControl>
                                   <SelectContent className="rounded-xl border-border bg-card max-h-[300px]">
                                     {tzLoading ? (
-                                      <div className="p-2 text-sm text-muted-foreground">Loading…</div>
+                                      <div className="p-2 text-sm text-muted-foreground">
+                                        Loading…
+                                      </div>
                                     ) : (
                                       tzItems.map((tz) => (
                                         <SelectItem

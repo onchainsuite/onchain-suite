@@ -2,19 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 
-import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { safeExecute } from "@/lib/safe-execute";
-import { isJsonObject } from "@/lib/utils";
 
 import type { SafeExecuteResponse } from "@/types/api";
 
 import { getAuthenticatedUserId } from "@/auth/actions";
-import { COMPLETION_PERCENTAGES, STEP_ORDER } from "@/onboarding/constants";
+import { COMPLETION_PERCENTAGES } from "@/onboarding/constants";
 import {
   type Action,
   type OnboardingProgressWithLogs,
   type OnboardingStep,
 } from "@/onboarding/types";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface UpdateProgressParams {
   step: OnboardingStep;
@@ -78,7 +77,7 @@ export async function updateOnboardingProgress(
       startedAt: new Date(),
       completedAt: null,
       stepData: {},
-      timeSpentSeconds: timeSpentSeconds,
+      timeSpentSeconds,
       lastActivityAt: new Date(),
       sessionCount: 1,
       abandonedAt: null,

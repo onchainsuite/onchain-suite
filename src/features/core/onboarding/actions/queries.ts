@@ -1,10 +1,7 @@
 "use server";
 
 import { getAuthenticatedUserId } from "@/auth/actions";
-import {
-  type OnboardingCompletionTime,
-  type OnboardingStepData,
-} from "@/onboarding/types";
+import { type OnboardingStepData } from "@/onboarding/types";
 
 // Constants
 const DEFAULT_TOTAL_STEPS = 5;

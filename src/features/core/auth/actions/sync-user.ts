@@ -1,10 +1,11 @@
 "use server";
 
+import { redirect } from "next/navigation";
+
 import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
 
 import { type SignUpFormData } from "@/auth/validation";
-import { redirect } from "next/navigation";
 
 interface UserSyncResult {
   success: boolean;
@@ -44,7 +45,7 @@ export async function syncUserDataWithGuard(
     //   firstName: userData.firstName,
     //   lastName: userData.lastName,
     // });
-    
+
     console.log("Syncing user data (mock):", {
       id: user.id,
       email: userData.email ?? user.email,

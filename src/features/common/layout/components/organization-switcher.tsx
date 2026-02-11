@@ -1,10 +1,9 @@
 "use client";
 
-import * as React from "react";
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import * as React from "react";
 import { toast } from "sonner";
 
-import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
 interface Organization {
   id: string;

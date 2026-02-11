@@ -36,7 +36,8 @@ export async function safeExecute<T>(
     }
 
     // ✅ Handle generic errors
-    const message = error instanceof Error ? error.message : "An unexpected error occurred";
+    const message =
+      error instanceof Error ? error.message : "An unexpected error occurred";
     return {
       isSuccessful: false,
       message,
@@ -95,7 +96,8 @@ export async function safePaginatedExecute<T>(
     }
 
     // ✅ Handle generic errors
-    const message = error instanceof Error ? error.message : "An unexpected error occurred";
+    const message =
+      error instanceof Error ? error.message : "An unexpected error occurred";
     return {
       isSuccessful: false,
       message,

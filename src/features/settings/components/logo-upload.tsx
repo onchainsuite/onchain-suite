@@ -1,8 +1,10 @@
-import { motion } from "framer-motion";
-import { Loader2, Upload, CheckCircle2 } from "lucide-react";
-import React, { useState, useRef } from "react";
-import { toast } from "sonner";
 import axios from "axios";
+import { motion } from "framer-motion";
+import { CheckCircle2, Loader2, Upload } from "lucide-react";
+import React, { useRef, useState } from "react";
+import { toast } from "sonner";
+
+import { authClient } from "@/lib/auth-client";
 
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -14,7 +16,6 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { Progress } from "@/shared/components/ui/progress";
-import { authClient } from "@/lib/auth-client";
 
 interface LogoUploadProps {
   showLogoUploadModal: boolean;

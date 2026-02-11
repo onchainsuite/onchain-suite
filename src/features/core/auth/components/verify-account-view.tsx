@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, CheckCircle2, XCircle, Mail } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,16 @@ import {
 } from "@/components/ui/card";
 
 import { authClient } from "@/lib/auth-client";
-import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
+
+import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 function VerifyAccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const [status, setStatus] = useState<"verifying" | "success" | "error">("verifying");
+  const [status, setStatus] = useState<"verifying" | "success" | "error">(
+    "verifying"
+  );
 
   useEffect(() => {
     if (!token) {
@@ -41,7 +44,7 @@ function VerifyAccountContent() {
         toast.success("Email verified successfully!");
         // Optional: Redirect after a few seconds
         setTimeout(() => {
-            router.push(AUTH_ROUTES.ONBOARDING); 
+          router.push(AUTH_ROUTES.ONBOARDING);
         }, 3000);
       } catch (error) {
         console.error("Verification error:", error);
@@ -78,21 +81,31 @@ function VerifyAccountContent() {
           {status === "error" && "Verification failed"}
         </CardTitle>
         <CardDescription className="text-base mt-2">
-          {status === "verifying" && "Please wait while we verify your email address..."}
-          {status === "success" && "Your email has been successfully verified. You will be redirected shortly."}
-          {status === "error" && "We couldn't verify your email. The link may be invalid or expired."}
+          {status === "verifying" &&
+            "Please wait while we verify your email address..."}
+          {status === "success" &&
+            "Your email has been successfully verified. You will be redirected shortly."}
+          {status === "error" &&
+            "We couldn't verify your email. The link may be invalid or expired."}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {status === "success" && (
-             <Button onClick={() => router.push(AUTH_ROUTES.ONBOARDING)} className="w-full">
-                Continue to Onboarding
-             </Button>
+          <Button
+            onClick={() => router.push(AUTH_ROUTES.ONBOARDING)}
+            className="w-full"
+          >
+            Continue to Onboarding
+          </Button>
         )}
         {status === "error" && (
-            <Button variant="outline" onClick={() => router.push(AUTH_ROUTES.LOGIN)} className="w-full">
-                Back to Sign In
-            </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(AUTH_ROUTES.LOGIN)}
+            className="w-full"
+          >
+            Back to Sign In
+          </Button>
         )}
       </CardContent>
       {status === "verifying" && (
@@ -105,9 +118,9 @@ function VerifyAccountContent() {
 }
 
 export function VerifyAccountView() {
-    return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <VerifyAccountContent />
-        </Suspense>
-    )
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyAccountContent />
+    </Suspense>
+  );
 }

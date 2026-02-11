@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+
+import {
+  fetchTimezones,
+  formatTimezone,
+  type TimezoneEntry,
+} from "@/lib/timezone-api";
+
 import { useLocalStorage } from "@/shared/hooks/client/use-local-storage";
-import { fetchTimezones, formatTimezone, TimezoneEntry } from "@/lib/timezone-api";
 
 type CacheShape = {
   version: string | null;
@@ -20,16 +26,22 @@ function hash(input: string): string {
 }
 
 export function useTimezones() {
-  const { value, setValue, isLoading } = useLocalStorage<CacheShape>("timezones-cache", {
-    version: null,
-    items: [],
-    lastFetched: 0,
-  });
+  const { value, setValue, isLoading } = useLocalStorage<CacheShape>(
+    "timezones-cache",
+    {
+      version: null,
+      items: [],
+      lastFetched: 0,
+    }
+  );
   const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     const now = Date.now();
-    const stale = !value.version || now - value.lastFetched > TTL_MS || value.items.length === 0;
+    const stale =
+      !value.version ||
+      now - value.lastFetched > TTL_MS ||
+      value.items.length === 0;
     if (stale && !fetching) {
       setFetching(true);
       fetchTimezones()

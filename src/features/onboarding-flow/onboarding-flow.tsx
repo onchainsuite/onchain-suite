@@ -1,9 +1,8 @@
 "use client";
 
-import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { useSession } from "@/lib/auth-client";
 
 import { OrganizationSetupStep, PlanSelectionStep } from "./components";
 import { OnboardingLayout } from "./components/onboarding-layout";
@@ -14,6 +13,7 @@ import {
   useOnboardingTracking,
 } from "./hooks";
 import { type OnboardingData } from "./types";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function OnboardingFlow() {
   const { push } = useRouter();

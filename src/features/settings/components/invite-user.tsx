@@ -2,6 +2,8 @@ import { Loader2, Mail } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 
+import { authClient } from "@/lib/auth-client";
+
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -20,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { authClient } from "@/lib/auth-client";
 
 interface InviteUserProps {
   open: boolean;
@@ -37,28 +38,31 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
   const handleSendInvite = async () => {
     if (!inviteEmail) return;
     if (!session?.session?.activeOrganizationId) {
-        toast.error("No active organization");
-        return;
+      toast.error("No active organization");
+      return;
     }
 
     setSaving(true);
     try {
-        await authClient.organization.inviteMember({
-            email: inviteEmail,
-            role: inviteRole as any,
-            organizationId: session.session.activeOrganizationId
-        }, {
-            headers: {
-                "x-org-id": session.session.activeOrganizationId
-            }
-        });
-        toast.success("Invitation sent successfully");
-        onOpenChange(false);
-        setInviteEmail("");
+      await authClient.organization.inviteMember(
+        {
+          email: inviteEmail,
+          role: inviteRole as any,
+          organizationId: session.session.activeOrganizationId,
+        },
+        {
+          headers: {
+            "x-org-id": session.session.activeOrganizationId,
+          },
+        }
+      );
+      toast.success("Invitation sent successfully");
+      onOpenChange(false);
+      setInviteEmail("");
     } catch (error: any) {
-        toast.error(error.message || "Failed to send invitation");
+      toast.error(error.message || "Failed to send invitation");
     } finally {
-        setSaving(false);
+      setSaving(false);
     }
   };
 

@@ -2,8 +2,6 @@
 
 import { useRouter } from "next/navigation";
 
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
-
 import {
   completeOnboarding,
   updateOnboardingProgress,
@@ -21,6 +19,7 @@ import {
 import { useOnboardingPersistence } from "@/onboarding/hooks";
 import { type OnboardingData } from "@/onboarding/types";
 import { getStepFromNumber } from "@/onboarding/utils";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function OnboardingFlow() {
   const { push } = useRouter();

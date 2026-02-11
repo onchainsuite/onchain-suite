@@ -81,7 +81,7 @@ export async function POST(
 
     const response = await fetch(targetUrl, {
       method: "POST",
-      headers: headers,
+      headers,
       body: forwardFormData,
     });
 

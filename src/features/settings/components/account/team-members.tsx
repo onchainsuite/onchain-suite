@@ -1,10 +1,13 @@
 import { motion } from "framer-motion";
-import { Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/shared/components/ui/button";
+import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+
+import { fadeInUp, staggerContainer } from "../../utils";
+import { Button } from "@/shared/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,9 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { authClient } from "@/lib/auth-client";
-
-import { fadeInUp, staggerContainer } from "../../utils";
 
 interface TeamMembersProps {
   setShowInviteUserModal: (show: boolean) => void;

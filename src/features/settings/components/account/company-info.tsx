@@ -3,6 +3,9 @@ import { Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { authClient } from "@/lib/auth-client";
+
+import { fadeInUp, staggerContainer } from "../../utils";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -13,9 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-import { authClient } from "@/lib/auth-client";
-
-import { fadeInUp, staggerContainer } from "../../utils";
 
 interface CompanyInfoProps {
   saving: boolean;

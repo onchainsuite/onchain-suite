@@ -1,7 +1,6 @@
-import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
-
 import { CreateCampaignPage } from "@/features/campaigns/pages";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export const dynamic = "force-dynamic";
 

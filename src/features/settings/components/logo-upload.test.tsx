@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import LogoUpload from "./logo-upload";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import axios from "axios";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { authClient } from "@/lib/auth-client";
+
+import LogoUpload from "./logo-upload";
 
 // Mock axios
 vi.mock("axios");
@@ -97,8 +99,10 @@ describe("LogoUpload Component", () => {
 
     const file = new File(["dummy content"], "logo.png", { type: "image/png" });
     // Input is hidden, so we select it by selector
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+
     if (input) {
       fireEvent.change(input, { target: { files: [file] } });
       expect(screen.getByText("logo.png")).toBeInTheDocument();

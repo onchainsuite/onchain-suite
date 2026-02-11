@@ -3,11 +3,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
 
 import { InputFormField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
+
+import { authClient } from "@/lib/auth-client";
 
 import { type OnboardingStepsProps } from "../types";
 import {
@@ -75,14 +76,18 @@ export function OrganizationSetupStep({
             placeholder="https://example.com"
           />
 
-           <InputFormField
+          <InputFormField
             form={form}
             name="description"
             label="Description"
             placeholder="Brief description..."
-           />
+          />
 
-          <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={form.formState.isSubmitting}
+          >
             {form.formState.isSubmitting ? "Saving..." : "Continue"}
           </Button>
         </form>

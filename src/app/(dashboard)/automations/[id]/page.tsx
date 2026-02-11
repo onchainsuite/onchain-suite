@@ -1,7 +1,6 @@
-import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
-
 import { CreateAutomation } from "@/features/automation/components";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 const breadcrumbs = [
   { href: publicRoutes.HOME, label: "Home" },

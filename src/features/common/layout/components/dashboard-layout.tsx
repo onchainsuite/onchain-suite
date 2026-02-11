@@ -11,16 +11,16 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardNavbar } from "./dashboard-navbar";
-import { initialNotifications } from "@/data/notifications";
-import { authClient } from "@/lib/auth-client";
 import { OrganizationStatusBanner } from "./organization-status-banner";
+import { initialNotifications } from "@/data/notifications";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 type BreadcrumbItem = { href: string; label: string };
 

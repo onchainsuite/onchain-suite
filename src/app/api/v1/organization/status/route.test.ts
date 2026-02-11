@@ -1,16 +1,17 @@
 /**
  * @vitest-environment node
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET } from "./route";
 import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { getSession } from "@/lib/auth-session";
+
+import { GET } from "./route";
 
 // Mock getSession
 vi.mock("@/lib/auth-session", () => ({
   getSession: vi.fn(),
 }));
-
-import { getSession } from "@/lib/auth-session";
 
 // Mock fetch
 global.fetch = vi.fn();

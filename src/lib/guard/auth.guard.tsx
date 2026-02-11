@@ -63,7 +63,9 @@ export function withAuth<T extends Record<string, unknown>>(
       redirect("/unauthorized");
     }
 
-    return <WrappedComponent {...props} session={session as unknown as Session} />;
+    return (
+      <WrappedComponent {...props} session={session as unknown as Session} />
+    );
   };
 }
 

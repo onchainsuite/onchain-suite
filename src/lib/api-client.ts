@@ -1,7 +1,15 @@
-import axios, { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
+import axios, {
+  type AxiosError,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from "axios";
+
 import { authClient } from "@/lib/auth-client";
 
-export const API_BASE_URL = typeof window !== "undefined" ? "/api/v1" : "https://onchain-backend-dvxw.onrender.com/api/v1";
+export const API_BASE_URL =
+  typeof window !== "undefined"
+    ? "/api/v1"
+    : "https://onchain-backend-dvxw.onrender.com/api/v1";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

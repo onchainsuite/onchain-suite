@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { OrganizationStatusBanner } from "./organization-status-banner";
 import useSWR from "swr";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { OrganizationStatusBanner } from "./organization-status-banner";
 
 // Mock swr
 vi.mock("swr");

@@ -2,7 +2,11 @@ import { z } from "zod";
 
 export const organizationSetupSchema = z.object({
   organizationName: z.string().min(1, "Organization name is required"),
-  websiteUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  websiteUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .optional()
+    .or(z.literal("")),
   description: z.string().optional(),
 });
 

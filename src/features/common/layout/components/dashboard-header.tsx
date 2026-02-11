@@ -3,6 +3,7 @@ import {
   SearchTrigger,
   ThemeModeToggle,
 } from "@/components/common";
+
 import { OrganizationSwitcher } from "./organization-switcher";
 
 export const DashboardHeader = ({

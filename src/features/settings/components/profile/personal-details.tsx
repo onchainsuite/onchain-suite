@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,11 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+
 import { authClient } from "@/lib/auth-client";
-import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
 import { fadeInUp, staggerContainer } from "../../utils";
+import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
 const PersonalDetails = () => {
   const { data: session } = authClient.useSession();

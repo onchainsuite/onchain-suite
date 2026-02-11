@@ -1,8 +1,8 @@
-import { createAuthClient } from "better-auth/react";
 import {
   organizationClient,
   twoFactorClient,
 } from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
 import { toast } from "sonner";
 
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";

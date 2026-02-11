@@ -2,9 +2,8 @@ import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
 import React from "react";
 
-import { Label } from "@/shared/components/ui/label";
-
 import { fadeInUp, staggerContainer } from "../../utils";
+import { Label } from "@/shared/components/ui/label";
 
 interface BrandingProps {
   openLogoUpload: (type: "primary" | "dark" | "favicon") => void;
