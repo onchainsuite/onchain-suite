@@ -15,10 +15,21 @@ export async function POST(
     }
 
     // 2. Parse FormData
-    const formData = await req.formData();
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (err: any) {
+      console.error("Error parsing FormData:", err);
+      return NextResponse.json(
+        { error: "Failed to parse form data", details: err.message },
+        { status: 400 }
+      );
+    }
+
     const file = formData.get("file") as File | null;
 
     if (!file) {
+      console.error("No file found in FormData");
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
@@ -51,21 +62,23 @@ export async function POST(
     }
 
     // 4. Forward to Backend
-    // Using the same fallback logic as next.config.ts
     const backendUrl =
       process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       "https://onchain-backend-dvxw.onrender.com/api/v1";
 
-    // Ensure no trailing slash on base, ensure leading slash on path if needed
     const cleanBase = backendUrl.replace(/\/$/, "");
     const targetUrl = `${cleanBase}/organization/branding/logo/${type}`;
 
     // Reconstruct FormData for forwarding
-    const forwardFormData = new FormData();
-    forwardFormData.append("file", file);
+    // Important: Convert File to Blob explicitly to ensure compatibility
+    const arrayBuffer = await file.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: file.type });
 
-    // Forward headers (especially Auth and Organization Context)
+    const forwardFormData = new FormData();
+    forwardFormData.append("file", blob, file.name);
+
+    // Forward headers
     const headers = new Headers();
     const authHeader = req.headers.get("authorization");
     const cookieHeader = req.headers.get("cookie");
@@ -75,31 +88,66 @@ export async function POST(
     if (cookieHeader) headers.set("Cookie", cookieHeader);
     if (orgIdHeader) headers.set("x-org-id", orgIdHeader);
 
-    // Do NOT set Content-Type manually for FormData, fetch does it with boundary
-
     console.log(`Forwarding upload to: ${targetUrl}`);
+    console.log(
+      `File details: name=${file.name}, type=${file.type}, size=${file.size}`
+    );
 
-    const response = await fetch(targetUrl, {
-      method: "POST",
-      headers,
-      body: forwardFormData,
-    });
+    let response;
+    try {
+      // @ts-ignore - duplex is not in the standard types yet but needed for Node fetch
+      response = await fetch(targetUrl, {
+        method: "POST",
+        headers,
+        body: forwardFormData,
+        // @ts-ignore - duplex is required for streaming uploads in Node fetch
+        duplex: "half",
+      });
+    } catch (fetchErr: any) {
+      console.error("Fetch to backend failed:", fetchErr);
+      return NextResponse.json(
+        { error: "Failed to connect to backend", details: fetchErr.message },
+        { status: 502 }
+      );
+    }
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText = "";
+      try {
+        errorText = await response.text();
+      } catch (e) {
+        errorText = "Could not read error response body";
+      }
+
       console.error("Backend upload failed:", response.status, errorText);
+
+      let errorJson = null;
+      try {
+        errorJson = JSON.parse(errorText);
+      } catch (e) {
+        // ignore
+      }
+
       return NextResponse.json(
-        { error: "Backend upload failed", details: errorText },
+        {
+          error: "Backend upload failed",
+          details: errorJson || errorText,
+          status: response.status,
+        },
         { status: response.status }
       );
     }
 
     const data = await response.json();
     return NextResponse.json(data, { status: 200 });
-  } catch (error) {
-    console.error("Upload handler error:", error);
+  } catch (error: any) {
+    console.error("Upload handler fatal error:", error);
     return NextResponse.json(
-      { error: "Internal server error during upload" },
+      {
+        error: "Internal server error during upload",
+        details: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }

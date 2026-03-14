@@ -42,7 +42,7 @@ export function OnchainNavbar() {
             </>
           ) : (
             <>
-              {/* <NavbarButton
+              <NavbarButton
                 variant="secondary"
                 onClick={() => handleRouting("login")}
               >
@@ -53,7 +53,7 @@ export function OnchainNavbar() {
                 onClick={() => handleRouting("signup")}
               >
                 Get Started
-              </NavbarButton> */}
+              </NavbarButton>
             </>
           )}
         </div>
@@ -103,7 +103,7 @@ export function OnchainNavbar() {
               </>
             ) : (
               <>
-                {/* <NavbarButton
+                <NavbarButton
                   onClick={() => handleRouting("login")}
                   variant="secondary"
                   className="w-full"
@@ -116,7 +116,7 @@ export function OnchainNavbar() {
                   className="w-full"
                 >
                   Get Started
-                </NavbarButton> */}
+                </NavbarButton>
               </>
             )}
           </div>

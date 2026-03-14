@@ -36,10 +36,24 @@ export function OrganizationSetupStep({
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
 
-      await authClient.organization.create({
-        name: data.organizationName,
-        slug,
+      const response = await fetch("/api/v1/organization/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: data.organizationName,
+          slug,
+        }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create organization");
+      }
+
+      // Refresh session to ensure new org is visible/active if handled by backend
+      await authClient.getSession();
 
       await onNext(data);
     } catch (error: any) {

@@ -26,16 +26,31 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 
 ## Organization
 
+- `GET /organization/list`: List user organizations.
 - `GET /organization`: Get current organization details.
 - `PUT /organization`: Update organization details.
+- `POST /organization/create`: Create a new organization.
+- `POST /organization/set-active`: Set active organization for the session.
+- `POST /organization/subdomain/validate`: Validate subdomain availability.
+- `GET /organization/landing-pages`: List available landing page templates.
+- `GET /organization/branding`: Get branding settings.
+- `PUT /organization/branding/colors`: Update brand colors.
+- `POST /organization/branding/colors/reset`: Reset brand colors to default.
 - `POST /organization/branding/logo/primary`: Upload primary logo (multipart/form-data).
 - `POST /organization/branding/logo/dark`: Upload dark mode logo (multipart/form-data).
 - `POST /organization/branding/logo/favicon`: Upload favicon (multipart/form-data).
 - `DELETE /organization/branding/logo/primary`: Remove primary logo.
-- `GET /organization/sender-identities`: List verified sender identities.
-- `POST /organization/sender-identities`: Add sender identity.
-- `DELETE /organization/sender-identities/{id}`: Remove sender identity.
-- `POST /organization/sender-identities/{id}/recheck`: Recheck sender verification.
+
+## Sender Identities
+
+- `GET /sender-identities`: List verified sender identities.
+- `POST /sender-identities`: Add sender identity.
+- `DELETE /sender-identities/{id}`: Remove sender identity.
+- `POST /sender-identities/{id}/recheck`: Recheck sender verification.
+- `GET /sender-identities/{id}/dns`: Get DNS records for verification.
+- `POST /sender-identities/{id}/dns/auto`: Auto-add DNS records.
+- `PUT /sender-identities/default`: Set default sender identity.
+- `GET /sender-identities/domains/authentication`: Get domain authentication overview.
 
 ## Organization Members
 

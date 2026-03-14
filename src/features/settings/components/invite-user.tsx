@@ -44,18 +44,24 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
 
     setSaving(true);
     try {
-      await authClient.organization.inviteMember(
-        {
-          email: inviteEmail,
-          role: inviteRole as any,
-          organizationId: session.session.activeOrganizationId,
+      const orgId = session.session.activeOrganizationId;
+      const response = await fetch(`/api/v1/organizations/${orgId}/invites`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-org-id": orgId,
         },
-        {
-          headers: {
-            "x-org-id": session.session.activeOrganizationId,
-          },
-        }
-      );
+        body: JSON.stringify({
+          email: inviteEmail,
+          role: inviteRole.toUpperCase(),
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to send invitation");
+      }
+
       toast.success("Invitation sent successfully");
       onOpenChange(false);
       setInviteEmail("");

@@ -1,44 +1,42 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import useSWR from "swr";
 
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/shared/components/ui/alert";
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch");
+  const json = await res.json();
+  return json.data || json;
+};
 
 export function OrganizationStatusBanner() {
-  const { data, error, isLoading } = useSWR(
-    "/api/v1/organization/status",
-    fetcher,
-    {
-      refreshInterval: 0, // Don't poll aggressively
-      revalidateOnFocus: false,
+  const { data, error, isLoading } = useSWR("/api/v1/organization", fetcher, {
+    refreshInterval: 0, // Don't poll aggressively
+    revalidateOnFocus: false,
+  });
+
+  const hasShownToast = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || error || !data) return;
+
+    // Assuming 'active' or 'paid' means the account is in good standing
+    // Also handle missing status to avoid showing warning for undefined states
+    const status = data.status?.toLowerCase();
+    const isActive = !status || ["active", "paid", "trial"].includes(status);
+
+    if (!isActive && !hasShownToast.current) {
+      toast.error(
+        `Your organization account is currently ${
+          data.status || "inactive"
+        }. Please contact support or update your billing information.`,
+        { duration: 6000 }
+      );
+      hasShownToast.current = true;
     }
-  );
+  }, [data, error, isLoading]);
 
-  if (isLoading || error || !data) return null;
-
-  if (data.isActive) return null;
-
-  return (
-    <div className="w-full bg-destructive/10 px-4 py-2">
-      <Alert variant="destructive" className="border-none bg-transparent p-0">
-        <div className="flex items-center gap-2">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="mb-0 text-sm font-medium">
-            Account Inactive
-          </AlertTitle>
-          <AlertDescription className="text-sm">
-            Your organization account is currently {data.status}. Please contact
-            support or update your billing information.
-          </AlertDescription>
-        </div>
-      </Alert>
-    </div>
-  );
+  return null;
 }

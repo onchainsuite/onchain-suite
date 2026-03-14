@@ -3,9 +3,13 @@
 import { Lock, Unlock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -53,7 +57,24 @@ export function DashboardNavbar({
 }: DashboardNavbarProps) {
   const initials = userFullName ? getInitials(userFullName) : "U";
   const avatarColor = userId ? getAvatarColor(userId) : undefined;
-  const { lightIcon, darkIcon } = useGetLogo();
+  const logoData = useGetLogo();
+  const lightIcon = logoData.lightIcon;
+  const darkIcon = logoData.darkIcon;
+  const favicon = "favicon" in logoData ? logoData.favicon : undefined;
+
+  useEffect(() => {
+    if (favicon) {
+      let link: HTMLLinkElement | null =
+        document.querySelector("link[rel*='icon']");
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.getElementsByTagName("head")[0].appendChild(link);
+      }
+      link.href = favicon;
+    }
+  }, [favicon]);
+
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const validImage = userImageUrl && isValidImageUrl(userImageUrl);

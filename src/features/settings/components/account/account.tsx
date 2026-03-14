@@ -1,21 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -63,7 +50,7 @@ export default function AccountSettings() {
 
     setSaving(true);
     try {
-      const response = await fetch("/api/v1/organization/sender-identities", {
+      const response = await fetch("/api/v1/sender-identities", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -110,10 +97,7 @@ export default function AccountSettings() {
         refreshTrigger={refreshTrigger}
       />
 
-      <SenderVerification
-        setShowVerifySenderModal={setShowVerifySenderModal}
-        refreshTrigger={refreshTrigger}
-      />
+      <SenderVerification refreshTrigger={refreshTrigger} />
 
       {/* Modals */}
       <LogoUpload
@@ -127,56 +111,6 @@ export default function AccountSettings() {
         onOpenChange={setShowInviteUserModal}
         onSuccess={triggerUpdate}
       />
-
-      <Dialog
-        open={showVerifySenderModal}
-        onOpenChange={setShowVerifySenderModal}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Verify new sender</DialogTitle>
-            <DialogDescription>
-              Add a new sender email address to use in your campaigns.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Sender name</Label>
-              <Input
-                placeholder="Marketing Team"
-                value={newSenderName}
-                onChange={(e) => setNewSenderName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email address</Label>
-              <Input
-                placeholder="marketing@company.com"
-                value={newSenderEmail}
-                onChange={(e) => setNewSenderEmail(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowVerifySenderModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddSender}
-              disabled={saving || !newSenderEmail}
-            >
-              {saving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                "Verify sender"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </motion.div>
   );
 }

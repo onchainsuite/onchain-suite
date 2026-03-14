@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Loader2, Upload } from "lucide-react";
 import React, { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useSWRConfig } from "swr";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -34,6 +35,7 @@ const LogoUpload = ({
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: session } = authClient.useSession();
+  const { mutate } = useSWRConfig();
 
   const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -65,21 +67,24 @@ const LogoUpload = ({
     const formData = new FormData();
     formData.append("file", file);
 
-    const endpointMap = {
-      primary: "/api/v1/organization/branding/logo/primary",
-      dark: "/api/v1/organization/branding/logo/dark",
-      favicon: "/api/v1/organization/branding/logo/favicon",
-    };
-
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "multipart/form-data",
-      };
-      if (session?.session?.activeOrganizationId) {
-        headers["x-org-id"] = session.session.activeOrganizationId;
+      // axios automatically sets the correct Content-Type with boundary for FormData
+      // Do NOT set it manually, otherwise the boundary will be missing
+      const headers: Record<string, string> = {};
+
+      const activeOrgId = session?.session?.activeOrganizationId;
+      if (!activeOrgId) {
+        toast.error(
+          "No active organization found. Please select an organization."
+        );
+        setSaving(false);
+        return;
       }
 
-      await axios.post(endpointMap[logoUploadType], formData, {
+      headers["x-org-id"] = activeOrgId;
+
+      // Use the custom proxy route to avoid rewrite issues
+      await axios.post(`/api/upload/logo/${logoUploadType}`, formData, {
         headers,
         onUploadProgress: (progressEvent) => {
           const total = progressEvent.total || file.size;
@@ -90,17 +95,49 @@ const LogoUpload = ({
       });
 
       toast.success("Logo uploaded successfully");
-      setShowLogoUploadModal(false);
-      setFile(null);
-      setUploadProgress(0);
-      // Reload to show changes or update context if we had one.
-      // A full reload ensures new logos are fetched if they are cached or used in layout.
-      window.location.reload();
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload logo");
-    } finally {
+
+      // Update the logo across the app without reload
+      mutate("/api/v1/organization/branding");
+
+      // Close modal and reset state
+      setTimeout(() => {
+        setShowLogoUploadModal(false);
+        setFile(null);
+        setUploadProgress(0);
+        setSaving(false);
+      }, 1500);
+
+      setSuccess(true);
+    } catch (error: any) {
+      console.error("Upload error object:", error);
+      if (error.response) {
+        console.error("Upload error response status:", error.response.status);
+        console.error("Upload error response data:", error.response.data);
+      }
+
+      let errorMessage = "Failed to upload logo";
+
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData.error === "string") {
+          errorMessage = errorData.error;
+        } else if (typeof errorData.details === "string") {
+          errorMessage = errorData.details;
+        } else if (errorData.error && typeof errorData.error === "object") {
+          // Handle structured error object
+          if (errorData.error.message) {
+            errorMessage = errorData.error.message;
+          } else {
+            errorMessage = JSON.stringify(errorData.error);
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
       setSaving(false);
+      setSuccess(false);
     }
   };
 

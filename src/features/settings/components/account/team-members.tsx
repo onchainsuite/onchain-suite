@@ -37,23 +37,71 @@ const TeamMembers = ({
         try {
           const orgId = session.session.activeOrganizationId;
 
-          const [membersData, invitesData] = await Promise.all([
-            authClient.organization.listMembers({
-              query: { limit: 100 },
-              fetchOptions: { headers: { "x-org-id": orgId } },
+          const [membersRes, invitesRes] = await Promise.all([
+            fetch(`/api/v1/organizations/${orgId}/members?limit=100`, {
+              headers: { "x-org-id": orgId },
             }),
-            authClient.organization
-              .listInvitations({
-                fetchOptions: { headers: { "x-org-id": orgId } },
-              })
-              .catch(() => ({ data: [] })), // Fallback if not supported or fails
+            fetch(`/api/v1/organizations/${orgId}/invites`, {
+              headers: { "x-org-id": orgId },
+            }),
           ]);
 
-          if (membersData.data) {
-            setMembers(membersData.data.members);
+          const membersData = await membersRes.json();
+          // Handle invites silently if they fail (e.g. 403)
+          let invitesData = { data: [] };
+          if (invitesRes.ok) {
+            invitesData = await invitesRes.json();
           }
-          if (invitesData && invitesData.data) {
-            setInvites(invitesData.data);
+
+          // Handle members response
+          // Backend might return { items: [], meta: ... } or just [] or { data: [] }
+          const membersRaw = membersData;
+          let membersList: any[] = [];
+
+          if (Array.isArray(membersRaw)) {
+            membersList = membersRaw;
+          } else if (
+            (membersRaw as any)?.members &&
+            Array.isArray((membersRaw as any).members)
+          ) {
+            membersList = (membersRaw as any).members;
+          } else if (
+            (membersRaw as any)?.data?.members &&
+            Array.isArray((membersRaw as any).data.members)
+          ) {
+            membersList = (membersRaw as any).data.members;
+          } else if (
+            (membersRaw as any)?.data &&
+            Array.isArray((membersRaw as any).data)
+          ) {
+            membersList = (membersRaw as any).data;
+          }
+          setMembers(membersList);
+
+          // Handle invites response
+          if (invitesData) {
+            const invitesRaw = invitesData;
+            let invitesList: any[] = [];
+
+            if (Array.isArray(invitesRaw)) {
+              invitesList = invitesRaw;
+            } else if (
+              (invitesRaw as any)?.invitations &&
+              Array.isArray((invitesRaw as any).invitations)
+            ) {
+              invitesList = (invitesRaw as any).invitations;
+            } else if (
+              (invitesRaw as any)?.data?.invitations &&
+              Array.isArray((invitesRaw as any).data.invitations)
+            ) {
+              invitesList = (invitesRaw as any).data.invitations;
+            } else if (
+              (invitesRaw as any)?.data &&
+              Array.isArray((invitesRaw as any).data)
+            ) {
+              invitesList = (invitesRaw as any).data;
+            }
+            setInvites(invitesList);
           }
         } catch (error) {
           console.error("Failed to fetch members/invites", error);
@@ -68,19 +116,30 @@ const TeamMembers = ({
   const handleRoleChange = async (memberId: string, newRole: string) => {
     if (!session?.session?.activeOrganizationId) return;
     try {
-      await authClient.organization.updateMemberRole(
+      const orgId = session.session.activeOrganizationId;
+      const response = await fetch(
+        `/api/v1/organizations/${orgId}/members/${memberId}`,
         {
-          organizationId: session.session.activeOrganizationId,
-          memberId,
-          role: newRole as any,
-        },
-        {
+          method: "PATCH",
           headers: {
-            "x-org-id": session.session.activeOrganizationId,
+            "Content-Type": "application/json",
+            "x-org-id": orgId,
           },
+          body: JSON.stringify({
+            role: newRole,
+          }),
         }
       );
-      toast.success("Role updated");
+
+      if (response.ok) {
+        toast.success("Role updated");
+        // Update local state to reflect change
+        setMembers((prev) =>
+          prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
+        );
+      } else {
+        throw new Error("Failed to update role");
+      }
     } catch (error) {
       toast.error("Failed to update role");
     }
@@ -88,32 +147,38 @@ const TeamMembers = ({
 
   const handleRemove = async (id: string, type: "member" | "invite") => {
     if (!session?.session?.activeOrganizationId) return;
+    const orgId = session.session.activeOrganizationId;
+
     try {
       if (type === "member") {
-        await authClient.organization.removeMember(
+        const response = await fetch(
+          `/api/v1/organizations/${orgId}/members/${id}`,
           {
-            organizationId: session.session.activeOrganizationId,
-            memberIdOrEmail: id,
-          },
-          {
+            method: "DELETE",
             headers: {
-              "x-org-id": session.session.activeOrganizationId,
+              "x-org-id": orgId,
             },
           }
         );
+
+        if (!response.ok) throw new Error("Failed to remove member");
+
         toast.success("Member removed");
         setMembers(members.filter((m) => m.id !== id));
       } else {
-        await authClient.organization.cancelInvitation(
+        // Assuming DELETE /organizations/{orgId}/invites/{id} for canceling invites
+        const response = await fetch(
+          `/api/v1/organizations/${orgId}/invites/${id}`,
           {
-            invitationId: id,
-          },
-          {
+            method: "DELETE",
             headers: {
-              "x-org-id": session.session.activeOrganizationId,
+              "x-org-id": orgId,
             },
           }
         );
+
+        if (!response.ok) throw new Error("Failed to cancel invitation");
+
         toast.success("Invitation canceled");
         setInvites(invites.filter((i) => i.id !== id));
       }
@@ -130,16 +195,17 @@ const TeamMembers = ({
     ...invites.map((invite) => ({
       id: invite.id,
       type: "invite" as const,
-      user: {
-        name: "Pending Invite",
-        email: invite.email,
-      },
+      name: "Pending Invite",
+      email: invite.email,
       role: invite.role,
       status: "Pending",
     })),
     ...members.map((member) => ({
-      ...member,
+      id: member.id,
       type: "member" as const,
+      name: member.name || member.user?.name || "Unknown",
+      email: member.email || member.user?.email || "Unknown",
+      role: member.role,
       status: "Active",
     })),
   ];
@@ -208,17 +274,17 @@ const TeamMembers = ({
                   <div className="col-span-2 flex items-center gap-4">
                     <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/20">
                       <span className="text-sm font-medium text-primary">
-                        {member.user?.name?.charAt(0) ||
-                          member.user?.email?.charAt(0) ||
+                        {member.name?.charAt(0) ||
+                          member.email?.charAt(0) ||
                           "U"}
                       </span>
                     </div>
                     <div>
                       <p className="font-medium text-foreground">
-                        {member.user?.name || "Unknown"}
+                        {member.name}
                       </p>
                       <p className="mt-0.5 text-sm text-muted-foreground">
-                        {member.user?.email}
+                        {member.email}
                       </p>
                     </div>
                   </div>
@@ -244,9 +310,10 @@ const TeamMembers = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="owner">Owner</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="member">Member</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="EDITOR">Editor</SelectItem>
+                        <SelectItem value="VIEWER">Viewer</SelectItem>
+                        <SelectItem value="OWNER">Owner</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -259,6 +326,75 @@ const TeamMembers = ({
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Mobile list */}
+            <div className="space-y-4 lg:hidden">
+              {allItems.map((member, idx) => (
+                <motion.div
+                  key={member.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="rounded-xl border border-border/60 bg-card p-5 space-y-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+                        <span className="text-xs font-medium text-primary">
+                          {member.name?.charAt(0) ||
+                            member.email?.charAt(0) ||
+                            "U"}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground text-sm">
+                          {member.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {member.email}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground"
+                      onClick={() => handleRemove(member.id, member.type)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium",
+                        member.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                          : "bg-primary/20 text-primary"
+                      )}
+                    >
+                      {member.status}
+                    </span>
+                    <Select
+                      defaultValue={member.role}
+                      disabled={member.type === "invite"}
+                      onValueChange={(val) => handleRoleChange(member.id, val)}
+                    >
+                      <SelectTrigger className="h-8 w-24 border-border/80 bg-background/50 text-[10px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="EDITOR">Editor</SelectItem>
+                        <SelectItem value="VIEWER">Viewer</SelectItem>
+                        <SelectItem value="OWNER">Owner</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </motion.div>
               ))}

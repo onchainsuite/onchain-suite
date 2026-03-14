@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
+import { apiClient } from "@/lib/api-client";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { Button } from "@/shared/components/ui/button";
@@ -34,25 +35,36 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
 
   useEffect(() => {
     const fetchOrg = async () => {
-      const org = await authClient.organization.list();
-      if (org.data && org.data.length > 0) {
-        const activeId = session?.session?.activeOrganizationId;
-        const currentOrg = activeId
-          ? org.data.find((o) => o.id === activeId) || org.data[0]
-          : org.data[0];
+      try {
+        const response = await fetch("/api/v1/organization/list");
+        if (response.ok) {
+          const data = await response.json();
+          // Handle wrapped response
+          const orgsData =
+            (Array.isArray(data) ? data : (data as any)?.data) || [];
 
-        // Try to get status from top-level or metadata
-        const orgStatus =
-          (currentOrg as any).status ||
-          (currentOrg as any).metadata?.status ||
-          "active";
+          if (orgsData.length > 0) {
+            const activeId = session?.session?.activeOrganizationId;
+            const currentOrg = activeId
+              ? orgsData.find((o: any) => o.id === activeId) || orgsData[0]
+              : orgsData[0];
 
-        setFormData({
-          name: currentOrg.name,
-          slug: currentOrg.slug,
-          website: "",
-          status: orgStatus,
-        });
+            // Try to get status from top-level or metadata
+            const orgStatus =
+              (currentOrg as any).status ||
+              (currentOrg as any).metadata?.status ||
+              "active";
+
+            setFormData({
+              name: currentOrg.name,
+              slug: currentOrg.slug,
+              website: "",
+              status: orgStatus,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch organization list", error);
       }
     };
     fetchOrg();
@@ -61,22 +73,29 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
   const onSave = async () => {
     setLoading(true);
     try {
-      // Use authClient for organization updates
-      await authClient.organization.update(
-        {
-          organizationId: session?.session?.activeOrganizationId || "", // We need active org ID
-          data: {
-            name: formData.name,
-            slug: formData.slug,
-          },
+      const activeOrgId = session?.session?.activeOrganizationId;
+      if (!activeOrgId) {
+        toast.error("No active organization");
+        return;
+      }
+
+      const response = await fetch("/api/v1/organization", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-org-id": activeOrgId,
         },
-        {
-          headers: {
-            "x-org-id": session?.session?.activeOrganizationId || "",
-          },
-        }
-      );
-      toast.success("Organization updated");
+        body: JSON.stringify({
+          name: formData.name,
+          slug: formData.slug,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Organization updated");
+      } else {
+        throw new Error("Failed to update organization");
+      }
     } catch (error) {
       toast.error("Failed to update organization");
     } finally {

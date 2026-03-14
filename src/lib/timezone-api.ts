@@ -52,5 +52,19 @@ export async function fetchTimezones(): Promise<string[]> {
     const fallback = await fetchFromFallback();
     if (fallback.length > 0) return fallback;
   } catch {}
-  return ["UTC"];
+  return [
+    "UTC",
+    "Africa/Lagos",
+    "America/New_York",
+    "America/Los_Angeles",
+    "America/Chicago",
+    "America/Denver",
+    "Europe/London",
+    "Europe/Paris",
+    "Europe/Berlin",
+    "Asia/Tokyo",
+    "Asia/Shanghai",
+    "Asia/Dubai",
+    "Australia/Sydney",
+  ];
 }

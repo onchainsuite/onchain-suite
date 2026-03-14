@@ -1,7 +1,5 @@
+- There shouldn't be unneccasry reload when uploading logos, also I'm often redirected to the homepage.
 - Design a good email verification page like Supabase
-
-- The two-factor authentication button should have a modal to activate it.
-
+- Display logo image on the orginaztion top-bar and the account tab, it should also be replacable.
 - The Timezone should display the time of the user.
-
-- The organization section should show if it's active.
+- The domain and sender identity should be connected to the backend, check the docs/backend.md

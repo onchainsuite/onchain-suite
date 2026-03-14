@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { authClient } from "@/lib/auth-client";
+import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 interface Organization {
@@ -47,13 +48,38 @@ export function OrganizationSwitcher() {
 
   React.useEffect(() => {
     const fetchOrganizations = async () => {
+      setIsLoading(true);
       try {
-        const res = await authClient.organization.list();
-        if (res.data) {
-          setOrganizations(res.data as Organization[]);
+        const response = await apiClient.get("/organization/list");
+        if (response.status === 200) {
+          const data = response.data;
+          console.log("Fetched organizations:", data);
+
+          // Handle backend response wrapper: { success: true, data: [...] } or direct array
+          const orgs = Array.isArray(data) ? data : data.data || [];
+
+          if (Array.isArray(orgs)) {
+            setOrganizations(orgs as Organization[]);
+            if (orgs.length === 0) {
+              console.warn("Organization list is empty.");
+            }
+          } else {
+            console.error("Expected array of organizations but got:", data);
+            setOrganizations([]);
+          }
+        } else {
+          console.error(
+            "Error fetching organizations status:",
+            response.status
+          );
+          toast.error("Failed to load organizations");
         }
-      } catch (error) {
-        console.error("Failed to fetch organizations", error);
+      } catch (error: any) {
+        console.error("Failed to fetch organizations exception", error);
+        // Toast handled by interceptor if we wanted, but keep for explicit UI feedback
+        toast.error("Network error loading organizations");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -64,15 +90,32 @@ export function OrganizationSwitcher() {
 
   const activeOrg = organizations.find((org) => org.id === activeOrgId);
 
+  // Debug log if active org is missing but ID is set
+  React.useEffect(() => {
+    if (activeOrgId && organizations.length > 0 && !activeOrg) {
+      console.warn(
+        `Active Org ID ${activeOrgId} not found in organizations list`,
+        organizations
+      );
+    }
+  }, [activeOrgId, organizations, activeOrg]);
+
   const handleSwitchOrg = async (orgId: string) => {
     if (orgId === activeOrgId) return;
 
     setIsLoading(true);
     try {
-      await authClient.organization.setActive({ organizationId: orgId });
-      setActiveOrgId(orgId);
-      toast.success("Switched organization");
-      window.location.reload(); // Reload to refresh data context
+      const response = await apiClient.post("/organization/set-active", {
+        organizationId: orgId,
+      });
+
+      if (response.status === 200) {
+        setActiveOrgId(orgId);
+        toast.success("Switched organization");
+        window.location.reload(); // Reload to refresh data context
+      } else {
+        throw new Error("Failed to set active organization");
+      }
     } catch (err) {
       console.error("Failed to switch organization", err);
       toast.error("Failed to switch organization");
