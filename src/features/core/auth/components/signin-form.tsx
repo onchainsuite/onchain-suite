@@ -1,8 +1,10 @@
 "use client";
 
+import { useGoogleLogin } from "@react-oauth/google";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion } from "framer-motion";
+import axios from "axios";
 import { Mail } from "lucide-react";
+import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,49 +50,66 @@ export function SignInForm({
   const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
     try {
-      await authClient.signIn.email({
+      const { error } = await authClient.signIn.email({
         email: data.email,
         password: data.password,
         callbackURL: PRIVATE_ROUTES.DASHBOARD,
-        fetchOptions: {
-          onSuccess: () => {
-            toast.success("Successfully signed in!");
-            // Check for redirect parameter
-            const redirectTo = searchParams.get("redirectTo");
-            if (redirectTo) {
-              push(redirectTo);
-            } else {
-              push(PRIVATE_ROUTES.DASHBOARD);
-            }
-          },
-          onError: (ctx) => {
-            toast.error(ctx.error.message);
-          },
-        },
       });
-    } catch (error: unknown) {
+
+      if (error) {
+        toast.error(error.message || "Invalid email or password");
+        return;
+      }
+
+      toast.success("Successfully signed in!");
+      const redirectTo = searchParams.get("redirectTo");
+      if (redirectTo) {
+        push(redirectTo);
+      } else {
+        push(PRIVATE_ROUTES.DASHBOARD);
+      }
+    } catch (error: any) {
       console.error("Sign in error:", error);
-      const message = error instanceof Error ? error.message : undefined;
-      toast.error(message ?? "Failed to sign in");
+      const displayMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to sign in. Please try again.";
+      toast.error(displayMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOAuthSignIn = async (provider: string) => {
-    setIsLoading(true);
-    try {
-      await signInWithGoogle();
+  const handleOAuthSignIn = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        const userInfo = await axios.get(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          }
+        );
 
-      // Sync user to our database
-      // await fetch("/api/auth/sync-user", { method: "POST" });
-    } catch (error) {
-      console.error("OAuth error:", error);
-      toast.error(`Failed to sign in with ${provider}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        const { data: idToken } = await authClient.signIn.social({
+          provider: "google",
+          idToken: userInfo.data.sub, // Use the user's Google ID as the ID token
+        });
+
+        // Sync user to our database
+        // await fetch("/api/auth/sync-user", { method: "POST" });
+      } catch (error) {
+        console.error("OAuth error:", error);
+        toast.error(`Failed to sign in with Google`);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.error("Google login error:", error);
+      toast.error("Google login failed");
+    },
+  });
 
   return (
     <>
@@ -99,7 +118,10 @@ export function SignInForm({
         subtitle="Sign in to your R3tain account"
       />
 
-      <OAuthButtons onOAuthSignIn={handleOAuthSignIn} isLoading={isLoading} />
+      <OAuthButtons
+        onOAuthSignIn={async () => handleOAuthSignIn()}
+        isLoading={isLoading}
+      />
 
       <div className="my-6">
         <FormDivider />

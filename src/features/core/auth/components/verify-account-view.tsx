@@ -38,19 +38,38 @@ function VerifyAccountContent() {
 
     const verifyEmail = async () => {
       try {
-        await authClient.verifyEmail({
-          query: {
-            token,
-          },
-        });
+        // We now call our custom verification API which handles the
+        // selector/verifier hashing logic and updates the user status.
+        const response = await fetch(
+          `/api/v1/auth/verify-email?token=${token}`
+        );
+        
+        let data: any = {};
+        try {
+          data = await response.json();
+        } catch (e) {
+          console.error("Failed to parse verification API response", e);
+        }
+
+        if (!response.ok) {
+          console.error("Verification error:", data.message);
+          setStatus("error");
+          toast.error(data.message || "Verification failed");
+          return;
+        }
+
         setStatus("success");
         toast.success("Email verified successfully!");
-        setTimeout(() => {
+
+        // Auto-redirect to onboarding after 5 seconds
+        const timer = setTimeout(() => {
           router.push(AUTH_ROUTES.ONBOARDING);
-        }, 3000);
+        }, 5000);
+        return () => clearTimeout(timer);
       } catch (error) {
-        console.error("Verification error:", error);
+        console.error("Verification exception:", error);
         setStatus("error");
+        toast.error("An unexpected error occurred during verification");
       }
     };
 
@@ -58,13 +77,31 @@ function VerifyAccountContent() {
   }, [token, router]);
 
   const handleResend = async () => {
+    // Better-auth uses sendVerificationEmail
     setResending(true);
     try {
-      // Mock or actual implementation if available in better-auth client
-      // await authClient.sendVerificationEmail({ email: ... });
-      toast.success("Verification email resent!");
+      // We need the email to resend, but if we don't have it (e.g. from session)
+      // we might need to ask the user or get it from a query param if provided
+      const email = searchParams.get("email");
+
+      if (!email) {
+        toast.error("Please log in to resend verification email");
+        router.push(AUTH_ROUTES.LOGIN);
+        return;
+      }
+
+      const { error } = await authClient.sendVerificationEmail({
+        email,
+        callbackURL: window.location.origin + AUTH_ROUTES.VERIFY_ACCOUNT,
+      });
+
+      if (error) {
+        toast.error(error.message || "Failed to resend verification email");
+      } else {
+        toast.success("Verification email resent!");
+      }
     } catch (error) {
-      toast.error("Failed to resend verification email");
+      toast.error("An unexpected error occurred");
     } finally {
       setResending(false);
     }

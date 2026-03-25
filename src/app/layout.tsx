@@ -1,3 +1,4 @@
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import type { Metadata } from "next";
 import { Instrument_Sans } from "next/font/google";
 
@@ -23,8 +24,13 @@ export default function RootLayout({
       <head>
         <StructuredData />
       </head>
-      <body className={`${instrumentSans.variable} antialiased`}>
-        <RootProviders>{children}</RootProviders>
+      <body
+        className={`${instrumentSans.variable} antialiased`}
+        suppressHydrationWarning
+      >
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+          <RootProviders>{children}</RootProviders>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

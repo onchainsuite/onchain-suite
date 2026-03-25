@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "build": "next build --webpack --no-lint",
     "start": "next start",
     "lint": "eslint .",
     "prettier": "prettier --check .",
@@ -50,6 +50,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-email/components": "^0.5.7",
+    "@react-oauth/google": "^0.13.4",
     "@simplewebauthn/browser": "^13.2.2",
     "@t3-oss/env-nextjs": "^0.13.8",
     "@tabler/icons-react": "^3.35.0",

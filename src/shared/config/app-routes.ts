@@ -7,7 +7,7 @@ export const AUTH_ROUTES = {
   REGISTER: "/auth/signup",
   FORGOT_PASSWORD: "/auth/forgot-password",
   RESET_PASSWORD: "/auth/reset-password",
-  VERIFY_ACCOUNT: "/auth/verify-account",
+  VERIFY_ACCOUNT: "/verify-email",
   ONBOARDING: "/onboarding",
 } as const;
 

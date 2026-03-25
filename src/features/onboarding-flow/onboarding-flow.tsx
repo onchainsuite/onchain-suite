@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import React from "react";
 
 import { useSession } from "@/lib/auth-client";
 
@@ -13,12 +14,19 @@ import {
   useOnboardingTracking,
 } from "./hooks";
 import { type OnboardingData } from "./types";
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function OnboardingFlow() {
   const { push } = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const user = session?.user;
+
+  React.useEffect(() => {
+    if (!isPending && !session) {
+      push(AUTH_ROUTES.LOGIN);
+    }
+  }, [session, isPending, push]);
+
   const {
     step: currentStep,
     data: formData,

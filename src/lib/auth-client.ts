@@ -7,29 +7,35 @@ import { toast } from "sonner";
 
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/api/v1/auth`;
+  }
+  return process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/auth`
+    : "http://localhost:3000/api/v1/auth";
+};
+
 export const authClient = createAuthClient({
-  baseURL:
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/v1/auth`
-      : "https://onchain-backend-dvxw.onrender.com/api/v1/auth",
+  baseURL: getBaseUrl(),
   plugins: [organizationClient(), twoFactorClient()],
 });
 
 export const { useSession } = authClient;
 
-export const signInWithGoogle = async () => {
+export const signInWithGoogle = async (idToken?: string) => {
   try {
-    const data = await authClient.signIn.social({
+    const payload: any = {
       provider: "google",
       callbackURL: PRIVATE_ROUTES.DASHBOARD,
       newUserCallbackURL: AUTH_ROUTES.ONBOARDING,
-      fetchOptions: {
-        onError: (error) => {
-          console.error("🚀 ~ signInWithGoogle ~ error:", error);
-          toast.error(error.error.message);
-        },
-      },
-    });
+    };
+
+    if (idToken) {
+      payload.idToken = { token: idToken };
+    }
+
+    const data = await authClient.signIn.social(payload);
     return data;
   } catch (error) {
     console.error("Google sign-in error:", error);

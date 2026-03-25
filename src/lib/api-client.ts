@@ -6,11 +6,7 @@ import axios, {
 
 import { authClient } from "@/lib/auth-client";
 
-export const API_BASE_URL =
-  typeof window !== "undefined"
-    ? "/api/v1"
-    : process.env.NEXT_PUBLIC_BACKEND_URL ||
-      "https://onchain-backend-dvxw.onrender.com/api/v1";
+export const API_BASE_URL = "/api/v1";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

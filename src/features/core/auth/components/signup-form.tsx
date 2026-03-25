@@ -55,34 +55,36 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
-      await authClient.signUp.email({
+      const { error } = await authClient.signUp.email({
         email: data.email,
         password: data.password,
         name: `${data.firstName} ${data.lastName}`,
-        fetchOptions: {
-          onSuccess: async () => {
-            try {
-              // Sync user data to ensure firstName/lastName are saved properly
-              await syncUserDataWithGuard(data);
-            } catch (err) {
-              console.error("Failed to sync user data:", err);
-            }
-
-            // Store form data for onboarding
-            setValue(data);
-            toast.success(
-              "Account created successfully! Please check your email to verify your account."
-            );
-          },
-          onError: (ctx) => {
-            toast.error(ctx.error.message);
-          },
-        },
       });
-    } catch (error: unknown) {
+
+      if (error) {
+        toast.error(error.message || "Failed to create account. Please try again.");
+        return;
+      }
+
+      try {
+        // Sync user data to ensure firstName/lastName are saved properly
+        await syncUserDataWithGuard(data);
+      } catch (err) {
+        console.error("Failed to sync user data:", err);
+      }
+
+      // Store form data for onboarding
+      setValue(data);
+      toast.success(
+        "Account created successfully! Please check your email to verify your account."
+      );
+    } catch (error: any) {
       console.error("Sign up error:", error);
-      const message = error instanceof Error ? error.message : undefined;
-      toast.error(message ?? "Failed to create account");
+      const displayMessage = 
+        error.response?.data?.message || 
+        error.message || 
+        "Failed to create account. Please try again.";
+      toast.error(displayMessage);
     } finally {
       setIsLoading(false);
     }

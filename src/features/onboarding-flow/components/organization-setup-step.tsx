@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 
 import { authClient } from "@/lib/auth-client";
+import { apiClient } from "@/lib/api-client";
 
 import { type OnboardingStepsProps } from "../types";
 import {
@@ -36,29 +37,72 @@ export function OrganizationSetupStep({
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
 
-      const response = await fetch("/api/v1/organization/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: data.organizationName,
-          slug,
-        }),
-      });
+      console.log("Attempting to create organization...");
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create organization");
+      // Ensure session is fresh
+      const { data: session } = await authClient.getSession();
+
+      if (!session) {
+        throw new Error("No active session found. Please sign in again.");
       }
 
-      // Refresh session to ensure new org is visible/active if handled by backend
+      // Try creating via authClient (BetterAuth plugin)
+      const { data: org, error } = await authClient.organization.create({
+        name: data.organizationName,
+        slug: slug,
+      });
+
+      if (error) {
+        console.warn(
+          "BetterAuth creation failed, trying custom endpoint as fallback:",
+          error.message
+        );
+
+        // Fallback to custom endpoint if BetterAuth plugin fails
+        const response = await apiClient.post("/organization/create", {
+          name: data.organizationName,
+          slug,
+          websiteUrl: data.websiteUrl,
+          description: data.description,
+        });
+
+        console.log(
+          "Organization created successfully via custom endpoint:",
+          response.data
+        );
+      } else {
+        console.log("Organization created successfully via BetterAuth:", org);
+
+        if (org) {
+          await authClient.organization.setActive({
+            organizationId: org.id,
+          });
+        }
+      }
+
+      // Refresh session one more time to update org state
       await authClient.getSession();
 
       await onNext(data);
     } catch (error: any) {
-      console.error("Failed to create organization:", error);
-      toast.error(error.message || "Failed to create organization");
+      console.error("Failed to create organization (catch block):", error);
+
+      let displayMessage = "Failed to create organization. Please try again.";
+
+      // Handle Axios error structure
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        const rawMessage =
+          errorData.message || errorData.error || errorData.details?.message;
+        displayMessage =
+          typeof rawMessage === "object"
+            ? JSON.stringify(rawMessage)
+            : String(rawMessage);
+      } else if (error.message) {
+        displayMessage = error.message;
+      }
+
+      toast.error(displayMessage);
     }
   };
 
