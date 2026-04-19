@@ -10,13 +10,6 @@ import { fadeInUp, staggerContainer } from "../../utils";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 
 interface CompanyInfoProps {
   saving: boolean;
@@ -26,49 +19,80 @@ interface CompanyInfoProps {
 const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
   const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
+  const [activeOrgIdOverride, setActiveOrgIdOverride] = useState<string | null>(
+    null
+  );
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
-    website: "", // Placeholder if not in org model yet
-    status: "active", // Default fallback
+    website: "",
+    status: "unknown",
   });
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      const orgId = e?.detail?.orgId;
+      if (typeof orgId === "string" && orgId.length > 0) {
+        setActiveOrgIdOverride(orgId);
+      }
+    };
+    window.addEventListener("onchain:org-changed", handler);
+    return () => window.removeEventListener("onchain:org-changed", handler);
+  }, []);
 
   useEffect(() => {
     const fetchOrg = async () => {
       try {
-        const response = await fetch("/api/v1/organization/list");
-        if (response.ok) {
-          const data = await response.json();
-          // Handle wrapped response
-          const orgsData =
-            (Array.isArray(data) ? data : (data as any)?.data) || [];
+        const listRes = await apiClient.get("/organization/list");
+        const data = listRes.data as any;
+        const orgsData = (Array.isArray(data) ? data : data?.data) || [];
 
-          if (orgsData.length > 0) {
-            const activeId = session?.session?.activeOrganizationId;
-            const currentOrg = activeId
-              ? orgsData.find((o: any) => o.id === activeId) || orgsData[0]
-              : orgsData[0];
+        if (Array.isArray(orgsData) && orgsData.length > 0) {
+          const activeId =
+            activeOrgIdOverride ?? session?.session?.activeOrganizationId ?? null;
+          const currentOrg = activeId
+            ? orgsData.find((o: any) => o.id === activeId) || orgsData[0]
+            : orgsData[0];
 
-            // Try to get status from top-level or metadata
-            const orgStatus =
-              (currentOrg as any).status ||
-              (currentOrg as any).metadata?.status ||
-              "active";
+          const orgStatus =
+            (currentOrg as any).status ||
+            (currentOrg as any).metadata?.status ||
+            "unknown";
 
-            setFormData({
-              name: currentOrg.name,
-              slug: currentOrg.slug,
-              website: "",
-              status: orgStatus,
-            });
+          const orgId = (currentOrg as any)?.id ?? null;
+          let website = "";
+          let detailedStatus: string | undefined;
+          if (orgId) {
+            try {
+              const orgRes = await apiClient.get("/organization", {
+                headers: { "x-org-id": orgId },
+              });
+              const orgPayload = (orgRes.data as any)?.data ?? orgRes.data;
+              website =
+                String(
+                  orgPayload?.websiteUrl ??
+                    orgPayload?.website_url ??
+                    orgPayload?.website ??
+                    ""
+                ) || "";
+              detailedStatus =
+                orgPayload?.status ?? orgPayload?.metadata?.status ?? undefined;
+            } catch {}
           }
+
+          setFormData({
+            name: currentOrg.name ?? "",
+            slug: currentOrg.slug ?? "",
+            website,
+            status: String(detailedStatus ?? orgStatus ?? "unknown"),
+          });
         }
       } catch (error) {
         console.error("Failed to fetch organization list", error);
       }
     };
     fetchOrg();
-  }, [session]);
+  }, [session, activeOrgIdOverride]);
 
   const onSave = async () => {
     setLoading(true);
@@ -88,6 +112,7 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
         body: JSON.stringify({
           name: formData.name,
           slug: formData.slug,
+          websiteUrl: formData.website,
         }),
       });
 
@@ -119,6 +144,13 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
     }
   };
 
+  const normalizedStatus = String(formData.status ?? "unknown").toLowerCase();
+  const isActive =
+    normalizedStatus === "active" ||
+    normalizedStatus === "paid" ||
+    normalizedStatus === "trial";
+  const statusLabel = isActive ? "Active" : "Not active";
+
   return (
     <motion.section
       variants={staggerContainer}
@@ -135,10 +167,10 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
         <motion.span
           variants={fadeInUp}
           className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
-            formData.status
+            isActive ? "active" : "inactive"
           )}`}
         >
-          {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+          {statusLabel}
         </motion.span>
       </div>
       <motion.p variants={fadeInUp} className="mt-3 text-muted-foreground">
@@ -185,21 +217,6 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
               }
               className="h-12 border-border/80 bg-background text-foreground transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
-          </div>
-          <div className="space-y-3">
-            <Label className="text-sm font-medium text-foreground">
-              Default landing page
-            </Label>
-            <Select defaultValue="dashboard">
-              <SelectTrigger className="h-12 border-border/80 bg-background text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dashboard">Dashboard</SelectItem>
-                <SelectItem value="audience">Audience</SelectItem>
-                <SelectItem value="automations">Automations</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
         <motion.div

@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 
 import { getSession } from "@/lib/auth-session";
+import { headers } from "next/headers";
 
 // Types
 interface AuthGuardProps {
   children: ReactNode;
   redirectTo?: string;
   requireRole?: string;
+  requireOrganization?: boolean;
 }
 
 // Re-export Session type if needed or define a compatible one
@@ -28,6 +30,7 @@ export async function AuthGuard({
   children,
   redirectTo = "/",
   requireRole,
+  requireOrganization = false,
 }: AuthGuardProps) {
   const session = await getSession();
 
@@ -39,6 +42,51 @@ export async function AuthGuard({
   // Role-based access control (optional)
   if (requireRole && session.user.role !== requireRole) {
     redirect("/unauthorized");
+  }
+
+  const headersList = await headers();
+  const cookie = headersList.get("cookie") ?? "";
+
+  const cookiePairs = cookie
+    .split(";")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((p) => {
+      const idx = p.indexOf("=");
+      if (idx === -1) return [p, ""] as const;
+      return [p.slice(0, idx), p.slice(idx + 1)] as const;
+    });
+  const cookieMap = new Map(cookiePairs);
+  const onboardingCompleteRaw = cookieMap.get("onchain.onboardingComplete");
+  const onboardingComplete =
+    onboardingCompleteRaw && decodeURIComponent(onboardingCompleteRaw) === "1";
+
+  if (requireOrganization && !onboardingComplete) {
+    const appBase =
+      process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000";
+    const appClean = appBase.replace(/\/$/, "");
+
+    try {
+      const orgRes = await fetch(`${appClean}/api/v1/organization/list`, {
+        headers: { Cookie: cookie },
+        cache: "no-store",
+      });
+
+      if (orgRes.ok) {
+        const orgJson = await orgRes.json();
+        const list = Array.isArray(orgJson)
+          ? orgJson
+          : Array.isArray(orgJson?.data)
+            ? orgJson.data
+            : Array.isArray(orgJson?.data?.data)
+              ? orgJson.data.data
+              : [];
+
+        if (!Array.isArray(list) || list.length === 0) {
+          redirect("/onboarding?reason=missing_org");
+        }
+      }
+    } catch {}
   }
 
   // Session is valid, render children

@@ -18,6 +18,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 import { useSession } from "@/lib/auth-client";
+import { apiClient } from "@/lib/api-client";
 
 interface OnboardingStep {
   id: string;
@@ -96,8 +97,8 @@ export function OnboardingFlow() {
 
   const loadOnboardingProgress = async () => {
     try {
-      const response = await fetch("/api/onboarding/track");
-      const data = await response.json();
+      const res = await apiClient.get("/onboarding/progress");
+      const data = (res.data as any)?.data ?? res.data;
 
       if (data.progress) {
         setProgress(data.progress);
@@ -126,18 +127,13 @@ export function OnboardingFlow() {
     const currentStep = onboardingSteps[currentStepIndex];
 
     try {
-      await fetch("/api/onboarding/track", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          stepName: currentStep.id,
-          action,
-          timeSpentSeconds: timeSpent,
-          stepData,
-          userAgent: navigator.userAgent,
-        }),
+      await apiClient.post("/onboarding/track", {
+        stepName: currentStep.id,
+        action,
+        timeSpentSeconds: timeSpent,
+        stepData,
+        flowVersion: "onboarding-v1",
+        metadata: { userAgent: navigator.userAgent },
       });
     } catch (error) {
       console.error("Failed to track onboarding step:", error);

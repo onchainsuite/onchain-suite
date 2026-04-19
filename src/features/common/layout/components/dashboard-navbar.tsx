@@ -41,6 +41,7 @@ interface DashboardNavbarProps {
   userFullName?: string;
   userId?: string;
   userImageUrl?: string;
+  hasActiveOrganization?: boolean;
 }
 
 export function DashboardNavbar({
@@ -54,6 +55,7 @@ export function DashboardNavbar({
   userFullName,
   userId,
   userImageUrl,
+  hasActiveOrganization = true,
 }: DashboardNavbarProps) {
   const initials = userFullName ? getInitials(userFullName) : "U";
   const avatarColor = userId ? getAvatarColor(userId) : undefined;
@@ -205,7 +207,7 @@ export function DashboardNavbar({
                 </AvatarFallback>
               ) : null}
             </Avatar>
-            {!isCollapsed && userFullName && (
+            {!isCollapsed && userFullName && hasActiveOrganization && (
               <span className="text-sm font-medium">{userFullName}</span>
             )}
           </div>

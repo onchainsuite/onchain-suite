@@ -1,35 +1,101 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { getSession } from "@/lib/auth-session";
-
 export const dynamic = "force-dynamic";
+
+const getBackendBaseUrl = () => {
+  const devDefault = "http://127.0.0.1:3333/api/v1";
+  const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
+  const backendUrl =
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    (process.env.NODE_ENV === "production" ? prodDefault : devDefault);
+  return backendUrl.replace(/\/$/, "");
+};
+
+const getBackendApiKey = () => {
+  return (
+    process.env.BACKEND_API_KEY ||
+    process.env.NEXT_PUBLIC_BACKEND_API_KEY ||
+    process.env.NEXT_PUBLIC_API_KEY ||
+    ""
+  );
+};
+
+const extractTokenFromCookie = (cookieHeader: string): string | null => {
+  const pairs = cookieHeader
+    .split(";")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((p) => {
+      const idx = p.indexOf("=");
+      if (idx === -1) return [p, ""] as const;
+      return [p.slice(0, idx), p.slice(idx + 1)] as const;
+    });
+
+  const cookieMap = new Map(pairs);
+  const raw = cookieMap.get("onchain.token") ?? null;
+  return raw ? decodeURIComponent(raw) : null;
+};
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSession();
+    const cleanBase = getBackendBaseUrl();
+    const cookieHeader = req.headers.get("cookie") || "";
+    const token = extractTokenFromCookie(cookieHeader);
 
-    if (!session?.session?.activeOrganizationId || !session?.session?.token) {
+    if (!token) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const backendBase =
-      process.env.BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      "https://onchain-backend-dvxw.onrender.com/api/v1";
-    const cleanBase = backendBase.replace(/\/$/, "");
+    const doFetch = async (orgId?: string) => {
+      const apiKey = getBackendApiKey();
+      const headers: Record<string, string> = {
+        Cookie: cookieHeader,
+        Authorization: `Bearer ${token}`,
+      };
+      if (apiKey) headers["x-api-key"] = apiKey;
+      if (orgId) headers["x-org-id"] = orgId;
 
-    const response = await fetch(`${cleanBase}/organization/branding`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${session.session.token}`,
-        Cookie: req.headers.get("cookie") || "",
-        "x-org-id": session.session.activeOrganizationId,
-      },
-      cache: "no-store",
-    });
+      return fetch(`${cleanBase}/organization/branding`, {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      });
+    };
+
+    let response = await doFetch();
+
+    if (response.status === 401 || response.status === 409) {
+      const listRes = await fetch(`${cleanBase}/organization/list`, {
+        method: "GET",
+        headers: {
+          Cookie: cookieHeader,
+          Authorization: `Bearer ${token}`,
+          ...(getBackendApiKey() ? { "x-api-key": getBackendApiKey() } : {}),
+        },
+        cache: "no-store",
+      });
+
+      if (listRes.ok) {
+        const json = await listRes.json().catch(() => null);
+        const orgs = Array.isArray(json) ? json : (json?.data ?? []);
+        const firstOrgId =
+          Array.isArray(orgs) && orgs.length > 0 ? orgs[0]?.id : null;
+        if (firstOrgId) {
+          response = await doFetch(firstOrgId);
+        }
+      }
+    }
+
+    if (response.status === 409) {
+      return NextResponse.json(
+        { success: false, message: "Organization context not ready", data: null },
+        { status: 200 }
+      );
+    }
 
     const text = await response.text();
     const contentType = response.headers.get("content-type") || "";

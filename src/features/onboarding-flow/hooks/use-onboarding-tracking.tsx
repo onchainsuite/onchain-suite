@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { useSession } from "@/lib/auth-client";
+import { apiClient } from "@/lib/api-client";
 
 type OnboardingStep =
   | "welcome"
@@ -26,13 +27,21 @@ interface OnboardingProgress {
 interface UseOnboardingTracking {
   progress: OnboardingProgress | null;
   isLoading: boolean;
-  updateProgress: (
-    step: OnboardingStep,
-    stepData: Record<string, any>,
-    completionPercentage: number
-  ) => Promise<void>;
-  completeOnboarding: (finalData: Record<string, any>) => Promise<void>;
-  resetProgress: () => Promise<void>;
+  trackStep: (payload: {
+    stepName: OnboardingStep;
+    action: "started" | "completed" | "skipped";
+    timeSpentSeconds?: number;
+    currentStep?: OnboardingStep;
+    stepData?: Record<string, any>;
+    flowVersion?: string;
+    metadata?: Record<string, any>;
+  }) => Promise<void>;
+  completeOnboarding: (payload: {
+    totalTimeSeconds?: number;
+    currentStep?: OnboardingStep;
+    stepData?: Record<string, any>;
+    flowVersion?: string;
+  }) => Promise<void>;
 }
 
 const STEP_MAPPING: Record<number, OnboardingStep> = {
@@ -72,18 +81,30 @@ export function useOnboardingTracking(): UseOnboardingTracking {
 
     const loadProgress = async () => {
       try {
-        const response = await fetch("/api/onboarding/progress");
-        if (!response.ok) {
-          throw new Error("Failed to load progress");
-        }
+        const res = await apiClient.get("/onboarding/progress");
+        const payload = (res.data as any)?.data ?? res.data;
+        const p =
+          payload?.progress ??
+          payload?.data?.progress ??
+          payload?.progressData ??
+          payload;
 
-        const data = await response.json();
-        if (data.progress) {
+        if (
+          p &&
+          (p.currentStep ||
+            p.current_step ||
+            p.isCompleted != null ||
+            p.is_completed != null)
+        ) {
           setProgress({
-            current_step: data.progress.currentStep as OnboardingStep,
-            completion_percentage: data.progress.completionPercentage,
-            step_data: data.progress.stepData ?? {},
-            is_completed: data.progress.isCompleted,
+            current_step: (p.current_step ??
+              p.currentStep ??
+              p.current_step_name ??
+              "welcome") as OnboardingStep,
+            completion_percentage:
+              p.completion_percentage ?? p.completionPercentage ?? 0,
+            step_data: p.step_data ?? p.stepData ?? {},
+            is_completed: p.is_completed ?? p.isCompleted ?? false,
           });
         }
       } catch (error) {
@@ -97,77 +118,88 @@ export function useOnboardingTracking(): UseOnboardingTracking {
     loadProgress();
   }, [user?.id]);
 
-  const updateProgress = useCallback(
-    async (
-      step: OnboardingStep,
-      stepData: Record<string, any>,
-      completionPercentage: number
-    ) => {
+  const trackStep = useCallback(
+    async (payload: {
+      stepName: OnboardingStep;
+      action: "started" | "completed" | "skipped";
+      timeSpentSeconds?: number;
+      currentStep?: OnboardingStep;
+      stepData?: Record<string, any>;
+      flowVersion?: string;
+      metadata?: Record<string, any>;
+    }) => {
       if (!user?.id) {
         toast.error("User not authenticated");
         return;
       }
 
       try {
-        const updatedStepData = { ...progress?.step_data, ...stepData };
+        const updatedStepData = payload.stepData ?? {};
 
-        const response = await fetch("/api/onboarding/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            step,
-            stepData: updatedStepData,
-            completionPercentage,
-            isCompleted: false,
-          }),
+        await apiClient.post("/onboarding/track", {
+          stepName: payload.stepName,
+          action: payload.action,
+          timeSpentSeconds: payload.timeSpentSeconds,
+          currentStep: payload.currentStep,
+          stepData: updatedStepData,
+          flowVersion: payload.flowVersion ?? "frontend-v1",
+          metadata: payload.metadata,
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to update progress");
-        }
+        const completionPercentage =
+          payload.metadata?.completionPercentage ??
+          COMPLETION_PERCENTAGES[payload.stepName] ??
+          0;
 
-        setProgress({
-          current_step: step,
+        setProgress((prev) => ({
+          current_step: payload.currentStep ?? payload.stepName,
           completion_percentage: completionPercentage,
-          step_data: updatedStepData,
+          step_data: {
+            ...(prev?.step_data ?? {}),
+            ...updatedStepData,
+          },
           is_completed: false,
-        });
+        }));
       } catch (error) {
-        console.error("Error updating onboarding progress:", error);
+        console.error("Error tracking onboarding step:", error);
         toast.error("Failed to save progress");
       }
     },
-    [user?.id, progress?.step_data]
+    [user?.id]
   );
 
   const completeOnboarding = useCallback(
-    async (finalData: Record<string, any>) => {
+    async (payload: {
+      totalTimeSeconds?: number;
+      currentStep?: OnboardingStep;
+      stepData?: Record<string, any>;
+      flowVersion?: string;
+    }) => {
       if (!user?.id) {
         toast.error("User not authenticated");
         return;
       }
 
       try {
-        const completeStepData = { ...progress?.step_data, ...finalData };
+        const completeStepData = payload.stepData ?? {};
 
-        const response = await fetch("/api/onboarding/complete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            stepData: completeStepData,
-          }),
+        await apiClient.post("/onboarding/complete", {
+          totalTimeSeconds: payload.totalTimeSeconds,
+          currentStep: payload.currentStep,
+          stepData: completeStepData,
+          flowVersion: payload.flowVersion ?? "frontend-v1",
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to complete onboarding");
-        }
-
-        setProgress({
-          current_step: "plan_selection",
+        setProgress((prev) => ({
+          current_step: (payload.currentStep ??
+            "plan_selection") as OnboardingStep,
           completion_percentage: 100,
-          step_data: completeStepData,
+          step_data: {
+            ...(prev?.step_data ?? {}),
+            ...completeStepData,
+          },
           is_completed: true,
-        });
+        }));
 
         toast.success("Onboarding completed successfully!");
       } catch (error) {
@@ -175,38 +207,14 @@ export function useOnboardingTracking(): UseOnboardingTracking {
         toast.error("Failed to complete onboarding");
       }
     },
-    [user?.id, progress?.step_data]
+    [user?.id]
   );
-
-  const resetProgress = useCallback(async () => {
-    if (!user?.id) {
-      toast.error("User not authenticated");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/onboarding/reset", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to reset progress");
-      }
-
-      setProgress(null);
-      toast.success("Onboarding progress reset");
-    } catch (error) {
-      console.error("Error resetting onboarding progress:", error);
-      toast.error("Failed to reset progress");
-    }
-  }, [user?.id]);
 
   return {
     progress,
     isLoading,
-    updateProgress,
+    trackStep,
     completeOnboarding,
-    resetProgress,
   };
 }
 
@@ -218,4 +226,12 @@ export function getStepFromNumber(stepNumber: number): OnboardingStep {
 // Helper function to get completion percentage for step
 export function getCompletionPercentage(step: OnboardingStep): number {
   return COMPLETION_PERCENTAGES[step] || 0;
+}
+
+export async function fetchOnboardingAdminSummary(params?: {
+  from?: string;
+  to?: string;
+}) {
+  const res = await apiClient.get("/onboarding/admin/summary", { params });
+  return (res.data as any)?.data ?? res.data;
 }

@@ -1,29 +1,42 @@
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import useSWR from "swr";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { authClient } from "@/lib/auth-client";
+import { toast } from "sonner";
 
 import { OrganizationStatusBanner } from "./organization-status-banner";
 
 // Mock swr
 vi.mock("swr");
 
-// Mock shadcn/ui Alert
-vi.mock("@/shared/components/ui/alert", () => ({
-  Alert: ({ children, className }: any) => (
-    <div className={className} role="alert">
-      {children}
-    </div>
-  ),
-  AlertTitle: ({ children }: any) => <div>{children}</div>,
-  AlertDescription: ({ children }: any) => <div>{children}</div>,
+vi.mock("@/lib/auth-client", () => ({
+  authClient: {
+    useSession: vi.fn(),
+  },
 }));
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn(),
+  },
+}));
+
+const setConfirmedOrg = () => {
+  (authClient.useSession as any).mockReturnValue({
+    data: { session: { activeOrganizationId: "org-1" } },
+  });
+  document.cookie = "onchain.selectedOrgId=org-1; path=/";
+};
 
 describe("OrganizationStatusBanner", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    document.cookie = "";
   });
 
   it("should not render if loading", () => {
+    setConfirmedOrg();
     (useSWR as any).mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -35,6 +48,7 @@ describe("OrganizationStatusBanner", () => {
   });
 
   it("should not render if active", () => {
+    setConfirmedOrg();
     (useSWR as any).mockReturnValue({
       data: { isActive: true, status: "active" },
       isLoading: false,
@@ -45,7 +59,8 @@ describe("OrganizationStatusBanner", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("should render alert if inactive", () => {
+  it("should toast if inactive", () => {
+    setConfirmedOrg();
     (useSWR as any).mockReturnValue({
       data: { isActive: false, status: "suspended" },
       isLoading: false,
@@ -54,10 +69,6 @@ describe("OrganizationStatusBanner", () => {
 
     render(<OrganizationStatusBanner />);
 
-    expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByText("Account Inactive")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Your organization account is currently suspended/i)
-    ).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalled();
   });
 });

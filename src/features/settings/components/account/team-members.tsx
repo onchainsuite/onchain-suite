@@ -30,6 +30,38 @@ const TeamMembers = ({
   const [invites, setInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const getEmail = (member: any): string => {
+    const candidates = [
+      member?.email,
+      member?.user?.email,
+      member?.userEmail,
+      member?.user_email,
+      member?.profile?.email,
+      member?.user?.primaryEmail,
+      member?.user?.emailAddress,
+      member?.user?.email_address,
+      member?.user?.emails?.[0],
+      member?.user?.emails?.[0]?.email,
+      member?.user?.emailAddresses?.[0]?.emailAddress,
+    ];
+
+    const first = candidates
+      .map((v) => (typeof v === "string" ? v.trim() : ""))
+      .find((v) => v.length > 0);
+
+    if (first) return first;
+
+    const memberUserId =
+      member?.userId ?? member?.user?.id ?? member?.memberId ?? member?.id;
+    const sessionUserId = session?.user?.id;
+    const sessionEmail = session?.user?.email;
+    if (sessionEmail && sessionUserId && memberUserId === sessionUserId) {
+      return String(sessionEmail);
+    }
+
+    return "Unknown";
+  };
+
   useEffect(() => {
     const fetchMembersAndInvites = async () => {
       if (session?.session?.activeOrganizationId) {
@@ -204,7 +236,7 @@ const TeamMembers = ({
       id: member.id,
       type: "member" as const,
       name: member.name || member.user?.name || "Unknown",
-      email: member.email || member.user?.email || "Unknown",
+      email: getEmail(member),
       role: member.role,
       status: "Active",
     })),

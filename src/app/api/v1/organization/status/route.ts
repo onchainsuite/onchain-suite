@@ -15,10 +15,18 @@ export async function GET(req: NextRequest) {
 
     const orgId = session.session.activeOrganizationId;
 
+    const rawBase =
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      "http://127.0.0.1:3333";
+    const cleanOrigin = rawBase
+      .replace(/\/$/, "")
+      .replace(/\/api\/v1$/i, "");
+
     // Fetch organization details from the backend
     // We reuse the session token for authentication
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL || "https://onchain-backend-dvxw.onrender.com"}/api/v1/organization`,
+      `${cleanOrigin}/api/v1/organization`,
       {
         headers: {
           Authorization: `Bearer ${session.session.token}`, // Assuming token is available or cookie handles it

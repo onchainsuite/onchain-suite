@@ -17,7 +17,10 @@ import {
   Workflow,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import { useOnboardingTracking } from "@/features/onboarding-flow/hooks";
 
 const tasks = [
   {
@@ -25,12 +28,16 @@ const tasks = [
     description: "Sync your emails for fast follow-ups and a single inbox.",
     completed: true,
     icon: Mail,
+    href: "/inbox",
+    cta: "Open inbox",
   },
   {
     title: "Connect calendar",
     description: "Connect your calendar to track meetings and stay organized.",
     completed: true,
     icon: Calendar,
+    href: "/settings",
+    cta: "Open settings",
   },
   {
     title: "Personalize workspace",
@@ -38,66 +45,105 @@ const tasks = [
       "Tell us how your team sells and your brand's tone. Get smarter suggestions and a setup that fits your style.",
     completed: false,
     icon: Sparkles,
+    href: "/onboarding",
+    cta: "Personalize",
   },
   {
     title: "Invite team members",
     description: "Add your team to collaborate on deals and share insights.",
     completed: false,
     icon: Users,
+    href: "/settings",
+    cta: "Invite",
   },
   {
     title: "Import contacts",
     description: "Bring in your existing contacts to get started faster.",
     completed: false,
     icon: FileText,
+    href: "/audience/import-export",
+    cta: "Import",
   },
   {
     title: "Set up billing",
     description: "Configure payment methods and billing preferences.",
     completed: false,
     icon: CreditCard,
+    href: "/settings",
+    cta: "Set up",
   },
   {
     title: "Configure integrations",
     description: "Connect your favorite tools and automate workflows.",
     completed: false,
     icon: Settings,
+    href: "/settings",
+    cta: "Configure",
   },
   {
     title: "Set up database",
     description: "Organize your data with custom fields and pipelines.",
     completed: false,
     icon: Database,
+    href: "/audience",
+    cta: "Open audience",
   },
   {
     title: "Enable automations",
     description: "Automate repetitive tasks and save time.",
     completed: false,
     icon: Zap,
+    href: "/automations",
+    cta: "Open automations",
   },
   {
     title: "Configure notifications",
     description: "Stay updated with customized alert preferences.",
     completed: false,
     icon: Bell,
+    href: "/settings",
+    cta: "Configure",
   },
   {
     title: "Set sales goals",
     description: "Define targets and track your team's performance.",
     completed: false,
     icon: Target,
+    href: "/intelligence/analytics",
+    cta: "Open analytics",
   },
   {
     title: "Create workflows",
     description: "Build custom processes to streamline your sales pipeline.",
     completed: false,
     icon: Workflow,
+    href: "/automations",
+    cta: "Create",
   },
 ];
 
 export function GetStartedSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const completedCount = tasks.filter((t) => t.completed).length;
+  const { progress, isLoading } = useOnboardingTracking();
+  const [onboardingCompleteCookie, setOnboardingCompleteCookie] =
+    useState(false);
+
+  useEffect(() => {
+    const cookieHeader =
+      typeof document !== "undefined" ? document.cookie ?? "" : "";
+    const pairs = cookieHeader
+      .split(";")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+      .map((p) => {
+        const idx = p.indexOf("=");
+        if (idx === -1) return [p, ""] as const;
+        return [p.slice(0, idx), p.slice(idx + 1)] as const;
+      });
+    const map = new Map(pairs);
+    setOnboardingCompleteCookie(map.get("onchain.onboardingComplete") === "1");
+  }, []);
 
   const cardsPerPage = 3;
   const totalPages = Math.ceil(tasks.length / cardsPerPage);
@@ -116,6 +162,30 @@ export function GetStartedSection() {
 
   return (
     <div className="my-6 md:my-8">
+      {!isLoading &&
+        !onboardingCompleteCookie &&
+        (!progress || !progress.is_completed) && (
+        <div className="mb-4 rounded-xl border border-border bg-background p-4 md:mb-6 md:p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-foreground">
+                Finish onboarding to unlock your dashboard
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {typeof progress?.completion_percentage === "number"
+                  ? `${progress.completion_percentage}% complete. Continue where you left off.`
+                  : "Continue where you left off to personalize your workspace and set up your organization."}
+              </div>
+            </div>
+            <Link
+              href="/onboarding"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+            >
+              Continue onboarding
+            </Link>
+          </div>
+        </div>
+      )}
       <div className="mb-4 flex items-center justify-between md:mb-6">
         <div className="flex items-center gap-2 md:gap-3">
           <h2 className="text-lg font-semibold text-foreground md:text-xl">
@@ -163,9 +233,10 @@ export function GetStartedSection() {
                   {pageTasks.map((task) => {
                     const Icon = task.icon;
                     return (
-                      <div
+                      <Link
                         key={task.title}
-                        className="flex flex-col rounded-xl border border-border bg-background p-5 transition-all hover:shadow-md md:p-6"
+                        href={task.href}
+                        className="group flex flex-col rounded-xl border border-border bg-background p-5 text-left transition-all hover:shadow-md md:p-6"
                       >
                         <div
                           className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl transition-all ${
@@ -186,14 +257,10 @@ export function GetStartedSection() {
                         <p className="mb-4 flex-1 text-sm leading-relaxed text-muted-foreground">
                           {task.description}
                         </p>
-                        {!task.completed && (
-                          <button className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90">
-                            {task.title === "Personalize workspace"
-                              ? "Personalize"
-                              : "Start"}
-                          </button>
-                        )}
-                      </div>
+                        <div className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all group-hover:bg-primary/90">
+                          {task.cta}
+                        </div>
+                      </Link>
                     );
                   })}
                 </div>

@@ -27,7 +27,7 @@ export function formatTimezone(tz: string): TimezoneEntry {
 }
 
 async function fetchFromPrimary(): Promise<string[]> {
-  const res = await apiClient.get("/meta/timezones");
+  const res = await apiClient.get("/timezones");
   const data = res.data as RawResponse as any;
   const list = Array.isArray(data)
     ? data

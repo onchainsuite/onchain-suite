@@ -1,5 +1,5 @@
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "onboarding-progress";
 
@@ -45,19 +45,19 @@ export function useOnboardingPersistence<T>(): UseOnboardingPersistence<T> {
     router.replace(`/onboarding?step=${step}`);
   }, [router, step]);
 
-  const setStep = (newStep: number) => {
+  const setStep = useCallback((newStep: number) => {
     setStepState(newStep);
-  };
+  }, []);
 
-  const setData = (newData: Partial<T>) => {
+  const setData = useCallback((newData: Partial<T>) => {
     setDataState((prev) => ({ ...prev, ...newData }));
-  };
+  }, []);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
     setStepState(1);
     setDataState({});
-  };
+  }, []);
 
   return {
     step,

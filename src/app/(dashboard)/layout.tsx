@@ -5,5 +5,5 @@ export default async function DashboardGroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <ProtectedLayout>{children}</ProtectedLayout>;
+  return <ProtectedLayout requireOrganization>{children}</ProtectedLayout>;
 }

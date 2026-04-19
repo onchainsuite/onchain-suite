@@ -1,9 +1,17 @@
 import useSWR from "swr";
+import { authClient } from "@/lib/auth-client";
+import { isOrganizationConfirmed } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export const useGetLogo = () => {
-  const { data: branding } = useSWR("/api/v1/organization/branding", fetcher);
+  const { data: session } = authClient.useSession();
+  const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
+  const confirmed = isOrganizationConfirmed(activeOrganizationId);
+  const { data: branding } = useSWR(
+    confirmed ? "/api/v1/organization/branding" : null,
+    fetcher
+  );
 
   const defaultLogos = {
     lightIcon:

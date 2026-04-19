@@ -1,15 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
+import { toast } from "sonner";
 
 import { useSession } from "@/lib/auth-client";
 
 import { OrganizationSetupStep, PlanSelectionStep } from "./components";
 import { OnboardingLayout } from "./components/onboarding-layout";
 import {
-  getCompletionPercentage,
-  getStepFromNumber,
   useOnboardingPersistence,
   useOnboardingTracking,
 } from "./hooks";
@@ -18,6 +17,7 @@ import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function OnboardingFlow() {
   const { push } = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, isPending } = useSession();
   const user = session?.user;
 
@@ -27,6 +27,23 @@ export function OnboardingFlow() {
     }
   }, [session, isPending, push]);
 
+  React.useEffect(() => {
+    const reason = searchParams.get("reason");
+    if (reason === "missing_org") {
+      toast.error("Please complete onboarding to continue.");
+    }
+  }, [searchParams]);
+
+  React.useEffect(() => {
+    if (!isPending && session) {
+      const key = "onchain.onboarding.startedAt";
+      const existing = sessionStorage.getItem(key);
+      if (!existing) {
+        sessionStorage.setItem(key, String(Date.now()));
+      }
+    }
+  }, [session, isPending]);
+
   const {
     step: currentStep,
     data: formData,
@@ -34,18 +51,37 @@ export function OnboardingFlow() {
     setData,
   } = useOnboardingPersistence<OnboardingData>();
 
-  const { updateProgress, completeOnboarding } = useOnboardingTracking();
+  const { progress, trackStep, completeOnboarding } = useOnboardingTracking();
+  const [stepStartedAtMs, setStepStartedAtMs] = React.useState<number>(
+    Date.now()
+  );
 
   const handleStepComplete = async (stepData: Partial<OnboardingData>) => {
+    const now = Date.now();
+    const timeSpentSeconds = Math.max(0, Math.floor((now - stepStartedAtMs) / 1000));
+
     setData(stepData);
     const nextStep = currentStep + 1;
     setStep(nextStep);
+    setStepStartedAtMs(now);
 
-    // Save progress to Supabase if user is authenticated
     if (user?.id) {
-      const stepName = getStepFromNumber(nextStep);
-      const completionPercentage = getCompletionPercentage(stepName);
-      await updateProgress(stepName, stepData, completionPercentage);
+      await trackStep({
+        stepName: "organization_setup",
+        action: "completed",
+        timeSpentSeconds,
+        currentStep: "plan_selection",
+        stepData,
+        flowVersion: "onboarding-v1",
+        metadata: { completionPercentage: 50 },
+      });
+      await trackStep({
+        stepName: "plan_selection",
+        action: "started",
+        timeSpentSeconds: 0,
+        currentStep: "plan_selection",
+        flowVersion: "onboarding-v1",
+      });
     }
   };
 
@@ -58,34 +94,77 @@ export function OnboardingFlow() {
   ) => {
     const finalData = { ...formData, ...stepData };
 
+    const startRaw = sessionStorage.getItem("onchain.onboarding.startedAt");
+    const startedAtMs = startRaw ? Number(startRaw) : Date.now();
+    const totalSeconds = Math.max(
+      0,
+      Math.floor((Date.now() - startedAtMs) / 1000)
+    );
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const formatted = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
+    sessionStorage.removeItem("onchain.onboarding.startedAt");
+    localStorage.setItem(
+      "onchain.onboarding.durationSeconds",
+      String(totalSeconds)
+    );
+    localStorage.setItem("onchain.onboarding.durationFormatted", formatted);
+    document.cookie = `onchain.onboarding_duration_seconds=${encodeURIComponent(
+      String(totalSeconds)
+    )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    document.cookie = `onchain.onboarding_duration_formatted=${encodeURIComponent(
+      formatted
+    )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    document.cookie =
+      "onchain.onboardingComplete=1; Path=/; Max-Age=31536000; SameSite=Lax";
+
     try {
-      // Mark onboarding as completed in the database
-      const response = await fetch("/api/user/complete-onboarding", {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        // Save final data to database if needed
-        if (user?.id) {
-          await completeOnboarding(finalData);
-        }
-
-        console.log(
-          "Onboarding completed with data:",
-          JSON.stringify(finalData, null, 2)
-        );
-        push(PRIVATE_ROUTES.DASHBOARD);
-      } else {
-        console.error("Failed to complete onboarding");
-        // Still redirect to dashboard but show a warning
-        push(PRIVATE_ROUTES.DASHBOARD);
+      if (user?.id) {
+        await completeOnboarding({
+          totalTimeSeconds: totalSeconds,
+          currentStep: "plan_selection",
+          stepData: finalData,
+          flowVersion: "onboarding-v1",
+        });
       }
     } catch (error) {
       console.error("Error completing onboarding:", error);
-      // Still redirect to dashboard but show a warning
-      push(PRIVATE_ROUTES.DASHBOARD);
     }
+
+    console.log(
+      "Onboarding completed with data:",
+      JSON.stringify(finalData, null, 2)
+    );
+    push(PRIVATE_ROUTES.DASHBOARD);
   };
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    if (!progress || progress.is_completed) return;
+
+    const stepNumber = progress.current_step === "plan_selection" ? 2 : 1;
+    if (stepNumber !== currentStep) {
+      setStep(stepNumber);
+      setStepStartedAtMs(Date.now());
+    }
+
+    if (progress.step_data && Object.keys(progress.step_data).length > 0) {
+      setData(progress.step_data as Partial<OnboardingData>);
+    }
+  }, [user?.id, progress, currentStep, setData, setStep]);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    if (currentStep === 1) {
+      trackStep({
+        stepName: "organization_setup",
+        action: "started",
+        currentStep: "organization_setup",
+        flowVersion: "onboarding-v1",
+      }).catch(() => {});
+    }
+  }, [user?.id, currentStep, trackStep]);
 
   const renderStep = () => {
     const commonProps = {

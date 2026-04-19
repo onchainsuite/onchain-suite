@@ -47,9 +47,12 @@ export class VerificationService {
     // NOTE: Since we don't have a direct DB client in this project,
     // we call the backend API which handles the actual database operations.
     // We'll try the custom verify-token endpoint first, then fallback to BetterAuth if needed.
+    const devDefault = "http://127.0.0.1:3333";
+    const prodDefault = "https://onchain-backend-dvxw.onrender.com";
     const backendUrl =
+      process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      "https://onchain-backend-dvxw.onrender.com";
+      (process.env.NODE_ENV === "production" ? prodDefault : devDefault);
 
     console.log(
       `Attempting verification at: ${backendUrl}/api/v1/auth/verify-token`

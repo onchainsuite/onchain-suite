@@ -1,5 +1,4 @@
 - There shouldn't be unneccasry reload when uploading logos, also I'm often redirected to the homepage.
-- Design a good email verification page like Supabase
-- Display logo image on the orginaztion top-bar and the account tab, it should also be replacable.
-- The Timezone should display the time of the user.
-- The domain and sender identity should be connected to the backend, check the docs/backend.md
+- Display logo image on the select-orginaztion top-bar when it has been uploaded.
+
+

@@ -1,0 +1,137 @@
+import { type NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+const getBackendBaseUrl = () => {
+  const devDefault = "http://127.0.0.1:3333/api/v1";
+  const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
+  const backendUrl =
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    (process.env.NODE_ENV === "production" ? prodDefault : devDefault);
+  return backendUrl.replace(/\/$/, "");
+};
+
+const getBackendApiKey = () => {
+  return (
+    process.env.BACKEND_API_KEY ||
+    process.env.NEXT_PUBLIC_BACKEND_API_KEY ||
+    process.env.NEXT_PUBLIC_API_KEY ||
+    ""
+  );
+};
+
+const extractTokenFromCookie = (cookieHeader: string): string | null => {
+  const pairs = cookieHeader
+    .split(";")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((p) => {
+      const idx = p.indexOf("=");
+      if (idx === -1) return [p, ""] as const;
+      return [p.slice(0, idx), p.slice(idx + 1)] as const;
+    });
+
+  const cookieMap = new Map(pairs);
+  const raw = cookieMap.get("onchain.token") ?? null;
+  return raw ? decodeURIComponent(raw) : null;
+};
+
+const buildUpstreamHeaders = (req: NextRequest) => {
+  const headers = new Headers(req.headers);
+  headers.delete("host");
+  headers.delete("connection");
+  headers.delete("content-length");
+  headers.delete("accept-encoding");
+
+  const cookieHeader = req.headers.get("cookie") ?? "";
+  const token = extractTokenFromCookie(cookieHeader);
+  if (token && !headers.has("authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  const apiKey = getBackendApiKey();
+  if (apiKey && !headers.has("x-api-key")) {
+    headers.set("x-api-key", apiKey);
+  }
+
+  return headers;
+};
+
+const buildResponse = async (upstream: Response) => {
+  const responseHeaders = new Headers(upstream.headers);
+  responseHeaders.delete("connection");
+  responseHeaders.delete("transfer-encoding");
+  responseHeaders.delete("content-length");
+  responseHeaders.delete("content-encoding");
+
+  return new NextResponse(
+    upstream.status === 204 ? null : await upstream.arrayBuffer(),
+    { status: upstream.status, headers: responseHeaders }
+  );
+};
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const targetUrl = `${getBackendBaseUrl()}/user/profile${url.search}`;
+
+  const upstream = await fetch(targetUrl, {
+    method: "GET",
+    headers: buildUpstreamHeaders(req),
+    cache: "no-store",
+  });
+
+  return buildResponse(upstream);
+}
+
+export async function PUT(req: NextRequest) {
+  const url = new URL(req.url);
+  const targetUrl = `${getBackendBaseUrl()}/user/profile${url.search}`;
+
+  const headers = buildUpstreamHeaders(req);
+  const body = await req.arrayBuffer();
+
+  const upstream = await fetch(targetUrl, {
+    method: "PUT",
+    headers,
+    body,
+    cache: "no-store",
+  });
+
+  if (upstream.status !== 404) {
+    return buildResponse(upstream);
+  }
+
+  let message = "";
+  try {
+    const cloned = upstream.clone();
+    const json = await cloned.json();
+    message = String(json?.error?.message ?? json?.message ?? "");
+  } catch {}
+
+  if (!message.toLowerCase().includes("record not found")) {
+    return buildResponse(upstream);
+  }
+
+  const fallback = await fetch(targetUrl, {
+    method: "POST",
+    headers,
+    body,
+    cache: "no-store",
+  });
+
+  return buildResponse(fallback);
+}
+
+export async function POST(req: NextRequest) {
+  const url = new URL(req.url);
+  const targetUrl = `${getBackendBaseUrl()}/user/profile${url.search}`;
+
+  const upstream = await fetch(targetUrl, {
+    method: "POST",
+    headers: buildUpstreamHeaders(req),
+    body: await req.arrayBuffer(),
+    cache: "no-store",
+  });
+
+  return buildResponse(upstream);
+}

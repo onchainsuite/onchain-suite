@@ -4,9 +4,22 @@ export const organizationSetupSchema = z.object({
   organizationName: z.string().min(1, "Organization name is required"),
   websiteUrl: z
     .string()
-    .url("Must be a valid URL")
     .optional()
-    .or(z.literal("")),
+    .or(z.literal(""))
+    .refine(
+      (val) => {
+        const raw = (val ?? "").trim();
+        if (!raw) return true;
+        const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+        try {
+          new URL(withScheme);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: "Must be a valid URL" }
+    ),
   description: z.string().optional(),
 });
 

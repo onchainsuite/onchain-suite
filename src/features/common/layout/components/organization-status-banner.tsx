@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
+import { authClient } from "@/lib/auth-client";
+import { isOrganizationConfirmed } from "@/lib/utils";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -12,10 +14,18 @@ const fetcher = async (url: string) => {
 };
 
 export function OrganizationStatusBanner() {
-  const { data, error, isLoading } = useSWR("/api/v1/organization", fetcher, {
-    refreshInterval: 0, // Don't poll aggressively
-    revalidateOnFocus: false,
-  });
+  const { data: session } = authClient.useSession();
+  const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
+  const confirmed = isOrganizationConfirmed(activeOrganizationId);
+
+  const { data, error, isLoading } = useSWR(
+    confirmed ? "/api/v1/organization" : null,
+    fetcher,
+    {
+      refreshInterval: 0,
+      revalidateOnFocus: false,
+    }
+  );
 
   const hasShownToast = useRef(false);
 

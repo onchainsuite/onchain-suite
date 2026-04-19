@@ -37,7 +37,6 @@ export function PlanSelectionStep({
   };
 
   const selectedPlan = form.watch("selectedPlan");
-  console.warn("🚀 ~ selectedPlan:", selectedPlan);
 
   // Group features by category
   const featuresByCategory = features.reduce(
@@ -69,7 +68,7 @@ export function PlanSelectionStep({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       {/* Mobile Plan Cards */}
                       <div className="block space-y-4 lg:hidden">

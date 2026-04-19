@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+import { cn, getSelectedOrganizationId } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -111,30 +111,78 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
   const [autoDNSApiSecret, setAutoDNSApiSecret] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchData = async () => {
-    if (!session?.session?.activeOrganizationId) return;
-    setLoading(true);
-    try {
-      const orgId = session.session.activeOrganizationId;
+  const resolveOrgId = (): string | null => {
+    return (
+      session?.session?.activeOrganizationId ??
+      getSelectedOrganizationId() ??
+      null
+    );
+  };
 
-      // Fetch Domains
-      const domainsRes = await apiClient.get("/domain", {
+  const postSetActiveOrg = async (orgId: string) => {
+    try {
+      await fetch("/api/v1/organization/set-active", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId: orgId, organization_id: orgId }),
+      });
+    } catch {}
+  };
+
+  const fetchJson = async (url: string, init?: RequestInit) => {
+    const res = await fetch(url, init);
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    return { res, data };
+  };
+
+  const extractList = (payload: any): any[] => {
+    const root = payload?.data ?? payload;
+    if (Array.isArray(root)) return root;
+    if (Array.isArray(root?.data)) return root.data;
+    if (Array.isArray(root?.items)) return root.items;
+    if (Array.isArray(root?.domains)) return root.domains;
+    if (Array.isArray(root?.records)) return root.records;
+    return [];
+  };
+
+  const fetchDomainsList = async (orgId: string): Promise<Domain[]> => {
+    const { res, data } = await fetchJson("/api/v1/domain", {
+      headers: { "x-org-id": orgId },
+    });
+    if (res.status === 409) {
+      await postSetActiveOrg(orgId);
+      const retry = await fetchJson("/api/v1/domain", {
         headers: { "x-org-id": orgId },
       });
-      if (domainsRes.status === 200) {
-        const data = domainsRes.data;
-        const list = data.data || (Array.isArray(data) ? data : []);
-        setDomains(Array.isArray(list) ? list : []);
-      }
+      if (retry.res.status !== 200) return [];
+      const retryList = extractList(retry.data);
+      return Array.isArray(retryList) ? (retryList as Domain[]) : [];
+    }
+    if (res.status !== 200) return [];
+    const list = extractList(data);
+    return Array.isArray(list) ? (list as Domain[]) : [];
+  };
+
+  const fetchData = async () => {
+    const orgId = resolveOrgId();
+    if (!orgId) return;
+    setLoading(true);
+    try {
+      const domainsList = await fetchDomainsList(orgId);
+      setDomains(domainsList);
 
       // Fetch Senders
       const sendersRes = await apiClient.get("/sender-identities", {
         headers: { "x-org-id": orgId },
       });
       if (sendersRes.status === 200) {
-        const data = sendersRes.data;
-        const list = data.data || (Array.isArray(data) ? data : []);
-        setSenders(Array.isArray(list) ? list : []);
+        const list = extractList(sendersRes.data);
+        setSenders(Array.isArray(list) ? (list as any[]) : []);
       }
     } catch (error: any) {
       console.error("Failed to fetch data", error);
@@ -152,51 +200,107 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
     fetchData();
   }, [session, refreshTrigger]);
 
+  const normalizeDomainName = (raw: string): string => {
+    let value = String(raw ?? "")
+      .trim()
+      .toLowerCase();
+    value = value.replace(/^https?:\/\//, "");
+    value = value.split("/")[0] ?? value;
+    value = value.replace(/\s+/g, "");
+    return value;
+  };
+
   const handleAddDomain = async () => {
-    if (!session?.session?.activeOrganizationId || !newDomainName) return;
+    const orgId = resolveOrgId();
+    if (!orgId) {
+      toast.error("Please select an organization first");
+      return;
+    }
+    if (!newDomainName) {
+      toast.error("Please enter a valid domain name (e.g., example.com)");
+      return;
+    }
+
+    const domainName = normalizeDomainName(newDomainName);
+    if (!domainName) {
+      toast.error("Please enter a valid domain name (e.g., example.com)");
+      return;
+    }
 
     // Simple domain regex validation
     const domainRegex =
       /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
-    if (!domainRegex.test(newDomainName)) {
+    if (!domainRegex.test(domainName)) {
       toast.error("Please enter a valid domain name (e.g., example.com)");
       return;
     }
 
     setActionLoading(true);
     try {
-      const response = await apiClient.post(
-        "/domain",
-        { domain: newDomainName },
-        {
+      const doCreate = async () => {
+        return fetchJson("/api/v1/domain", {
+          method: "POST",
           headers: {
-            "x-org-id": session.session.activeOrganizationId,
+            "Content-Type": "application/json",
+            "x-org-id": orgId,
           },
-        }
-      );
+          body: JSON.stringify({ domain: domainName }),
+        });
+      };
 
-      if (response.status === 200 || response.status === 201) {
-        const newDomain = response.data;
+      let created = await doCreate();
+      if (created.res.status === 409) {
+        await postSetActiveOrg(orgId);
+        created = await doCreate();
+      }
+
+      if (created.res.status === 200 || created.res.status === 201) {
+        const newDomain = created.data;
         // Handle wrapped response
         const domainData = newDomain.data || newDomain;
+        const createdDomainId = String(domainData?.id ?? "");
+        const createdDomainName = String(domainData?.domain ?? domainName);
 
         toast.success("Domain added");
-        setDomains([...domains, domainData]);
         setShowAddDomainModal(false);
         setNewDomainName("");
 
-        // Open verify modal immediately
-        handleOpenVerifyModal(domainData);
+        await fetchData();
+        if (createdDomainId && createdDomainName) {
+          setExpandedDomains((prev) => ({ ...prev, [createdDomainId]: true }));
+          handleOpenVerifyModal(
+            {
+              id: createdDomainId,
+              domain: createdDomainName,
+              status: "pending",
+            },
+            true
+          );
+        }
+      } else if (created.res.status === 409) {
+        const domainsList = await fetchDomainsList(orgId);
+        setDomains(domainsList);
+        const existing = domainsList.find(
+          (d) => normalizeDomainName(d.domain) === domainName
+        );
+        if (existing) {
+          setExpandedDomains((prev) => ({ ...prev, [existing.id]: true }));
+          handleOpenVerifyModal(existing, true);
+          toast.success("Domain already registered");
+          return;
+        }
+
+        const message =
+          (created.data as any)?.error?.message ||
+          (created.data as any)?.message ||
+          "Domain is already registered in a different organization or the organization context is not ready.";
+        toast.error(String(message));
       } else {
         toast.error("Failed to add domain");
       }
     } catch (error: any) {
       console.error("Add domain error:", error);
-      const errorMessage =
-        error.response?.data?.error?.message ||
-        error.message ||
-        "Failed to add domain";
-      toast.error(errorMessage);
+      toast.error(String(error?.message || "Failed to add domain"));
     } finally {
       setActionLoading(false);
     }
@@ -226,7 +330,8 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
       setShowVerifyModal(true);
     }
 
-    if (!session?.session?.activeOrganizationId) return;
+    const orgId = resolveOrgId();
+    if (!orgId) return;
 
     // Use verificationRecords from the domain object if available (Prisma DB)
     if ((domain as any).verificationRecords) {
@@ -268,22 +373,30 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
     }
 
     try {
-      const response = await apiClient.get(`/domain/${domain.id}/dns`, {
-        headers: { "x-org-id": session.session.activeOrganizationId },
+      let { res, data } = await fetchJson(`/api/v1/domain/${domain.id}/dns`, {
+        headers: { "x-org-id": orgId },
       });
+      if (res.status === 409) {
+        await postSetActiveOrg(orgId);
+        const retry = await fetchJson(`/api/v1/domain/${domain.id}/dns`, {
+          headers: { "x-org-id": orgId },
+        });
+        res = retry.res;
+        data = retry.data;
+      }
 
-      if (response.status === 200) {
-        const data = response.data;
+      if (res.status === 200) {
         let records: DNSRecord[] = [];
 
-        if (data.data) {
-          if (Array.isArray(data.data.records)) {
-            records = [...data.data.records];
-          } else if (Array.isArray(data.data)) {
-            records = [...data.data];
-          } else if (typeof data.data === "object") {
+        if ((data as any)?.data) {
+          const payload = (data as any).data;
+          if (Array.isArray(payload.records)) {
+            records = [...payload.records];
+          } else if (Array.isArray(payload)) {
+            records = [...payload];
+          } else if (typeof payload === "object") {
             // Handle object-based records (e.g., { "spf": {...}, "dkim": {...} })
-            Object.values(data.data).forEach((val: any) => {
+            Object.values(payload).forEach((val: any) => {
               if (
                 val &&
                 typeof val === "object" &&
@@ -304,24 +417,26 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
           }
 
           // Also handle dkimTokens if present and not already in records
-          if (Array.isArray(data.data.dkimTokens)) {
-            data.data.dkimTokens.forEach((token: string, idx: number) => {
-              const isAlreadyPresent = records.some(
-                (r) => r.value === token || (r as any).token === token
-              );
-              if (!isAlreadyPresent) {
-                records.push({
-                  type: "CNAME",
-                  host: `selector${idx + 1}._domainkey`,
-                  value: token,
-                  status: "Required",
-                  description: "DKIM Verification Token",
-                });
+          if (Array.isArray((payload as any).dkimTokens)) {
+            (payload as any).dkimTokens.forEach(
+              (token: string, idx: number) => {
+                const isAlreadyPresent = records.some(
+                  (r) => r.value === token || (r as any).token === token
+                );
+                if (!isAlreadyPresent) {
+                  records.push({
+                    type: "CNAME",
+                    host: `selector${idx + 1}._domainkey`,
+                    value: token,
+                    status: "Required",
+                    description: "DKIM Verification Token",
+                  });
+                }
               }
-            });
+            );
           }
         } else if (Array.isArray(data)) {
-          records = data;
+          records = data as any;
         }
 
         setDomainDnsRecords((prev) => ({ ...prev, [domain.id]: records }));
@@ -340,7 +455,11 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
   };
 
   const handleCheckVerifyStatus = async () => {
-    if (!selectedDomain || !session?.session?.activeOrganizationId) return;
+    const orgId = resolveOrgId();
+    if (!selectedDomain || !orgId) {
+      toast.error("Please select an organization first");
+      return;
+    }
     setVerifyingDomainId(selectedDomain.id);
     try {
       // Manual refresh of status as per user instructions
@@ -348,7 +467,7 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
         `/domain/${selectedDomain.id}/recheck`,
         {},
         {
-          headers: { "x-org-id": session.session.activeOrganizationId },
+          headers: { "x-org-id": orgId },
         }
       );
 
@@ -427,12 +546,8 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
   */
 
   const handleAddSender = async () => {
-    if (
-      !selectedDomain ||
-      !session?.session?.activeOrganizationId ||
-      !newSenderEmail
-    )
-      return;
+    const orgId = resolveOrgId();
+    if (!selectedDomain || !orgId || !newSenderEmail) return;
     setActionLoading(true);
     try {
       const fullEmail = `${newSenderEmail}@${selectedDomain.domain}`;
@@ -445,7 +560,7 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
         },
         {
           headers: {
-            "x-org-id": session.session.activeOrganizationId,
+            "x-org-id": orgId,
           },
         }
       );
@@ -472,12 +587,16 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
   };
 
   const handleDeleteDomain = async (id: string) => {
-    if (!session?.session?.activeOrganizationId) return;
+    const orgId = resolveOrgId();
+    if (!orgId) {
+      toast.error("Please select an organization first");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this domain?")) return;
 
     try {
       const response = await apiClient.delete(`/domain/${id}`, {
-        headers: { "x-org-id": session.session.activeOrganizationId },
+        headers: { "x-org-id": orgId },
       });
       if (response.status === 200) {
         toast.success("Domain deleted");
@@ -496,12 +615,16 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
   };
 
   const handleRemoveSender = async (id: string) => {
-    if (!session?.session?.activeOrganizationId) return;
+    const orgId = resolveOrgId();
+    if (!orgId) {
+      toast.error("Please select an organization first");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this sender?")) return;
 
     try {
       const response = await apiClient.delete(`/sender-identities/${id}`, {
-        headers: { "x-org-id": session.session.activeOrganizationId },
+        headers: { "x-org-id": orgId },
       });
       if (response.status === 200) {
         toast.success("Sender removed");
@@ -587,7 +710,9 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
               s.domain === domain.domain ||
               s.email.endsWith(`@${domain.domain}`)
           );
-          const isVerified = domain.status === "verified";
+          const status = String((domain as any)?.status ?? "").toLowerCase();
+          const isVerified =
+            status === "verified" || status === "active" || !!(domain as any)?.verifiedAt;
           const isExpanded = expandedDomains[domain.id];
 
           return (
@@ -930,6 +1055,12 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
                 placeholder="example.com"
                 value={newDomainName}
                 onChange={(e) => setNewDomainName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddDomain();
+                  }
+                }}
               />
             </div>
           </div>

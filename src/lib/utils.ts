@@ -101,3 +101,55 @@ export function getFullName(firstName?: string, lastName?: string): string {
 export function isJsonObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+export const ORG_SELECTION_COOKIE = "onchain.selectedOrgId";
+
+export function getCookieValue(
+  name: string,
+  cookieHeader?: string
+): string | null {
+  const raw =
+    typeof cookieHeader === "string"
+      ? cookieHeader
+      : typeof document !== "undefined"
+        ? document.cookie
+        : "";
+  if (!raw) return null;
+
+  const pairs = raw
+    .split(";")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  for (const pair of pairs) {
+    const idx = pair.indexOf("=");
+    if (idx === -1) continue;
+    const k = pair.slice(0, idx);
+    if (k !== name) continue;
+    const v = pair.slice(idx + 1);
+    try {
+      return decodeURIComponent(v);
+    } catch {
+      return v;
+    }
+  }
+
+  return null;
+}
+
+export function getSelectedOrganizationId(cookieHeader?: string): string | null {
+  const v = getCookieValue(ORG_SELECTION_COOKIE, cookieHeader);
+  if (!v) return null;
+  const trimmed = v.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+export function isOrganizationConfirmed(
+  activeOrganizationId?: string | null,
+  cookieHeader?: string
+): boolean {
+  const selected = getSelectedOrganizationId(cookieHeader);
+  if (!selected) return false;
+  if (!activeOrganizationId) return false;
+  return selected === activeOrganizationId;
+}

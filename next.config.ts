@@ -16,11 +16,18 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    const devDefault = "http://127.0.0.1:3333/api/v1";
+    const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
+    const backendBase =
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      (process.env.NODE_ENV === "production" ? prodDefault : devDefault);
+    const clean = backendBase.replace(/\/$/, "");
     return {
       fallback: [
         {
           source: "/api/v1/:path*",
-          destination: "https://onchain-backend-dvxw.onrender.com/api/v1/:path*",
+          destination: `${clean}/:path*`,
         },
       ],
     };

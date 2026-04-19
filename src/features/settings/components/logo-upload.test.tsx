@@ -131,7 +131,7 @@ describe("LogoUpload Component", () => {
 
     await waitFor(() => {
       expect(axios.post).toHaveBeenCalledWith(
-        "/api/v1/organization/branding/logo/primary",
+        "/api/upload/logo/primary",
         expect.any(FormData),
         expect.objectContaining({
           headers: expect.objectContaining({

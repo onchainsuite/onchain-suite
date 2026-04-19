@@ -24,6 +24,14 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 - `PUT /user/password`: Change password.
 - `PUT /user/2fa`: Toggle 2FA.
 
+## Onboarding
+
+- `GET /onboarding/progress`: Get onboarding progress (resume/cross-device continuity).
+- `POST /onboarding/track`: Track onboarding steps (Body: `{ stepName, action, timeSpentSeconds?, currentStep?, stepData?, flowVersion?, metadata? }`).
+- `POST /onboarding/complete`: Mark onboarding completed (Body: `{ totalTimeSeconds?, currentStep?, stepData?, flowVersion? }`).
+- `GET /onboarding/admin/summary`: Admin summary metrics (Query: `from?`, `to?`).
+
+
 ## Organization
 
 - `GET /organization/list`: List user organizations.
@@ -31,6 +39,7 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 - `PUT /organization`: Update organization details.
 - `POST /organization/create`: Create a new organization.
 - `POST /organization/set-active`: Set active organization for the session.
+
 - `POST /organization/subdomain/validate`: Validate subdomain availability.
 - `GET /organization/landing-pages`: List available landing page templates.
 - `GET /organization/branding`: Get branding settings.
@@ -98,8 +107,32 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 
 ## Billing
 
-- `GET /billing`: Get current plan and usage.
-- `POST /billing/upgrade`: Create upgrade checkout.
+## Billing & Subscription
+
+- `GET /billing` — Overview of current plan, usage, and limits.
+- `GET /billing/usage` — Detailed usage statistics (Query: `period?` = `month` | `current`).
+- `GET /billing/plan` — Current plan + upgrade options.
+- `GET /billing/plans` — List all available plans.
+- `POST /billing/upgrade` — Fiat plan upgrade (Body: `{ plan: "Growth" | "Pro" | "Enterprise" }`). Also supports legacy Blockradar body `{ desiredListSize, plan? }`.
+- `POST /billing/upgrade/blockradar` — Blockradar crypto upgrade (dynamic list size pricing) (Body: `{ desiredListSize, plan? }`).
+- `GET /billing/upgrade/blockradar/{reference}` — Check status of a specific Blockradar upgrade.
+
+## Invoices
+
+- `GET /billing/invoices` — List invoices (Query: `page?`, `limit?`, `status?`).
+- `GET /billing/invoices/{invoiceId}` — Get single invoice details.
+- `GET /billing/invoices/{invoiceId}/download` — Get signed download URL for PDF invoice.
+
+## Payment Methods
+
+- `GET /billing/payment-methods` — List payment methods.
+- `POST /billing/payment-methods` — Add payment method (Body: `{ type: "card" | "crypto", last4?, brand?, address?, isDefault? }`).
+- `DELETE /billing/payment-methods/{id}` — Remove payment method.
+- `PUT /billing/payment-methods/default` — Set default payment method (Body: `{ id: string }`).
+
+## Blockradar Webhooks
+
+- `POST /webhook/blockradar` — Handle Blockradar payment notifications (public).
 
 ## Audience (CRM)
 
