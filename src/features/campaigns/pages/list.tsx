@@ -3,17 +3,26 @@
 import { CalendarIcon, LayoutGrid, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs";
 
 import { CampaignsCalendar } from "../../campaigns/components/calendar";
 import { CampaignsTable } from "../../campaigns/components/table";
-import { MOCK_CAMPAIGNS } from "../../campaigns/constants";
+import { campaignsService } from "../campaigns.service";
 
 export function CampaignsListsView() {
   const [activeTab, setActiveTab] = useState("table");
-  const hasCampaigns = MOCK_CAMPAIGNS.length > 0;
+  const campaignsQuery = useQuery({
+    queryKey: ["campaigns", "list"],
+    queryFn: () => campaignsService.listCampaigns({ page: 1, limit: 200 }),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const campaigns = campaignsQuery.data ?? [];
+  const hasCampaigns = campaigns.length > 0;
 
   return (
     <div className="space-y-6">
@@ -38,7 +47,15 @@ export function CampaignsListsView() {
         </Button>
       </div>
 
-      {hasCampaigns ? (
+      {campaignsQuery.isLoading ? (
+        <div className="text-center">
+          <p className="text-muted-foreground">Loading campaigns...</p>
+        </div>
+      ) : campaignsQuery.isError ? (
+        <div className="text-center">
+          <p className="text-muted-foreground">Failed to load campaigns.</p>
+        </div>
+      ) : hasCampaigns ? (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full max-w-sm rounded-xl bg-muted p-1">
             <TabsTrigger
@@ -58,11 +75,11 @@ export function CampaignsListsView() {
           </TabsList>
 
           <TabsContent value="table" className="mt-6 ">
-            <CampaignsTable data={MOCK_CAMPAIGNS} />
+            <CampaignsTable data={campaigns} />
           </TabsContent>
 
           <TabsContent value="calendar" className="mt-6">
-            <CampaignsCalendar campaigns={MOCK_CAMPAIGNS} />
+            <CampaignsCalendar campaigns={campaigns} />
           </TabsContent>
         </Tabs>
       ) : (

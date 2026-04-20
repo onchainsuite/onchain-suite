@@ -27,7 +27,15 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
     refetchOnWindowFocus: false,
   });
 
-  const planName = String((overviewQuery.data as any)?.plan?.name ?? "—");
+  const overviewErrorMessage = String(
+    (overviewQuery.error as any)?.message ?? ""
+  ).toLowerCase();
+  const isFreeFallback =
+    overviewQuery.isError &&
+    overviewErrorMessage.includes("billing is not available");
+  const planName = isFreeFallback
+    ? "Free"
+    : String((overviewQuery.data as any)?.plan?.name ?? "Free");
   const usageItemsRaw = (usageQuery.data as any)?.items;
   const usageItems = Array.isArray(usageItemsRaw) ? usageItemsRaw : [];
 
@@ -70,6 +78,11 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
           <div className="text-center py-8 text-muted-foreground">
             Loading billing usage...
           </div>
+        ) : isFreeFallback ? (
+          <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
+            You’re on the Free plan. Upgrade to unlock billing features and
+            usage tracking.
+          </div>
         ) : overviewQuery.isError || usageQuery.isError ? (
           <div className="text-center py-8 text-muted-foreground">
             Failed to load billing usage.
@@ -82,9 +95,12 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
           <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">
             {usageItems.slice(0, 3).map((quota: any, idx: number) => {
               const used = Number(quota?.used ?? 0);
-              const limit = quota?.limit !== undefined ? Number(quota.limit) : null;
+              const limit =
+                quota?.limit !== undefined ? Number(quota.limit) : null;
               const percent =
-                limit && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                limit && limit > 0
+                  ? Math.min(100, Math.round((used / limit) * 100))
+                  : 0;
               const label = String(quota?.key ?? "Usage");
               const colorClass = idx === 2 ? "text-chart-2" : "text-primary";
               return (
@@ -96,7 +112,10 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
                   className="flex flex-col items-center rounded-2xl border border-border/60 bg-card p-6 lg:p-8"
                 >
                   <div className="relative h-28 w-28 lg:h-32 lg:w-32">
-                    <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                    <svg
+                      className="h-full w-full -rotate-90"
+                      viewBox="0 0 36 36"
+                    >
                       <path
                         d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         fill="none"

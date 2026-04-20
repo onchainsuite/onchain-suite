@@ -23,12 +23,14 @@ import {
 import Link from "next/link";
 import type { ReactElement } from "react";
 import React, { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import {
   getHealthBarColor,
   getHealthColor,
   getStatusIcon,
 } from "@/features/audience/utils";
+import { audienceService } from "@/features/audience/audience.service";
 
 const generateMockProfiles = () => {
   const names = [
@@ -143,7 +145,56 @@ const generateMockProfiles = () => {
 };
 
 export function AudiencePages(): ReactElement {
-  const [profiles] = useState(generateMockProfiles);
+  const profilesQuery = useQuery({
+    queryKey: ["audience", "profiles", { page: 1, limit: 200 }],
+    queryFn: async () => {
+      const res = await audienceService.listProfiles({ page: 1, limit: 200 });
+      const root = (res as any)?.items ?? (res as any)?.data ?? res;
+      return Array.isArray(root) ? root : [];
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const profiles = useMemo(() => {
+    if (profilesQuery.isSuccess && Array.isArray(profilesQuery.data)) {
+      return profilesQuery.data.map((p: any, idx: number) => {
+        const numericId = Number(p?.id);
+        const id = Number.isFinite(numericId) ? numericId : idx + 1;
+        const name = String(p?.name ?? p?.fullName ?? "Unknown");
+        const email = p?.email ? String(p.email) : "";
+        const wallet = p?.wallet
+          ? String(p.wallet)
+          : p?.walletAddress
+            ? String(p.walletAddress)
+            : "";
+        const tags = Array.isArray(p?.tags) ? p.tags : [];
+        const healthScore = Number.isFinite(Number(p?.healthScore))
+          ? Number(p.healthScore)
+          : 0;
+        const status = String(p?.status ?? "unverified");
+
+        return {
+          id,
+          name,
+          email,
+          wallet,
+          chain: String(p?.chain ?? "—"),
+          healthScore,
+          status,
+          engagement: String(p?.engagement ?? "—"),
+          tags: tags.length ? tags : [],
+          lastAction: {
+            type: String(p?.lastAction?.type ?? "—"),
+            label: String(p?.lastAction?.label ?? "—"),
+            time: String(p?.lastAction?.time ?? "—"),
+          },
+          healthTrend: String(p?.healthTrend ?? "stable"),
+        };
+      });
+    }
+    return generateMockProfiles();
+  }, [profilesQuery.isSuccess, profilesQuery.data]);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [sortField, setSortField] = useState<
     "name" | "healthScore" | "lastAction"
@@ -731,7 +782,7 @@ export function AudiencePages(): ReactElement {
                                     Tags
                                   </h4>
                                   <div className="flex flex-wrap gap-2">
-                                    {profile.tags.map((tag) => (
+                                    {profile.tags.map((tag: string) => (
                                       <span
                                         key={tag}
                                         className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent"

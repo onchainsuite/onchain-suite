@@ -5,11 +5,34 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { billingService } from "@/features/billing/billing.service";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 
 const PaymentMethod = () => {
   const queryClient = useQueryClient();
+  const [showAddModal, setShowAddModal] = React.useState(false);
+  const [type, setType] = React.useState<"card" | "crypto">("card");
+  const [brand, setBrand] = React.useState("");
+  const [last4, setLast4] = React.useState("");
+  const [makeDefault, setMakeDefault] = React.useState(false);
+
   const methodsQuery = useQuery({
     queryKey: ["billing", "payment-methods"],
     queryFn: () => billingService.listPaymentMethods(),
@@ -21,23 +44,61 @@ const PaymentMethod = () => {
     mutationFn: (id: string) => billingService.setDefaultPaymentMethod({ id }),
     onSuccess: async () => {
       toast.success("Default payment method updated");
-      await queryClient.invalidateQueries({ queryKey: ["billing", "payment-methods"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["billing", "payment-methods"],
+      });
     },
-    onError: (e: any) => toast.error(String(e?.message ?? "Failed to update payment method")),
+    onError: (e: any) =>
+      toast.error(String(e?.message ?? "Failed to update payment method")),
   });
 
   const removeMutation = useMutation({
     mutationFn: (id: string) => billingService.removePaymentMethod(id),
     onSuccess: async () => {
       toast.success("Payment method removed");
-      await queryClient.invalidateQueries({ queryKey: ["billing", "payment-methods"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["billing", "payment-methods"],
+      });
     },
-    onError: (e: any) => toast.error(String(e?.message ?? "Failed to remove payment method")),
+    onError: (e: any) =>
+      toast.error(String(e?.message ?? "Failed to remove payment method")),
   });
 
-  const methodsRaw = (methodsQuery.data as any)?.items ?? (methodsQuery.data as any)?.data;
+  const methodsRaw =
+    (methodsQuery.data as any)?.items ?? (methodsQuery.data as any)?.data;
   const methods = Array.isArray(methodsRaw) ? methodsRaw : [];
-  const defaultMethod = methods.find((m: any) => !!m?.isDefault) ?? methods[0];
+
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      const sanitizedLast4 = last4.replace(/\D/g, "").slice(-4);
+      if (type === "card" && sanitizedLast4.length !== 4) {
+        throw new Error("Please enter the last 4 digits for the card.");
+      }
+      return billingService.addPaymentMethod({
+        type,
+        brand: brand.trim() || undefined,
+        last4: type === "card" ? sanitizedLast4 : undefined,
+        isDefault: makeDefault || methods.length === 0,
+      });
+    },
+    onSuccess: async () => {
+      toast.success("Payment method added");
+      setShowAddModal(false);
+      setBrand("");
+      setLast4("");
+      setMakeDefault(false);
+      await queryClient.invalidateQueries({
+        queryKey: ["billing", "payment-methods"],
+      });
+    },
+    onError: (e: any) =>
+      toast.error(String(e?.message ?? "Failed to add payment method")),
+  });
+
+  React.useEffect(() => {
+    if (!showAddModal) return;
+    setMakeDefault(methods.length === 0);
+  }, [showAddModal, methods.length]);
 
   return (
     <motion.section
@@ -45,15 +106,28 @@ const PaymentMethod = () => {
       initial="initial"
       animate="animate"
     >
-      <motion.h2
-        variants={fadeInUp}
-        className="text-xl font-light tracking-tight text-foreground lg:text-2xl"
-      >
-        Payment method
-      </motion.h2>
-      <motion.p variants={fadeInUp} className="mt-3 text-muted-foreground">
-        Manage your payment details
-      </motion.p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <motion.h2
+            variants={fadeInUp}
+            className="text-xl font-light tracking-tight text-foreground lg:text-2xl"
+          >
+            Payment method
+          </motion.h2>
+          <motion.p variants={fadeInUp} className="mt-3 text-muted-foreground">
+            Manage your payment details
+          </motion.p>
+        </div>
+        <motion.div variants={fadeInUp}>
+          <Button
+            className="rounded-xl"
+            onClick={() => setShowAddModal(true)}
+            disabled={methodsQuery.isLoading || addMutation.isPending}
+          >
+            Add payment method
+          </Button>
+        </motion.div>
+      </div>
 
       <motion.div
         variants={fadeInUp}
@@ -130,6 +204,76 @@ const PaymentMethod = () => {
           </div>
         )}
       </motion.div>
+
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add payment method</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={type} onValueChange={(v) => setType(v as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="crypto">Crypto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Brand (optional)</Label>
+              <Input
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                placeholder={type === "card" ? "Visa" : "USDC"}
+              />
+            </div>
+
+            {type === "card" ? (
+              <div className="space-y-2">
+                <Label>Last 4 digits</Label>
+                <Input
+                  value={last4}
+                  onChange={(e) => setLast4(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="4242"
+                />
+              </div>
+            ) : null}
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={makeDefault}
+                onCheckedChange={(v) => setMakeDefault(Boolean(v))}
+              />
+              <span className="text-sm text-muted-foreground">
+                Set as default
+              </span>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddModal(false)}
+              disabled={addMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => addMutation.mutate()}
+              disabled={addMutation.isPending}
+            >
+              Add
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.section>
   );
 };

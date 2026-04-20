@@ -107,7 +107,7 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 
 ## Billing
 
-## Billing & Subscription
+### Billing & Subscription
 
 - `GET /billing` — Overview of current plan, usage, and limits.
 - `GET /billing/usage` — Detailed usage statistics (Query: `period?` = `month` | `current`).
@@ -117,20 +117,20 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 - `POST /billing/upgrade/blockradar` — Blockradar crypto upgrade (dynamic list size pricing) (Body: `{ desiredListSize, plan? }`).
 - `GET /billing/upgrade/blockradar/{reference}` — Check status of a specific Blockradar upgrade.
 
-## Invoices
+### Invoices
 
 - `GET /billing/invoices` — List invoices (Query: `page?`, `limit?`, `status?`).
 - `GET /billing/invoices/{invoiceId}` — Get single invoice details.
 - `GET /billing/invoices/{invoiceId}/download` — Get signed download URL for PDF invoice.
 
-## Payment Methods
+### Payment Methods
 
 - `GET /billing/payment-methods` — List payment methods.
 - `POST /billing/payment-methods` — Add payment method (Body: `{ type: "card" | "crypto", last4?, brand?, address?, isDefault? }`).
 - `DELETE /billing/payment-methods/{id}` — Remove payment method.
 - `PUT /billing/payment-methods/default` — Set default payment method (Body: `{ id: string }`).
 
-## Blockradar Webhooks
+### Blockradar Webhooks
 
 - `POST /webhook/blockradar` — Handle Blockradar payment notifications (public).
 
