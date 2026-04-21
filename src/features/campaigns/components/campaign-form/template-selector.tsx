@@ -30,9 +30,13 @@ import type { CampaignFormData } from "../../validations";
 
 interface TemplateSelectorProps {
   form: UseFormReturn<CampaignFormData>;
+  onCreateEditor?: () => void;
 }
 
-export function TemplateSelector({ form }: TemplateSelectorProps) {
+export function TemplateSelector({
+  form,
+  onCreateEditor,
+}: TemplateSelectorProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [templateSearch, setTemplateSearch] = useState("");
 
@@ -46,7 +50,11 @@ export function TemplateSelector({ form }: TemplateSelectorProps) {
           Templates
         </h2>
         <div className="flex items-center gap-2">
-          <Button className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300">
+          <Button
+            type="button"
+            onClick={onCreateEditor}
+            className="rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300"
+          >
             <Plus className="h-4 w-4" />
             Create
           </Button>

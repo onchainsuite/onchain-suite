@@ -31,7 +31,6 @@ export function EmailMessageForm({ form }: EmailMessageFormProps) {
         <h3 className="text-xl font-semibold text-foreground">Email message</h3>
       </div>
 
-      {/* Subject Line */}
       <FormField
         control={form.control}
         name="emailSubject"
@@ -49,7 +48,6 @@ export function EmailMessageForm({ form }: EmailMessageFormProps) {
         )}
       />
 
-      {/* Preview Text */}
       <FormField
         control={form.control}
         name="previewText"
@@ -67,7 +65,6 @@ export function EmailMessageForm({ form }: EmailMessageFormProps) {
         )}
       />
 
-      {/* Sender Name */}
       <FormField
         control={form.control}
         name="senderName"
@@ -88,7 +85,6 @@ export function EmailMessageForm({ form }: EmailMessageFormProps) {
         )}
       />
 
-      {/* Info Alert */}
       <div className="flex gap-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
         <AlertCircle className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
         <p className="text-sm text-blue-600 dark:text-blue-400 leading-relaxed">
@@ -100,7 +96,6 @@ export function EmailMessageForm({ form }: EmailMessageFormProps) {
         </p>
       </div>
 
-      {/* Sender Email */}
       <FormField
         control={form.control}
         name="senderEmail"
@@ -122,7 +117,6 @@ export function EmailMessageForm({ form }: EmailMessageFormProps) {
         )}
       />
 
-      {/* Reply-to Section */}
       <div className="space-y-3">
         <FormField
           control={form.control}

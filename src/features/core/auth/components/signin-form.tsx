@@ -53,7 +53,7 @@ export function SignInForm({
       const { error } = await authClient.signIn.email({
         email: data.email,
         password: data.password,
-        callbackURL: PRIVATE_ROUTES.DASHBOARD,
+        callbackURL: PRIVATE_ROUTES.CAMPAIGNS,
       });
 
       if (error) {
@@ -66,7 +66,7 @@ export function SignInForm({
       if (redirectTo) {
         push(redirectTo);
       } else {
-        push(PRIVATE_ROUTES.DASHBOARD);
+        push(PRIVATE_ROUTES.CAMPAIGNS);
       }
     } catch (error: any) {
       console.error("Sign in error:", error);

@@ -136,7 +136,7 @@ export function OnboardingFlow() {
       "Onboarding completed with data:",
       JSON.stringify(finalData, null, 2)
     );
-    push(PRIVATE_ROUTES.DASHBOARD);
+    push(PRIVATE_ROUTES.CAMPAIGNS);
   };
 
   React.useEffect(() => {

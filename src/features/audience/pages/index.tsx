@@ -856,47 +856,47 @@ export function AudiencePages(): ReactElement {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Bulk Actions Bar */}
-        <AnimatePresence>
-          {selectedIds.length > 0 && (
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2"
-            >
-              <div className="flex items-center gap-4 rounded-2xl border border-border bg-card px-6 py-3 shadow-xl">
-                <span className="text-sm font-medium text-foreground">
-                  {selectedIds.length} selected
-                </span>
-                <div className="h-4 w-px bg-border" />
-                <button
-                  onClick={handleBulkExport}
-                  className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                >
-                  <Download className="h-4 w-4" />
-                  Export
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </button>
-                <div className="h-4 w-px bg-border" />
-                <button
-                  onClick={() => setSelectedIds([])}
-                  className="p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          {/* Bulk Actions Bar */}
+          <AnimatePresence>
+            {selectedIds.length > 0 && (
+              <motion.div
+                initial={{ y: 100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 100, opacity: 0 }}
+                className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2"
+              >
+                <div className="flex items-center gap-4 rounded-2xl border border-border bg-card px-6 py-3 shadow-xl">
+                  <span className="text-sm font-medium text-foreground">
+                    {selectedIds.length} selected
+                  </span>
+                  <div className="h-4 w-px bg-border" />
+                  <button
+                    onClick={handleBulkExport}
+                    className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </button>
+                  <div className="h-4 w-px bg-border" />
+                  <button
+                    onClick={() => setSelectedIds([])}
+                    className="p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </main>
     </motion.div>
   );

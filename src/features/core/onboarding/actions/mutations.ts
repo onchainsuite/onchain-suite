@@ -125,7 +125,7 @@ export async function completeOnboarding(
     };
 
     revalidatePath(AUTH_ROUTES.ONBOARDING);
-    revalidatePath(PRIVATE_ROUTES.DASHBOARD);
+    revalidatePath(PRIVATE_ROUTES.CAMPAIGNS);
 
     return mockProgress;
   }, "Onboarding completed successfully");

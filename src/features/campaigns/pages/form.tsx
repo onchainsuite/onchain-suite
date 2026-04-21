@@ -3,7 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, ArrowRight, Clock, Send } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/ui/button";
@@ -25,8 +26,31 @@ import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 const TOTAL_STEPS = 4;
 
 export function CreateCampaignPage() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const searchParams = useSearchParams();
+
+  const initialStep = useMemo(() => {
+    const raw = Number(searchParams.get("step") ?? "1");
+    if (!Number.isFinite(raw)) return 1;
+    return Math.min(TOTAL_STEPS, Math.max(1, Math.trunc(raw)));
+  }, [searchParams]);
+
+  const initialCampaignFromUrl = useMemo(() => {
+    const raw = searchParams.get("campaign");
+    return raw && raw.trim().length > 0 ? raw.trim() : undefined;
+  }, [searchParams]);
+
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [campaignId] = useState(() => {
+    if (initialCampaignFromUrl) return initialCampaignFromUrl;
+    if (
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+    ) {
+      return crypto.randomUUID();
+    }
+    return String(Date.now());
+  });
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignFormSchema),
@@ -49,6 +73,20 @@ export function CreateCampaignPage() {
       timezone: "UTC",
     },
   });
+
+  useEffect(() => {
+    setCurrentStep(initialStep);
+  }, [initialStep]);
+
+  useEffect(() => {
+    const subject = searchParams.get("subject");
+    const senderName = searchParams.get("senderName");
+    const senderEmail = searchParams.get("senderEmail");
+
+    if (subject) form.setValue("emailSubject", subject);
+    if (senderName) form.setValue("senderName", senderName);
+    if (senderEmail) form.setValue("senderEmail", senderEmail);
+  }, [form, searchParams]);
 
   const handleNext = async () => {
     let fieldsToValidate: (keyof CampaignFormData)[] = [];
@@ -131,7 +169,9 @@ export function CreateCampaignPage() {
                 <>
                   {currentStep === 1 && <CampaignDetailsStep form={form} />}
                   {currentStep === 2 && <AudienceStep form={form} />}
-                  {currentStep === 3 && <TemplateStep form={form} />}
+                  {currentStep === 3 && (
+                    <TemplateStep form={form} campaignId={campaignId} />
+                  )}
                   {currentStep === 4 && <ScheduleStep form={form} />}
 
                   {/* Navigation Buttons */}

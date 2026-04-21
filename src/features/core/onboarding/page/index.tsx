@@ -59,11 +59,11 @@ export function OnboardingFlow() {
 
       await completeOnboarding(finalData);
 
-      push(PRIVATE_ROUTES.DASHBOARD);
+      push(PRIVATE_ROUTES.CAMPAIGNS);
     } catch (error) {
       console.error("Error completing onboarding:", error);
       // Still redirect to dashboard but show a warning
-      push(PRIVATE_ROUTES.DASHBOARD);
+      push(PRIVATE_ROUTES.CAMPAIGNS);
     }
   };
 

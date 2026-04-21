@@ -27,7 +27,7 @@ export const signInWithGoogle = async (idToken?: string) => {
   try {
     const payload: any = {
       provider: "google",
-      callbackURL: PRIVATE_ROUTES.DASHBOARD,
+      callbackURL: PRIVATE_ROUTES.CAMPAIGNS,
       newUserCallbackURL: AUTH_ROUTES.ONBOARDING,
     };
 
