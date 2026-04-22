@@ -25,7 +25,7 @@ export const { useSession } = authClient;
 
 export const signInWithGoogle = async (idToken?: string) => {
   try {
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       provider: "google",
       callbackURL: PRIVATE_ROUTES.CAMPAIGNS,
       newUserCallbackURL: AUTH_ROUTES.ONBOARDING,

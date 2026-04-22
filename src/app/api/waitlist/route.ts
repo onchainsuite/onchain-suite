@@ -7,7 +7,7 @@ function isValidEmail(email: string): boolean {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, name, product, mode } = body ?? {};
+    const { email, name: _name, product, mode: _mode } = body ?? {};
 
     if (!email || typeof email !== "string" || !isValidEmail(email)) {
       return Response.json(
@@ -25,8 +25,6 @@ export async function POST(req: NextRequest) {
 
     // TODO: Implement API call to submit waitlist to Render backend
     // await apiClient.post('/waitlist', { email, name, product, mode });
-
-    console.log("Waitlist submission (mock):", { email, name, product, mode });
 
     return Response.json({
       ok: true,

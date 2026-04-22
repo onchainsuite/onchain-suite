@@ -22,15 +22,18 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import type { ReactElement } from "react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, type ReactElement } from "react";
 
-import { audienceService } from "@/features/audience/audience.service";
+import {
+  audienceService,
+  type AudienceProfile,
+} from "@/features/audience/audience.service";
 import {
   getHealthBarColor,
   getHealthColor,
   getStatusIcon,
 } from "@/features/audience/utils";
+import { isJsonObject } from "@/lib/utils";
 
 const generateMockProfiles = () => {
   const names = [
@@ -149,7 +152,7 @@ export function AudiencePages(): ReactElement {
     queryKey: ["audience", "profiles", { page: 1, limit: 200 }],
     queryFn: async () => {
       const res = await audienceService.listProfiles({ page: 1, limit: 200 });
-      const root = (res as any)?.items ?? (res as any)?.data ?? res;
+      const root = Array.isArray(res) ? res : (res.items ?? res.data ?? []);
       return Array.isArray(root) ? root : [];
     },
     retry: false,
@@ -158,38 +161,40 @@ export function AudiencePages(): ReactElement {
 
   const profiles = useMemo(() => {
     if (profilesQuery.isSuccess && Array.isArray(profilesQuery.data)) {
-      return profilesQuery.data.map((p: any, idx: number) => {
-        const numericId = Number(p?.id);
+      return profilesQuery.data.map((p: AudienceProfile, idx: number) => {
+        const lastAction = isJsonObject(p.lastAction) ? p.lastAction : {};
+        const numericId = Number(p.id);
         const id = Number.isFinite(numericId) ? numericId : idx + 1;
-        const name = String(p?.name ?? p?.fullName ?? "Unknown");
-        const email = p?.email ? String(p.email) : "";
-        const wallet = p?.wallet
+        const name = String(p.name ?? p.fullName ?? "Unknown");
+        const email = p.email ? String(p.email) : "";
+        const { walletAddress } = p;
+        const wallet = p.wallet
           ? String(p.wallet)
-          : p?.walletAddress
-            ? String(p.walletAddress)
+          : walletAddress
+            ? String(walletAddress)
             : "";
-        const tags = Array.isArray(p?.tags) ? p.tags : [];
-        const healthScore = Number.isFinite(Number(p?.healthScore))
+        const tags = Array.isArray(p.tags) ? p.tags : [];
+        const healthScore = Number.isFinite(Number(p.healthScore))
           ? Number(p.healthScore)
           : 0;
-        const status = String(p?.status ?? "unverified");
+        const status = String(p.status ?? "unverified");
 
         return {
           id,
           name,
           email,
           wallet,
-          chain: String(p?.chain ?? "—"),
+          chain: String(p.chain ?? "—"),
           healthScore,
           status,
-          engagement: String(p?.engagement ?? "—"),
+          engagement: String(p.engagement ?? "—"),
           tags: tags.length ? tags : [],
           lastAction: {
-            type: String(p?.lastAction?.type ?? "—"),
-            label: String(p?.lastAction?.label ?? "—"),
-            time: String(p?.lastAction?.time ?? "—"),
+            type: String(lastAction.type ?? "—"),
+            label: String(lastAction.label ?? "—"),
+            time: String(lastAction.time ?? "—"),
           },
-          healthTrend: String(p?.healthTrend ?? "stable"),
+          healthTrend: String(p.healthTrend ?? "stable"),
         };
       });
     }

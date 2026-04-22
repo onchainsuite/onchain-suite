@@ -1,7 +1,7 @@
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 
 import { apiClient } from "@/lib/api-client";
-import { getSelectedOrganizationId } from "@/lib/utils";
+import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 export type BillingPeriod = "month" | "current";
 
@@ -132,13 +132,16 @@ const pickOrgId = (options?: BillingServiceOptions): string | null => {
 };
 
 const toFriendlyMessage = (error: unknown): string => {
-  const e = error as AxiosError<any>;
+  const e = error as AxiosError<unknown>;
   const status = e?.response?.status;
-  const serverMessage =
-    e?.response?.data?.error?.message ??
-    e?.response?.data?.message ??
-    e?.message ??
-    "";
+  const data = e?.response?.data;
+  const nestedError =
+    isJsonObject(data) && isJsonObject(data.error) ? data.error : undefined;
+  const serverMessage = isJsonObject(nestedError)
+    ? nestedError.message
+    : isJsonObject(data)
+      ? data.message
+      : (e?.message ?? "");
   const nonEmptyServerMessage =
     serverMessage && String(serverMessage).trim().length > 0
       ? String(serverMessage)
@@ -204,7 +207,7 @@ const logBillingEvent = (detail: Record<string, unknown>) => {
 };
 
 const shouldRetry = (error: unknown): boolean => {
-  const e = error as AxiosError<any>;
+  const e = error as AxiosError<unknown>;
   if (!e?.response) return true;
   const { status } = e.response;
   return status === 429 || status >= 500;
@@ -257,10 +260,12 @@ const billingRequest = async <T>(
         status: res.status,
         ms: Date.now() - startedAt,
       });
-      const data = (res.data as any)?.data ?? res.data;
+      const envelope = res.data as unknown;
+      const data =
+        isJsonObject(envelope) && "data" in envelope ? envelope.data : envelope;
       return data as T;
     } catch (error) {
-      const e = error as AxiosError<any>;
+      const e = error as AxiosError<unknown>;
       logBillingEvent({
         ...safeMeta,
         ok: false,

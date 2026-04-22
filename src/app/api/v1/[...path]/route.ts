@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { isJsonObject } from "@/lib/utils";
+
 export const dynamic = "force-dynamic";
 
 const pickNonEmpty = (...values: Array<string | undefined | null>) => {
@@ -123,11 +125,12 @@ const forward = async (
       const nameLower = requestedName.toLowerCase().trim();
       const slugLower = requestedSlug.toLowerCase().trim();
       const match = Array.isArray(list)
-        ? list.find((org: any) => {
-            const orgName = String(org?.name ?? "")
+        ? list.find((org) => {
+            if (!isJsonObject(org)) return false;
+            const orgName = String(org.name ?? "")
               .toLowerCase()
               .trim();
-            const orgSlug = String(org?.slug ?? "")
+            const orgSlug = String(org.slug ?? "")
               .toLowerCase()
               .trim();
             return (
@@ -137,7 +140,9 @@ const forward = async (
           })
         : null;
 
-      const orgId = match?.id ?? match?.organizationId ?? null;
+      const orgId = isJsonObject(match)
+        ? (match.id ?? match.organizationId ?? null)
+        : null;
 
       if (typeof orgId === "string" && orgId.length > 0) {
         await fetch(`${base}/organization/set-active`, {

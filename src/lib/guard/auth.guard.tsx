@@ -21,7 +21,7 @@ interface Session {
     name?: string;
     role?: string;
     // Add other properties as needed, matching what backend returns
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

@@ -19,7 +19,11 @@ export {
 };
 
 export default arcjet({
-  key: serverEnv.ARCJET_KEY!,
+  key: (() => {
+    const key = serverEnv.ARCJET_KEY;
+    if (!key) throw new Error("ARCJET_KEY is required");
+    return key;
+  })(),
   characteristics: ["fingerprint"],
   rules: [shield({ mode: "LIVE" })],
 });

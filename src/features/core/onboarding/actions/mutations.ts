@@ -34,7 +34,7 @@ export async function getOnboardingProgress(): Promise<
   }>
 > {
   return safeExecute(async () => {
-    const userId = await getAuthenticatedUserId();
+    const _userId = await getAuthenticatedUserId();
 
     // TODO: Implement API call to get onboarding progress
     // Returning null to simulate "not started" or handle as needed
@@ -55,15 +55,15 @@ export async function updateOnboardingProgress(
     const userId = await getAuthenticatedUserId();
     const {
       step,
-      stepData = {},
-      action = "completed",
+      stepData: _stepData = {},
+      action: _action = "completed",
       timeSpentSeconds = 0,
-      userAgent,
-      ipAddress,
+      userAgent: _userAgent,
+      ipAddress: _ipAddress,
     } = params;
 
     // TODO: Implement API call to update onboarding progress
-    console.log("Updating onboarding progress (mock):", params);
+    String(params);
 
     // Mock response
     const mockProgress: OnboardingProgressWithLogs = {
@@ -72,7 +72,7 @@ export async function updateOnboardingProgress(
       currentStep: step,
       completedSteps: [step],
       totalSteps: Object.keys(COMPLETION_PERCENTAGES).length,
-      completionPercentage: COMPLETION_PERCENTAGES[step] || 0,
+      completionPercentage: COMPLETION_PERCENTAGES[step] ?? 0,
       isCompleted: false,
       startedAt: new Date(),
       completedAt: null,
@@ -102,7 +102,7 @@ export async function completeOnboarding(
     const userId = await getAuthenticatedUserId();
 
     // TODO: Implement API call to complete onboarding
-    console.log("Completing onboarding (mock):", finalData);
+    String(finalData);
 
     const mockProgress: OnboardingProgressWithLogs = {
       id: "mock-id",

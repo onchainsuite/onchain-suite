@@ -79,7 +79,6 @@ export function DashboardNavbar({
     }
   }, [favicon]);
 
-  const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const validImage = userImageUrl && isValidImageUrl(userImageUrl);
 
@@ -196,7 +195,6 @@ export function DashboardNavbar({
                   alt={displayName}
                   src={userImageUrl as string}
                   loading="lazy"
-                  onLoad={() => setImgLoaded(true)}
                   onError={() => setImgError(true)}
                   className="object-cover"
                 />

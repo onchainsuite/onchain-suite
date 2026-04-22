@@ -16,7 +16,7 @@ export class VerificationService {
       }
 
       return { selector, verifier };
-    } catch (error) {
+    } catch {
       // If not base64, try direct split (fallback)
       const [selector, verifier] = token.split(".");
       if (selector && verifier) return { selector, verifier };
@@ -69,10 +69,6 @@ export class VerificationService {
       process.env.NODE_ENV === "production" ? prodDefault : devDefault
     );
 
-    console.log(
-      `Attempting verification at: ${backendUrl}/api/v1/auth/verify-token`
-    );
-
     const response = await fetch(`${backendUrl}/api/v1/auth/verify-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -83,19 +79,12 @@ export class VerificationService {
       }),
     });
 
-    console.log(
-      `Backend response status: ${response.status} ${response.statusText}`
-    );
-
     const contentType = response.headers.get("content-type");
     const isJson = contentType?.includes("application/json") ?? false;
 
     if (!response.ok) {
       // If the custom endpoint doesn't exist (404), try the standard BetterAuth endpoint
       if (response.status === 404) {
-        console.log(
-          "Custom verify-token endpoint not found, falling back to BetterAuth verify-email"
-        );
         const baResponse = await fetch(
           `${backendUrl}/api/v1/auth/verify-email?token=${token}`,
           { method: "GET" }

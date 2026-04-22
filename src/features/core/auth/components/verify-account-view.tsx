@@ -7,7 +7,7 @@ import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+import { cn, isJsonObject } from "@/lib/utils";
 
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -43,7 +43,7 @@ function VerifyAccountContent() {
           `/api/v1/auth/verify-email?token=${token}`
         );
 
-        let data: any = {};
+        let data: unknown = null;
         try {
           data = await response.json();
         } catch (e) {
@@ -51,11 +51,12 @@ function VerifyAccountContent() {
         }
 
         if (!response.ok) {
-          console.error("Verification error:", data.message);
+          const message = isJsonObject(data) ? data.message : undefined;
+          console.error("Verification error:", message);
           setStatus("error");
           toast.error(
-            typeof data?.message === "string" && data.message.length > 0
-              ? data.message
+            typeof message === "string" && message.length > 0
+              ? message
               : "Verification failed"
           );
           return;
@@ -107,7 +108,8 @@ function VerifyAccountContent() {
       } else {
         toast.success("Verification email resent!");
       }
-    } catch (error) {
+    } catch (_e) {
+      String(_e);
       toast.error("An unexpected error occurred");
     } finally {
       setResending(false);
@@ -204,7 +206,7 @@ function VerifyAccountContent() {
             <div className="space-y-4">
               <div className="p-4 bg-muted/30 rounded-2xl border border-border/50">
                 <p className="text-sm text-center text-muted-foreground italic">
-                  "Confirming your email helps us keep your account secure."
+                  Confirming your email helps us keep your account secure.
                 </p>
               </div>
               <Button

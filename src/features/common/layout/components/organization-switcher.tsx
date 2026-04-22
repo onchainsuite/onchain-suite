@@ -21,7 +21,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
-import { cn, getCookieValue, ORG_SELECTION_COOKIE } from "@/lib/utils";
+import {
+  cn,
+  getCookieValue,
+  isJsonObject,
+  ORG_SELECTION_COOKIE,
+} from "@/lib/utils";
 
 interface Organization {
   id: string;
@@ -44,12 +49,47 @@ export function OrganizationSwitcher() {
   const hasLoadedOrganizationsRef = React.useRef(false);
   const router = useRouter();
 
-  const pickNonEmptyString = (...values: unknown[]) => {
+  const pickNonEmptyString = React.useCallback((...values: unknown[]) => {
     for (const value of values) {
       if (typeof value === "string" && value.trim().length > 0) return value;
     }
     return undefined;
-  };
+  }, []);
+
+  const toOrganization = React.useCallback(
+    (raw: unknown): Organization | null => {
+      if (!isJsonObject(raw)) return null;
+      const id =
+        typeof raw.id === "string"
+          ? raw.id
+          : typeof raw.organizationId === "string"
+            ? raw.organizationId
+            : undefined;
+      if (!id) return null;
+      return {
+        id,
+        name: typeof raw.name === "string" ? raw.name : "",
+        slug: typeof raw.slug === "string" ? raw.slug : "",
+        logo: typeof raw.logo === "string" ? raw.logo : undefined,
+        logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : undefined,
+      };
+    },
+    []
+  );
+
+  const extractOrganizations = React.useCallback(
+    (payload: unknown): Organization[] => {
+      const root = Array.isArray(payload)
+        ? payload
+        : isJsonObject(payload) && Array.isArray(payload.data)
+          ? payload.data
+          : [];
+      if (!Array.isArray(root)) return [];
+      const mapped = root.map(toOrganization).filter(Boolean);
+      return mapped as Organization[];
+    },
+    [toOrganization]
+  );
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -73,18 +113,14 @@ export function OrganizationSwitcher() {
       try {
         const response = await apiClient.get("/organization/list");
         if (response.status === 200) {
-          const { data } = response;
-          // Handle backend response wrapper: { success: true, data: [...] } or direct array
-          const orgs = Array.isArray(data) ? data : ((data as any)?.data ?? []);
-
-          if (Array.isArray(orgs)) {
-            setOrganizations(orgs as Organization[]);
+          const payload: unknown = response.data;
+          const orgs = extractOrganizations(payload);
+          if (orgs.length > 0 || Array.isArray(payload)) {
+            setOrganizations(orgs);
             hasLoadedOrganizationsRef.current = true;
-            if (orgs.length === 0) {
-              console.warn("Organization list is empty.");
-            }
+            if (orgs.length === 0) console.warn("Organization list is empty.");
           } else {
-            console.error("Expected array of organizations but got:", data);
+            console.error("Expected array of organizations but got:", payload);
             setOrganizations([]);
           }
         } else {
@@ -94,11 +130,13 @@ export function OrganizationSwitcher() {
           );
           toast.error("Failed to load organizations");
         }
-      } catch (error: any) {
-        if (error?.response?.status !== 409) {
-          console.error("Failed to fetch organizations exception", error);
+      } catch (error) {
+        const err = error as { response?: { status?: number } };
+        const status = err.response?.status;
+        if (status !== 409) {
+          console.error("Failed to fetch organizations exception", err);
         }
-        if (error?.response?.status === 409) {
+        if (status === 409) {
           setOrganizations([]);
           return;
         }
@@ -112,7 +150,7 @@ export function OrganizationSwitcher() {
     if (session?.user?.id) {
       fetchOrganizations();
     }
-  }, [session?.user?.id]);
+  }, [extractOrganizations, session?.user?.id]);
 
   React.useEffect(() => {
     const handler = () => {
@@ -122,20 +160,16 @@ export function OrganizationSwitcher() {
         .get("/organization/list")
         .then((response) => {
           if (response.status >= 200 && response.status < 300) {
-            const data = response.data as any;
-            const orgs = Array.isArray(data) ? data : (data?.data ?? []);
-            setOrganizations(
-              Array.isArray(orgs) ? (orgs as Organization[]) : []
-            );
+            const payload: unknown = response.data;
+            setOrganizations(extractOrganizations(payload));
           }
         })
         .finally(() => setIsLoading(false));
     };
 
-    window.addEventListener("onchain:org-changed", handler as any);
-    return () =>
-      window.removeEventListener("onchain:org-changed", handler as any);
-  }, [session]);
+    window.addEventListener("onchain:org-changed", handler);
+    return () => window.removeEventListener("onchain:org-changed", handler);
+  }, [extractOrganizations, session]);
 
   const confirmedActiveOrgId =
     selectedOrgCookie && activeOrgId && selectedOrgCookie === activeOrgId
@@ -158,11 +192,20 @@ export function OrganizationSwitcher() {
     { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
 
-  const brandingData = (branding as any)?.data ?? (branding as any);
+  const brandingPayload: unknown = branding;
+  const brandingData =
+    isJsonObject(brandingPayload) && "data" in brandingPayload
+      ? brandingPayload.data
+      : brandingPayload;
+  const brandingObj = isJsonObject(brandingData) ? brandingData : undefined;
   const activeOrgLogo =
-    (brandingData?.primaryLogo as string | undefined) ??
-    (brandingData?.logoUrl as string | undefined) ??
-    (brandingData?.logo as string | undefined);
+    (typeof brandingObj?.primaryLogo === "string"
+      ? brandingObj.primaryLogo
+      : undefined) ??
+    (typeof brandingObj?.logoUrl === "string"
+      ? brandingObj.logoUrl
+      : undefined) ??
+    (typeof brandingObj?.logo === "string" ? brandingObj.logo : undefined);
 
   // Debug log if active org is missing but ID is set
   React.useEffect(() => {
@@ -179,90 +222,107 @@ export function OrganizationSwitcher() {
     }
   }, [activeOrgId, organizations, activeOrg, confirmedActiveOrgId]);
 
-  const setSelectedOrgCookieValue = (orgId: string) => {
+  const setSelectedOrgCookieValue = React.useCallback((orgId: string) => {
     if (typeof document === "undefined") return;
     document.cookie = `${ORG_SELECTION_COOKIE}=${encodeURIComponent(orgId)}; path=/; samesite=lax`;
     setSelectedOrgCookie(orgId);
-  };
+  }, []);
 
-  const handleSwitchOrg = async (orgId: string, silent = false) => {
-    if (orgId === activeOrgId) {
-      setSelectedOrgCookieValue(orgId);
-      window.dispatchEvent(
-        new CustomEvent("onchain:org-changed", {
-          detail: { orgId, previousOrgId: activeOrgId },
-        })
-      );
-      router.refresh();
-      return;
-    }
-
-    window.dispatchEvent(
-      new CustomEvent("onchain:org-switch-start", {
-        detail: { orgId, previousOrgId: activeOrgId },
-      })
-    );
-
-    setIsLoading(true);
-    try {
-      const response = await apiClient.post("/organization/set-active", {
-        organizationId: orgId,
-        organization_id: orgId,
-      });
-
-      const ok = response.status >= 200 && response.status < 300;
-      const payload = response.data as any;
-      const success =
-        payload?.success ?? payload?.ok ?? payload?.data?.success ?? undefined;
-
-      if (ok && success !== false) {
+  const handleSwitchOrg = React.useCallback(
+    async (orgId: string, silent = false) => {
+      if (orgId === activeOrgId) {
         setSelectedOrgCookieValue(orgId);
-        setActiveOrgId(orgId);
-        if (!silent) toast.success("Switched organization");
-        await authClient.getSession();
         window.dispatchEvent(
           new CustomEvent("onchain:org-changed", {
             detail: { orgId, previousOrgId: activeOrgId },
           })
         );
         router.refresh();
-      } else {
-        const message =
-          pickNonEmptyString(
-            payload?.error?.message,
-            payload?.message,
-            payload?.error
-          ) ?? "Failed to set active organization";
-        throw new Error(message);
+        return;
       }
-    } catch (err) {
-      const error = err as any;
-      const status = error?.response?.status;
-      const message =
-        pickNonEmptyString(
-          error?.response?.data?.error?.message,
-          error?.response?.data?.message,
-          error?.response?.data?.error,
-          error?.message
-        ) ?? "Failed to switch organization";
 
-      if (status !== 409) {
-        console.error("Failed to switch organization", error);
-      }
       window.dispatchEvent(
-        new CustomEvent("onchain:org-switch-failed", {
-          detail: {
-            orgId,
-            previousOrgId: activeOrgId,
-            message: String(message),
-          },
+        new CustomEvent("onchain:org-switch-start", {
+          detail: { orgId, previousOrgId: activeOrgId },
         })
       );
-      toast.error(String(message));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
+      setIsLoading(true);
+      try {
+        const response = await apiClient.post("/organization/set-active", {
+          organizationId: orgId,
+          organization_id: orgId,
+        });
+
+        const ok = response.status >= 200 && response.status < 300;
+        const payload: unknown = response.data;
+        const payloadObj = isJsonObject(payload) ? payload : undefined;
+        const nestedData = isJsonObject(payloadObj?.data)
+          ? payloadObj.data
+          : undefined;
+        const success = payloadObj
+          ? (payloadObj.success ?? payloadObj.ok ?? nestedData?.success)
+          : undefined;
+
+        if (ok && success !== false) {
+          setSelectedOrgCookieValue(orgId);
+          setActiveOrgId(orgId);
+          if (!silent) toast.success("Switched organization");
+          await authClient.getSession();
+          window.dispatchEvent(
+            new CustomEvent("onchain:org-changed", {
+              detail: { orgId, previousOrgId: activeOrgId },
+            })
+          );
+          router.refresh();
+        } else {
+          const payloadError = payloadObj?.error;
+          const message =
+            pickNonEmptyString(
+              isJsonObject(payloadError) ? payloadError.message : undefined,
+              payloadObj?.message,
+              payloadError
+            ) ?? "Failed to set active organization";
+          throw new Error(String(message));
+        }
+      } catch (error) {
+        const err = error as {
+          message?: unknown;
+          response?: { status?: number; data?: unknown };
+        };
+        const status = err.response?.status;
+        const data = err.response?.data;
+        const dataObj = isJsonObject(data) ? data : undefined;
+        const nestedError = isJsonObject(dataObj?.error)
+          ? dataObj.error
+          : undefined;
+        const message =
+          pickNonEmptyString(
+            nestedError?.message,
+            dataObj?.message,
+            dataObj?.error,
+            err.message
+          ) ?? "Failed to switch organization";
+
+        if (status !== 409) {
+          console.error("Failed to switch organization", err);
+        }
+        window.dispatchEvent(
+          new CustomEvent("onchain:org-switch-failed", {
+            detail: {
+              orgId,
+              previousOrgId: activeOrgId,
+              message: String(message),
+            },
+          })
+        );
+        toast.error(String(message));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [activeOrgId, pickNonEmptyString, router, setSelectedOrgCookieValue]
+  );
 
   React.useEffect(() => {
     if (!isMounted || !session) return;
@@ -274,7 +334,7 @@ export function OrganizationSwitcher() {
       lastAutoSyncOrgIdRef.current = cookieOrgId;
       handleSwitchOrg(cookieOrgId, true);
     }
-  }, [isMounted, session, activeOrgId]);
+  }, [activeOrgId, handleSwitchOrg, isMounted, session]);
 
   if (!isMounted || !session) {
     return (

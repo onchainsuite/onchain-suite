@@ -130,7 +130,8 @@ export async function GET(req: NextRequest) {
         "content-type": contentType.length > 0 ? contentType : "text/plain",
       },
     });
-  } catch (error) {
+  } catch (_e) {
+    String(_e);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 }

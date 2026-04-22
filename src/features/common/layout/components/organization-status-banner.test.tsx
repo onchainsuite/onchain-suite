@@ -22,10 +22,13 @@ vi.mock("sonner", () => ({
   },
 }));
 
+const mockedUseSession = vi.mocked(authClient.useSession);
+const mockedUseSWR = vi.mocked(useSWR);
+
 const setConfirmedOrg = () => {
-  (authClient.useSession as any).mockReturnValue({
+  mockedUseSession.mockReturnValue({
     data: { session: { activeOrganizationId: "org-1" } },
-  });
+  } as unknown as ReturnType<typeof authClient.useSession>);
   document.cookie = "onchain.selectedOrgId=org-1; path=/";
 };
 
@@ -37,11 +40,11 @@ describe("OrganizationStatusBanner", () => {
 
   it("should not render if loading", () => {
     setConfirmedOrg();
-    (useSWR as any).mockReturnValue({
+    mockedUseSWR.mockReturnValue({
       data: undefined,
       isLoading: true,
       error: undefined,
-    });
+    } as unknown as ReturnType<typeof useSWR>);
 
     const { container } = render(<OrganizationStatusBanner />);
     expect(container).toBeEmptyDOMElement();
@@ -49,11 +52,11 @@ describe("OrganizationStatusBanner", () => {
 
   it("should not render if active", () => {
     setConfirmedOrg();
-    (useSWR as any).mockReturnValue({
+    mockedUseSWR.mockReturnValue({
       data: { isActive: true, status: "active" },
       isLoading: false,
       error: undefined,
-    });
+    } as unknown as ReturnType<typeof useSWR>);
 
     const { container } = render(<OrganizationStatusBanner />);
     expect(container).toBeEmptyDOMElement();
@@ -61,11 +64,11 @@ describe("OrganizationStatusBanner", () => {
 
   it("should toast if inactive", () => {
     setConfirmedOrg();
-    (useSWR as any).mockReturnValue({
+    mockedUseSWR.mockReturnValue({
       data: { isActive: false, status: "suspended" },
       isLoading: false,
       error: undefined,
-    });
+    } as unknown as ReturnType<typeof useSWR>);
 
     render(<OrganizationStatusBanner />);
 

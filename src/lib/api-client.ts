@@ -4,6 +4,8 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 
+import { isJsonObject } from "@/lib/utils";
+
 export const API_BASE_URL = "/api/v1";
 
 const SILENT_ERROR_HEADER = "x-onchain-silent-error";
@@ -32,20 +34,36 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     // Handle specific status codes
-    const configHeaders: any = (error as any)?.config?.headers;
+    const configHeaders = (
+      error as unknown as { config?: { headers?: unknown } }
+    ).config?.headers;
     const silentHeaderValue =
-      configHeaders && typeof configHeaders.get === "function"
-        ? configHeaders.get(SILENT_ERROR_HEADER)
-        : configHeaders?.[SILENT_ERROR_HEADER];
+      configHeaders &&
+      typeof (configHeaders as { get?: unknown }).get === "function"
+        ? (configHeaders as { get: (key: string) => unknown }).get(
+            SILENT_ERROR_HEADER
+          )
+        : isJsonObject(configHeaders)
+          ? configHeaders[SILENT_ERROR_HEADER]
+          : undefined;
     const isSilent =
       silentHeaderValue === "1" ||
       silentHeaderValue === 1 ||
       silentHeaderValue === true;
 
     if (error.response) {
-      const { status } = error.response;
-      const data = error.response.data as any;
-      const message = data?.error?.message ?? data?.message ?? error.message;
+      const { data, status } = error.response;
+      const responseData: unknown = data;
+      const dataObj = isJsonObject(responseData) ? responseData : undefined;
+      const nestedError = isJsonObject(dataObj?.error)
+        ? dataObj.error
+        : undefined;
+      const message =
+        (typeof nestedError?.message === "string"
+          ? nestedError.message
+          : undefined) ??
+        (typeof dataObj?.message === "string" ? dataObj.message : undefined) ??
+        error.message;
 
       if (!isSilent && status !== 409) {
         console.error(`API Error [${status}]:`, message);

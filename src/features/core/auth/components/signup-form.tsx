@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { Mail, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -15,6 +14,7 @@ import { LoadingButton } from "@/ui/loading-button";
 
 import { useLocalStorage } from "@/hooks/client";
 import { authClient, signInWithGoogle } from "@/lib/auth-client";
+import { isJsonObject } from "@/lib/utils";
 
 import {
   AuthHeader,
@@ -32,7 +32,6 @@ interface SignUpFormProps {
 }
 
 export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const { setValue } = useLocalStorage<SignUpFormData | null>("user", null);
@@ -88,11 +87,16 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
       toast.success(
         "Account created successfully! Please check your email to verify your account."
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Sign up error:", error);
+      const response = isJsonObject(error) ? error.response : undefined;
+      const data = isJsonObject(response) ? response.data : undefined;
+      const message = isJsonObject(data) ? data.message : undefined;
       const displayMessage =
-        pickNonEmptyString(error?.response?.data?.message, error?.message) ??
-        "Failed to create account. Please try again.";
+        pickNonEmptyString(
+          message,
+          error instanceof Error ? error.message : undefined
+        ) ?? "Failed to create account. Please try again.";
       toast.error(displayMessage);
     } finally {
       setIsLoading(false);

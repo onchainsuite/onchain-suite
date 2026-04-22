@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 
 import { getAuthSession } from "@/lib/guard";
-import { getFullName } from "@/lib/utils";
+import { getFullName, isJsonObject } from "@/lib/utils";
 
 import { NewUserFlow } from "@/features/campaigns/components/new-user";
 import { CampaignsListsView } from "@/features/campaigns/pages";
@@ -50,25 +50,41 @@ export default async function CampaignsListsPage() {
     });
 
     if (res.ok) {
-      const json: any = await res.json();
-      const totalRaw =
-        json?.total ??
-        json?.meta?.total ??
-        json?.data?.total ??
-        json?.data?.meta?.total ??
-        json?.data?.pagination?.total ??
-        json?.pagination?.total;
-      const total = Number(totalRaw);
+      const json: unknown = await res.json();
+
+      const pickTotal = (value: unknown): unknown => {
+        if (!isJsonObject(value)) return undefined;
+        if ("total" in value) return value.total;
+        if (
+          "meta" in value &&
+          isJsonObject(value.meta) &&
+          "total" in value.meta
+        ) {
+          return value.meta.total;
+        }
+        if (
+          "pagination" in value &&
+          isJsonObject(value.pagination) &&
+          "total" in value.pagination
+        ) {
+          return value.pagination.total;
+        }
+        if ("data" in value) return pickTotal(value.data);
+        return undefined;
+      };
+
+      const total = Number(pickTotal(json));
 
       if (Number.isFinite(total)) {
         campaignsCount = total;
       } else {
-        const list =
-          json?.items ??
-          json?.data?.items ??
-          json?.data ??
-          json?.data?.data ??
-          json;
+        const getList = (value: unknown): unknown => {
+          if (!isJsonObject(value)) return value;
+          if ("items" in value) return value.items;
+          if ("data" in value) return getList(value.data);
+          return value;
+        };
+        const list = getList(json);
         const arr = Array.isArray(list) ? list : [];
         campaignsCount = arr.length;
       }

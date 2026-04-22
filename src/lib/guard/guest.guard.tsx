@@ -17,7 +17,7 @@ interface Session {
     email: string;
     name?: string;
     role?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

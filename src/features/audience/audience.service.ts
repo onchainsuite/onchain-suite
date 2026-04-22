@@ -1,7 +1,7 @@
 import type { AxiosError, AxiosRequestConfig } from "axios";
 
 import { apiClient } from "@/lib/api-client";
-import { getSelectedOrganizationId } from "@/lib/utils";
+import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 export interface AudienceOverview {
   [key: string]: unknown;
@@ -33,8 +33,11 @@ export interface ListProfilesParams {
 const pickOrgId = (orgId?: string) =>
   orgId ?? getSelectedOrganizationId() ?? null;
 
-const extractData = <T>(payload: any): T => {
-  return (payload?.data ?? payload) as T;
+const extractData = <T>(payload: unknown): T => {
+  if (isJsonObject(payload) && "data" in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
 };
 
 const request = async <T>(
@@ -52,12 +55,15 @@ const request = async <T>(
     const res = await apiClient.request<T>({ ...config, headers });
     return extractData<T>(res.data);
   } catch (e) {
-    const err = e as AxiosError<any>;
-    const message =
-      err?.response?.data?.error?.message ??
-      err?.response?.data?.message ??
-      err?.message ??
-      "Audience request failed";
+    const err = e as AxiosError<unknown>;
+    const data = err.response?.data;
+    const nestedError =
+      isJsonObject(data) && isJsonObject(data.error) ? data.error : undefined;
+    const message = isJsonObject(nestedError)
+      ? nestedError.message
+      : isJsonObject(data)
+        ? data.message
+        : (err.message ?? "Audience request failed");
     throw new Error(String(message));
   }
 };

@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 
+import { isJsonObject } from "@/lib/utils";
+
 import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
@@ -35,10 +37,12 @@ export default function CampaignEditorPage() {
     refetchOnWindowFocus: false,
   });
 
+  const editorSessionEditorUrl = editorSessionQuery.data?.editorUrl;
+
   const editorOrigin = useMemo(() => {
-    if (editorSessionQuery.isSuccess && editorSessionQuery.data?.editorUrl) {
+    if (editorSessionQuery.isSuccess && editorSessionEditorUrl) {
       try {
-        return new URL(String(editorSessionQuery.data.editorUrl)).origin;
+        return new URL(String(editorSessionEditorUrl)).origin;
       } catch {
         return DEFAULT_EDITOR_ORIGIN_DEV;
       }
@@ -56,7 +60,7 @@ export default function CampaignEditorPage() {
     if (process.env.NODE_ENV === "production")
       return DEFAULT_EDITOR_ORIGIN_PROD;
     return DEFAULT_EDITOR_ORIGIN_DEV;
-  }, []);
+  }, [editorSessionEditorUrl, editorSessionQuery.isSuccess]);
 
   const allowedOrigins = useMemo(() => {
     const fromSession =
@@ -115,8 +119,8 @@ export default function CampaignEditorPage() {
   }, [campaignId, returnTo]);
 
   const saveMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      const data = payload && typeof payload === "object" ? payload : {};
+    mutationFn: async (payload: unknown) => {
+      const data = isJsonObject(payload) ? payload : {};
       await campaignsService.editorSaved(campaignId, {
         html: typeof data.html === "string" ? data.html : undefined,
         json: data.json ?? undefined,
@@ -129,22 +133,25 @@ export default function CampaignEditorPage() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (!allowedOrigins.has(event.origin)) return;
+      const { data: messageData, origin } = event;
+      if (!allowedOrigins.has(origin)) return;
 
-      const data = event.data as any;
-      if (!data || typeof data !== "object") return;
+      if (!isJsonObject(messageData)) return;
 
-      if (data.type === "EMAIL_SAVED" && !hasRedirectedRef.current) {
+      if (messageData.type === "EMAIL_SAVED" && !hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
+        const payload =
+          "payload" in messageData ? messageData.payload : undefined;
         saveMutation
-          .mutateAsync((data as any)?.payload ?? {})
+          .mutateAsync(payload)
           .then(() => {
             toast.success("Email saved");
             router.push(nextWizardUrl);
           })
-          .catch((e) => {
+          .catch((e: unknown) => {
             hasRedirectedRef.current = false;
-            toast.error(String((e as any)?.message ?? "Failed to save email"));
+            const message = isJsonObject(e) ? e.message : undefined;
+            toast.error(String(message ?? "Failed to save email"));
           });
       }
     };

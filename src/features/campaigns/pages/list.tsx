@@ -11,9 +11,24 @@ import { Tabs, TabsContent } from "@/ui/tabs";
 import { CampaignsCalendar } from "../../campaigns/components/calendar";
 import { CampaignsTable } from "../../campaigns/components/table";
 import { campaignsService } from "../campaigns.service";
+import type { CampaignStatus } from "../types/campaign";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function CampaignsListsView() {
+  const normalizeStatus = (value: unknown): CampaignStatus => {
+    switch (value) {
+      case "draft":
+      case "scheduled":
+      case "sending":
+      case "sent":
+      case "paused":
+      case "failed":
+        return value;
+      default:
+        return "draft";
+    }
+  };
+
   const [activeTab, setActiveTab] = useState("table");
   const campaignsQuery = useQuery({
     queryKey: ["campaigns", "list"],
@@ -45,7 +60,7 @@ export function CampaignsListsView() {
             id: String(item.id ?? ""),
             name: String(item.name ?? "Untitled"),
             type: "email-blast" as const,
-            status: (item.status ?? "draft") as any,
+            status: normalizeStatus(item.status),
             subject: "",
             audience: [] as string[],
             recipients: 0,

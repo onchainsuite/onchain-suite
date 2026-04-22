@@ -26,31 +26,30 @@ export async function GET(req: NextRequest) {
     // 1. Verification Logic
     const result = await VerificationService.verifyEmail(token);
 
-    console.log("Email verification success:", result);
-
     // 2. Return success response
     return NextResponse.json({
       success: true,
       message: "Email verified successfully",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error && error.message.length > 0
+        ? error.message
+        : String(error);
     console.error("Email verification error details:", {
-      message: error.message,
-      stack: error.stack,
+      message,
+      stack: error instanceof Error ? error.stack : undefined,
       token: `${token.substring(0, 10)}...`,
     });
 
     // Handle specific error cases (expired, invalid format, etc.)
-    const status = error.message.includes("expired") ? 410 : 400;
+    const status = message.includes("expired") ? 410 : 400;
 
     return NextResponse.json(
       {
         success: false,
-        message:
-          typeof error?.message === "string" && error.message.length > 0
-            ? error.message
-            : "Email verification failed",
+        message: message.length > 0 ? message : "Email verification failed",
       },
       { status }
     );

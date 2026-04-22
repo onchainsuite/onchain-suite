@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { isJsonObject } from "@/lib/utils";
+
 export const maxDuration = 300; // 5 minutes
 
 const pickNonEmpty = (...values: Array<string | undefined | null>) => {
@@ -25,10 +27,11 @@ export async function POST(
     let formData;
     try {
       formData = await req.formData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error parsing FormData:", err);
+      const message = isJsonObject(err) ? err.message : undefined;
       return NextResponse.json(
-        { error: "Failed to parse form data", details: err.message },
+        { error: "Failed to parse form data", details: String(message ?? err) },
         { status: 400 }
       );
     }
@@ -96,11 +99,6 @@ export async function POST(
     if (cookieHeader) headers.set("Cookie", cookieHeader);
     if (orgIdHeader) headers.set("x-org-id", orgIdHeader);
 
-    console.log(`Forwarding upload to: ${targetUrl}`);
-    console.log(
-      `File details: name=${file.name}, type=${file.type}, size=${file.size}`
-    );
-
     let response;
     try {
       const fetchInit: RequestInit & { duplex?: "half" } = {
@@ -110,10 +108,14 @@ export async function POST(
         duplex: "half",
       };
       response = await fetch(targetUrl, fetchInit);
-    } catch (fetchErr: any) {
+    } catch (fetchErr: unknown) {
       console.error("Fetch to backend failed:", fetchErr);
+      const message = isJsonObject(fetchErr) ? fetchErr.message : undefined;
       return NextResponse.json(
-        { error: "Failed to connect to backend", details: fetchErr.message },
+        {
+          error: "Failed to connect to backend",
+          details: String(message ?? fetchErr),
+        },
         { status: 502 }
       );
     }
@@ -122,7 +124,8 @@ export async function POST(
       let errorText = "";
       try {
         errorText = await response.text();
-      } catch (e) {
+      } catch (_e) {
+        String(_e);
         errorText = "Could not read error response body";
       }
 
@@ -131,7 +134,8 @@ export async function POST(
       let errorJson = null;
       try {
         errorJson = JSON.parse(errorText);
-      } catch (e) {
+      } catch (_e) {
+        String(_e);
         // ignore
       }
 
@@ -147,13 +151,15 @@ export async function POST(
 
     const data = await response.json();
     return NextResponse.json(data, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Upload handler fatal error:", error);
+    const message = isJsonObject(error) ? error.message : undefined;
+    const stack = isJsonObject(error) ? error.stack : undefined;
     return NextResponse.json(
       {
         error: "Internal server error during upload",
-        details: error.message,
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+        details: String(message ?? error),
+        stack: process.env.NODE_ENV === "development" ? stack : undefined,
       },
       { status: 500 }
     );

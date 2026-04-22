@@ -14,7 +14,11 @@ vi.mock("@/lib/auth-session", () => ({
 }));
 
 // Mock fetch
-global.fetch = vi.fn();
+const mockedFetch = vi.fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>();
+global.fetch = mockedFetch as unknown as typeof fetch;
+
+const mockedGetSession = vi.mocked(getSession);
+type SessionValue = Awaited<ReturnType<typeof getSession>>;
 
 describe("Organization Status API", () => {
   beforeEach(() => {
@@ -22,7 +26,7 @@ describe("Organization Status API", () => {
   });
 
   it("should return 401 if no session", async () => {
-    (getSession as any).mockResolvedValue(null);
+    mockedGetSession.mockResolvedValue(null as SessionValue);
     const req = new NextRequest("http://localhost/api/v1/organization/status");
 
     const response = await GET(req);
@@ -33,7 +37,7 @@ describe("Organization Status API", () => {
   });
 
   it("should return 401 if no active organization", async () => {
-    (getSession as any).mockResolvedValue({ session: {} });
+    mockedGetSession.mockResolvedValue({ session: {} } as SessionValue);
     const req = new NextRequest("http://localhost/api/v1/organization/status");
 
     const response = await GET(req);
@@ -44,17 +48,17 @@ describe("Organization Status API", () => {
   });
 
   it("should return isActive=true if status is active", async () => {
-    (getSession as any).mockResolvedValue({
+    mockedGetSession.mockResolvedValue({
       session: {
         activeOrganizationId: "org-123",
         token: "token-123",
       },
-    });
+    } as SessionValue);
 
-    (global.fetch as any).mockResolvedValue({
+    mockedFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ status: "active" }),
-    });
+    } as unknown as Response);
 
     const req = new NextRequest("http://localhost/api/v1/organization/status");
     const response = await GET(req);
@@ -73,17 +77,17 @@ describe("Organization Status API", () => {
   });
 
   it("should return isActive=false if status is inactive", async () => {
-    (getSession as any).mockResolvedValue({
+    mockedGetSession.mockResolvedValue({
       session: {
         activeOrganizationId: "org-123",
         token: "token-123",
       },
-    });
+    } as SessionValue);
 
-    (global.fetch as any).mockResolvedValue({
+    mockedFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ status: "inactive" }),
-    });
+    } as unknown as Response);
 
     const req = new NextRequest("http://localhost/api/v1/organization/status");
     const response = await GET(req);
@@ -94,16 +98,16 @@ describe("Organization Status API", () => {
   });
 
   it("should return isActive=true if fetch fails", async () => {
-    (getSession as any).mockResolvedValue({
+    mockedGetSession.mockResolvedValue({
       session: {
         activeOrganizationId: "org-123",
         token: "token-123",
       },
-    });
+    } as SessionValue);
 
-    (global.fetch as any).mockResolvedValue({
+    mockedFetch.mockResolvedValue({
       ok: false,
-    });
+    } as unknown as Response);
 
     const req = new NextRequest("http://localhost/api/v1/organization/status");
     const response = await GET(req);

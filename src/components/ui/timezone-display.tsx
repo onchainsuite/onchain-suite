@@ -33,7 +33,7 @@ export function TimezoneDisplay() {
           hour12: true,
         }).format(now);
         setTime(timeString);
-      } catch (e) {
+      } catch {
         // Fallback if timezone is invalid
         setTime(new Date().toLocaleTimeString());
       }

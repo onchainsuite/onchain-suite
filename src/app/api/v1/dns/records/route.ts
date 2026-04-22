@@ -1,6 +1,8 @@
 import dns from "dns";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { isJsonObject } from "@/lib/utils";
+
 const { resolveAny } = dns.promises;
 
 export async function GET(req: NextRequest) {
@@ -26,45 +28,59 @@ export async function GET(req: NextRequest) {
     const records = await resolveAny(domain).catch(() => []);
 
     // Format the records for the frontend
-    const formattedRecords = records.map((record: any) => {
+    const formattedRecords = records.map((record: unknown) => {
+      const recordObj = isJsonObject(record) ? record : {};
+      const type =
+        typeof recordObj.type === "string" ? recordObj.type : "UNKNOWN";
       let value = "";
       let priority = undefined;
 
-      switch (record.type) {
+      switch (type) {
         case "A":
         case "AAAA":
-          value = record.address;
+          value =
+            typeof recordObj.address === "string" ? recordObj.address : "";
           break;
         case "MX":
           {
-            const { exchange, priority: mxPriority } = record;
+            const exchange =
+              typeof recordObj.exchange === "string" ? recordObj.exchange : "";
+            const mxPriority =
+              typeof recordObj.priority === "number"
+                ? recordObj.priority
+                : undefined;
             value = exchange;
             priority = mxPriority;
           }
           break;
         case "TXT":
-          value = Array.isArray(record.entries) ? record.entries.join(" ") : "";
+          value = Array.isArray(recordObj.entries)
+            ? recordObj.entries.map(String).join(" ")
+            : "";
           break;
         case "CNAME":
         case "NS":
         case "PTR":
           {
-            const { value: recordValue } = record;
+            const recordValue =
+              typeof recordObj.value === "string" ? recordObj.value : "";
             value = recordValue;
           }
           break;
         case "SOA":
-          value = `${record.nsname} ${record.hostmaster}`;
+          value = `${String(recordObj.nsname ?? "")} ${String(
+            recordObj.hostmaster ?? ""
+          )}`.trim();
           break;
         default:
           value = JSON.stringify(record);
       }
 
       return {
-        type: record.type,
+        type,
         name: domain,
         value,
-        ttl: record.ttl ?? 3600,
+        ttl: typeof recordObj.ttl === "number" ? recordObj.ttl : 3600,
         priority,
       };
     });
@@ -76,15 +92,16 @@ export async function GET(req: NextRequest) {
         records: formattedRecords,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`DNS Lookup error for ${domain}:`, error);
+    const message =
+      error instanceof Error && error.message.length > 0
+        ? error.message
+        : String(error);
     return NextResponse.json(
       {
         success: false,
-        error:
-          typeof error?.message === "string" && error.message.length > 0
-            ? error.message
-            : "Failed to perform DNS lookup",
+        error: message.length > 0 ? message : "Failed to perform DNS lookup",
       },
       { status: 500 }
     );

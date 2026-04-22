@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { isJsonObject } from "@/lib/utils";
+
 export const dynamic = "force-dynamic";
 
 const pickNonEmpty = (...values: Array<string | undefined | null>) => {
@@ -8,6 +10,9 @@ const pickNonEmpty = (...values: Array<string | undefined | null>) => {
   }
   return "";
 };
+
+const asString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
 
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
@@ -21,9 +26,9 @@ const getBackendBaseUrl = () => {
 };
 
 const getSetCookieHeaders = (headers: Headers): string[] => {
-  const anyHeaders = headers as any;
-  if (typeof anyHeaders.getSetCookie === "function") {
-    return anyHeaders.getSetCookie() as string[];
+  const maybeHeaders = headers as unknown as { getSetCookie?: () => string[] };
+  if (typeof maybeHeaders.getSetCookie === "function") {
+    return maybeHeaders.getSetCookie();
   }
   const single = headers.get("set-cookie");
   return single ? [single] : [];
@@ -45,7 +50,7 @@ const extractOnchainToken = (cookieHeader: string): string | null => {
   return raw ? decodeURIComponent(raw) : null;
 };
 
-const extractOnchainUser = (cookieHeader: string): any | null => {
+const extractOnchainUser = (cookieHeader: string): unknown | null => {
   const pairs = cookieHeader
     .split(";")
     .map((p) => p.trim())
@@ -69,28 +74,42 @@ const extractOnchainUser = (cookieHeader: string): any | null => {
   }
 };
 
-const normalizeUserFromResponse = (payload: any) => {
-  const root = payload?.data ?? payload;
-  return root?.user ?? root?.data?.user ?? payload?.user ?? null;
+const normalizeUserFromResponse = (payload: unknown) => {
+  const root =
+    isJsonObject(payload) && "data" in payload
+      ? (payload.data ?? payload)
+      : payload;
+  if (isJsonObject(root) && "user" in root) return root.user ?? null;
+  if (
+    isJsonObject(root) &&
+    "data" in root &&
+    isJsonObject(root.data) &&
+    "user" in root.data
+  ) {
+    return root.data.user ?? null;
+  }
+  if (isJsonObject(payload) && "user" in payload) return payload.user ?? null;
+  return null;
 };
 
-const getRedirectUrlFromResponse = (payload: any): string | null => {
+const getRedirectUrlFromResponse = (payload: unknown): string | null => {
+  const payloadObj = isJsonObject(payload) ? payload : {};
+  const redirectObj = isJsonObject(payloadObj.redirect)
+    ? payloadObj.redirect
+    : null;
   const directCandidates: Array<unknown> = [
-    payload?.url,
-    payload?.redirectUrl,
-    payload?.redirect,
-    payload?.redirect?.url,
-    payload?.redirect?.to,
-    payload?.redirect?.href,
-    payload?.redirect?.location,
+    payloadObj.url,
+    payloadObj.redirectUrl,
+    payloadObj.redirect,
+    redirectObj?.url,
+    redirectObj?.to,
+    redirectObj?.href,
+    redirectObj?.location,
   ];
   const direct = directCandidates.find((v) => typeof v === "string") as
     | string
     | undefined;
   if (direct && direct.length > 0) return direct;
-
-  const isObject = (v: unknown): v is Record<string, unknown> =>
-    !!v && typeof v === "object" && !Array.isArray(v);
 
   const looksLikeUrl = (v: unknown): v is string =>
     typeof v === "string" && (v.startsWith("http") || v.startsWith("/"));
@@ -98,7 +117,7 @@ const getRedirectUrlFromResponse = (payload: any): string | null => {
   const deepFind = (obj: unknown, depth: number): string | null => {
     if (depth < 0) return null;
     if (looksLikeUrl(obj)) return obj;
-    if (!isObject(obj)) return null;
+    if (!isJsonObject(obj)) return null;
     for (const key of [
       "url",
       "href",
@@ -109,7 +128,7 @@ const getRedirectUrlFromResponse = (payload: any): string | null => {
       "callbackURL",
       "callbackUrl",
     ]) {
-      const val = (obj as any)[key];
+      const val = obj[key];
       if (looksLikeUrl(val)) return val;
     }
     for (const val of Object.values(obj)) {
@@ -119,7 +138,7 @@ const getRedirectUrlFromResponse = (payload: any): string | null => {
     return null;
   };
 
-  return deepFind(payload?.redirect, 2);
+  return deepFind(payloadObj.redirect, 2);
 };
 
 const toAbsoluteUrl = (maybeUrl: string, backendBaseUrl: string): string => {
@@ -197,12 +216,6 @@ const forward = async (
   headers.delete("connection");
   headers.delete("content-length");
   headers.delete("accept-encoding");
-
-  const isAuthWrite =
-    method === "POST" &&
-    path.length >= 2 &&
-    path[0] === "sign-in" &&
-    (path[1] === "email" || path[1] === "username");
 
   const cookieHeader = req.headers.get("cookie") ?? "";
   const onchainToken = extractOnchainToken(cookieHeader);
@@ -305,16 +318,6 @@ const forward = async (
   });
 
   const setCookies = getSetCookieHeaders(upstream.headers);
-  if (isSignInEmail) {
-    const redact = (c: string) => c.replace(/=([^;]*)/, "=<redacted>");
-    console.log("[auth-proxy:sign-in/email]", {
-      at: new Date().toISOString(),
-      upstreamStatus: upstream.status,
-      upstreamSetCookieCount: setCookies.length,
-      upstreamSetCookies: setCookies.map(redact),
-      targetUrl,
-    });
-  }
 
   for (const cookie of setCookies) {
     nextResponse.headers.append(
@@ -328,23 +331,27 @@ const forward = async (
     if (contentType.includes("application/json") && responseBody) {
       try {
         const text = new TextDecoder().decode(responseBody);
-        const json: any = JSON.parse(text);
+        const json: unknown = JSON.parse(text);
+        const jsonObj = isJsonObject(json) ? json : {};
+        const jsonData = isJsonObject(jsonObj.data) ? jsonObj.data : {};
+        const jsonSession = isJsonObject(jsonObj.session) ? jsonObj.session : {};
+        const jsonDataSession = isJsonObject(jsonData.session)
+          ? jsonData.session
+          : {};
         const candidates: Array<string | undefined> = [
-          json?.token,
-          json?.accessToken,
-          json?.sessionToken,
-          json?.data?.token,
-          json?.data?.accessToken,
-          json?.data?.sessionToken,
-          json?.session?.token,
-          json?.data?.session?.token,
+          asString(jsonObj.token),
+          asString(jsonObj.accessToken),
+          asString(jsonObj.sessionToken),
+          asString(jsonData.token),
+          asString(jsonData.accessToken),
+          asString(jsonData.sessionToken),
+          asString(jsonSession.token),
+          asString(jsonDataSession.token),
         ];
         const token =
           candidates.find((t) => typeof t === "string" && t.length > 20) ??
           null;
 
-        const topLevelKeys =
-          json && typeof json === "object" ? Object.keys(json) : [];
         if (typeof token === "string" && token.length > 0) {
           nextResponse.headers.append(
             "set-cookie",
@@ -381,63 +388,14 @@ const forward = async (
                 rewriteSetCookieForLocalDev(cookie, url)
               );
             }
-          } catch (e) {
-            console.error("Failed to follow redirect", e);
+          } catch (_e) {
+            console.error("Failed to follow redirect", _e);
           }
         }
-
-        const redact = (v: unknown) =>
-          typeof v === "string" && v.length > 10 ? `${v.slice(0, 6)}…` : v;
-        console.log("[auth-proxy:sign-in/email:body]", {
-          at: new Date().toISOString(),
-          keys: topLevelKeys,
-          tokenFound: !!token,
-          tokenMeta:
-            typeof token === "string"
-              ? {
-                  length: token.length,
-                  hasDot: token.includes("."),
-                  hasPercent: token.includes("%"),
-                }
-              : null,
-          redirectMeta: redirectUrl
-            ? {
-                isAbsolute: redirectUrl.startsWith("http"),
-                length: redirectUrl.length,
-              }
-            : typeof json?.redirect === "object" && json?.redirect
-              ? {
-                  type: "object",
-                  keys: Object.keys(json.redirect).slice(0, 12),
-                }
-              : json?.redirect !== null && json?.redirect !== undefined
-                ? { type: typeof json.redirect, value: json.redirect }
-                : null,
-          sampleFields: {
-            hasToken: typeof json?.token === "string",
-            hasAccessToken: typeof json?.accessToken === "string",
-            hasDataToken: typeof json?.data?.token === "string",
-            hasSessionToken: typeof json?.session?.token === "string",
-          },
-          url: targetUrl,
-        });
       } catch (_e) {
         String(_e);
       }
     }
-  }
-
-  if (isSignInEmail) {
-    const redact = (c: string) => c.replace(/=([^;]*)/, "=<redacted>");
-    const returnedSetCookies =
-      typeof (nextResponse.headers as any).getSetCookie === "function"
-        ? ((nextResponse.headers as any).getSetCookie() as string[])
-        : undefined;
-    console.log("[auth-proxy:sign-in/email]", {
-      at: new Date().toISOString(),
-      returnedSetCookieCount: returnedSetCookies?.length,
-      returnedSetCookies: returnedSetCookies?.map(redact),
-    });
   }
 
   return nextResponse;

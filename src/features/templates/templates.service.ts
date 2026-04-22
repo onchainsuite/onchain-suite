@@ -1,7 +1,7 @@
 import type { AxiosError, AxiosRequestConfig } from "axios";
 
 import { apiClient } from "@/lib/api-client";
-import { getSelectedOrganizationId } from "@/lib/utils";
+import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 export interface TemplateItem {
   id: string;
@@ -24,8 +24,11 @@ export interface ListTemplatesParams {
 const pickOrgId = (orgId?: string) =>
   orgId ?? getSelectedOrganizationId() ?? null;
 
-const extractData = <T>(payload: any): T => {
-  return (payload?.data ?? payload) as T;
+const extractData = <T>(payload: unknown): T => {
+  if (isJsonObject(payload) && "data" in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
 };
 
 const request = async <T>(
@@ -43,43 +46,55 @@ const request = async <T>(
     const res = await apiClient.request<T>({ ...config, headers });
     return extractData<T>(res.data);
   } catch (e) {
-    const err = e as AxiosError<any>;
+    const err = e as AxiosError<unknown>;
+    const data = err.response?.data;
+    const dataObj = isJsonObject(data) ? data : undefined;
+    const nestedError = isJsonObject(dataObj?.error)
+      ? dataObj.error
+      : undefined;
     const message =
-      err?.response?.data?.error?.message ??
-      err?.response?.data?.message ??
-      err?.message ??
+      (isJsonObject(nestedError) ? nestedError.message : undefined) ??
+      (isJsonObject(dataObj) ? dataObj.message : undefined) ??
+      err.message ??
       "Templates request failed";
     throw new Error(String(message));
   }
 };
 
-const normalizeTemplate = (raw: any): TemplateItem => {
+const extractList = (payload: unknown): unknown[] => {
+  const root =
+    isJsonObject(payload) && "data" in payload
+      ? (payload.data ?? payload)
+      : payload;
+  if (Array.isArray(root)) return root;
+  if (isJsonObject(root) && Array.isArray(root.items)) return root.items;
+  if (isJsonObject(root) && Array.isArray(root.data)) return root.data;
+  return [];
+};
+
+const normalizeTemplate = (raw: unknown): TemplateItem => {
+  const obj = isJsonObject(raw) ? raw : {};
   const previewCandidate =
-    raw?.previewUrl ??
-    raw?.previewURL ??
-    raw?.thumbnailUrl ??
-    raw?.thumbnailURL;
+    obj.previewUrl ?? obj.previewURL ?? obj.thumbnailUrl ?? obj.thumbnailURL;
 
   return {
-    id: String(raw?.id ?? ""),
-    name: String(raw?.name ?? raw?.title ?? "Untitled"),
-    folder: raw?.folder ? String(raw.folder) : undefined,
-    updatedAt: raw?.updatedAt ? String(raw.updatedAt) : undefined,
-    createdAt: raw?.createdAt ? String(raw.createdAt) : undefined,
+    id: String(obj.id ?? ""),
+    name: String(obj.name ?? obj.title ?? "Untitled"),
+    folder: obj.folder ? String(obj.folder) : undefined,
+    updatedAt: obj.updatedAt ? String(obj.updatedAt) : undefined,
+    createdAt: obj.createdAt ? String(obj.createdAt) : undefined,
     previewUrl: previewCandidate ? String(previewCandidate) : undefined,
-    ...raw,
+    ...obj,
   };
 };
 
 export const templatesService = {
   list(params?: ListTemplatesParams, orgId?: string) {
-    return request<any>(
+    return request<unknown>(
       { method: "GET", url: "/templates", params },
       orgId
     ).then((d) => {
-      const list = (d as any)?.items ?? (d as any)?.data ?? d;
-      const arr = Array.isArray(list) ? list : [];
-      return arr.map(normalizeTemplate);
+      return extractList(d).map(normalizeTemplate);
     });
   },
 
@@ -87,16 +102,17 @@ export const templatesService = {
     body: { name: string; folder?: string; content?: unknown },
     orgId?: string
   ) {
-    return request<any>(
+    return request<unknown>(
       { method: "POST", url: "/templates", data: body },
       orgId
     ).then(normalizeTemplate);
   },
 
   get(id: string, orgId?: string) {
-    return request<any>({ method: "GET", url: `/templates/${id}` }, orgId).then(
-      normalizeTemplate
-    );
+    return request<unknown>(
+      { method: "GET", url: `/templates/${id}` },
+      orgId
+    ).then(normalizeTemplate);
   },
 
   update(
@@ -104,7 +120,7 @@ export const templatesService = {
     body: { name?: string; folder?: string; content?: unknown },
     orgId?: string
   ) {
-    return request<any>(
+    return request<unknown>(
       { method: "PUT", url: `/templates/${id}`, data: body },
       orgId
     ).then(normalizeTemplate);

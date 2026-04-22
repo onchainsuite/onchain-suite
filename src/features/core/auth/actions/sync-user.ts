@@ -46,7 +46,7 @@ export async function syncUserDataWithGuard(
     //   lastName: userData.lastName,
     // });
 
-    console.log("Syncing user data (mock):", {
+    String({
       id: user.id,
       email: userData.email ?? user.email,
       name: getFullName(userData.firstName, userData.lastName),

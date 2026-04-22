@@ -1,11 +1,22 @@
 import { headers } from "next/headers";
 
-const normalizeSessionResponse = (payload: any) => {
-  const root = payload?.data ?? payload;
-  const session =
-    root?.session ?? root?.data?.session ?? payload?.session ?? {};
-  const user = root?.user ?? root?.data?.user ?? payload?.user ?? null;
+import { isJsonObject } from "@/lib/utils";
+
+const normalizeSessionResponse = (payload: unknown) => {
+  const payloadObj = isJsonObject(payload) ? payload : undefined;
+  const root = payloadObj?.data ?? payload;
+  const rootObj = isJsonObject(root) ? root : payloadObj;
+  const nestedRoot = isJsonObject(rootObj?.data) ? rootObj.data : undefined;
+
+  const userCandidate =
+    rootObj?.user ?? nestedRoot?.user ?? payloadObj?.user ?? null;
+  const user = isJsonObject(userCandidate) ? userCandidate : null;
   if (!user) return null;
+
+  const sessionCandidate =
+    rootObj?.session ?? nestedRoot?.session ?? payloadObj?.session ?? {};
+  const session = isJsonObject(sessionCandidate) ? sessionCandidate : {};
+
   return { session, user };
 };
 

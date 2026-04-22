@@ -1,7 +1,7 @@
 import type { AxiosError, AxiosRequestConfig } from "axios";
 
 import { apiClient } from "@/lib/api-client";
-import { getSelectedOrganizationId } from "@/lib/utils";
+import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 export interface NotificationItem {
   id: string;
@@ -21,8 +21,11 @@ export interface ListNotificationsParams {
 const pickOrgId = (orgId?: string) =>
   orgId ?? getSelectedOrganizationId() ?? null;
 
-const extractData = <T>(payload: any): T => {
-  return (payload?.data ?? payload) as T;
+const extractData = <T>(payload: unknown): T => {
+  if (isJsonObject(payload) && "data" in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
 };
 
 const request = async <T>(
@@ -40,41 +43,55 @@ const request = async <T>(
     const res = await apiClient.request<T>({ ...config, headers });
     return extractData<T>(res.data);
   } catch (e) {
-    const err = e as AxiosError<any>;
+    const err = e as AxiosError<unknown>;
+    const data = err.response?.data;
+    const dataObj = isJsonObject(data) ? data : undefined;
+    const nestedError =
+      isJsonObject(dataObj?.error) ? dataObj.error : undefined;
     const message =
-      err?.response?.data?.error?.message ??
-      err?.response?.data?.message ??
-      err?.message ??
+      (isJsonObject(nestedError) ? nestedError.message : undefined) ??
+      (isJsonObject(dataObj) ? dataObj.message : undefined) ??
+      err.message ??
       "Notifications request failed";
     throw new Error(String(message));
   }
 };
 
-const normalizeNotification = (raw: any): NotificationItem => {
+const extractList = (payload: unknown): unknown[] => {
+  const root =
+    isJsonObject(payload) && "data" in payload
+      ? (payload.data ?? payload)
+      : payload;
+  if (Array.isArray(root)) return root;
+  if (isJsonObject(root) && Array.isArray(root.items)) return root.items;
+  if (isJsonObject(root) && Array.isArray(root.data)) return root.data;
+  return [];
+};
+
+const normalizeNotification = (raw: unknown): NotificationItem => {
+  const obj = isJsonObject(raw) ? raw : {};
   return {
-    id: String(raw?.id ?? ""),
-    title: raw?.title ? String(raw.title) : undefined,
-    message: raw?.message
-      ? String(raw.message)
-      : raw?.body
-        ? String(raw.body)
+    id: String(obj.id ?? ""),
+    title: obj.title ? String(obj.title) : undefined,
+    message: obj.message
+      ? String(obj.message)
+      : obj.body
+        ? String(obj.body)
         : undefined,
-    type: raw?.type ? String(raw.type) : undefined,
-    read: raw?.read !== undefined ? Boolean(raw.read) : undefined,
-    createdAt: raw?.createdAt ? String(raw.createdAt) : undefined,
-    ...raw,
+    type: obj.type ? String(obj.type) : undefined,
+    read: obj.read !== undefined ? Boolean(obj.read) : undefined,
+    createdAt: obj.createdAt ? String(obj.createdAt) : undefined,
+    ...obj,
   };
 };
 
 export const notificationsService = {
   list(params?: ListNotificationsParams, orgId?: string) {
-    return request<any>(
+    return request<unknown>(
       { method: "GET", url: "/notifications", params },
       orgId
     ).then((d) => {
-      const list = (d as any)?.items ?? (d as any)?.data ?? d;
-      const arr = Array.isArray(list) ? list : [];
-      return arr.map(normalizeNotification);
+      return extractList(d).map(normalizeNotification);
     });
   },
 

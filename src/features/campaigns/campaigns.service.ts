@@ -1,7 +1,7 @@
 import type { AxiosError, AxiosRequestConfig } from "axios";
 
 import { apiClient } from "@/lib/api-client";
-import { getSelectedOrganizationId } from "@/lib/utils";
+import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import type { Campaign } from "./types/campaign";
 
@@ -85,8 +85,11 @@ export interface CampaignTypeItem {
 const pickOrgId = (orgId?: string) =>
   orgId ?? getSelectedOrganizationId() ?? null;
 
-const extractData = <T>(payload: any): T => {
-  return (payload?.data ?? payload) as T;
+const extractData = <T>(payload: unknown): T => {
+  if (isJsonObject(payload) && "data" in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
 };
 
 const request = async <T>(
@@ -104,35 +107,76 @@ const request = async <T>(
     const res = await apiClient.request<T>({ ...config, headers });
     return extractData<T>(res.data);
   } catch (e) {
-    const err = e as AxiosError<any>;
-    const message =
-      err?.response?.data?.error?.message ??
-      err?.response?.data?.message ??
-      err?.message ??
-      "Campaigns request failed";
+    const err = e as AxiosError<unknown>;
+    const data = err.response?.data;
+    const nestedError =
+      isJsonObject(data) && isJsonObject(data.error) ? data.error : undefined;
+    const message = isJsonObject(nestedError)
+      ? nestedError.message
+      : isJsonObject(data)
+        ? data.message
+        : (err.message ?? "Campaigns request failed");
     throw new Error(String(message));
   }
 };
 
-const toCampaign = (raw: any): Campaign => {
-  const createdAt = raw?.createdAt
-    ? new Date(String(raw.createdAt))
+const campaignTypes = new Set<Campaign["type"]>([
+  "email-blast",
+  "drip-campaign",
+  "smart-sending",
+  "newsletter",
+  "promotional",
+  "announcement",
+  "automation",
+]);
+const campaignStatuses = new Set<Campaign["status"]>([
+  "draft",
+  "scheduled",
+  "sending",
+  "sent",
+  "paused",
+  "failed",
+]);
+
+const isCampaignType = (value: unknown): value is Campaign["type"] =>
+  typeof value === "string" && campaignTypes.has(value as Campaign["type"]);
+
+const isCampaignStatus = (value: unknown): value is Campaign["status"] =>
+  typeof value === "string" && campaignStatuses.has(value as Campaign["status"]);
+
+const extractList = (payload: unknown): unknown[] => {
+  const root =
+    isJsonObject(payload) && "data" in payload
+      ? (payload.data ?? payload)
+      : payload;
+  if (Array.isArray(root)) return root;
+  if (isJsonObject(root) && Array.isArray(root.items)) return root.items;
+  if (isJsonObject(root) && Array.isArray(root.data)) return root.data;
+  return [];
+};
+
+const toCampaign = (raw: unknown): Campaign => {
+  const obj = isJsonObject(raw) ? raw : {};
+  const createdAt = obj.createdAt
+    ? new Date(String(obj.createdAt))
     : new Date();
-  const scheduledFor = raw?.scheduledFor
-    ? new Date(String(raw.scheduledFor))
+  const scheduledFor = obj.scheduledFor
+    ? new Date(String(obj.scheduledFor))
     : undefined;
-  const sentAt = raw?.sentAt ? new Date(String(raw.sentAt)) : undefined;
+  const sentAt = obj.sentAt ? new Date(String(obj.sentAt)) : undefined;
+  const type = isCampaignType(obj.type) ? obj.type : "email-blast";
+  const status = isCampaignStatus(obj.status) ? obj.status : "draft";
 
   return {
-    id: String(raw?.id ?? ""),
-    name: String(raw?.name ?? raw?.title ?? "Untitled"),
-    type: (raw?.type ?? "email-blast") as any,
-    status: (raw?.status ?? "draft") as any,
-    subject: String(raw?.subject ?? ""),
-    audience: Array.isArray(raw?.audience) ? raw.audience : [],
-    recipients: Number(raw?.recipients ?? raw?.recipientCount ?? 0),
-    openRate: raw?.openRate !== undefined ? Number(raw.openRate) : undefined,
-    clickRate: raw?.clickRate !== undefined ? Number(raw.clickRate) : undefined,
+    id: String(obj.id ?? ""),
+    name: String(obj.name ?? obj.title ?? "Untitled"),
+    type,
+    status,
+    subject: String(obj.subject ?? ""),
+    audience: Array.isArray(obj.audience) ? obj.audience.map(String) : [],
+    recipients: Number(obj.recipients ?? obj.recipientCount ?? 0),
+    openRate: obj.openRate !== undefined ? Number(obj.openRate) : undefined,
+    clickRate: obj.clickRate !== undefined ? Number(obj.clickRate) : undefined,
     createdAt,
     scheduledFor,
     sentAt,
@@ -141,31 +185,28 @@ const toCampaign = (raw: any): Campaign => {
 
 export const campaignsService = {
   listCampaigns(params?: ListCampaignsParams, orgId?: string) {
-    return request<any>(
+    return request<unknown>(
       { method: "GET", url: "/campaigns", params },
       orgId
-    ).then((d) => {
-      const list = (d as any)?.items ?? (d as any)?.data ?? d;
-      const arr = Array.isArray(list) ? list : [];
-      return arr.map(toCampaign);
-    });
+    ).then((d) => extractList(d).map(toCampaign));
   },
 
   createCampaign(body: Record<string, unknown>, orgId?: string) {
-    return request<any>(
+    return request<unknown>(
       { method: "POST", url: "/campaigns", data: body },
       orgId
     ).then(toCampaign);
   },
 
   getCampaign(id: string, orgId?: string) {
-    return request<any>({ method: "GET", url: `/campaigns/${id}` }, orgId).then(
-      toCampaign
-    );
+    return request<unknown>(
+      { method: "GET", url: `/campaigns/${id}` },
+      orgId
+    ).then(toCampaign);
   },
 
   updateCampaign(id: string, body: Record<string, unknown>, orgId?: string) {
-    return request<any>(
+    return request<unknown>(
       { method: "PUT", url: `/campaigns/${id}`, data: body },
       orgId
     ).then(toCampaign);
@@ -295,7 +336,7 @@ export const campaignsService = {
   },
 
   duplicateCampaign(id: string, orgId?: string) {
-    return request<any>(
+    return request<unknown>(
       { method: "POST", url: `/campaigns/${id}/duplicate` },
       orgId
     ).then(toCampaign);
@@ -309,13 +350,10 @@ export const campaignsService = {
   },
 
   getEvents(id: string, orgId?: string) {
-    return request<any[]>(
+    return request<unknown>(
       { method: "GET", url: `/campaigns/${id}/events` },
       orgId
-    ).then((d) => {
-      const list = (d as any)?.items ?? (d as any)?.data ?? d;
-      return Array.isArray(list) ? list : [];
-    });
+    ).then((d) => extractList(d));
   },
 
   launchCampaign(id: string, orgId?: string) {
@@ -326,27 +364,38 @@ export const campaignsService = {
   },
 
   getCalendar(orgId?: string) {
-    return request<any>(
+    return request<unknown>(
       { method: "GET", url: "/campaigns/calendar" },
       orgId
-    ).then((d) => {
-      const list = (d as any)?.items ?? (d as any)?.data ?? d;
-      const arr = Array.isArray(list) ? (list as CampaignCalendarItem[]) : [];
-      return arr;
-    });
+    ).then((d) =>
+      extractList(d).map((item) => {
+        const obj = isJsonObject(item) ? item : {};
+        return {
+          id: String(obj.id ?? ""),
+          name: String(obj.name ?? ""),
+          status: typeof obj.status === "string" ? obj.status : undefined,
+          scheduledFor:
+            typeof obj.scheduledFor === "string" ? obj.scheduledFor : undefined,
+          sentAt: typeof obj.sentAt === "string" ? obj.sentAt : undefined,
+          ...obj,
+        } as CampaignCalendarItem;
+      })
+    );
   },
 
   listCampaignTypes(orgId?: string) {
-    return request<any>({ method: "GET", url: "/campaign-types" }, orgId).then(
-      (d) => {
-        const list = (d as any)?.items ?? (d as any)?.data ?? d;
-        const arr = Array.isArray(list) ? list : [];
-        return arr.map((t: any) => ({
-          id: String(t?.id ?? t?.value ?? ""),
-          label: t?.label ? String(t.label) : undefined,
-          ...t,
-        })) as CampaignTypeItem[];
-      }
+    return request<unknown>(
+      { method: "GET", url: "/campaign-types" },
+      orgId
+    ).then((d) =>
+      extractList(d).map((t) => {
+        const obj = isJsonObject(t) ? t : {};
+        return {
+          id: String(obj.id ?? obj.value ?? ""),
+          label: obj.label ? String(obj.label) : undefined,
+          ...obj,
+        } as CampaignTypeItem;
+      })
     );
   },
 };

@@ -60,21 +60,21 @@ export function DashboardLayout({
   }, [isMounted]);
 
   useEffect(() => {
-    const onStart = () => {
+    const onStart = (_e: Event) => {
       setIsSwitchingOrg(true);
       setSelectedOrgId(getSelectedOrganizationId());
     };
-    const onDone = () => {
+    const onDone = (_e: Event) => {
       setIsSwitchingOrg(false);
       setSelectedOrgId(getSelectedOrganizationId());
     };
-    window.addEventListener("onchain:org-switch-start", onStart as any);
-    window.addEventListener("onchain:org-changed", onDone as any);
-    window.addEventListener("onchain:org-switch-failed", onDone as any);
+    window.addEventListener("onchain:org-switch-start", onStart);
+    window.addEventListener("onchain:org-changed", onDone);
+    window.addEventListener("onchain:org-switch-failed", onDone);
     return () => {
-      window.removeEventListener("onchain:org-switch-start", onStart as any);
-      window.removeEventListener("onchain:org-changed", onDone as any);
-      window.removeEventListener("onchain:org-switch-failed", onDone as any);
+      window.removeEventListener("onchain:org-switch-start", onStart);
+      window.removeEventListener("onchain:org-changed", onDone);
+      window.removeEventListener("onchain:org-switch-failed", onDone);
     };
   }, []);
 

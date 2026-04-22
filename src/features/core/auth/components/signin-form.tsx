@@ -77,11 +77,13 @@ export function SignInForm({
       } else {
         push(PRIVATE_ROUTES.CAMPAIGNS);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Sign in error:", error);
       const displayMessage =
-        pickNonEmptyString(error?.response?.data?.message, error?.message) ??
-        "Failed to sign in. Please try again.";
+        pickNonEmptyString(
+          error instanceof Error ? error.message : undefined,
+          String(error)
+        ) ?? "Failed to sign in. Please try again.";
       toast.error(displayMessage);
     } finally {
       setIsLoading(false);
@@ -99,7 +101,7 @@ export function SignInForm({
           }
         );
 
-        const { data: idToken } = await authClient.signIn.social({
+        await authClient.signIn.social({
           provider: "google",
           idToken: userInfo.data.sub, // Use the user's Google ID as the ID token
         });
