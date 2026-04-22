@@ -51,9 +51,9 @@ export function getAllTimezones(): TimezoneInfo[] {
   // Use Intl.supportedValuesOf if available (Node 18+ / Modern Browsers)
   let timeZones: string[] = [];
   try {
-    const supportedValuesOf = (Intl as any).supportedValuesOf as
-      | undefined
-      | ((key: string) => string[]);
+    const { supportedValuesOf } = Intl as unknown as {
+      supportedValuesOf?: (key: string) => string[];
+    };
     if (supportedValuesOf) {
       timeZones = supportedValuesOf("timeZone");
     }

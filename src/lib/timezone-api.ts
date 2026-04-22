@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 import { getTimezoneDisplay } from "@/lib/timezone";
+import { isJsonObject } from "@/lib/utils";
 
 type RawResponse = string[] | { data?: string[] } | unknown;
 
@@ -28,10 +29,10 @@ export function formatTimezone(tz: string): TimezoneEntry {
 
 async function fetchFromPrimary(): Promise<string[]> {
   const res = await apiClient.get("/timezones");
-  const data = res.data as RawResponse as any;
+  const data: unknown = res.data as RawResponse;
   const list = Array.isArray(data)
     ? data
-    : Array.isArray(data?.data)
+    : isJsonObject(data) && Array.isArray(data.data)
       ? data.data
       : [];
   return list.filter((v: unknown) => typeof v === "string");

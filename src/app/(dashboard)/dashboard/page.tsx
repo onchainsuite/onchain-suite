@@ -16,22 +16,34 @@ function toTitleName(email?: string): string | undefined {
 
 export default async function DashboardPage() {
   const session = await getAuthSession();
-  const firstLast = getFullName(
-    session?.user?.firstName,
-    session?.user?.lastName
-  );
+  const firstName =
+    typeof session?.user?.firstName === "string"
+      ? session.user.firstName
+      : undefined;
+  const lastName =
+    typeof session?.user?.lastName === "string"
+      ? session.user.lastName
+      : undefined;
+  const name =
+    typeof session?.user?.name === "string" ? session.user.name : undefined;
+  const email =
+    typeof session?.user?.email === "string" ? session.user.email : undefined;
+  const timezone =
+    typeof session?.user?.timezone === "string"
+      ? session.user.timezone
+      : undefined;
+  const isNewUser = Boolean(session?.user?.isNewUser);
+
+  const firstLast = getFullName(firstName, lastName);
   const fullName =
-    session?.user?.name ??
-    (firstLast && firstLast.length > 0
-      ? firstLast
-      : toTitleName(session?.user?.email));
-  const timezone = session?.user?.timezone;
+    name ??
+    (firstLast && firstLast.length > 0 ? firstLast : toTitleName(email));
 
   const userData = {
     projectName: "YieldFarm DAO",
     userType: "DeFi" as const,
     trialDaysLeft: 7,
-    isNewUser: !!session?.user?.isNewUser,
+    isNewUser,
     subscriptionTier: "free_trial" as const,
     fullName,
     timezone,

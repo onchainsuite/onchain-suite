@@ -13,7 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
+import { isJsonObject } from "@/lib/utils";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { useTimezones } from "@/shared/hooks/client/use-timezones";
@@ -32,7 +34,13 @@ const PersonalDetails = () => {
 
   useEffect(() => {
     if (session?.user) {
-      const { name, email, timezone } = session.user as any;
+      const userObj: Record<string, unknown> = isJsonObject(session.user)
+        ? session.user
+        : {};
+      const name = typeof userObj.name === "string" ? userObj.name : "";
+      const email = typeof userObj.email === "string" ? userObj.email : "";
+      const timezone =
+        typeof userObj.timezone === "string" ? userObj.timezone : "";
       const [firstName = "", lastName = ""] = name.split(" ");
       const inferredTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setFormData({
@@ -52,10 +60,10 @@ const PersonalDetails = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await authClient.updateUser({
+      await apiClient.put("/user/profile", {
         name: `${formData.firstName} ${formData.lastName}`.trim(),
         timezone: formData.timezone,
-      } as any);
+      });
       toast.success("Profile updated successfully");
     } catch {
       toast.error("Failed to update profile");

@@ -22,18 +22,19 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import React, { useEffect, useMemo, useState, type ReactElement } from "react";
+import React, { type ReactElement, useEffect, useMemo, useState } from "react";
+
+import { isJsonObject } from "@/lib/utils";
 
 import {
-  audienceService,
   type AudienceProfile,
+  audienceService,
 } from "@/features/audience/audience.service";
 import {
   getHealthBarColor,
   getHealthColor,
   getStatusIcon,
 } from "@/features/audience/utils";
-import { isJsonObject } from "@/lib/utils";
 
 const generateMockProfiles = () => {
   const names = [

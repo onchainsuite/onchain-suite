@@ -5,6 +5,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
+import { isJsonObject } from "@/lib/utils";
+
 import { fadeInUp, staggerContainer } from "../../utils";
 import { billingService } from "@/features/billing/billing.service";
 import { Checkbox } from "@/shared/components/ui/checkbox";
@@ -48,8 +50,10 @@ const PaymentMethod = () => {
         queryKey: ["billing", "payment-methods"],
       });
     },
-    onError: (e: any) =>
-      toast.error(String(e?.message ?? "Failed to update payment method")),
+    onError: (e: unknown) =>
+      toast.error(
+        e instanceof Error ? e.message : "Failed to update payment method"
+      ),
   });
 
   const removeMutation = useMutation({
@@ -60,12 +64,20 @@ const PaymentMethod = () => {
         queryKey: ["billing", "payment-methods"],
       });
     },
-    onError: (e: any) =>
-      toast.error(String(e?.message ?? "Failed to remove payment method")),
+    onError: (e: unknown) =>
+      toast.error(
+        e instanceof Error ? e.message : "Failed to remove payment method"
+      ),
   });
 
-  const methodsRaw =
-    (methodsQuery.data as any)?.items ?? (methodsQuery.data as any)?.data;
+  const methodsData: unknown = methodsQuery.data;
+  const methodsRaw = isJsonObject(methodsData)
+    ? Array.isArray(methodsData.items)
+      ? methodsData.items
+      : Array.isArray(methodsData.data)
+        ? methodsData.data
+        : undefined
+    : undefined;
   const methods = Array.isArray(methodsRaw) ? methodsRaw : [];
 
   const addMutation = useMutation({
@@ -91,8 +103,10 @@ const PaymentMethod = () => {
         queryKey: ["billing", "payment-methods"],
       });
     },
-    onError: (e: any) =>
-      toast.error(String(e?.message ?? "Failed to add payment method")),
+    onError: (e: unknown) =>
+      toast.error(
+        e instanceof Error ? e.message : "Failed to add payment method"
+      ),
   });
 
   React.useEffect(() => {
@@ -147,14 +161,15 @@ const PaymentMethod = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {methods.map((m: any, idx: number) => {
-              const isDefault = !!m?.isDefault;
-              const brand = String(m?.brand ?? m?.type ?? "Payment");
-              const last4 = m?.last4 ? String(m.last4) : "";
+            {methods.map((m, idx: number) => {
+              const obj = isJsonObject(m) ? m : {};
+              const isDefault = Boolean(obj.isDefault);
+              const brand = String(obj.brand ?? obj.type ?? "Payment");
+              const last4 = obj.last4 ? String(obj.last4) : "";
               const label = last4 ? `${brand} ending in ${last4}` : brand;
               return (
                 <div
-                  key={m?.id ?? idx}
+                  key={String(obj.id ?? idx)}
                   className="flex items-center justify-between rounded-2xl border border-border/60 bg-card p-6 lg:p-8"
                 >
                   <div className="flex items-center gap-4 min-w-0">
@@ -175,7 +190,7 @@ const PaymentMethod = () => {
                         ) : null}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {m?.type ? String(m.type).toUpperCase() : ""}
+                        {obj.type ? String(obj.type).toUpperCase() : ""}
                       </div>
                     </div>
                   </div>
@@ -184,7 +199,9 @@ const PaymentMethod = () => {
                       <Button
                         variant="outline"
                         disabled={setDefaultMutation.isPending}
-                        onClick={() => setDefaultMutation.mutate(String(m.id))}
+                        onClick={() =>
+                          setDefaultMutation.mutate(String(obj.id ?? ""))
+                        }
                       >
                         Set default
                       </Button>
@@ -193,7 +210,9 @@ const PaymentMethod = () => {
                       variant="outline"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       disabled={removeMutation.isPending || isDefault}
-                      onClick={() => removeMutation.mutate(String(m.id))}
+                      onClick={() =>
+                        removeMutation.mutate(String(obj.id ?? ""))
+                      }
                     >
                       Remove
                     </Button>
@@ -214,7 +233,12 @@ const PaymentMethod = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Type</Label>
-              <Select value={type} onValueChange={(v) => setType(v as any)}>
+              <Select
+                value={type}
+                onValueChange={(v) =>
+                  setType(v === "card" || v === "crypto" ? v : "card")
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>

@@ -33,7 +33,7 @@ const Security = () => {
       toast.success("Password changed successfully");
       setCurrentPassword("");
       setNewPassword("");
-    } catch (error) {
+    } catch {
       toast.error("Failed to change password");
     } finally {
       setLoading(false);

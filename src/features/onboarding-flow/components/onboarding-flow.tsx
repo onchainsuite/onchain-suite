@@ -19,6 +19,7 @@ import { Progress } from "@/components/ui/progress";
 
 import { apiClient } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import { isJsonObject } from "@/lib/utils";
 
 interface OnboardingStep {
   id: string;
@@ -98,12 +99,19 @@ export function OnboardingFlow() {
   const loadOnboardingProgress = async () => {
     try {
       const res = await apiClient.get("/onboarding/progress");
-      const data = (res.data as any)?.data ?? res.data;
+      const payload: unknown = res.data;
+      const data =
+        isJsonObject(payload) && "data" in payload ? payload.data : payload;
+      const dataObj = isJsonObject(data) ? data : undefined;
+      const progressCandidate = dataObj?.progress;
 
-      if (data.progress) {
-        setProgress(data.progress);
+      if (isJsonObject(progressCandidate)) {
+        setProgress(progressCandidate as unknown as OnboardingProgress);
         // Find the current step based on completed steps
-        const completedSteps = data.progress.stepsCompleted;
+        const completedSteps =
+          typeof progressCandidate.stepsCompleted === "number"
+            ? progressCandidate.stepsCompleted
+            : 0;
         const nextStepIndex = Math.min(
           completedSteps,
           onboardingSteps.length - 1

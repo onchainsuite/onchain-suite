@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { cn } from "@/lib/utils";
+import { cn, isJsonObject } from "@/lib/utils";
 
 import type { Notification, NotificationType } from "@/types/notification";
 
@@ -27,9 +27,19 @@ import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
+  const notificationsQueryKey = ["notifications", "list"] as const;
+  const getCachedNotificationsArray = (
+    current: unknown
+  ): unknown[] | undefined => {
+    if (Array.isArray(current)) return current;
+    if (!isJsonObject(current)) return undefined;
+    if (Array.isArray(current.items)) return current.items;
+    if (Array.isArray(current.data)) return current.data;
+    return undefined;
+  };
 
   const notificationsQuery = useQuery({
-    queryKey: ["notifications", "list"],
+    queryKey: notificationsQueryKey,
     queryFn: () => notificationsService.list({ page: 1, limit: 50 }),
     retry: false,
     refetchOnWindowFocus: false,
@@ -62,50 +72,53 @@ export function NotificationBell() {
   const markReadMutation = useMutation({
     mutationFn: (id: string) => notificationsService.markRead(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["notifications", "list"] });
-      const prev = queryClient.getQueryData<any>(["notifications", "list"]);
-      queryClient.setQueryData(["notifications", "list"], (current: any) => {
-        const arr = Array.isArray(current)
-          ? current
-          : (current?.items ?? current?.data ?? []);
-        if (!Array.isArray(arr)) return current;
-        return arr.map((n: any) =>
-          String(n?.id ?? "") === id ? { ...n, read: true } : n
-        );
-      });
+      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
+      const prev = queryClient.getQueryData<unknown>(notificationsQueryKey);
+      queryClient.setQueryData<unknown>(
+        notificationsQueryKey,
+        (current: unknown) => {
+          const arr = getCachedNotificationsArray(current);
+          if (!arr) return current;
+          return arr.map((n) => {
+            if (!isJsonObject(n)) return n;
+            return String(n.id ?? "") === id ? { ...n, read: true } : n;
+          });
+        }
+      );
       return { prev };
     },
     onError: (_err, _id, ctx) => {
       if (ctx?.prev !== undefined) {
-        queryClient.setQueryData(["notifications", "list"], ctx.prev);
+        queryClient.setQueryData(notificationsQueryKey, ctx.prev);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
+      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
     },
   });
 
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationsService.markAllRead(),
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ["notifications", "list"] });
-      const prev = queryClient.getQueryData<any>(["notifications", "list"]);
-      queryClient.setQueryData(["notifications", "list"], (current: any) => {
-        const arr = Array.isArray(current)
-          ? current
-          : (current?.items ?? current?.data ?? []);
-        if (!Array.isArray(arr)) return current;
-        return arr.map((n: any) => ({ ...n, read: true }));
-      });
+      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
+      const prev = queryClient.getQueryData<unknown>(notificationsQueryKey);
+      queryClient.setQueryData<unknown>(
+        notificationsQueryKey,
+        (current: unknown) => {
+          const arr = getCachedNotificationsArray(current);
+          if (!arr) return current;
+          return arr.map((n) => (isJsonObject(n) ? { ...n, read: true } : n));
+        }
+      );
       return { prev };
     },
     onError: (_err, _v, ctx) => {
       if (ctx?.prev !== undefined) {
-        queryClient.setQueryData(["notifications", "list"], ctx.prev);
+        queryClient.setQueryData(notificationsQueryKey, ctx.prev);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
+      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
     },
   });
 
@@ -123,13 +136,17 @@ export function NotificationBell() {
 
   const removeNotification = (id: string) => {
     if (!notificationsQuery.isSuccess) return;
-    queryClient.setQueryData(["notifications", "list"], (current: any) => {
-      const arr = Array.isArray(current)
-        ? current
-        : (current?.items ?? current?.data ?? []);
-      if (!Array.isArray(arr)) return current;
-      return arr.filter((n: any) => String(n?.id ?? "") !== id);
-    });
+    queryClient.setQueryData<unknown>(
+      notificationsQueryKey,
+      (current: unknown) => {
+        const arr = getCachedNotificationsArray(current);
+        if (!arr) return current;
+        return arr.filter((n) => {
+          if (!isJsonObject(n)) return true;
+          return String(n.id ?? "") !== id;
+        });
+      }
+    );
   };
 
   const getNotificationIcon = (type: NotificationType) => {

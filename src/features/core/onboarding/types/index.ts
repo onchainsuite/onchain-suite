@@ -96,7 +96,7 @@ export interface OnboardingProgressWithLogs {
   startedAt: Date;
   completedAt: Date | null;
   lastActivityAt: Date;
-  stepData: Record<string, any>;
+  stepData: Record<string, unknown>;
   timeSpentSeconds: number;
   sessionCount: number;
   abandonedAt: Date | null;
@@ -108,7 +108,7 @@ export interface OnboardingProgressWithLogs {
     stepName: string;
     action: string;
     timeSpentSeconds: number;
-    stepData: Record<string, any>;
+    stepData: Record<string, unknown>;
     userAgent: string | null;
     ipAddress: string | null;
     createdAt: Date;

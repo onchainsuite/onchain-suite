@@ -28,7 +28,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { apiClient } from "@/lib/api-client";
-import { authClient } from "@/lib/auth-client";
 
 import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
@@ -81,7 +80,6 @@ export default function CompanyEditForm() {
     },
   });
 
-  const { data: session } = authClient.useSession();
   const { items: timezones, loading: tzLoading } = useTimezones();
 
   useEffect(() => {
@@ -106,7 +104,7 @@ export default function CompanyEditForm() {
           // If no org found or error, maybe 404
           console.error("Failed to fetch organization");
         }
-      } catch (e) {
+      } catch {
         toast.error("Failed to load company details");
       } finally {
         setLoading(false);
@@ -134,7 +132,7 @@ export default function CompanyEditForm() {
       });
 
       toast.success("Company details updated successfully");
-    } catch (error) {
+    } catch {
       setData(previousData);
       form.reset(previousData ?? undefined);
       toast.error("Failed to update company details");
@@ -150,7 +148,8 @@ export default function CompanyEditForm() {
         <div className="space-y-1">
           <CardTitle className="text-xl font-medium">Company Details</CardTitle>
           <CardDescription>
-            Manage your organization's public profile and billing information.
+            Manage your organization&apos;s public profile and billing
+            information.
           </CardDescription>
         </div>
         {!isEditing && (

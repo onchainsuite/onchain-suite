@@ -10,6 +10,7 @@ import { Form } from "@/components/ui/form";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
+import { isJsonObject } from "@/lib/utils";
 
 import { type OnboardingStepsProps } from "../types";
 import {
@@ -28,17 +29,47 @@ const normalizeWebsiteUrl = (input?: string) => {
   }
 };
 
+const pickNonEmptyString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return undefined;
+};
+
+const extractAxiosError = (error: unknown) => {
+  const err = error as {
+    message?: unknown;
+    response?: { status?: unknown; data?: unknown };
+  };
+  const status =
+    typeof err.response?.status === "number" ? err.response.status : undefined;
+  const data = err.response?.data;
+  const dataObj = isJsonObject(data) ? data : undefined;
+  const nestedError = isJsonObject(dataObj?.error) ? dataObj.error : undefined;
+  const message =
+    pickNonEmptyString(
+      isJsonObject(nestedError) ? nestedError.message : undefined,
+      dataObj?.message,
+      dataObj?.error,
+      err.message
+    ) ?? "";
+  return { status, message };
+};
+
 const findExistingOrganizationId = (
-  payload: any,
+  payload: unknown,
   expectedName: string,
   expectedSlug: string
 ): string | null => {
-  const root = payload?.data ?? payload;
+  const root =
+    isJsonObject(payload) && "data" in payload ? payload.data : payload;
   const list = Array.isArray(root)
     ? root
-    : Array.isArray(root?.data)
+    : isJsonObject(root) && Array.isArray(root.data)
       ? root.data
-      : Array.isArray(root?.data?.data)
+      : isJsonObject(root) &&
+          isJsonObject(root.data) &&
+          Array.isArray(root.data.data)
         ? root.data.data
         : [];
 
@@ -47,11 +78,12 @@ const findExistingOrganizationId = (
   const nameLower = expectedName.toLowerCase().trim();
   const slugLower = expectedSlug.toLowerCase().trim();
 
-  const match = list.find((org: any) => {
-    const orgName = String(org?.name ?? "")
+  const match = list.find((org) => {
+    const orgObj = isJsonObject(org) ? org : {};
+    const orgName = String(orgObj.name ?? "")
       .toLowerCase()
       .trim();
-    const orgSlug = String(org?.slug ?? "")
+    const orgSlug = String(orgObj.slug ?? "")
       .toLowerCase()
       .trim();
     return (
@@ -60,7 +92,8 @@ const findExistingOrganizationId = (
     );
   });
 
-  const id = match?.id ?? match?.organizationId ?? null;
+  const matchObj = isJsonObject(match) ? match : undefined;
+  const id = matchObj?.id ?? matchObj?.organizationId ?? null;
   return typeof id === "string" && id.length > 0 ? id : null;
 };
 
@@ -88,8 +121,6 @@ export function OrganizationSetupStep({
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
-
-      console.log("Attempting to create organization...");
 
       // Ensure session is fresh
       const { data: session } = await authClient.getSession();
@@ -125,11 +156,16 @@ export function OrganizationSetupStep({
             "/organization/create",
             createPayload
           );
-          const body = response.data as any;
-          const createdOrg = body?.data ?? body?.organization ?? body;
+          const body: unknown = response.data;
+          const bodyObj = isJsonObject(body) ? body : undefined;
+          const createdOrgCandidate =
+            bodyObj?.data ?? bodyObj?.organization ?? bodyObj ?? body;
+          const createdOrg = isJsonObject(createdOrgCandidate)
+            ? createdOrgCandidate
+            : undefined;
           const organizationId =
             createdOrg?.id ?? createdOrg?.organizationId ?? null;
-          if (organizationId) {
+          if (typeof organizationId === "string" && organizationId.length > 0) {
             await apiClient.post("/organization/set-active", {
               organizationId,
             });
@@ -138,21 +174,11 @@ export function OrganizationSetupStep({
         };
 
         try {
-          const response = await createOrganization();
-          console.log(
-            "Organization created successfully via custom endpoint:",
-            response.data
-          );
-        } catch (err: any) {
-          const messageRaw =
-            err?.response?.data?.error?.message ??
-            err?.response?.data?.message ??
-            err?.response?.data?.error ??
-            err?.message ??
-            "";
-          const message = String(messageRaw);
+          await createOrganization();
+        } catch (err) {
+          const { status, message } = extractAxiosError(err);
 
-          if (err?.response?.status === 409) {
+          if (status === 409) {
             try {
               const listRes = await apiClient.get("/organization/list");
               const existingId = findExistingOrganizationId(
@@ -174,22 +200,13 @@ export function OrganizationSetupStep({
 
             try {
               createPayload.slug = generateUniqueSlug(slug);
-              const response = await createOrganization();
-              console.log(
-                "Organization created successfully via custom endpoint (unique slug):",
-                response.data
-              );
+              await createOrganization();
               await authClient.getSession();
               await onNext(data);
               return;
-            } catch (retryErr: any) {
-              const retryMsgRaw =
-                retryErr?.response?.data?.error?.message ??
-                retryErr?.response?.data?.message ??
-                retryErr?.response?.data?.error ??
-                retryErr?.message ??
-                "";
-              const retryMsg = String(retryMsgRaw);
+            } catch (retryErr) {
+              const { message: retryMessage } = extractAxiosError(retryErr);
+              const retryMsg = String(retryMessage);
               toast.error(
                 retryMsg.length > 0
                   ? retryMsg
@@ -199,10 +216,7 @@ export function OrganizationSetupStep({
             }
           }
 
-          if (
-            err?.response?.status === 400 &&
-            message.toLowerCase().includes("foreign key")
-          ) {
+          if (status === 400 && message.toLowerCase().includes("foreign key")) {
             try {
               const profileName =
                 session?.user?.name ??
@@ -211,17 +225,13 @@ export function OrganizationSetupStep({
                 "User";
               try {
                 await apiClient.get("/user/profile");
-              } catch (profileErr: any) {
-                const profileMessageRaw =
-                  profileErr?.response?.data?.error?.message ??
-                  profileErr?.response?.data?.message ??
-                  profileErr?.response?.data?.error ??
-                  profileErr?.message ??
-                  "";
+              } catch (profileErr) {
+                const { status: profileStatus, message: profileMessageRaw } =
+                  extractAxiosError(profileErr);
                 const profileMessage = String(profileMessageRaw);
 
                 if (
-                  profileErr?.response?.status === 404 ||
+                  profileStatus === 404 ||
                   profileMessage.toLowerCase().includes("record not found")
                 ) {
                   try {
@@ -235,25 +245,22 @@ export function OrganizationSetupStep({
                   throw profileErr;
                 }
               }
-            } catch (profileBootstrapErr: any) {
-              const profileBootstrapMsgRaw =
-                profileBootstrapErr?.response?.data?.error?.message ??
-                profileBootstrapErr?.response?.data?.message ??
-                profileBootstrapErr?.response?.data?.error ??
-                profileBootstrapErr?.message ??
-                "Failed to create your user profile.";
-              toast.error(String(profileBootstrapMsgRaw));
+            } catch (profileBootstrapErr) {
+              const { message: profileBootstrapMsgRaw } =
+                extractAxiosError(profileBootstrapErr);
+              toast.error(
+                profileBootstrapMsgRaw.length > 0
+                  ? profileBootstrapMsgRaw
+                  : "Failed to create your user profile."
+              );
               throw profileBootstrapErr;
             }
 
             try {
-              const response = await createOrganization();
-              console.log(
-                "Organization created successfully after profile bootstrap:",
-                response.data
-              );
-            } catch (finalErr: any) {
-              if (finalErr?.response?.status === 409) {
+              await createOrganization();
+            } catch (finalErr) {
+              const { status: finalStatus } = extractAxiosError(finalErr);
+              if (finalStatus === 409) {
                 try {
                   const listRes = await apiClient.get("/organization/list");
                   const existingId = findExistingOrganizationId(
@@ -275,11 +282,7 @@ export function OrganizationSetupStep({
 
                 try {
                   createPayload.slug = generateUniqueSlug(slug);
-                  const response = await createOrganization();
-                  console.log(
-                    "Organization created successfully after profile bootstrap (unique slug):",
-                    response.data
-                  );
+                  await createOrganization();
                   await authClient.getSession();
                   await onNext(data);
                   return;
@@ -288,12 +291,7 @@ export function OrganizationSetupStep({
                 }
               }
 
-              const finalRaw =
-                finalErr?.response?.data?.error?.message ??
-                finalErr?.response?.data?.message ??
-                finalErr?.response?.data?.error ??
-                finalErr?.message ??
-                "";
+              const { message: finalRaw } = extractAxiosError(finalErr);
               const finalMsg = String(finalRaw);
               toast.error(
                 finalMsg.length > 0
@@ -307,10 +305,11 @@ export function OrganizationSetupStep({
           }
         }
       } else {
-        console.log("Organization created successfully via BetterAuth:", org);
-
-        const createdOrgId = (org as any)?.id ?? (org as any)?.data?.id ?? null;
-        if (createdOrgId) {
+        const orgCandidate: unknown = org;
+        const orgObj = isJsonObject(orgCandidate) ? orgCandidate : undefined;
+        const nestedData = isJsonObject(orgObj?.data) ? orgObj.data : undefined;
+        const createdOrgId = orgObj?.id ?? nestedData?.id ?? null;
+        if (typeof createdOrgId === "string" && createdOrgId.length > 0) {
           await apiClient.post("/organization/set-active", {
             organizationId: createdOrgId,
           });
@@ -321,26 +320,17 @@ export function OrganizationSetupStep({
       await authClient.getSession();
 
       await onNext(data);
-    } catch (error: any) {
-      if (error?.response?.status !== 409) {
+    } catch (error) {
+      const { status, message } = extractAxiosError(error);
+      if (status !== 409) {
         console.error("Failed to create organization (catch block):", error);
       }
 
-      let displayMessage = "Failed to create organization. Please try again.";
-
-      // Handle Axios error structure
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        const rawMessage =
-          errorData?.message ?? errorData?.error ?? errorData?.details?.message;
-        displayMessage =
-          typeof rawMessage === "object"
-            ? JSON.stringify(rawMessage)
-            : String(rawMessage);
-      } else if (error.message) {
-        displayMessage = error.message;
-      }
-
+      const fallback =
+        error instanceof Error
+          ? error.message
+          : "Failed to create organization. Please try again.";
+      const displayMessage = message.length > 0 ? message : fallback;
       toast.error(displayMessage);
     }
   };

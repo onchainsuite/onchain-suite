@@ -18,7 +18,11 @@ export async function getAuthenticatedUserId(): Promise<string> {
   if (!session?.user) {
     redirect("/");
   }
-  return session.user.id;
+  const { id } = session.user;
+  if (typeof id !== "string" || id.length === 0) {
+    redirect("/");
+  }
+  return id;
 }
 
 export async function syncUserDataWithGuard(

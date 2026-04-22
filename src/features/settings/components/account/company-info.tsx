@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
+import { isJsonObject } from "@/lib/utils";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { Button } from "@/shared/components/ui/button";
@@ -16,7 +17,17 @@ interface CompanyInfoProps {
   handleSave: (callback?: () => void) => void;
 }
 
-const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
+const pickNonEmptyString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return undefined;
+};
+
+const CompanyInfo = ({
+  saving: _saving,
+  handleSave: _handleSave,
+}: CompanyInfoProps) => {
   const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(false);
   const [activeOrgIdOverride, setActiveOrgIdOverride] = useState<string | null>(
@@ -30,8 +41,8 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
   });
 
   useEffect(() => {
-    const handler = (e: any) => {
-      const orgId = e?.detail?.orgId;
+    const handler = (event: Event) => {
+      const orgId = (event as CustomEvent<{ orgId?: unknown }>).detail?.orgId;
       if (typeof orgId === "string" && orgId.length > 0) {
         setActiveOrgIdOverride(orgId);
       }
@@ -44,33 +55,35 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
     const fetchOrg = async () => {
       try {
         const listRes = await apiClient.get("/organization/list");
-        const data = listRes.data as any;
-        const orgsData = Array.isArray(data) ? data : (data?.data ?? []);
+        const payload: unknown = listRes.data;
+        const root =
+          isJsonObject(payload) && "data" in payload ? payload.data : payload;
+        const orgsData = Array.isArray(root)
+          ? root
+          : isJsonObject(root) && Array.isArray(root.data)
+            ? root.data
+            : [];
 
         if (Array.isArray(orgsData) && orgsData.length > 0) {
           const activeId =
             activeOrgIdOverride ??
             session?.session?.activeOrganizationId ??
             null;
-          const currentOrg = activeId
-            ? (orgsData.find((o: any) => o.id === activeId) ?? orgsData[0])
+          const currentOrgRaw = activeId
+            ? (orgsData.find((o) => isJsonObject(o) && o.id === activeId) ??
+              orgsData[0])
             : orgsData[0];
-
-          const pickNonEmptyString = (...values: unknown[]) => {
-            for (const value of values) {
-              if (typeof value === "string" && value.trim().length > 0)
-                return value;
-            }
-            return undefined;
-          };
+          const currentOrg = isJsonObject(currentOrgRaw) ? currentOrgRaw : {};
+          const metadata = isJsonObject(currentOrg.metadata)
+            ? currentOrg.metadata
+            : undefined;
 
           const orgStatus =
-            pickNonEmptyString(
-              (currentOrg as any)?.status,
-              (currentOrg as any)?.metadata?.status
-            ) ?? "unknown";
+            pickNonEmptyString(currentOrg.status, metadata?.status) ??
+            "unknown";
 
-          const orgId = (currentOrg as any)?.id ?? null;
+          const orgId =
+            typeof currentOrg.id === "string" ? currentOrg.id : null;
           let website = "";
           let detailedStatus: string | undefined;
           if (orgId) {
@@ -78,23 +91,33 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
               const orgRes = await apiClient.get("/organization", {
                 headers: { "x-org-id": orgId },
               });
-              const orgPayload = (orgRes.data as any)?.data ?? orgRes.data;
-              const websiteValue =
-                orgPayload?.websiteUrl ??
-                orgPayload?.website_url ??
-                orgPayload?.website ??
-                "";
-              website = String(websiteValue);
-              detailedStatus =
-                orgPayload?.status ?? orgPayload?.metadata?.status ?? undefined;
+              const orgPayload: unknown = orgRes.data;
+              const orgData =
+                isJsonObject(orgPayload) && "data" in orgPayload
+                  ? orgPayload.data
+                  : orgPayload;
+              const orgObj = isJsonObject(orgData) ? orgData : undefined;
+              website =
+                pickNonEmptyString(
+                  orgObj?.websiteUrl,
+                  orgObj?.website_url,
+                  orgObj?.website
+                ) ?? "";
+              const orgMeta = isJsonObject(orgObj?.metadata)
+                ? orgObj.metadata
+                : undefined;
+              detailedStatus = pickNonEmptyString(
+                orgObj?.status,
+                orgMeta?.status
+              );
             } catch (_e) {
               String(_e);
             }
           }
 
           setFormData({
-            name: currentOrg.name ?? "",
-            slug: currentOrg.slug ?? "",
+            name: typeof currentOrg.name === "string" ? currentOrg.name : "",
+            slug: typeof currentOrg.slug === "string" ? currentOrg.slug : "",
             website,
             status: String(detailedStatus ?? orgStatus ?? "unknown"),
           });
@@ -133,7 +156,7 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
       } else {
         throw new Error("Failed to update organization");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update organization");
     } finally {
       setLoading(false);

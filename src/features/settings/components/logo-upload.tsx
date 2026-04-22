@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 
 import { authClient } from "@/lib/auth-client";
+import { isJsonObject } from "@/lib/utils";
 
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -109,30 +110,33 @@ const LogoUpload = ({
       }, 1500);
 
       setSuccess(true);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Upload error object:", error);
-      if (error.response) {
-        console.error("Upload error response status:", error.response.status);
-        console.error("Upload error response data:", error.response.data);
+      const axiosErr = axios.isAxiosError(error) ? error : undefined;
+      if (axiosErr?.response) {
+        console.error(
+          "Upload error response status:",
+          axiosErr.response.status
+        );
+        console.error("Upload error response data:", axiosErr.response.data);
       }
 
       let errorMessage = "Failed to upload logo";
 
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        if (typeof errorData.error === "string") {
-          errorMessage = errorData.error;
-        } else if (typeof errorData.details === "string") {
-          errorMessage = errorData.details;
-        } else if (errorData.error && typeof errorData.error === "object") {
-          // Handle structured error object
-          if (errorData.error.message) {
-            errorMessage = errorData.error.message;
-          } else {
-            errorMessage = JSON.stringify(errorData.error);
-          }
+      const responseData = axiosErr?.response?.data;
+      const errorData = isJsonObject(responseData) ? responseData : undefined;
+      const nestedError = errorData?.error;
+      if (typeof nestedError === "string") {
+        errorMessage = nestedError;
+      } else if (typeof errorData?.details === "string") {
+        errorMessage = errorData.details;
+      } else if (isJsonObject(nestedError)) {
+        if (typeof nestedError.message === "string") {
+          errorMessage = nestedError.message;
+        } else {
+          errorMessage = JSON.stringify(nestedError);
         }
-      } else if (error.message) {
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       }
 

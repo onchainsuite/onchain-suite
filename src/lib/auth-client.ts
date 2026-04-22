@@ -25,15 +25,13 @@ export const { useSession } = authClient;
 
 export const signInWithGoogle = async (idToken?: string) => {
   try {
-    const payload: Record<string, unknown> = {
+    type SocialPayload = Parameters<typeof authClient.signIn.social>[0];
+    const payload = {
       provider: "google",
       callbackURL: PRIVATE_ROUTES.CAMPAIGNS,
       newUserCallbackURL: AUTH_ROUTES.ONBOARDING,
-    };
-
-    if (idToken) {
-      payload.idToken = { token: idToken };
-    }
+      ...(idToken ? { idToken: { token: idToken } } : {}),
+    } satisfies SocialPayload;
 
     const data = await authClient.signIn.social(payload);
     return data;

@@ -2,9 +2,6 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { toast } from "sonner";
-
-import { authClient } from "@/lib/auth-client";
 
 import { fadeInUp } from "../../utils";
 import InviteUser from "../invite-user";
@@ -15,15 +12,11 @@ import SenderVerification from "./sender-verification";
 import TeamMembers from "./team-members";
 
 export default function AccountSettings() {
-  const { data: session } = authClient.useSession();
   const [showLogoUploadModal, setShowLogoUploadModal] = useState(false);
   const [logoUploadType, setLogoUploadType] = useState<
     "primary" | "dark" | "favicon"
   >("primary");
   const [showInviteUserModal, setShowInviteUserModal] = useState(false);
-  const [showVerifySenderModal, setShowVerifySenderModal] = useState(false);
-  const [newSenderEmail, setNewSenderEmail] = useState("");
-  const [newSenderName, setNewSenderName] = useState("");
   const [saving, setSaving] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -39,44 +32,6 @@ export default function AccountSettings() {
     await new Promise((r) => setTimeout(r, 1000));
     setSaving(false);
     callback?.();
-  };
-
-  const handleAddSender = async () => {
-    if (!newSenderEmail) return;
-    if (!session?.session?.activeOrganizationId) {
-      toast.error("No active organization");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const response = await fetch("/api/v1/sender-identities", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-org-id": session.session.activeOrganizationId,
-        },
-        body: JSON.stringify({
-          email: newSenderEmail,
-          name: newSenderName,
-        }),
-      });
-
-      if (response.ok) {
-        toast.success("Sender identity added");
-        setShowVerifySenderModal(false);
-        setNewSenderEmail("");
-        setNewSenderName("");
-        // Ideally force refresh SenderVerification list
-        triggerUpdate();
-      } else {
-        toast.error("Failed to add sender identity");
-      }
-    } catch (error) {
-      toast.error("Failed to add sender identity");
-    } finally {
-      setSaving(false);
-    }
   };
 
   return (

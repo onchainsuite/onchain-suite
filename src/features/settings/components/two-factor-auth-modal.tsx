@@ -407,9 +407,9 @@ const TwoFactorAuthModal = ({
 
                 <div className="relative rounded-lg border border-border/60 bg-muted/50 p-4 font-mono text-sm">
                   <div className="grid grid-cols-2 gap-2 text-center">
-                    {backupCodes.map((code, i) => (
+                    {backupCodes.map((code) => (
                       <div
-                        key={i}
+                        key={code}
                         className="rounded bg-background py-1 px-2 border border-border/40"
                       >
                         {code}

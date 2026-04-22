@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+import { cn, isJsonObject } from "@/lib/utils";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { Button } from "@/shared/components/ui/button";
@@ -26,23 +26,39 @@ const TeamMembers = ({
   refreshTrigger,
 }: TeamMembersProps) => {
   const { data: session } = authClient.useSession();
-  const [members, setMembers] = useState<any[]>([]);
-  const [invites, setInvites] = useState<any[]>([]);
+  const [members, setMembers] = useState<unknown[]>([]);
+  const [invites, setInvites] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const getEmail = (member: any): string => {
+  const getEmail = (member: unknown): string => {
+    const memberObj = isJsonObject(member) ? member : {};
+    const userObj = isJsonObject(memberObj.user) ? memberObj.user : {};
+    const profileObj = isJsonObject(memberObj.profile) ? memberObj.profile : {};
+    const firstUserEmails = Array.isArray(userObj.emails) ? userObj.emails : [];
+    const [firstUserEmail0] = firstUserEmails;
+    const firstUserEmailObj = isJsonObject(firstUserEmail0)
+      ? firstUserEmail0
+      : undefined;
+    const firstEmailAddresses = Array.isArray(userObj.emailAddresses)
+      ? userObj.emailAddresses
+      : [];
+    const [firstEmailAddress0] = firstEmailAddresses;
+    const firstEmailAddressObj = isJsonObject(firstEmailAddress0)
+      ? firstEmailAddress0
+      : undefined;
+
     const candidates = [
-      member?.email,
-      member?.user?.email,
-      member?.userEmail,
-      member?.user_email,
-      member?.profile?.email,
-      member?.user?.primaryEmail,
-      member?.user?.emailAddress,
-      member?.user?.email_address,
-      member?.user?.emails?.[0],
-      member?.user?.emails?.[0]?.email,
-      member?.user?.emailAddresses?.[0]?.emailAddress,
+      memberObj.email,
+      userObj.email,
+      memberObj.userEmail,
+      memberObj.user_email,
+      profileObj.email,
+      userObj.primaryEmail,
+      userObj.emailAddress,
+      userObj.email_address,
+      firstUserEmail0,
+      firstUserEmailObj?.email,
+      firstEmailAddressObj?.emailAddress,
     ];
 
     const first = candidates
@@ -52,7 +68,7 @@ const TeamMembers = ({
     if (first) return first;
 
     const memberUserId =
-      member?.userId ?? member?.user?.id ?? member?.memberId ?? member?.id;
+      memberObj.userId ?? userObj.id ?? memberObj.memberId ?? memberObj.id;
     const sessionUserId = session?.user?.id;
     const sessionEmail = session?.user?.email;
     if (sessionEmail && sessionUserId && memberUserId === sessionUserId) {
@@ -87,51 +103,51 @@ const TeamMembers = ({
 
           // Handle members response
           // Backend might return { items: [], meta: ... } or just [] or { data: [] }
-          const membersRaw = membersData;
-          let membersList: any[] = [];
-
+          const membersRaw: unknown = membersData;
+          let membersList: unknown[] = [];
           if (Array.isArray(membersRaw)) {
             membersList = membersRaw;
           } else if (
-            (membersRaw as any)?.members &&
-            Array.isArray((membersRaw as any).members)
+            isJsonObject(membersRaw) &&
+            Array.isArray(membersRaw.members)
           ) {
-            membersList = (membersRaw as any).members;
+            membersList = membersRaw.members;
           } else if (
-            (membersRaw as any)?.data?.members &&
-            Array.isArray((membersRaw as any).data.members)
+            isJsonObject(membersRaw) &&
+            isJsonObject(membersRaw.data) &&
+            Array.isArray(membersRaw.data.members)
           ) {
-            membersList = (membersRaw as any).data.members;
+            membersList = membersRaw.data.members;
           } else if (
-            (membersRaw as any)?.data &&
-            Array.isArray((membersRaw as any).data)
+            isJsonObject(membersRaw) &&
+            Array.isArray(membersRaw.data)
           ) {
-            membersList = (membersRaw as any).data;
+            membersList = membersRaw.data;
           }
           setMembers(membersList);
 
           // Handle invites response
           if (invitesData) {
-            const invitesRaw = invitesData;
-            let invitesList: any[] = [];
-
+            const invitesRaw: unknown = invitesData;
+            let invitesList: unknown[] = [];
             if (Array.isArray(invitesRaw)) {
               invitesList = invitesRaw;
             } else if (
-              (invitesRaw as any)?.invitations &&
-              Array.isArray((invitesRaw as any).invitations)
+              isJsonObject(invitesRaw) &&
+              Array.isArray(invitesRaw.invitations)
             ) {
-              invitesList = (invitesRaw as any).invitations;
+              invitesList = invitesRaw.invitations;
             } else if (
-              (invitesRaw as any)?.data?.invitations &&
-              Array.isArray((invitesRaw as any).data.invitations)
+              isJsonObject(invitesRaw) &&
+              isJsonObject(invitesRaw.data) &&
+              Array.isArray(invitesRaw.data.invitations)
             ) {
-              invitesList = (invitesRaw as any).data.invitations;
+              invitesList = invitesRaw.data.invitations;
             } else if (
-              (invitesRaw as any)?.data &&
-              Array.isArray((invitesRaw as any).data)
+              isJsonObject(invitesRaw) &&
+              Array.isArray(invitesRaw.data)
             ) {
-              invitesList = (invitesRaw as any).data;
+              invitesList = invitesRaw.data;
             }
             setInvites(invitesList);
           }
@@ -167,12 +183,17 @@ const TeamMembers = ({
         toast.success("Role updated");
         // Update local state to reflect change
         setMembers((prev) =>
-          prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m))
+          prev.map((m) => {
+            if (!isJsonObject(m)) return m;
+            return typeof m.id === "string" && m.id === memberId
+              ? { ...m, role: newRole }
+              : m;
+          })
         );
       } else {
         throw new Error("Failed to update role");
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update role");
     }
   };
@@ -196,7 +217,7 @@ const TeamMembers = ({
         if (!response.ok) throw new Error("Failed to remove member");
 
         toast.success("Member removed");
-        setMembers(members.filter((m) => m.id !== id));
+        setMembers(members.filter((m) => !(isJsonObject(m) && m.id === id)));
       } else {
         // Assuming DELETE /organizations/{orgId}/invites/{id} for canceling invites
         const response = await fetch(
@@ -212,9 +233,9 @@ const TeamMembers = ({
         if (!response.ok) throw new Error("Failed to cancel invitation");
 
         toast.success("Invitation canceled");
-        setInvites(invites.filter((i) => i.id !== id));
+        setInvites(invites.filter((i) => !(isJsonObject(i) && i.id === id)));
       }
-    } catch (error) {
+    } catch {
       toast.error(
         type === "member"
           ? "Failed to remove member"
@@ -232,28 +253,44 @@ const TeamMembers = ({
   };
 
   const allItems = [
-    ...invites.map((invite) => ({
-      id: invite.id,
-      type: "invite" as const,
-      name: "Pending Invite",
-      email: invite.email,
-      role: invite.role,
-      status: "Pending",
-    })),
-    ...members.map((member) => ({
-      id: member.id,
-      type: "member" as const,
-      name:
-        typeof member.name === "string" && member.name.trim().length > 0
-          ? member.name
-          : typeof member.user?.name === "string" &&
-              member.user.name.trim().length > 0
-            ? member.user.name
-            : "Unknown",
-      email: getEmail(member),
-      role: member.role,
-      status: "Active",
-    })),
+    ...invites.map((invite, idx) => {
+      const inviteObj = isJsonObject(invite) ? invite : {};
+      const id =
+        typeof inviteObj.id === "string" && inviteObj.id.length > 0
+          ? inviteObj.id
+          : `invite-${idx}`;
+      return {
+        id,
+        type: "invite" as const,
+        name: "Pending Invite",
+        email: typeof inviteObj.email === "string" ? inviteObj.email : "",
+        role: typeof inviteObj.role === "string" ? inviteObj.role : "",
+        status: "Pending",
+      };
+    }),
+    ...members.map((member, idx) => {
+      const memberObj = isJsonObject(member) ? member : {};
+      const memberUser = isJsonObject(memberObj.user) ? memberObj.user : {};
+      const id =
+        typeof memberObj.id === "string" && memberObj.id.length > 0
+          ? memberObj.id
+          : `member-${idx}`;
+      const name =
+        typeof memberObj.name === "string" && memberObj.name.trim().length > 0
+          ? memberObj.name
+          : typeof memberUser.name === "string" &&
+              memberUser.name.trim().length > 0
+            ? memberUser.name
+            : "Unknown";
+      return {
+        id,
+        type: "member" as const,
+        email: getEmail(member),
+        role: typeof memberObj.role === "string" ? memberObj.role : "",
+        status: "Active",
+        name,
+      };
+    }),
   ];
 
   return (

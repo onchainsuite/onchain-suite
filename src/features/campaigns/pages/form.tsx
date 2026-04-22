@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { Button } from "@/ui/button";
 import { Form } from "@/ui/form";
 
+import { isJsonObject } from "@/lib/utils";
+
 import {
   type CampaignFormData,
   campaignFormSchema,
@@ -30,6 +32,37 @@ import {
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 const TOTAL_STEPS = 4;
+const campaignTypes = new Set<CampaignFormData["campaignType"]>([
+  "email-blast",
+  "drip-campaign",
+  "smart-sending",
+  "newsletter",
+  "promotional",
+  "announcement",
+  "automation",
+]);
+const sendOptions = new Set<CampaignFormData["sendOption"]>([
+  "now",
+  "schedule",
+]);
+
+const asCampaignType = (
+  value: unknown
+): CampaignFormData["campaignType"] | undefined => {
+  if (typeof value !== "string") return undefined;
+  return campaignTypes.has(value as CampaignFormData["campaignType"])
+    ? (value as CampaignFormData["campaignType"])
+    : undefined;
+};
+
+const asSendOption = (
+  value: unknown
+): CampaignFormData["sendOption"] | undefined => {
+  if (typeof value !== "string") return undefined;
+  return sendOptions.has(value as CampaignFormData["sendOption"])
+    ? (value as CampaignFormData["sendOption"])
+    : undefined;
+};
 
 export function CreateCampaignPage() {
   const router = useRouter();
@@ -122,7 +155,9 @@ export function CreateCampaignPage() {
         next.set("step", String(currentStep));
         router.replace(`/campaigns/new?${next.toString()}`);
       } catch (e) {
-        toast.error(String((e as any)?.message ?? "Failed to create campaign"));
+        const message =
+          e instanceof Error ? e.message : "Failed to create campaign";
+        toast.error(message);
       } finally {
         setIsBootstrappingCampaign(false);
       }
@@ -162,37 +197,63 @@ export function CreateCampaignPage() {
         const nextValues: Partial<CampaignFormData> = {};
 
         if (campaignRes.status === "fulfilled") {
-          const c: any = campaignRes.value as any;
-          if (c?.name) nextValues.campaignName = String(c.name);
-          if (c?.type) nextValues.campaignType = String(c.type) as any;
-          if (c?.template) nextValues.template = String(c.template);
-          if (c?.templateId) nextValues.selectedTemplate = String(c.templateId);
+          const cObj: Record<string, unknown> = isJsonObject(campaignRes.value)
+            ? campaignRes.value
+            : {};
+          const { name: campaignName, type, template, templateId } = cObj;
+          if (typeof campaignName === "string" && campaignName.length > 0) {
+            nextValues.campaignName = campaignName;
+          }
+          const campaignType = asCampaignType(type);
+          if (campaignType) nextValues.campaignType = campaignType;
+          if (typeof template === "string") {
+            nextValues.template = template;
+          }
+          if (typeof templateId === "string") {
+            nextValues.selectedTemplate = templateId;
+          }
         }
 
         if (contentRes.status === "fulfilled") {
-          const c = contentRes.value as any;
-          if (c?.subject !== undefined)
-            nextValues.emailSubject = String(c.subject ?? "");
-          if (c?.previewText !== undefined)
-            nextValues.previewText = String(c.previewText ?? "");
-          if (c?.senderName !== undefined)
-            nextValues.senderName = String(c.senderName ?? "");
-          if (c?.senderEmail !== undefined)
-            nextValues.senderEmail = String(c.senderEmail ?? "");
-          if (c?.replyToEmail !== undefined) {
-            const reply = c.replyToEmail ? String(c.replyToEmail) : "";
+          const cObj: Record<string, unknown> = isJsonObject(contentRes.value)
+            ? contentRes.value
+            : {};
+          const {
+            subject,
+            previewText,
+            senderName,
+            senderEmail,
+            replyToEmail,
+          } = cObj;
+          if (typeof subject === "string" || subject === null) {
+            nextValues.emailSubject = String(subject ?? "");
+          }
+          if (typeof previewText === "string" || previewText === null) {
+            nextValues.previewText = String(previewText ?? "");
+          }
+          if (typeof senderName === "string" || senderName === null) {
+            nextValues.senderName = String(senderName ?? "");
+          }
+          if (typeof senderEmail === "string" || senderEmail === null) {
+            nextValues.senderEmail = String(senderEmail ?? "");
+          }
+          if ("replyToEmail" in cObj) {
+            const reply = typeof replyToEmail === "string" ? replyToEmail : "";
             nextValues.replyToEmail = reply;
             nextValues.useReplyTo = reply.length > 0;
           }
         }
 
         if (audienceRes.status === "fulfilled") {
-          const a = audienceRes.value as any;
-          const listIds = Array.isArray(a?.listIds)
-            ? a.listIds.map(String)
+          const aObj: Record<string, unknown> = isJsonObject(audienceRes.value)
+            ? audienceRes.value
+            : {};
+          const { listIds: listIdsRaw, segmentIds: segmentIdsRaw } = aObj;
+          const listIds = Array.isArray(listIdsRaw)
+            ? listIdsRaw.map(String)
             : [];
-          const segmentIds = Array.isArray(a?.segmentIds)
-            ? a.segmentIds.map(String)
+          const segmentIds = Array.isArray(segmentIdsRaw)
+            ? segmentIdsRaw.map(String)
             : [];
           if (listIds.length || segmentIds.length) {
             nextValues.selectedAudiences = [...listIds, ...segmentIds];
@@ -200,26 +261,40 @@ export function CreateCampaignPage() {
         }
 
         if (trackingRes.status === "fulfilled") {
-          const t = trackingRes.value as any;
-          if (t?.smartSending !== undefined)
-            nextValues.smartSending = Boolean(t.smartSending);
-          if (t?.trackingParameters !== undefined) {
-            nextValues.trackingParameters = Boolean(t.trackingParameters);
+          const tObj: Record<string, unknown> = isJsonObject(trackingRes.value)
+            ? trackingRes.value
+            : {};
+          const { smartSending, trackingParameters } = tObj;
+          if (typeof smartSending === "boolean") {
+            nextValues.smartSending = smartSending;
+          }
+          if (typeof trackingParameters === "boolean") {
+            nextValues.trackingParameters = trackingParameters;
           }
         }
 
         if (scheduleRes.status === "fulfilled") {
-          const s = scheduleRes.value as any;
-          if (s?.sendOption)
-            nextValues.sendOption = String(s.sendOption) as any;
-          if (s?.scheduleTime !== undefined)
-            nextValues.scheduleTime = String(s.scheduleTime ?? "");
-          if (s?.timezone !== undefined)
-            nextValues.timezone = String(s.timezone ?? "");
-          if (s?.scheduleDate) {
-            const parsed = new Date(String(s.scheduleDate));
+          const sObj: Record<string, unknown> = isJsonObject(scheduleRes.value)
+            ? scheduleRes.value
+            : {};
+          const {
+            sendOption: sendOptionRaw,
+            scheduleTime,
+            timezone,
+            scheduleDate,
+          } = sObj;
+          const sendOption = asSendOption(sendOptionRaw);
+          if (sendOption) nextValues.sendOption = sendOption;
+          if (typeof scheduleTime === "string" || scheduleTime === null) {
+            nextValues.scheduleTime = String(scheduleTime ?? "");
+          }
+          if (typeof timezone === "string" || timezone === null) {
+            nextValues.timezone = String(timezone ?? "");
+          }
+          if (typeof scheduleDate === "string") {
+            const parsed = new Date(scheduleDate);
             if (!Number.isNaN(parsed.getTime()))
-              nextValues.scheduleDate = parsed as any;
+              nextValues.scheduleDate = parsed;
           }
         }
 
@@ -227,7 +302,9 @@ export function CreateCampaignPage() {
           form.reset({ ...form.getValues(), ...nextValues });
         }
       } catch (e) {
-        toast.error(String((e as any)?.message ?? "Failed to load campaign"));
+        const message =
+          e instanceof Error ? e.message : "Failed to load campaign";
+        toast.error(message);
       } finally {
         setHasHydratedCampaign(true);
         setIsHydratingCampaign(false);
@@ -360,7 +437,8 @@ export function CreateCampaignPage() {
         }
       }
     } catch (e) {
-      toast.error(String((e as any)?.message ?? "Failed to save step"));
+      const message = e instanceof Error ? e.message : "Failed to save step";
+      toast.error(message);
       return;
     }
 
@@ -405,7 +483,9 @@ export function CreateCampaignPage() {
       await campaignsService.launchCampaign(campaignId);
       setShowConfirmation(true);
     } catch (e) {
-      toast.error(String((e as any)?.message ?? "Failed to launch campaign"));
+      const message =
+        e instanceof Error ? e.message : "Failed to launch campaign";
+      toast.error(message);
     }
   };
 

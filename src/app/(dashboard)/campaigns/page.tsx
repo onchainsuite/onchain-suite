@@ -17,13 +17,23 @@ const breadcrumbs = [
 
 export default async function CampaignsListsPage() {
   const session = await getAuthSession();
-  const firstLast = getFullName(
-    session?.user?.firstName,
-    session?.user?.lastName
-  );
+  const firstName =
+    typeof session?.user?.firstName === "string"
+      ? session.user.firstName
+      : undefined;
+  const lastName =
+    typeof session?.user?.lastName === "string"
+      ? session.user.lastName
+      : undefined;
+  const name =
+    typeof session?.user?.name === "string" ? session.user.name : undefined;
+  const isNewUser = Boolean(session?.user?.isNewUser);
+  const activeUserId =
+    typeof session?.user?.id === "string" ? session.user.id : undefined;
+
+  const firstLast = getFullName(firstName, lastName);
   const userFullName =
-    session?.user?.name ??
-    (firstLast && firstLast.length > 0 ? firstLast : undefined);
+    name ?? (firstLast && firstLast.length > 0 ? firstLast : undefined);
 
   const headersList = await headers();
   const cookie = headersList.get("cookie") ?? "";
@@ -93,10 +103,9 @@ export default async function CampaignsListsPage() {
     String(_e);
   }
 
-  const shouldShowNewUserFlow =
-    !!session?.user?.isNewUser && (campaignsCount as number) === 0;
+  const shouldShowNewUserFlow = isNewUser && campaignsCount === 0;
 
-  if (shouldShowNewUserFlow && session?.user?.id) {
+  if (shouldShowNewUserFlow && activeUserId) {
     // TODO: Update user isNewUser status via API
     // await apiClient.put('/user/profile', { isNewUser: false });
   }

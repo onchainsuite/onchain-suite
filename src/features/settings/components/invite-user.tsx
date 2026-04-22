@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
+import { isJsonObject } from "@/lib/utils";
 
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -58,8 +59,11 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        const message = (data as any)?.message ?? "Failed to send invitation";
+        const data: unknown = await response.json().catch(() => undefined);
+        const message =
+          isJsonObject(data) && typeof data.message === "string"
+            ? data.message
+            : "Failed to send invitation";
         throw new Error(message);
       }
 
@@ -67,9 +71,10 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
       onOpenChange(false);
       setInviteEmail("");
       onSuccess?.();
-    } catch (error: unknown) {
-      const message = (error as any)?.message ?? "Failed to send invitation";
-      toast.error(String(message));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to send invitation";
+      toast.error(message);
     } finally {
       setSaving(false);
     }

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
+import { isJsonObject } from "@/lib/utils";
+
 import { fadeInUp, staggerContainer } from "../../utils";
 import { billingService } from "@/features/billing/billing.service";
 
@@ -17,21 +19,30 @@ const InvoiceHistory = () => {
     refetchOnWindowFocus: false,
   });
 
-  const itemsRaw =
-    (invoicesQuery.data as any)?.items ?? (invoicesQuery.data as any)?.data;
+  const invoicesData: unknown = invoicesQuery.data;
+  const itemsRaw = isJsonObject(invoicesData)
+    ? Array.isArray(invoicesData.items)
+      ? invoicesData.items
+      : Array.isArray(invoicesData.data)
+        ? invoicesData.data
+        : undefined
+    : undefined;
   const items = Array.isArray(itemsRaw) ? itemsRaw : [];
 
-  const formatMoney = (inv: any) => {
-    const amount = inv?.amount;
-    const currency = inv?.currency ? String(inv.currency).toUpperCase() : "";
+  const formatMoney = (inv: unknown) => {
+    const obj = isJsonObject(inv) ? inv : {};
+    const { amount } = obj;
+    const currency =
+      typeof obj.currency === "string" ? obj.currency.toUpperCase() : "";
     if (typeof amount === "number")
       return `${currency} ${amount.toFixed(2)}`.trim();
     if (typeof amount === "string") return `${currency} ${amount}`.trim();
     return "—";
   };
 
-  const formatDate = (inv: any) => {
-    const v = inv?.issuedAt ?? inv?.createdAt ?? inv?.date;
+  const formatDate = (inv: unknown) => {
+    const obj = isJsonObject(inv) ? inv : {};
+    const v = obj.issuedAt ?? obj.createdAt ?? obj.date;
     if (!v) return "—";
     const d = new Date(String(v));
     if (Number.isNaN(d.getTime())) return String(v);
@@ -41,14 +52,21 @@ const InvoiceHistory = () => {
   const onDownload = async (invoiceId: string) => {
     try {
       const res = await billingService.getInvoiceDownloadUrl(invoiceId);
-      const url = (res as any)?.url ?? (res as any)?.downloadUrl ?? null;
+      const url =
+        isJsonObject(res) && typeof res.url === "string"
+          ? res.url
+          : isJsonObject(res) && typeof res.downloadUrl === "string"
+            ? res.downloadUrl
+            : null;
       if (!url) {
         toast.error("No download link available for this invoice.");
         return;
       }
       window.open(String(url), "_blank", "noopener,noreferrer");
-    } catch (e: any) {
-      toast.error(String(e?.message ?? "Failed to download invoice"));
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Failed to download invoice";
+      toast.error(message);
     }
   };
 
@@ -92,16 +110,29 @@ const InvoiceHistory = () => {
               <div>Amount</div>
               <div className="text-right">Download</div>
             </div>
-            {items.map((invoice: any, idx: number) => (
+            {items.map((invoice, idx: number) => (
               <motion.div
-                key={String(invoice?.id ?? idx)}
+                key={String(
+                  (isJsonObject(invoice) ? invoice.id : undefined) ?? idx
+                )}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 className="grid grid-cols-4 items-center gap-4 border-b border-border/40 px-6 py-4 last:border-0 hover:bg-muted/50"
               >
                 <div className="font-medium text-foreground">
-                  {invoice?.number ?? invoice?.id ?? "—"}
+                  {(() => {
+                    const obj = isJsonObject(invoice) ? invoice : undefined;
+                    const number = obj?.number;
+                    if (typeof number === "string" && number.length > 0) {
+                      return number;
+                    }
+                    const id = obj?.id;
+                    if (typeof id === "string" && id.length > 0) {
+                      return id;
+                    }
+                    return "—";
+                  })()}
                 </div>
                 <div className="text-muted-foreground">
                   {formatDate(invoice)}
@@ -112,7 +143,11 @@ const InvoiceHistory = () => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground/50 hover:text-primary hover:bg-primary/10"
-                    onClick={() => onDownload(String(invoice.id))}
+                    onClick={() =>
+                      onDownload(
+                        String(isJsonObject(invoice) ? invoice.id : "")
+                      )
+                    }
                   >
                     <Download className="h-4 w-4" />
                   </Button>

@@ -131,11 +131,6 @@ export function OnboardingFlow() {
     } catch (error) {
       console.error("Error completing onboarding:", error);
     }
-
-    console.log(
-      "Onboarding completed with data:",
-      JSON.stringify(finalData, null, 2)
-    );
     push(PRIVATE_ROUTES.CAMPAIGNS);
   };
 

@@ -46,8 +46,9 @@ const request = async <T>(
     const err = e as AxiosError<unknown>;
     const data = err.response?.data;
     const dataObj = isJsonObject(data) ? data : undefined;
-    const nestedError =
-      isJsonObject(dataObj?.error) ? dataObj.error : undefined;
+    const nestedError = isJsonObject(dataObj?.error)
+      ? dataObj.error
+      : undefined;
     const message =
       (isJsonObject(nestedError) ? nestedError.message : undefined) ??
       (isJsonObject(dataObj) ? dataObj.message : undefined) ??

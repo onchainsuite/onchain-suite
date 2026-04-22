@@ -334,7 +334,9 @@ const forward = async (
         const json: unknown = JSON.parse(text);
         const jsonObj = isJsonObject(json) ? json : {};
         const jsonData = isJsonObject(jsonObj.data) ? jsonObj.data : {};
-        const jsonSession = isJsonObject(jsonObj.session) ? jsonObj.session : {};
+        const jsonSession = isJsonObject(jsonObj.session)
+          ? jsonObj.session
+          : {};
         const jsonDataSession = isJsonObject(jsonData.session)
           ? jsonData.session
           : {};

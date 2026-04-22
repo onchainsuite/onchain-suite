@@ -14,7 +14,7 @@ vi.mock("@/lib/auth-session", () => ({
 }));
 
 // Mock fetch
-const mockedFetch = vi.fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>();
+const mockedFetch = vi.fn<typeof fetch>();
 global.fetch = mockedFetch as unknown as typeof fetch;
 
 const mockedGetSession = vi.mocked(getSession);

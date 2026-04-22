@@ -13,14 +13,13 @@ export const RootProviders = ({ children }: { children: ReactNode }) => {
   const [queryClient] = useState(() => new QueryClient());
 
   useEffect(() => {
-    const handler = () => {
+    const handler = (_event: Event) => {
       queryClient.clear();
       swrMutate(() => true, undefined, { revalidate: false });
     };
 
-    window.addEventListener("onchain:org-changed", handler as any);
-    return () =>
-      window.removeEventListener("onchain:org-changed", handler as any);
+    window.addEventListener("onchain:org-changed", handler);
+    return () => window.removeEventListener("onchain:org-changed", handler);
   }, [queryClient]);
 
   return (

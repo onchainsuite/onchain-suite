@@ -4,6 +4,8 @@ import React from "react";
 
 import { Switch } from "@/components/ui/switch";
 
+import { isJsonObject } from "@/lib/utils";
+
 import { fadeInUp, staggerContainer } from "../../utils";
 import { billingService } from "@/features/billing/billing.service";
 
@@ -28,15 +30,23 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
   });
 
   const overviewErrorMessage = String(
-    (overviewQuery.error as any)?.message ?? ""
+    overviewQuery.error instanceof Error ? overviewQuery.error.message : ""
   ).toLowerCase();
   const isFreeFallback =
     overviewQuery.isError &&
     overviewErrorMessage.includes("billing is not available");
-  const planName = isFreeFallback
-    ? "Free"
-    : String((overviewQuery.data as any)?.plan?.name ?? "Free");
-  const usageItemsRaw = (usageQuery.data as any)?.items;
+  const overviewData: unknown = overviewQuery.data;
+  const plan =
+    isJsonObject(overviewData) && isJsonObject(overviewData.plan)
+      ? overviewData.plan
+      : undefined;
+  const planName =
+    isFreeFallback || typeof plan?.name !== "string" ? "Free" : plan.name;
+  const usageData: unknown = usageQuery.data;
+  const usageItemsRaw =
+    isJsonObject(usageData) && Array.isArray(usageData.items)
+      ? usageData.items
+      : undefined;
   const usageItems = Array.isArray(usageItemsRaw) ? usageItemsRaw : [];
 
   return (
@@ -93,15 +103,16 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">
-            {usageItems.slice(0, 3).map((quota: any, idx: number) => {
-              const used = Number(quota?.used ?? 0);
+            {usageItems.slice(0, 3).map((quota, idx: number) => {
+              const quotaObj = isJsonObject(quota) ? quota : {};
+              const used = Number(quotaObj.used ?? 0);
               const limit =
-                quota?.limit !== undefined ? Number(quota.limit) : null;
+                quotaObj.limit !== undefined ? Number(quotaObj.limit) : null;
               const percent =
                 limit && limit > 0
                   ? Math.min(100, Math.round((used / limit) * 100))
                   : 0;
-              const label = String(quota?.key ?? "Usage");
+              const label = String(quotaObj.key ?? "Usage");
               const colorClass = idx === 2 ? "text-chart-2" : "text-primary";
               return (
                 <motion.div

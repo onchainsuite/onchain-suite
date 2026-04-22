@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { useSession } from "@/lib/auth-client";
+import { isJsonObject } from "@/lib/utils";
 
 type OnboardingStep =
   | "welcome"
@@ -20,7 +21,7 @@ type OnboardingStep =
 interface OnboardingProgress {
   current_step: OnboardingStep;
   completion_percentage: number;
-  step_data: Record<string, any>;
+  step_data: Record<string, unknown>;
   is_completed: boolean;
 }
 
@@ -32,14 +33,14 @@ interface UseOnboardingTracking {
     action: "started" | "completed" | "skipped";
     timeSpentSeconds?: number;
     currentStep?: OnboardingStep;
-    stepData?: Record<string, any>;
+    stepData?: Record<string, unknown>;
     flowVersion?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }) => Promise<void>;
   completeOnboarding: (payload: {
     totalTimeSeconds?: number;
     currentStep?: OnboardingStep;
-    stepData?: Record<string, any>;
+    stepData?: Record<string, unknown>;
     flowVersion?: string;
   }) => Promise<void>;
 }
@@ -82,29 +83,52 @@ export function useOnboardingTracking(): UseOnboardingTracking {
     const loadProgress = async () => {
       try {
         const res = await apiClient.get("/onboarding/progress");
-        const payload = (res.data as any)?.data ?? res.data;
-        const p =
-          payload?.progress ??
-          payload?.data?.progress ??
-          payload?.progressData ??
-          payload;
+        const payload: unknown = res.data;
+        const data =
+          isJsonObject(payload) && "data" in payload ? payload.data : payload;
+        const dataObj = isJsonObject(data) ? data : undefined;
+        const nestedData = isJsonObject(dataObj?.data)
+          ? dataObj.data
+          : undefined;
+        const pCandidate =
+          dataObj?.progress ??
+          nestedData?.progress ??
+          dataObj?.progressData ??
+          dataObj ??
+          data;
+        const p = isJsonObject(pCandidate) ? pCandidate : undefined;
 
         if (
           p &&
-          (p.currentStep ||
-            p.current_step ||
-            (p.isCompleted !== null && p.isCompleted !== undefined) ||
-            (p.is_completed !== null && p.is_completed !== undefined))
+          ("currentStep" in p ||
+            "current_step" in p ||
+            "isCompleted" in p ||
+            "is_completed" in p)
         ) {
+          const stepCandidate =
+            p.current_step ?? p.currentStep ?? p.current_step_name ?? "welcome";
           setProgress({
-            current_step: (p.current_step ??
-              p.currentStep ??
-              p.current_step_name ??
-              "welcome") as OnboardingStep,
+            current_step:
+              typeof stepCandidate === "string"
+                ? (stepCandidate as OnboardingStep)
+                : "welcome",
             completion_percentage:
-              p.completion_percentage ?? p.completionPercentage ?? 0,
-            step_data: p.step_data ?? p.stepData ?? {},
-            is_completed: p.is_completed ?? p.isCompleted ?? false,
+              typeof p.completion_percentage === "number"
+                ? p.completion_percentage
+                : typeof p.completionPercentage === "number"
+                  ? p.completionPercentage
+                  : 0,
+            step_data: isJsonObject(p.step_data)
+              ? p.step_data
+              : isJsonObject(p.stepData)
+                ? p.stepData
+                : {},
+            is_completed:
+              typeof p.is_completed === "boolean"
+                ? p.is_completed
+                : typeof p.isCompleted === "boolean"
+                  ? p.isCompleted
+                  : false,
           });
         }
       } catch (error) {
@@ -124,9 +148,9 @@ export function useOnboardingTracking(): UseOnboardingTracking {
       action: "started" | "completed" | "skipped";
       timeSpentSeconds?: number;
       currentStep?: OnboardingStep;
-      stepData?: Record<string, any>;
+      stepData?: Record<string, unknown>;
       flowVersion?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }) => {
       if (!user?.id) {
         toast.error("User not authenticated");
@@ -146,10 +170,13 @@ export function useOnboardingTracking(): UseOnboardingTracking {
           metadata: payload.metadata,
         });
 
+        const completionFromMeta =
+          isJsonObject(payload.metadata) &&
+          typeof payload.metadata.completionPercentage === "number"
+            ? payload.metadata.completionPercentage
+            : undefined;
         const completionPercentage =
-          payload.metadata?.completionPercentage ??
-          COMPLETION_PERCENTAGES[payload.stepName] ??
-          0;
+          completionFromMeta ?? COMPLETION_PERCENTAGES[payload.stepName] ?? 0;
 
         setProgress((prev) => ({
           current_step: payload.currentStep ?? payload.stepName,
@@ -172,7 +199,7 @@ export function useOnboardingTracking(): UseOnboardingTracking {
     async (payload: {
       totalTimeSeconds?: number;
       currentStep?: OnboardingStep;
-      stepData?: Record<string, any>;
+      stepData?: Record<string, unknown>;
       flowVersion?: string;
     }) => {
       if (!user?.id) {
@@ -233,5 +260,6 @@ export async function fetchOnboardingAdminSummary(params?: {
   to?: string;
 }) {
   const res = await apiClient.get("/onboarding/admin/summary", { params });
-  return (res.data as any)?.data ?? res.data;
+  const payload: unknown = res.data;
+  return isJsonObject(payload) && "data" in payload ? payload.data : payload;
 }

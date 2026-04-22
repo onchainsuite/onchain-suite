@@ -142,7 +142,8 @@ const isCampaignType = (value: unknown): value is Campaign["type"] =>
   typeof value === "string" && campaignTypes.has(value as Campaign["type"]);
 
 const isCampaignStatus = (value: unknown): value is Campaign["status"] =>
-  typeof value === "string" && campaignStatuses.has(value as Campaign["status"]);
+  typeof value === "string" &&
+  campaignStatuses.has(value as Campaign["status"]);
 
 const extractList = (payload: unknown): unknown[] => {
   const root =
