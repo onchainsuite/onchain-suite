@@ -18,13 +18,15 @@ interface DraftsListProps {
 export const DraftsList = ({ drafts }: DraftsListProps) => {
   if (drafts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-border border-dashed py-16 text-center">
-        <div className="mb-4 rounded-full bg-secondary p-4">
-          <FileText className="h-8 w-8 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+          <FileText className="h-5 w-5" aria-hidden="true" />
         </div>
-        <h3 className="text-lg font-medium text-foreground">No drafts yet</h3>
-        <p className="mt-1 text-muted-foreground">
-          Start creating a new automation to see it here
+        <h3 className="mt-4 text-lg font-semibold text-foreground">
+          No drafts yet
+        </h3>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+          Start creating a new automation and your drafts will show up here.
         </p>
       </div>
     );

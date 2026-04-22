@@ -1,9 +1,11 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+
+import { fadeInUp, staggerContainer } from "../../utils";
 import { billingService } from "@/features/billing/billing.service";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
@@ -22,8 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
-
-import { fadeInUp, staggerContainer } from "../../utils";
 
 const PaymentMethod = () => {
   const queryClient = useQueryClient();

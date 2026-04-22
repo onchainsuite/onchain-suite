@@ -1,13 +1,13 @@
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Download } from "lucide-react";
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { billingService } from "@/features/billing/billing.service";
 
 import { fadeInUp, staggerContainer } from "../../utils";
+import { billingService } from "@/features/billing/billing.service";
 
 const InvoiceHistory = () => {
   const invoicesQuery = useQuery({
@@ -24,7 +24,8 @@ const InvoiceHistory = () => {
   const formatMoney = (inv: any) => {
     const amount = inv?.amount;
     const currency = inv?.currency ? String(inv.currency).toUpperCase() : "";
-    if (typeof amount === "number") return `${currency} ${amount.toFixed(2)}`.trim();
+    if (typeof amount === "number")
+      return `${currency} ${amount.toFixed(2)}`.trim();
     if (typeof amount === "string") return `${currency} ${amount}`.trim();
     return "—";
   };
@@ -102,7 +103,9 @@ const InvoiceHistory = () => {
                 <div className="font-medium text-foreground">
                   {invoice?.number ?? invoice?.id ?? "—"}
                 </div>
-                <div className="text-muted-foreground">{formatDate(invoice)}</div>
+                <div className="text-muted-foreground">
+                  {formatDate(invoice)}
+                </div>
                 <div className="text-foreground">{formatMoney(invoice)}</div>
                 <div className="text-right">
                   <Button

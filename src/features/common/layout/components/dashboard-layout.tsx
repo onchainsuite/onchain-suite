@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   Brain,
   LayoutDashboard,
@@ -23,7 +24,7 @@ import {
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardNavbar } from "./dashboard-navbar";
 import { OrganizationStatusBanner } from "./organization-status-banner";
-import { initialNotifications } from "@/data/notifications";
+import { notificationsService } from "@/features/notifications/notifications.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 type BreadcrumbItem = { href: string; label: string };
@@ -44,7 +45,6 @@ export function DashboardLayout({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const pathname = usePathname();
-  const unreadCount = initialNotifications.filter((n) => !n.read).length;
   const { data: session } = authClient.useSession();
   const [isMounted, setIsMounted] = useState(false);
   const [isSwitchingOrg, setIsSwitchingOrg] = useState(false);
@@ -86,6 +86,18 @@ export function DashboardLayout({
     : false;
   const hasActiveOrganization =
     isConfirmedBySession || (!!selectedOrgId && !isSwitchingOrg);
+
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications", "list"],
+    queryFn: () => notificationsService.list({ page: 1, limit: 50 }),
+    enabled: hasActiveOrganization,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const unreadCount = notificationsQuery.isSuccess
+    ? notificationsQuery.data.filter((n) => !n.read).length
+    : 0;
 
   const fullName = hasActiveOrganization
     ? (userFullName ?? session?.user?.name ?? undefined)

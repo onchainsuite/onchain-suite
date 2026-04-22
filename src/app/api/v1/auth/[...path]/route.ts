@@ -2,13 +2,21 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+const pickNonEmpty = (...values: Array<string | undefined | null>) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return "";
+};
+
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
   const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
-  const backendUrl =
-    process.env.BACKEND_URL ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    (process.env.NODE_ENV === "production" ? prodDefault : devDefault);
+  const backendUrl = pickNonEmpty(
+    process.env.BACKEND_URL,
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    process.env.NODE_ENV === "production" ? prodDefault : devDefault
+  );
   return backendUrl.replace(/\/$/, "");
 };
 
@@ -118,13 +126,13 @@ const toAbsoluteUrl = (maybeUrl: string, backendBaseUrl: string): string => {
   try {
     return new URL(maybeUrl).toString();
   } catch {
-    const origin = new URL(backendBaseUrl).origin;
+    const { origin } = new URL(backendBaseUrl);
     return new URL(maybeUrl, origin).toString();
   }
 };
 
 const rewriteSetCookieForLocalDev = (cookie: string, reqUrl: URL): string => {
-  const hostname = reqUrl.hostname;
+  const { hostname } = reqUrl;
   const isLocalhost =
     hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 
@@ -148,11 +156,10 @@ const rewriteSetCookieForLocalDev = (cookie: string, reqUrl: URL): string => {
 };
 
 const getBackendApiKey = () => {
-  return (
-    process.env.BACKEND_API_KEY ||
-    process.env.NEXT_PUBLIC_BACKEND_API_KEY ||
-    process.env.NEXT_PUBLIC_API_KEY ||
-    ""
+  return pickNonEmpty(
+    process.env.BACKEND_API_KEY,
+    process.env.NEXT_PUBLIC_BACKEND_API_KEY,
+    process.env.NEXT_PUBLIC_API_KEY
   );
 };
 
@@ -403,7 +410,7 @@ const forward = async (
                   type: "object",
                   keys: Object.keys(json.redirect).slice(0, 12),
                 }
-              : json?.redirect != null
+              : json?.redirect !== null && json?.redirect !== undefined
                 ? { type: typeof json.redirect, value: json.redirect }
                 : null,
           sampleFields: {
@@ -414,7 +421,9 @@ const forward = async (
           },
           url: targetUrl,
         });
-      } catch {}
+      } catch (_e) {
+        String(_e);
+      }
     }
   }
 

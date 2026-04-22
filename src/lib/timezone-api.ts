@@ -47,11 +47,15 @@ export async function fetchTimezones(): Promise<string[]> {
   try {
     const primary = await fetchFromPrimary();
     if (primary.length > 0) return primary;
-  } catch {}
+  } catch (_e) {
+    String(_e);
+  }
   try {
     const fallback = await fetchFromFallback();
     if (fallback.length > 0) return fallback;
-  } catch {}
+  } catch (_e) {
+    String(_e);
+  }
   return [
     "UTC",
     "Africa/Lagos",

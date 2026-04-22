@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+
 import { VerificationService } from "@/auth/verification.service";
 
 /**
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
     console.error("Email verification error details:", {
       message: error.message,
       stack: error.stack,
-      token: token.substring(0, 10) + "...",
+      token: `${token.substring(0, 10)}...`,
     });
 
     // Handle specific error cases (expired, invalid format, etc.)
@@ -46,7 +47,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Email verification failed",
+        message:
+          typeof error?.message === "string" && error.message.length > 0
+            ? error.message
+            : "Email verification failed",
       },
       { status }
     );

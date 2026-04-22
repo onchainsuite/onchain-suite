@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, Check, Info, MessageSquare, Package, X } from "lucide-react";
 import { useState } from "react";
@@ -20,35 +21,115 @@ import { cn } from "@/lib/utils";
 import type { Notification, NotificationType } from "@/types/notification";
 
 import { initialNotifications } from "@/data/notifications";
+import { notificationsService } from "@/features/notifications/notifications.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function NotificationBell() {
-  const [notifications, setNotifications] =
-    useState<Notification[]>(initialNotifications);
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications", "list"],
+    queryFn: () => notificationsService.list({ page: 1, limit: 50 }),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const notifications: Notification[] = notificationsQuery.isSuccess
+    ? notificationsQuery.data.map((n) => {
+        const type = (String(n.type ?? "info") as NotificationType) ?? "info";
+        return {
+          id: n.id,
+          title: String(n.title ?? "Notification"),
+          description: String(n.message ?? ""),
+          time: n.createdAt ? new Date(String(n.createdAt)) : new Date(),
+          read: Boolean(n.read ?? false),
+          type:
+            type === "info" ||
+            type === "success" ||
+            type === "warning" ||
+            type === "message"
+              ? type
+              : "info",
+        };
+      })
+    : initialNotifications;
 
   const unreadCount = notifications.filter(
     (notification) => !notification.read
   ).length;
 
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => notificationsService.markRead(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["notifications", "list"] });
+      const prev = queryClient.getQueryData<any>(["notifications", "list"]);
+      queryClient.setQueryData(["notifications", "list"], (current: any) => {
+        const arr = Array.isArray(current)
+          ? current
+          : (current?.items ?? current?.data ?? []);
+        if (!Array.isArray(arr)) return current;
+        return arr.map((n: any) =>
+          String(n?.id ?? "") === id ? { ...n, read: true } : n
+        );
+      });
+      return { prev };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prev !== undefined) {
+        queryClient.setQueryData(["notifications", "list"], ctx.prev);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => notificationsService.markAllRead(),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["notifications", "list"] });
+      const prev = queryClient.getQueryData<any>(["notifications", "list"]);
+      queryClient.setQueryData(["notifications", "list"], (current: any) => {
+        const arr = Array.isArray(current)
+          ? current
+          : (current?.items ?? current?.data ?? []);
+        if (!Array.isArray(arr)) return current;
+        return arr.map((n: any) => ({ ...n, read: true }));
+      });
+      return { prev };
+    },
+    onError: (_err, _v, ctx) => {
+      if (ctx?.prev !== undefined) {
+        queryClient.setQueryData(["notifications", "list"], ctx.prev);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "list"] });
+    },
+  });
+
   const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    );
+    if (notificationsQuery.isSuccess) {
+      markReadMutation.mutate(id);
+    }
   };
 
   const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((notification) => ({ ...notification, read: true }))
-    );
+    if (notificationsQuery.isSuccess) {
+      markAllReadMutation.mutate();
+    }
   };
 
   const removeNotification = (id: string) => {
-    setNotifications((prev) =>
-      prev.filter((notification) => notification.id !== id)
-    );
+    if (!notificationsQuery.isSuccess) return;
+    queryClient.setQueryData(["notifications", "list"], (current: any) => {
+      const arr = Array.isArray(current)
+        ? current
+        : (current?.items ?? current?.data ?? []);
+      if (!Array.isArray(arr)) return current;
+      return arr.filter((n: any) => String(n?.id ?? "") !== id);
+    });
   };
 
   const getNotificationIcon = (type: NotificationType) => {

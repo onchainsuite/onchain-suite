@@ -1,10 +1,10 @@
 "use client";
 
-import { useGoogleLogin } from "@react-oauth/google";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
-import { Mail } from "lucide-react";
 import { motion } from "framer-motion";
+import { Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -14,7 +14,7 @@ import { InputFormField } from "@/components/form-fields";
 import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
-import { authClient, signInWithGoogle } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 
 import {
   AuthHeader,
@@ -47,6 +47,13 @@ export function SignInForm({
     },
   });
 
+  const pickNonEmptyString = (...values: unknown[]) => {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim().length > 0) return value;
+    }
+    return undefined;
+  };
+
   const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
     try {
@@ -57,7 +64,9 @@ export function SignInForm({
       });
 
       if (error) {
-        toast.error(error.message || "Invalid email or password");
+        toast.error(
+          pickNonEmptyString(error.message) ?? "Invalid email or password"
+        );
         return;
       }
 
@@ -71,8 +80,7 @@ export function SignInForm({
     } catch (error: any) {
       console.error("Sign in error:", error);
       const displayMessage =
-        error.response?.data?.message ||
-        error.message ||
+        pickNonEmptyString(error?.response?.data?.message, error?.message) ??
         "Failed to sign in. Please try again.";
       toast.error(displayMessage);
     } finally {

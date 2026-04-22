@@ -1,11 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
 
 import { Switch } from "@/components/ui/switch";
-import { billingService } from "@/features/billing/billing.service";
 
 import { fadeInUp, staggerContainer } from "../../utils";
+import { billingService } from "@/features/billing/billing.service";
 
 interface PlanUsageProps {
   optimisePlan: boolean;

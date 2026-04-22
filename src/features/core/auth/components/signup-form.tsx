@@ -52,6 +52,13 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
 
   const password = form.watch("password");
 
+  const pickNonEmptyString = (...values: unknown[]) => {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim().length > 0) return value;
+    }
+    return undefined;
+  };
+
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
@@ -62,7 +69,10 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
       });
 
       if (error) {
-        toast.error(error.message || "Failed to create account. Please try again.");
+        toast.error(
+          pickNonEmptyString(error.message) ??
+            "Failed to create account. Please try again."
+        );
         return;
       }
 
@@ -80,9 +90,8 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
       );
     } catch (error: any) {
       console.error("Sign up error:", error);
-      const displayMessage = 
-        error.response?.data?.message || 
-        error.message || 
+      const displayMessage =
+        pickNonEmptyString(error?.response?.data?.message, error?.message) ??
         "Failed to create account. Please try again.";
       toast.error(displayMessage);
     } finally {

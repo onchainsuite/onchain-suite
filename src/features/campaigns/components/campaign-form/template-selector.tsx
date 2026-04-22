@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   Check,
   Grid3x3,
@@ -27,20 +28,46 @@ import { cn } from "@/lib/utils";
 
 import { EMAIL_TEMPLATES } from "../../../campaigns/constants";
 import type { CampaignFormData } from "../../validations";
+import { templatesService } from "@/features/templates/templates.service";
 
 interface TemplateSelectorProps {
   form: UseFormReturn<CampaignFormData>;
   onCreateEditor?: () => void;
+  onSelectTemplate?: (templateId: string) => void;
 }
 
 export function TemplateSelector({
   form,
   onCreateEditor,
+  onSelectTemplate,
 }: TemplateSelectorProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [templateSearch, setTemplateSearch] = useState("");
 
   const selectedTemplate = form.watch("selectedTemplate");
+  const templatesQuery = useQuery({
+    queryKey: ["templates", "list", templateSearch],
+    queryFn: () =>
+      templatesService.list(
+        templateSearch.trim().length > 0
+          ? { search: templateSearch.trim() }
+          : undefined
+      ),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const templates =
+    templatesQuery.isSuccess &&
+    Array.isArray(templatesQuery.data) &&
+    templatesQuery.data.length > 0
+      ? templatesQuery.data.map((t) => ({
+          id: t.id,
+          title: t.name,
+          date: t.updatedAt ? new Date(t.updatedAt).toLocaleString() : "Saved",
+          preview: t.previewUrl ?? "",
+        }))
+      : EMAIL_TEMPLATES;
 
   return (
     <div className="p-6 md:p-8 lg:p-10 space-y-6">
@@ -138,14 +165,18 @@ export function TemplateSelector({
             : "flex flex-col"
         )}
       >
-        {EMAIL_TEMPLATES.map((temp) => (
+        {templates.map((temp) => (
           <div
             key={temp.id}
-            onClick={() => form.setValue("selectedTemplate", temp.id)}
+            onClick={() => {
+              form.setValue("selectedTemplate", temp.id);
+              onSelectTemplate?.(temp.id);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 form.setValue("selectedTemplate", temp.id);
+                onSelectTemplate?.(temp.id);
               }
             }}
             role="button"

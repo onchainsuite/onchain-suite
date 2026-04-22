@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import dns from "dns";
+import { type NextRequest, NextResponse } from "next/server";
+
 const { resolveAny } = dns.promises;
 
 export async function GET(req: NextRequest) {
@@ -35,8 +36,11 @@ export async function GET(req: NextRequest) {
           value = record.address;
           break;
         case "MX":
-          value = record.exchange;
-          priority = record.priority;
+          {
+            const { exchange, priority: mxPriority } = record;
+            value = exchange;
+            priority = mxPriority;
+          }
           break;
         case "TXT":
           value = Array.isArray(record.entries) ? record.entries.join(" ") : "";
@@ -44,7 +48,10 @@ export async function GET(req: NextRequest) {
         case "CNAME":
         case "NS":
         case "PTR":
-          value = record.value;
+          {
+            const { value: recordValue } = record;
+            value = recordValue;
+          }
           break;
         case "SOA":
           value = `${record.nsname} ${record.hostmaster}`;
@@ -56,9 +63,9 @@ export async function GET(req: NextRequest) {
       return {
         type: record.type,
         name: domain,
-        value: value,
-        ttl: record.ttl || 3600,
-        priority: priority,
+        value,
+        ttl: record.ttl ?? 3600,
+        priority,
       };
     });
 
@@ -74,7 +81,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to perform DNS lookup",
+        error:
+          typeof error?.message === "string" && error.message.length > 0
+            ? error.message
+            : "Failed to perform DNS lookup",
       },
       { status: 500 }
     );

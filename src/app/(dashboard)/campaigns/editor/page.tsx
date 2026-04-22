@@ -1,9 +1,11 @@
 "use client";
 
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 
+import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
@@ -25,7 +27,23 @@ export default function CampaignEditorPage() {
   const campaignId = (searchParams.get("campaign") ?? "").trim();
   const returnTo = (searchParams.get("returnTo") ?? "").trim();
 
+  const editorSessionQuery = useQuery({
+    queryKey: ["campaigns", "editor-session", campaignId],
+    queryFn: () => campaignsService.getEditorSession(campaignId),
+    enabled: campaignId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   const editorOrigin = useMemo(() => {
+    if (editorSessionQuery.isSuccess && editorSessionQuery.data?.editorUrl) {
+      try {
+        return new URL(String(editorSessionQuery.data.editorUrl)).origin;
+      } catch {
+        return DEFAULT_EDITOR_ORIGIN_DEV;
+      }
+    }
+
     const configured = process.env.NEXT_PUBLIC_EMAIL_EDITOR_ORIGIN;
     if (configured && configured.trim().length > 0) {
       try {
@@ -41,20 +59,52 @@ export default function CampaignEditorPage() {
   }, []);
 
   const allowedOrigins = useMemo(() => {
+    const fromSession =
+      editorSessionQuery.isSuccess && editorSessionQuery.data?.editorUrl
+        ? (() => {
+            try {
+              return new URL(String(editorSessionQuery.data.editorUrl)).origin;
+            } catch {
+              return null;
+            }
+          })()
+        : null;
     return new Set<string>([
       DEFAULT_EDITOR_ORIGIN_PROD,
       DEFAULT_EDITOR_ORIGIN_DEV,
       editorOrigin,
+      ...(fromSession ? [fromSession] : []),
     ]);
-  }, [editorOrigin]);
+  }, [editorOrigin, editorSessionQuery.data, editorSessionQuery.isSuccess]);
 
   const iframeSrc = useMemo(() => {
     if (!campaignId) return "";
+    const sessionUrl =
+      editorSessionQuery.isSuccess && editorSessionQuery.data?.editorUrl
+        ? String(editorSessionQuery.data.editorUrl)
+        : null;
+
+    if (sessionUrl) {
+      try {
+        const url = new URL(sessionUrl);
+        url.searchParams.set("campaign", campaignId);
+        url.searchParams.set("embedded", "true");
+        return url.toString();
+      } catch {
+        // fall through
+      }
+    }
+
     const url = new URL("/", editorOrigin);
     url.searchParams.set("campaign", campaignId);
     url.searchParams.set("embedded", "true");
     return url.toString();
-  }, [campaignId, editorOrigin]);
+  }, [
+    campaignId,
+    editorOrigin,
+    editorSessionQuery.data,
+    editorSessionQuery.isSuccess,
+  ]);
 
   const nextWizardUrl = useMemo(() => {
     const base = returnTo.length > 0 ? returnTo : "/campaigns/new";
@@ -63,6 +113,19 @@ export default function CampaignEditorPage() {
     if (campaignId) url.searchParams.set("campaign", campaignId);
     return `${url.pathname}?${url.searchParams.toString()}`;
   }, [campaignId, returnTo]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const data = payload && typeof payload === "object" ? payload : {};
+      await campaignsService.editorSaved(campaignId, {
+        html: typeof data.html === "string" ? data.html : undefined,
+        json: data.json ?? undefined,
+        textVersion:
+          typeof data.textVersion === "string" ? data.textVersion : undefined,
+        assets: data.assets ?? undefined,
+      });
+    },
+  });
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -73,14 +136,22 @@ export default function CampaignEditorPage() {
 
       if (data.type === "EMAIL_SAVED" && !hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
-        toast.success("Email saved");
-        router.push(nextWizardUrl);
+        saveMutation
+          .mutateAsync((data as any)?.payload ?? {})
+          .then(() => {
+            toast.success("Email saved");
+            router.push(nextWizardUrl);
+          })
+          .catch((e) => {
+            hasRedirectedRef.current = false;
+            toast.error(String((e as any)?.message ?? "Failed to save email"));
+          });
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [allowedOrigins, nextWizardUrl, router]);
+  }, [allowedOrigins, nextWizardUrl, router, saveMutation]);
 
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>

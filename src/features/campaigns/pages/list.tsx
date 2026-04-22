@@ -1,17 +1,17 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { CalendarIcon, List, Mail, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs";
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { Tabs, TabsContent } from "@/ui/tabs";
 
 import { CampaignsCalendar } from "../../campaigns/components/calendar";
 import { CampaignsTable } from "../../campaigns/components/table";
 import { campaignsService } from "../campaigns.service";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function CampaignsListsView() {
   const [activeTab, setActiveTab] = useState("table");
@@ -22,8 +22,43 @@ export function CampaignsListsView() {
     refetchOnWindowFocus: false,
   });
 
+  const calendarQuery = useQuery({
+    queryKey: ["campaigns", "calendar"],
+    queryFn: () => campaignsService.getCalendar(),
+    enabled: activeTab === "calendar",
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   const campaigns = campaignsQuery.data ?? [];
   const hasCampaigns = campaigns.length > 0;
+  const calendarCampaigns =
+    calendarQuery.data && calendarQuery.data.length > 0
+      ? calendarQuery.data.map((item) => {
+          const scheduledFor = item.scheduledFor
+            ? new Date(String(item.scheduledFor))
+            : undefined;
+          const sentAt = item.sentAt
+            ? new Date(String(item.sentAt))
+            : undefined;
+          return {
+            id: String(item.id ?? ""),
+            name: String(item.name ?? "Untitled"),
+            type: "email-blast" as const,
+            status: (item.status ?? "draft") as any,
+            subject: "",
+            audience: [] as string[],
+            recipients: 0,
+            createdAt: new Date(),
+            scheduledFor:
+              scheduledFor && !Number.isNaN(scheduledFor.getTime())
+                ? scheduledFor
+                : undefined,
+            sentAt:
+              sentAt && !Number.isNaN(sentAt.getTime()) ? sentAt : undefined,
+          };
+        })
+      : campaigns;
 
   return (
     <div className="space-y-4">
@@ -135,7 +170,7 @@ export function CampaignsListsView() {
 
           <TabsContent value="calendar">
             <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-              <CampaignsCalendar campaigns={campaigns} />
+              <CampaignsCalendar campaigns={calendarCampaigns} />
             </div>
           </TabsContent>
         </Tabs>

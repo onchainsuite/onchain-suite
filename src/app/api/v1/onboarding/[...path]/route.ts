@@ -2,22 +2,29 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+const pickNonEmpty = (...values: Array<string | undefined | null>) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return "";
+};
+
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
   const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
-  const backendUrl =
-    process.env.BACKEND_URL ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    (process.env.NODE_ENV === "production" ? prodDefault : devDefault);
+  const backendUrl = pickNonEmpty(
+    process.env.BACKEND_URL,
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    process.env.NODE_ENV === "production" ? prodDefault : devDefault
+  );
   return backendUrl.replace(/\/$/, "");
 };
 
 const getBackendApiKey = () => {
-  return (
-    process.env.BACKEND_API_KEY ||
-    process.env.NEXT_PUBLIC_BACKEND_API_KEY ||
-    process.env.NEXT_PUBLIC_API_KEY ||
-    ""
+  return pickNonEmpty(
+    process.env.BACKEND_API_KEY,
+    process.env.NEXT_PUBLIC_BACKEND_API_KEY,
+    process.env.NEXT_PUBLIC_API_KEY
   );
 };
 
@@ -89,7 +96,8 @@ const forward = async (
 
 const isProgressPath = (path: string[]) =>
   path.length === 1 && path[0] === "progress";
-const isTrackPath = (path: string[]) => path.length === 1 && path[0] === "track";
+const isTrackPath = (path: string[]) =>
+  path.length === 1 && path[0] === "track";
 const isCompletePath = (path: string[]) =>
   path.length === 1 && path[0] === "complete";
 const isAdminSummaryPath = (path: string[]) =>

@@ -1,9 +1,9 @@
 import { render } from "@testing-library/react";
+import { toast } from "sonner";
 import useSWR from "swr";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authClient } from "@/lib/auth-client";
-import { toast } from "sonner";
 
 import { OrganizationStatusBanner } from "./organization-status-banner";
 

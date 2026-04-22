@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
+
 import { Button } from "@/shared/components/ui/button";
 import {
   Card,
@@ -15,10 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
-
-import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
-
 import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 function VerifyAccountContent() {
@@ -43,7 +42,7 @@ function VerifyAccountContent() {
         const response = await fetch(
           `/api/v1/auth/verify-email?token=${token}`
         );
-        
+
         let data: any = {};
         try {
           data = await response.json();
@@ -54,7 +53,11 @@ function VerifyAccountContent() {
         if (!response.ok) {
           console.error("Verification error:", data.message);
           setStatus("error");
-          toast.error(data.message || "Verification failed");
+          toast.error(
+            typeof data?.message === "string" && data.message.length > 0
+              ? data.message
+              : "Verification failed"
+          );
           return;
         }
 
@@ -96,7 +99,11 @@ function VerifyAccountContent() {
       });
 
       if (error) {
-        toast.error(error.message || "Failed to resend verification email");
+        toast.error(
+          typeof error?.message === "string" && error.message.length > 0
+            ? error.message
+            : "Failed to resend verification email"
+        );
       } else {
         toast.success("Verification email resent!");
       }

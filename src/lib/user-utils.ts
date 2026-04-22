@@ -20,15 +20,18 @@ export function getInitials(name: string): string {
 
   // Single name: take first two characters (handling surrogate pairs/unicode)
   if (validParts.length === 1) {
-    const part = validParts[0];
+    const [part] = validParts;
     // Use iterator to correctly handle unicode characters (like emojis or non-latin scripts)
     const chars = [...part];
     return (chars[0] + (chars.length > 1 ? chars[1] : "")).toUpperCase();
   }
 
   // Multiple names: take first character of first and last name
-  const firstInitial = [...validParts[0]][0];
-  const lastInitial = [...validParts[validParts.length - 1]][0];
+  const [firstPart, ...restParts] = validParts;
+  const lastPart =
+    restParts.length > 0 ? restParts[restParts.length - 1] : firstPart;
+  const [firstInitial] = [...firstPart];
+  const [lastInitial] = [...lastPart];
 
   return (firstInitial + lastInitial).toUpperCase();
 }

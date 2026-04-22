@@ -1,8 +1,10 @@
 "use client";
 
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
+import useSWR from "swr";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,12 +18,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import useSWR from "swr";
 
-import { authClient } from "@/lib/auth-client";
 import { apiClient } from "@/lib/api-client";
-import { ORG_SELECTION_COOKIE, cn, getCookieValue } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
+import { cn, getCookieValue, ORG_SELECTION_COOKIE } from "@/lib/utils";
 
 interface Organization {
   id: string;
@@ -43,6 +43,13 @@ export function OrganizationSwitcher() {
   const lastAutoSyncOrgIdRef = React.useRef<string | null>(null);
   const hasLoadedOrganizationsRef = React.useRef(false);
   const router = useRouter();
+
+  const pickNonEmptyString = (...values: unknown[]) => {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim().length > 0) return value;
+    }
+    return undefined;
+  };
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -66,9 +73,9 @@ export function OrganizationSwitcher() {
       try {
         const response = await apiClient.get("/organization/list");
         if (response.status === 200) {
-          const data = response.data;
+          const { data } = response;
           // Handle backend response wrapper: { success: true, data: [...] } or direct array
-          const orgs = Array.isArray(data) ? data : data.data || [];
+          const orgs = Array.isArray(data) ? data : ((data as any)?.data ?? []);
 
           if (Array.isArray(orgs)) {
             setOrganizations(orgs as Organization[]);
@@ -116,8 +123,10 @@ export function OrganizationSwitcher() {
         .then((response) => {
           if (response.status >= 200 && response.status < 300) {
             const data = response.data as any;
-            const orgs = Array.isArray(data) ? data : data.data || [];
-            setOrganizations(Array.isArray(orgs) ? (orgs as Organization[]) : []);
+            const orgs = Array.isArray(data) ? data : (data?.data ?? []);
+            setOrganizations(
+              Array.isArray(orgs) ? (orgs as Organization[]) : []
+            );
           }
         })
         .finally(() => setIsLoading(false));
@@ -133,7 +142,9 @@ export function OrganizationSwitcher() {
       ? activeOrgId
       : null;
 
-  const activeOrg = organizations.find((org) => org.id === confirmedActiveOrgId);
+  const activeOrg = organizations.find(
+    (org) => org.id === confirmedActiveOrgId
+  );
 
   const fetcher = React.useCallback(async (url: string) => {
     const res = await fetch(url);
@@ -155,7 +166,12 @@ export function OrganizationSwitcher() {
 
   // Debug log if active org is missing but ID is set
   React.useEffect(() => {
-    if (activeOrgId && organizations.length > 0 && confirmedActiveOrgId && !activeOrg) {
+    if (
+      activeOrgId &&
+      organizations.length > 0 &&
+      confirmedActiveOrgId &&
+      !activeOrg
+    ) {
       console.warn(
         `Active Org ID ${activeOrgId} not found in organizations list`,
         organizations
@@ -212,28 +228,34 @@ export function OrganizationSwitcher() {
         router.refresh();
       } else {
         const message =
-          payload?.error?.message ||
-          payload?.message ||
-          payload?.error ||
-          "Failed to set active organization";
-        throw new Error(String(message));
+          pickNonEmptyString(
+            payload?.error?.message,
+            payload?.message,
+            payload?.error
+          ) ?? "Failed to set active organization";
+        throw new Error(message);
       }
     } catch (err) {
       const error = err as any;
       const status = error?.response?.status;
       const message =
-        error?.response?.data?.error?.message ||
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        "Failed to switch organization";
+        pickNonEmptyString(
+          error?.response?.data?.error?.message,
+          error?.response?.data?.message,
+          error?.response?.data?.error,
+          error?.message
+        ) ?? "Failed to switch organization";
 
       if (status !== 409) {
         console.error("Failed to switch organization", error);
       }
       window.dispatchEvent(
         new CustomEvent("onchain:org-switch-failed", {
-          detail: { orgId, previousOrgId: activeOrgId, message: String(message) },
+          detail: {
+            orgId,
+            previousOrgId: activeOrgId,
+            message: String(message),
+          },
         })
       );
       toast.error(String(message));
@@ -288,7 +310,10 @@ export function OrganizationSwitcher() {
           <div className="flex min-w-0 items-center gap-2 overflow-hidden">
             <Avatar className="h-6 w-6 shrink-0 ring-1 ring-border/60">
               {activeOrgLogo ? (
-                <AvatarImage src={activeOrgLogo} alt={activeOrg?.name ?? "Org"} />
+                <AvatarImage
+                  src={activeOrgLogo}
+                  alt={activeOrg?.name ?? "Org"}
+                />
               ) : null}
               <AvatarFallback>
                 {activeOrg?.name?.substring(0, 2).toUpperCase() ?? "OR"}
@@ -322,7 +347,7 @@ export function OrganizationSwitcher() {
               className="cursor-pointer rounded-lg px-2 py-2 text-sm"
             >
               <Avatar className="mr-2 h-6 w-6 ring-1 ring-border/50">
-                {org.logo ?? org.logoUrl ? (
+                {(org.logo ?? org.logoUrl) ? (
                   <AvatarImage src={org.logo ?? org.logoUrl} alt={org.name} />
                 ) : null}
                 <AvatarFallback>

@@ -1,8 +1,8 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 
 import { getSession } from "@/lib/auth-session";
-import { headers } from "next/headers";
 
 // Types
 interface AuthGuardProps {
@@ -63,7 +63,9 @@ export async function AuthGuard({
 
   if (requireOrganization && !onboardingComplete) {
     const appBase =
-      process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000";
+      process.env.NEXT_PUBLIC_APP_URL ??
+      process.env.APP_URL ??
+      "http://localhost:3000";
     const appClean = appBase.replace(/\/$/, "");
 
     try {
@@ -86,7 +88,9 @@ export async function AuthGuard({
           redirect("/onboarding?reason=missing_org");
         }
       }
-    } catch {}
+    } catch (_e) {
+      String(_e);
+    }
   }
 
   // Session is valid, render children

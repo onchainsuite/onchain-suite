@@ -40,17 +40,18 @@ const LogoUpload = ({
   const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.size > MAX_FILE_SIZE) {
-        toast.error("File size exceeds 100MB limit");
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        return;
-      }
-      setFile(selectedFile);
-      setUploadProgress(0);
-      setSuccess(false);
+    const [selectedFile] = e.target.files ?? [];
+    if (!selectedFile) return;
+
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      toast.error("File size exceeds 100MB limit");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
     }
+
+    setFile(selectedFile);
+    setUploadProgress(0);
+    setSuccess(false);
   };
 
   const handleUpload = async () => {
@@ -87,7 +88,7 @@ const LogoUpload = ({
       await axios.post(`/api/upload/logo/${logoUploadType}`, formData, {
         headers,
         onUploadProgress: (progressEvent) => {
-          const total = progressEvent.total || file.size;
+          const total = progressEvent.total ?? file.size;
           const current = progressEvent.loaded;
           const percentCompleted = Math.round((current * 100) / total);
           setUploadProgress(percentCompleted);

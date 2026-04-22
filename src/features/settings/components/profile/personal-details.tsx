@@ -34,12 +34,16 @@ const PersonalDetails = () => {
     if (session?.user) {
       const { name, email, timezone } = session.user as any;
       const [firstName = "", lastName = ""] = name.split(" ");
+      const inferredTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setFormData({
         name,
         email,
         firstName,
         lastName,
-        timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone:
+          typeof timezone === "string" && timezone.length > 0
+            ? timezone
+            : inferredTimezone,
       });
     }
   }, [session]);
@@ -53,7 +57,7 @@ const PersonalDetails = () => {
         timezone: formData.timezone,
       } as any);
       toast.success("Profile updated successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to update profile");
     } finally {
       setLoading(false);

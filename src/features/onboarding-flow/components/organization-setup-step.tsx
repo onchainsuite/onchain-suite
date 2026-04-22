@@ -8,8 +8,8 @@ import { InputFormField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 
-import { authClient } from "@/lib/auth-client";
 import { apiClient } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 
 import { type OnboardingStepsProps } from "../types";
 import {
@@ -48,9 +48,16 @@ const findExistingOrganizationId = (
   const slugLower = expectedSlug.toLowerCase().trim();
 
   const match = list.find((org: any) => {
-    const orgName = String(org?.name ?? "").toLowerCase().trim();
-    const orgSlug = String(org?.slug ?? "").toLowerCase().trim();
-    return (slugLower && orgSlug === slugLower) || (nameLower && orgName === nameLower);
+    const orgName = String(org?.name ?? "")
+      .toLowerCase()
+      .trim();
+    const orgSlug = String(org?.slug ?? "")
+      .toLowerCase()
+      .trim();
+    return (
+      (slugLower && orgSlug === slugLower) ||
+      (nameLower && orgName === nameLower)
+    );
   });
 
   const id = match?.id ?? match?.organizationId ?? null;
@@ -97,7 +104,7 @@ export function OrganizationSetupStep({
       // Try creating via authClient (BetterAuth plugin)
       const { data: org, error } = await authClient.organization.create({
         name: data.organizationName,
-        slug: slug,
+        slug,
       });
 
       if (error) {
@@ -161,7 +168,9 @@ export function OrganizationSetupStep({
                 await onNext(data);
                 return;
               }
-            } catch {}
+            } catch (_e) {
+              String(_e);
+            }
 
             try {
               createPayload.slug = generateUniqueSlug(slug);
@@ -180,9 +189,11 @@ export function OrganizationSetupStep({
                 retryErr?.response?.data?.error ??
                 retryErr?.message ??
                 "";
+              const retryMsg = String(retryMsgRaw);
               toast.error(
-                String(retryMsgRaw) ||
-                  "This organization name is already taken. Please choose a different name."
+                retryMsg.length > 0
+                  ? retryMsg
+                  : "This organization name is already taken. Please choose a different name."
               );
               return;
             }
@@ -258,7 +269,9 @@ export function OrganizationSetupStep({
                     await onNext(data);
                     return;
                   }
-                } catch {}
+                } catch (_e) {
+                  String(_e);
+                }
 
                 try {
                   createPayload.slug = generateUniqueSlug(slug);
@@ -270,7 +283,9 @@ export function OrganizationSetupStep({
                   await authClient.getSession();
                   await onNext(data);
                   return;
-                } catch {}
+                } catch (_e) {
+                  String(_e);
+                }
               }
 
               const finalRaw =
@@ -279,7 +294,12 @@ export function OrganizationSetupStep({
                 finalErr?.response?.data?.error ??
                 finalErr?.message ??
                 "";
-              toast.error(String(finalRaw) || "Failed to create organization.");
+              const finalMsg = String(finalRaw);
+              toast.error(
+                finalMsg.length > 0
+                  ? finalMsg
+                  : "Failed to create organization."
+              );
               return;
             }
           } else {
@@ -312,7 +332,7 @@ export function OrganizationSetupStep({
       if (error.response?.data) {
         const errorData = error.response.data;
         const rawMessage =
-          errorData.message || errorData.error || errorData.details?.message;
+          errorData?.message ?? errorData?.error ?? errorData?.details?.message;
         displayMessage =
           typeof rawMessage === "object"
             ? JSON.stringify(rawMessage)

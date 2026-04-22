@@ -3,7 +3,15 @@ import z from "zod";
 export const campaignFormSchema = z.object({
   // Step 1: Campaign Details
   campaignName: z.string().min(1, "Campaign name is required"),
-  campaignType: z.enum(["email-blast", "drip-campaign", "newsletter"]),
+  campaignType: z.enum([
+    "email-blast",
+    "drip-campaign",
+    "smart-sending",
+    "newsletter",
+    "promotional",
+    "announcement",
+    "automation",
+  ]),
   template: z.string().min(1, "Please select a template"),
 
   // Step 2: Audience & Tracking

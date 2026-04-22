@@ -2,22 +2,29 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+const pickNonEmpty = (...values: Array<string | undefined | null>) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return "";
+};
+
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
   const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
-  const backendUrl =
-    process.env.BACKEND_URL ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
-    (process.env.NODE_ENV === "production" ? prodDefault : devDefault);
+  const backendUrl = pickNonEmpty(
+    process.env.BACKEND_URL,
+    process.env.NEXT_PUBLIC_BACKEND_URL,
+    process.env.NODE_ENV === "production" ? prodDefault : devDefault
+  );
   return backendUrl.replace(/\/$/, "");
 };
 
 const getBackendApiKey = () => {
-  return (
-    process.env.BACKEND_API_KEY ||
-    process.env.NEXT_PUBLIC_BACKEND_API_KEY ||
-    process.env.NEXT_PUBLIC_API_KEY ||
-    ""
+  return pickNonEmpty(
+    process.env.BACKEND_API_KEY,
+    process.env.NEXT_PUBLIC_BACKEND_API_KEY,
+    process.env.NEXT_PUBLIC_API_KEY
   );
 };
 
@@ -40,7 +47,7 @@ const extractTokenFromCookie = (cookieHeader: string): string | null => {
 export async function GET(req: NextRequest) {
   try {
     const cleanBase = getBackendBaseUrl();
-    const cookieHeader = req.headers.get("cookie") || "";
+    const cookieHeader = req.headers.get("cookie") ?? "";
     const token = extractTokenFromCookie(cookieHeader);
 
     if (!token) {
@@ -69,12 +76,13 @@ export async function GET(req: NextRequest) {
     let response = await doFetch();
 
     if (response.status === 401 || response.status === 409) {
+      const apiKey = getBackendApiKey();
       const listRes = await fetch(`${cleanBase}/organization/list`, {
         method: "GET",
         headers: {
           Cookie: cookieHeader,
           Authorization: `Bearer ${token}`,
-          ...(getBackendApiKey() ? { "x-api-key": getBackendApiKey() } : {}),
+          ...(apiKey ? { "x-api-key": apiKey } : {}),
         },
         cache: "no-store",
       });
@@ -92,13 +100,17 @@ export async function GET(req: NextRequest) {
 
     if (response.status === 409) {
       return NextResponse.json(
-        { success: false, message: "Organization context not ready", data: null },
+        {
+          success: false,
+          message: "Organization context not ready",
+          data: null,
+        },
         { status: 200 }
       );
     }
 
     const text = await response.text();
-    const contentType = response.headers.get("content-type") || "";
+    const contentType = response.headers.get("content-type") ?? "";
 
     if (contentType.includes("application/json")) {
       try {
@@ -114,7 +126,9 @@ export async function GET(req: NextRequest) {
 
     return new NextResponse(text, {
       status: response.status,
-      headers: { "content-type": contentType || "text/plain" },
+      headers: {
+        "content-type": contentType.length > 0 ? contentType : "text/plain",
+      },
     });
   } catch (error) {
     return NextResponse.json(

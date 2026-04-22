@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { useSession } from "@/lib/auth-client";
 import { apiClient } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 
 type OnboardingStep =
   | "welcome"
@@ -93,8 +93,8 @@ export function useOnboardingTracking(): UseOnboardingTracking {
           p &&
           (p.currentStep ||
             p.current_step ||
-            p.isCompleted != null ||
-            p.is_completed != null)
+            (p.isCompleted !== null && p.isCompleted !== undefined) ||
+            (p.is_completed !== null && p.is_completed !== undefined))
         ) {
           setProgress({
             current_step: (p.current_step ??

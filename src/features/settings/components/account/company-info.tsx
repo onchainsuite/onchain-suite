@@ -3,8 +3,8 @@ import { Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { authClient } from "@/lib/auth-client";
 import { apiClient } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { Button } from "@/shared/components/ui/button";
@@ -45,19 +45,30 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
       try {
         const listRes = await apiClient.get("/organization/list");
         const data = listRes.data as any;
-        const orgsData = (Array.isArray(data) ? data : data?.data) || [];
+        const orgsData = Array.isArray(data) ? data : (data?.data ?? []);
 
         if (Array.isArray(orgsData) && orgsData.length > 0) {
           const activeId =
-            activeOrgIdOverride ?? session?.session?.activeOrganizationId ?? null;
+            activeOrgIdOverride ??
+            session?.session?.activeOrganizationId ??
+            null;
           const currentOrg = activeId
-            ? orgsData.find((o: any) => o.id === activeId) || orgsData[0]
+            ? (orgsData.find((o: any) => o.id === activeId) ?? orgsData[0])
             : orgsData[0];
 
+          const pickNonEmptyString = (...values: unknown[]) => {
+            for (const value of values) {
+              if (typeof value === "string" && value.trim().length > 0)
+                return value;
+            }
+            return undefined;
+          };
+
           const orgStatus =
-            (currentOrg as any).status ||
-            (currentOrg as any).metadata?.status ||
-            "unknown";
+            pickNonEmptyString(
+              (currentOrg as any)?.status,
+              (currentOrg as any)?.metadata?.status
+            ) ?? "unknown";
 
           const orgId = (currentOrg as any)?.id ?? null;
           let website = "";
@@ -68,16 +79,17 @@ const CompanyInfo = ({ saving, handleSave }: CompanyInfoProps) => {
                 headers: { "x-org-id": orgId },
               });
               const orgPayload = (orgRes.data as any)?.data ?? orgRes.data;
-              website =
-                String(
-                  orgPayload?.websiteUrl ??
-                    orgPayload?.website_url ??
-                    orgPayload?.website ??
-                    ""
-                ) || "";
+              const websiteValue =
+                orgPayload?.websiteUrl ??
+                orgPayload?.website_url ??
+                orgPayload?.website ??
+                "";
+              website = String(websiteValue);
               detailedStatus =
                 orgPayload?.status ?? orgPayload?.metadata?.status ?? undefined;
-            } catch {}
+            } catch (_e) {
+              String(_e);
+            }
           }
 
           setFormData({

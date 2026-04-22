@@ -8,10 +8,7 @@ import { useSession } from "@/lib/auth-client";
 
 import { OrganizationSetupStep, PlanSelectionStep } from "./components";
 import { OnboardingLayout } from "./components/onboarding-layout";
-import {
-  useOnboardingPersistence,
-  useOnboardingTracking,
-} from "./hooks";
+import { useOnboardingPersistence, useOnboardingTracking } from "./hooks";
 import { type OnboardingData } from "./types";
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
@@ -58,7 +55,10 @@ export function OnboardingFlow() {
 
   const handleStepComplete = async (stepData: Partial<OnboardingData>) => {
     const now = Date.now();
-    const timeSpentSeconds = Math.max(0, Math.floor((now - stepStartedAtMs) / 1000));
+    const timeSpentSeconds = Math.max(
+      0,
+      Math.floor((now - stepStartedAtMs) / 1000)
+    );
 
     setData(stepData);
     const nextStep = currentStep + 1;

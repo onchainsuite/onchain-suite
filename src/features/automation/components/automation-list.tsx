@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -116,74 +115,63 @@ export const AutomationList = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="flex min-h-screen bg-background"
-    >
-      <main className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                Automations
-              </h1>
-              <p className="mt-1 text-muted-foreground">
-                Trigger personalized flows based on your users&apos; on-chain
-                and behavioral signals
-              </p>
-            </div>
-            <Link
-              href="/automations/new-id"
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Plus className="h-4 w-4" />
-              Create automation
-            </Link>
-          </div>
-
-          <AutomationStats stats={stats} />
-
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="space-y-6"
-          >
-            <AutomationTabs
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              counts={{
-                active: stats.active,
-                drafts: drafts.length,
-              }}
-            />
-
-            <TabsContent value="active" className="space-y-4">
-              <ActiveAutomationsList
-                automations={filteredAutomations}
-                searchQuery={searchQuery}
-                onToggleStatus={handleToggleStatus}
-                onDuplicate={handleDuplicate}
-                onDelete={(automation) =>
-                  setDeleteModal({ show: true, automation })
-                }
-              />
-            </TabsContent>
-
-            <TabsContent value="drafts" className="space-y-4">
-              <DraftsList drafts={drafts} />
-            </TabsContent>
-
-            <TabsContent value="templates" className="space-y-4">
-              <TemplatesList templates={templates} />
-            </TabsContent>
-          </Tabs>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Automations
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Trigger personalized flows based on your users&apos; signals.
+          </p>
         </div>
-      </main>
+        <Link
+          href="/automations/new-id"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          Create automation
+        </Link>
+      </div>
+
+      <AutomationStats stats={stats} />
+
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
+        <AutomationTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          counts={{
+            active: stats.active,
+            drafts: drafts.length,
+          }}
+        />
+
+        <TabsContent value="active" className="space-y-4">
+          <ActiveAutomationsList
+            automations={filteredAutomations}
+            searchQuery={searchQuery}
+            onToggleStatus={handleToggleStatus}
+            onDuplicate={handleDuplicate}
+            onDelete={(automation) =>
+              setDeleteModal({ show: true, automation })
+            }
+          />
+        </TabsContent>
+
+        <TabsContent value="drafts" className="space-y-4">
+          <DraftsList drafts={drafts} />
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-4">
+          <TemplatesList templates={templates} />
+        </TabsContent>
+      </Tabs>
 
       <DeleteModal
         show={deleteModal.show}
@@ -199,6 +187,6 @@ export const AutomationList = () => {
         type={toast?.type ?? "success"}
         onClose={() => setToast(null)}
       />
-    </motion.div>
+    </div>
   );
 };

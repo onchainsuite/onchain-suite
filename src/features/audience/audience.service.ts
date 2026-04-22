@@ -30,13 +30,17 @@ export interface ListProfilesParams {
   q?: string;
 }
 
-const pickOrgId = (orgId?: string) => orgId ?? getSelectedOrganizationId() ?? null;
+const pickOrgId = (orgId?: string) =>
+  orgId ?? getSelectedOrganizationId() ?? null;
 
 const extractData = <T>(payload: any): T => {
   return (payload?.data ?? payload) as T;
 };
 
-const request = async <T>(config: AxiosRequestConfig, orgId?: string): Promise<T> => {
+const request = async <T>(
+  config: AxiosRequestConfig,
+  orgId?: string
+): Promise<T> => {
   const resolvedOrgId = pickOrgId(orgId);
   const headers = {
     ...(config.headers ?? {}),
@@ -60,14 +64,17 @@ const request = async <T>(config: AxiosRequestConfig, orgId?: string): Promise<T
 
 export const audienceService = {
   getOverview(orgId?: string) {
-    return request<AudienceOverview>({ method: "GET", url: "/audience/overview" }, orgId);
+    return request<AudienceOverview>(
+      { method: "GET", url: "/audience/overview" },
+      orgId
+    );
   },
 
   listProfiles(params?: ListProfilesParams, orgId?: string) {
-    return request<{ items?: AudienceProfile[]; data?: AudienceProfile[] } | AudienceProfile[]>(
-      { method: "GET", url: "/audience/profiles", params },
-      orgId
-    );
+    return request<
+      | { items?: AudienceProfile[]; data?: AudienceProfile[] }
+      | AudienceProfile[]
+    >({ method: "GET", url: "/audience/profiles", params }, orgId);
   },
 
   createProfile(body: Record<string, unknown>, orgId?: string) {
@@ -78,7 +85,10 @@ export const audienceService = {
   },
 
   getProfile(id: string, orgId?: string) {
-    return request<AudienceProfile>({ method: "GET", url: `/audience/profiles/${id}` }, orgId);
+    return request<AudienceProfile>(
+      { method: "GET", url: `/audience/profiles/${id}` },
+      orgId
+    );
   },
 
   updateProfile(id: string, body: Record<string, unknown>, orgId?: string) {
@@ -89,14 +99,16 @@ export const audienceService = {
   },
 
   listTags(orgId?: string) {
-    return request<{ items?: AudienceTag[]; data?: AudienceTag[] } | AudienceTag[]>(
-      { method: "GET", url: "/audience/tags" },
-      orgId
-    );
+    return request<
+      { items?: AudienceTag[]; data?: AudienceTag[] } | AudienceTag[]
+    >({ method: "GET", url: "/audience/tags" }, orgId);
   },
 
   createTag(body: { name: string }, orgId?: string) {
-    return request<AudienceTag>({ method: "POST", url: "/audience/tags", data: body }, orgId);
+    return request<AudienceTag>(
+      { method: "POST", url: "/audience/tags", data: body },
+      orgId
+    );
   },
 
   addTagsToProfile(id: string, body: { tags: string[] }, orgId?: string) {
@@ -108,9 +120,11 @@ export const audienceService = {
 
   removeTagFromProfile(id: string, tagName: string, orgId?: string) {
     return request<{ success?: boolean }>(
-      { method: "DELETE", url: `/audience/profiles/${id}/tags/${encodeURIComponent(tagName)}` },
+      {
+        method: "DELETE",
+        url: `/audience/profiles/${id}/tags/${encodeURIComponent(tagName)}`,
+      },
       orgId
     );
   },
 };
-

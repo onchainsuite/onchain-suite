@@ -147,127 +147,143 @@ const EmailListPanel = ({
 
       {/* Email List */}
       <div ref={emailListRef} className="divide-y divide-border">
-        {filteredEmails.map((email, index) => (
-          <div
-            key={email.id}
-            className={`group relative transition-colors ${
-              selectedEmail?.id === email.id
-                ? "bg-primary/10"
-                : focusedIndex === index
-                  ? "bg-card"
-                  : "hover:bg-card"
-            }`}
-          >
-            <div className="absolute left-2 top-4 z-10">
-              <input
-                type="checkbox"
-                checked={selectedEmails.includes(email.id)}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  toggleEmailSelection(email.id);
-                }}
-                className="h-3.5 w-3.5 rounded border-border opacity-0 accent-primary transition-opacity group-hover:opacity-100"
-                style={{
-                  opacity: selectedEmails.includes(email.id) ? 1 : undefined,
-                }}
-              />
+        {filteredEmails.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+              <Send className="h-5 w-5" aria-hidden="true" />
             </div>
-
-            <div
-              onClick={() => setSelectedEmail(email)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  setSelectedEmail(email);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              className="w-full cursor-pointer p-4 pl-8 text-left"
-            >
-              <div className="mb-1 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/audience/${email.profileId}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-transform hover:scale-110 ${
-                      email.unread
-                        ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {email.avatar}
-                  </Link>
-                  <span
-                    className={`text-sm ${
-                      email.unread
-                        ? "font-semibold text-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {email.from}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {email.hasAttachment && (
-                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  {email.starred && (
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    {email.time}
-                  </span>
-                </div>
-              </div>
-              <p
-                className={`mb-1 truncate text-sm ${
-                  email.unread
-                    ? "font-medium text-foreground"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {email.subject}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {email.preview}
-              </p>
-              <div className="mt-2 flex items-center justify-between">
-                <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                  {email.campaign}
-                </span>
-                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-primary"
-                    title="Archive"
-                  >
-                    <Archive className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-400"
-                    title="Star"
-                  >
-                    <Star className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-blue-400"
-                    title="Snooze"
-                  >
-                    <Clock className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
+            <h3 className="mt-4 text-lg font-semibold text-foreground">
+              No messages
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {searchQuery.length > 0
+                ? "Try a different search term."
+                : "Incoming replies and notifications will show up here."}
+            </p>
           </div>
-        ))}
+        ) : (
+          filteredEmails.map((email, index) => (
+            <div
+              key={email.id}
+              className={`group relative transition-colors ${
+                selectedEmail?.id === email.id
+                  ? "bg-primary/10"
+                  : focusedIndex === index
+                    ? "bg-card"
+                    : "hover:bg-card"
+              }`}
+            >
+              <div className="absolute left-2 top-4 z-10">
+                <input
+                  type="checkbox"
+                  checked={selectedEmails.includes(email.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    toggleEmailSelection(email.id);
+                  }}
+                  className="h-3.5 w-3.5 rounded border-border opacity-0 accent-primary transition-opacity group-hover:opacity-100"
+                  style={{
+                    opacity: selectedEmails.includes(email.id) ? 1 : undefined,
+                  }}
+                />
+              </div>
+
+              <div
+                onClick={() => setSelectedEmail(email)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    setSelectedEmail(email);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                className="w-full cursor-pointer p-4 pl-8 text-left"
+              >
+                <div className="mb-1 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/audience/${email.profileId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-transform hover:scale-110 ${
+                        email.unread
+                          ? "bg-primary/20 text-primary"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {email.avatar}
+                    </Link>
+                    <span
+                      className={`text-sm ${
+                        email.unread
+                          ? "font-semibold text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {email.from}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {email.hasAttachment && (
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                    {email.starred && (
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {email.time}
+                    </span>
+                  </div>
+                </div>
+                <p
+                  className={`mb-1 truncate text-sm ${
+                    email.unread
+                      ? "font-medium text-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {email.subject}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {email.preview}
+                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                    {email.campaign}
+                  </span>
+                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-primary"
+                      title="Archive"
+                    >
+                      <Archive className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-400"
+                      title="Star"
+                    >
+                      <Star className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-blue-400"
+                      title="Snooze"
+                    >
+                      <Clock className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

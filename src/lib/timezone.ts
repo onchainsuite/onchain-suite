@@ -1,7 +1,7 @@
 export function getUserTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch (e) {
+  } catch {
     return "UTC";
   }
 }
@@ -26,18 +26,18 @@ export function getTimezoneDisplay(timeZone: string): TimezoneInfo {
     const short =
       formatToParts({ timeZoneName: "short" }).find(
         (p) => p.type === "timeZoneName"
-      )?.value || "";
+      )?.value ?? "";
     const long =
       formatToParts({ timeZoneName: "long" }).find(
         (p) => p.type === "timeZoneName"
-      )?.value || "";
+      )?.value ?? "";
     const offset =
       formatToParts({ timeZoneName: "longOffset" }).find(
         (p) => p.type === "timeZoneName"
-      )?.value || "";
+      )?.value ?? "";
 
     return { short, long, timeZone, offset };
-  } catch (e) {
+  } catch {
     return {
       short: "UTC",
       long: "Coordinated Universal Time",
@@ -51,13 +51,14 @@ export function getAllTimezones(): TimezoneInfo[] {
   // Use Intl.supportedValuesOf if available (Node 18+ / Modern Browsers)
   let timeZones: string[] = [];
   try {
-    // @ts-ignore - supportedValuesOf might not be in TS lib yet depending on version
-    if (Intl.supportedValuesOf) {
-      // @ts-ignore
-      timeZones = Intl.supportedValuesOf("timeZone");
+    const supportedValuesOf = (Intl as any).supportedValuesOf as
+      | undefined
+      | ((key: string) => string[]);
+    if (supportedValuesOf) {
+      timeZones = supportedValuesOf("timeZone");
     }
-  } catch (e) {
-    // Fallback list if needed
+  } catch (_e) {
+    String(_e);
   }
 
   if (timeZones.length === 0) {

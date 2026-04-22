@@ -66,6 +66,9 @@ export default function CompanyEditForm() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<CompanyFormValues | null>(null);
 
+  const isNonEmptyString = (value: unknown): value is string =>
+    typeof value === "string" && value.trim().length > 0;
+
   const form = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
     defaultValues: {
@@ -86,16 +89,16 @@ export default function CompanyEditForm() {
       try {
         const res = await apiClient.get("/organization");
         // Handle both direct object and { data: ... } wrapper
-        const org = res.data?.data || res.data;
+        const org = res.data?.data ?? res.data;
         if (org) {
-          const settings = org.settings || {};
+          const settings = org.settings ?? {};
           const initialData = {
-            name: org.name || "",
-            email: settings.billingEmail || "",
-            phone: settings.phone || "",
-            taxId: settings.taxId || "",
-            address: settings.address || "",
-            timezone: settings.timezone || "UTC",
+            name: org.name ?? "",
+            email: settings.billingEmail ?? "",
+            phone: settings.phone ?? "",
+            taxId: settings.taxId ?? "",
+            address: settings.address ?? "",
+            timezone: settings.timezone ?? "UTC",
           };
           setData(initialData);
           form.reset(initialData);
@@ -133,7 +136,7 @@ export default function CompanyEditForm() {
       toast.success("Company details updated successfully");
     } catch (error) {
       setData(previousData);
-      form.reset(previousData || undefined);
+      form.reset(previousData ?? undefined);
       toast.error("Failed to update company details");
       setIsEditing(true); // Re-open edit mode on failure
     }
@@ -266,7 +269,7 @@ export default function CompanyEditForm() {
                   variant="ghost"
                   onClick={() => {
                     setIsEditing(false);
-                    form.reset(data || undefined);
+                    form.reset(data ?? undefined);
                   }}
                 >
                   Cancel
@@ -300,11 +303,15 @@ export default function CompanyEditForm() {
                   Billing Email
                 </p>
                 <p className="text-base">
-                  {data?.email || (
-                    <span className="text-muted-foreground/50 italic">
-                      Not set
-                    </span>
-                  )}
+                  {(() => {
+                    const email = data?.email;
+                    if (isNonEmptyString(email)) return email;
+                    return (
+                      <span className="text-muted-foreground/50 italic">
+                        Not set
+                      </span>
+                    );
+                  })()}
                 </p>
               </div>
               <div>
@@ -312,11 +319,15 @@ export default function CompanyEditForm() {
                   Phone
                 </p>
                 <p className="text-base">
-                  {data?.phone || (
-                    <span className="text-muted-foreground/50 italic">
-                      Not set
-                    </span>
-                  )}
+                  {(() => {
+                    const phone = data?.phone;
+                    if (isNonEmptyString(phone)) return phone;
+                    return (
+                      <span className="text-muted-foreground/50 italic">
+                        Not set
+                      </span>
+                    );
+                  })()}
                 </p>
               </div>
               <div>
@@ -324,25 +335,39 @@ export default function CompanyEditForm() {
                   Tax ID
                 </p>
                 <p className="font-mono bg-muted/50 px-2 py-0.5 rounded text-sm w-fit">
-                  {data?.taxId || "Not set"}
+                  {(() => {
+                    const taxId = data?.taxId;
+                    if (isNonEmptyString(taxId)) return taxId;
+                    return "Not set";
+                  })()}
                 </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">
                   Timezone
                 </p>
-                <p className="text-base">{data?.timezone || "UTC"}</p>
+                <p className="text-base">
+                  {(() => {
+                    const timezone = data?.timezone;
+                    if (isNonEmptyString(timezone)) return timezone;
+                    return "UTC";
+                  })()}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <p className="text-sm font-medium text-muted-foreground mb-1">
                   Address
                 </p>
                 <p className="text-base">
-                  {data?.address || (
-                    <span className="text-muted-foreground/50 italic">
-                      Not set
-                    </span>
-                  )}
+                  {(() => {
+                    const address = data?.address;
+                    if (isNonEmptyString(address)) return address;
+                    return (
+                      <span className="text-muted-foreground/50 italic">
+                        Not set
+                      </span>
+                    );
+                  })()}
                 </p>
               </div>
             </motion.div>

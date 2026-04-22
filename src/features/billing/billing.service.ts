@@ -139,6 +139,10 @@ const toFriendlyMessage = (error: unknown): string => {
     e?.response?.data?.message ??
     e?.message ??
     "";
+  const nonEmptyServerMessage =
+    serverMessage && String(serverMessage).trim().length > 0
+      ? String(serverMessage)
+      : undefined;
   const lowered = String(serverMessage).toLowerCase();
 
   if (!status)
@@ -150,14 +154,17 @@ const toFriendlyMessage = (error: unknown): string => {
   if (status === 400 && lowered.includes("database error"))
     return "Billing is not available for this organization yet. Please try again later.";
   if (status === 404) return "Billing resource not found.";
-  if (status === 409) return serverMessage || "Request conflict. Please retry.";
+  if (status === 409)
+    return nonEmptyServerMessage ?? "Request conflict. Please retry.";
   if (status === 422)
-    return serverMessage || "Validation error. Please review your input.";
+    return (
+      nonEmptyServerMessage ?? "Validation error. Please review your input."
+    );
   if (status === 429)
     return "Too many requests. Please wait a moment and try again.";
   if (status >= 500)
     return "Billing service is temporarily unavailable. Please try again.";
-  return serverMessage || "Unexpected billing error. Please try again.";
+  return nonEmptyServerMessage ?? "Unexpected billing error. Please try again.";
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -199,7 +206,7 @@ const logBillingEvent = (detail: Record<string, unknown>) => {
 const shouldRetry = (error: unknown): boolean => {
   const e = error as AxiosError<any>;
   if (!e?.response) return true;
-  const status = e.response.status;
+  const { status } = e.response;
   return status === 429 || status >= 500;
 };
 

@@ -27,6 +27,7 @@ export interface Campaign {
   createdAt: Date;
   scheduledFor?: Date;
   sentAt?: Date;
+  [key: string]: unknown;
 }
 
 export interface List {

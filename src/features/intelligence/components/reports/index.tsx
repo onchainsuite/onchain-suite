@@ -202,252 +202,258 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <table className="w-full hidden md:table">
-          <thead>
-            <tr className="border-b border-border bg-secondary/30">
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Name
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Sent
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Recipients
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Open Rate
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Click Rate
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Conv / Exits
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Revenue
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {filteredReports.map((report, index) => (
-              <motion.tr
-                key={report.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: index * 0.03 }}
-                className="transition-colors hover:bg-secondary/30"
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                        report.type === "email"
-                          ? "bg-primary/10 text-primary"
-                          : "bg-secondary/10 text-secondary"
-                      }`}
-                    >
-                      {report.type === "email" ? (
-                        <Mail className="h-4 w-4" />
-                      ) : (
-                        <Bot className="h-4 w-4" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {report.name}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
+        {filteredReports.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+              <Send className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-foreground">
+              No intelligence reports yet
+            </h3>
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">
+              Run your first campaign or automation to start tracking opens,
+              clicks, and revenue attribution here.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab("query")}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              Run a query
+            </button>
+          </div>
+        ) : (
+          <>
+            <table className="w-full hidden md:table">
+              <thead>
+                <tr className="border-b border-border bg-secondary/30">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Sent
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Recipients
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Open Rate
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Click Rate
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Conv / Exits
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Revenue
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredReports.map((report, index) => (
+                  <motion.tr
+                    key={report.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.03 }}
+                    className="transition-colors hover:bg-secondary/30"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                             report.type === "email"
                               ? "bg-primary/10 text-primary"
                               : "bg-secondary/10 text-secondary"
                           }`}
                         >
-                          {report.type === "email" ? "Email" : "Automation"}
+                          {report.type === "email" ? (
+                            <Mail className="h-4 w-4" />
+                          ) : (
+                            <Bot className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {report.name}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
+                                report.type === "email"
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-secondary/10 text-secondary"
+                              }`}
+                            >
+                              {report.type === "email" ? "Email" : "Automation"}
+                            </span>
+                            <span
+                              className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
+                                report.status === "active"
+                                  ? "bg-secondary/10 text-secondary"
+                                  : report.status === "completed"
+                                    ? "bg-secondary text-muted-foreground"
+                                    : "bg-accent/10 text-accent-foreground"
+                              }`}
+                            >
+                              {report.status}
+                            </span>
+                            {report.type === "automation" &&
+                              report.topTrigger && (
+                                <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs bg-accent/10 text-accent-foreground">
+                                  <Zap className="h-3 w-3" />
+                                  {report.topTrigger}
+                                </span>
+                              )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-muted-foreground">
+                        {report.sentDate}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm font-medium text-foreground">
+                        {report.recipients.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-16 rounded-full bg-secondary">
+                          <div
+                            className="h-full rounded-full bg-primary"
+                            style={{ width: `${report.openRate}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-primary">
+                          {report.openRate}%
                         </span>
-                        <span
-                          className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
-                            report.status === "active"
-                              ? "bg-secondary/10 text-secondary"
-                              : report.status === "completed"
-                                ? "bg-secondary text-muted-foreground"
-                                : "bg-accent/10 text-accent-foreground"
-                          }`}
-                        >
-                          {report.status}
-                        </span>
-                        {report.type === "automation" && report.topTrigger && (
-                          <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs bg-accent/10 text-accent-foreground">
-                            <Zap className="h-3 w-3" />
-                            {report.topTrigger}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-foreground">
+                        {report.clickRate}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {report.type === "automation" && report.conversions ? (
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-secondary">
+                            {report.conversions.toLocaleString()} conv
                           </span>
+                          <span className="text-xs text-muted-foreground">
+                            {report.exitRate}% exited
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <span className="text-sm font-bold text-secondary">
+                          {report.revenueChange}
+                        </span>
+                        {report.revenueChange.includes("+") ? (
+                          <TrendingUp className="h-3.5 w-3.5 text-secondary" />
+                        ) : (
+                          <TrendingDown className="h-3.5 w-3.5 text-destructive" />
                         )}
                       </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-muted-foreground">
-                    {report.sentDate}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm font-medium text-foreground">
-                    {report.recipients.toLocaleString()}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-16 rounded-full bg-secondary">
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        href={`/intelligence/reports/${report.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_12px_rgba(var(--primary),0.4)]"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        View Report
+                      </Link>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="md:hidden divide-y divide-border">
+              {filteredReports.map((report, index) => (
+                <motion.div
+                  key={report.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.03 }}
+                  className="p-4"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
                       <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${report.openRate}%` }}
-                      />
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                          report.type === "email"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-secondary/10 text-secondary"
+                        }`}
+                      >
+                        {report.type === "email" ? (
+                          <Mail className="h-5 w-5" />
+                        ) : (
+                          <Bot className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {report.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {report.sentDate}
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-sm font-medium text-primary">
-                      {report.openRate}%
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-foreground">
-                    {report.clickRate}%
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  {report.type === "automation" && report.conversions ? (
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-secondary">
-                        {report.conversions.toLocaleString()} conv
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {report.exitRate}% exited
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-bold text-secondary">
+                    <span className="font-bold text-secondary">
                       {report.revenueChange}
                     </span>
-                    {report.revenueChange.includes("+") ? (
-                      <TrendingUp className="h-3.5 w-3.5 text-secondary" />
-                    ) : (
-                      <TrendingDown className="h-3.5 w-3.5 text-destructive" />
-                    )}
                   </div>
-                </td>
-                <td className="px-4 py-3 text-right">
+                  <div className="grid grid-cols-3 gap-4 mb-3 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Recipients
+                      </p>
+                      <p className="font-medium">
+                        {report.recipients.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Open Rate</p>
+                      <p className="font-medium text-secondary">
+                        {report.openRate}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        Click Rate
+                      </p>
+                      <p className="font-medium">{report.clickRate}%</p>
+                    </div>
+                  </div>
                   <Link
                     href={`/intelligence/reports/${report.id}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_12px_rgba(var(--primary),0.4)]"
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
                   >
-                    <Eye className="h-3.5 w-3.5" />
+                    <Eye className="h-4 w-4" />
                     View Report
                   </Link>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="md:hidden divide-y divide-border">
-          {filteredReports.map((report, index) => (
-            <motion.div
-              key={report.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: index * 0.03 }}
-              className="p-4"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                      report.type === "email"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-secondary/10 text-secondary"
-                    }`}
-                  >
-                    {report.type === "email" ? (
-                      <Mail className="h-5 w-5" />
-                    ) : (
-                      <Bot className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">{report.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {report.sentDate}
-                    </p>
-                  </div>
-                </div>
-                <span className="font-bold text-secondary">
-                  {report.revenueChange}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-4 mb-3 text-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Recipients</p>
-                  <p className="font-medium">
-                    {report.recipients.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Open Rate</p>
-                  <p className="font-medium text-secondary">
-                    {report.openRate}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Click Rate</p>
-                  <p className="font-medium">{report.clickRate}%</p>
-                </div>
-              </div>
-              <Link
-                href={`/intelligence/reports/${report.id}`}
-                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-              >
-                <Eye className="h-4 w-4" />
-                View Report
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+                </motion.div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
-
-      {filteredReports.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center justify-center py-20 text-center"
-        >
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-secondary/10">
-            <Send className="h-10 w-10 text-primary/50" />
-          </div>
-          <h3 className="text-xl font-medium text-foreground">
-            No campaigns sent yet
-          </h3>
-          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            Create your first campaign to start tracking opens, clicks, and
-            revenue attribution
-          </p>
-          <button
-            onClick={() => setActiveTab("query")}
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-md transition-all hover:shadow-lg"
-          >
-            <Sparkles className="h-4 w-4" />
-            Create your first campaign
-          </button>
-        </motion.div>
-      )}
     </div>
   );
 }

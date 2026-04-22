@@ -223,6 +223,14 @@ const TeamMembers = ({
     }
   };
 
+  const getInitial = (item: { name?: string; email?: string }) => {
+    const nameInitial = item.name?.charAt(0);
+    if (nameInitial && nameInitial.length > 0) return nameInitial;
+    const emailInitial = item.email?.charAt(0);
+    if (emailInitial && emailInitial.length > 0) return emailInitial;
+    return "U";
+  };
+
   const allItems = [
     ...invites.map((invite) => ({
       id: invite.id,
@@ -235,7 +243,13 @@ const TeamMembers = ({
     ...members.map((member) => ({
       id: member.id,
       type: "member" as const,
-      name: member.name || member.user?.name || "Unknown",
+      name:
+        typeof member.name === "string" && member.name.trim().length > 0
+          ? member.name
+          : typeof member.user?.name === "string" &&
+              member.user.name.trim().length > 0
+            ? member.user.name
+            : "Unknown",
       email: getEmail(member),
       role: member.role,
       status: "Active",
@@ -306,9 +320,7 @@ const TeamMembers = ({
                   <div className="col-span-2 flex items-center gap-4">
                     <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/20">
                       <span className="text-sm font-medium text-primary">
-                        {member.name?.charAt(0) ||
-                          member.email?.charAt(0) ||
-                          "U"}
+                        {getInitial(member)}
                       </span>
                     </div>
                     <div>
@@ -377,9 +389,7 @@ const TeamMembers = ({
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
                         <span className="text-xs font-medium text-primary">
-                          {member.name?.charAt(0) ||
-                            member.email?.charAt(0) ||
-                            "U"}
+                          {getInitial(member)}
                         </span>
                       </div>
                       <div>

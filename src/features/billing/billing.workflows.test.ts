@@ -1,10 +1,11 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "@/lib/api-client";
+
 import { billingService } from "./billing.service";
 
 const mockResponse = (status: number, data: any) =>
-  ({ status, data: { data } } as any);
+  ({ status, data: { data } }) as any;
 
 describe("billing workflows", () => {
   beforeEach(() => {
@@ -16,9 +17,14 @@ describe("billing workflows", () => {
 
     requestSpy
       .mockResolvedValueOnce(
-        mockResponse(200, { checkoutUrl: "https://checkout.example.com", success: true })
+        mockResponse(200, {
+          checkoutUrl: "https://checkout.example.com",
+          success: true,
+        })
       )
-      .mockResolvedValueOnce(mockResponse(200, { name: "Pro", status: "active" }))
+      .mockResolvedValueOnce(
+        mockResponse(200, { name: "Pro", status: "active" })
+      )
       .mockResolvedValueOnce(
         mockResponse(200, {
           items: [
@@ -45,4 +51,3 @@ describe("billing workflows", () => {
     expect(list[0]?.id).toBe("inv_1");
   });
 });
-

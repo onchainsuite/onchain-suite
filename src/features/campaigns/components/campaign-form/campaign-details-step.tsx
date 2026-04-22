@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Mail, TrendingUp, Users } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -22,6 +23,7 @@ import {
   SelectValue,
 } from "@/ui/select";
 
+import { campaignsService } from "../../campaigns.service";
 import type { CampaignFormData } from "../../validations";
 
 interface CampaignDetailsStepProps {
@@ -50,6 +52,31 @@ const TEMPLATE_OPTIONS = [
 ];
 
 export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
+  const campaignTypesQuery = useQuery({
+    queryKey: ["campaign-types"],
+    queryFn: () => campaignsService.listCampaignTypes(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const campaignTypeOptions =
+    campaignTypesQuery.data && campaignTypesQuery.data.length > 0
+      ? campaignTypesQuery.data
+          .map((t) => ({
+            value: String(t.id ?? ""),
+            label: t.label ? String(t.label) : String(t.id ?? ""),
+          }))
+          .filter((t) => t.value.length > 0)
+      : [
+          { value: "email-blast", label: "Email Blast" },
+          { value: "drip-campaign", label: "Drip Campaign" },
+          { value: "smart-sending", label: "Smart Sending" },
+          { value: "newsletter", label: "Newsletter" },
+          { value: "promotional", label: "Promotional" },
+          { value: "announcement", label: "Announcement" },
+          { value: "automation", label: "Automation" },
+        ];
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 p-6 md:p-8 lg:p-10">
       <div className="space-y-2">
@@ -89,22 +116,22 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
             <FormLabel className="text-base font-medium">
               Campaign type
             </FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
                 <SelectTrigger className="h-12 rounded-xl border-border bg-background transition-all duration-300">
                   <SelectValue />
                 </SelectTrigger>
               </FormControl>
               <SelectContent className="rounded-xl border-border bg-card">
-                <SelectItem value="email-blast" className="rounded-lg">
-                  Email Blast
-                </SelectItem>
-                <SelectItem value="drip-campaign" className="rounded-lg">
-                  Drip Campaign
-                </SelectItem>
-                <SelectItem value="newsletter" className="rounded-lg">
-                  Newsletter
-                </SelectItem>
+                {campaignTypeOptions.map((opt) => (
+                  <SelectItem
+                    key={opt.value}
+                    value={opt.value}
+                    className="rounded-lg"
+                  >
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <FormDescription>

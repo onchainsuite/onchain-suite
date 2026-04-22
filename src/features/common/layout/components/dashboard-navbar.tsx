@@ -5,11 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/shared/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -22,6 +17,11 @@ import { useGetLogo } from "@/hooks/client";
 import { getAvatarColor, getInitials, isValidImageUrl } from "@/lib/user-utils";
 import { cn } from "@/lib/utils";
 
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface NavItem {
@@ -58,10 +58,12 @@ export function DashboardNavbar({
   hasActiveOrganization = true,
 }: DashboardNavbarProps) {
   const initials = userFullName ? getInitials(userFullName) : "U";
+  const displayName =
+    userFullName && userFullName.length > 0 ? userFullName : "User";
   const avatarColor = userId ? getAvatarColor(userId) : undefined;
   const logoData = useGetLogo();
-  const lightIcon = logoData.lightIcon;
-  const darkIcon = logoData.darkIcon;
+  const { lightIcon } = logoData;
+  const { darkIcon } = logoData;
   const favicon = "favicon" in logoData ? logoData.favicon : undefined;
 
   useEffect(() => {
@@ -187,11 +189,11 @@ export function DashboardNavbar({
             <Avatar
               className="h-8 w-8 lg:h-10 lg:w-10 ring-1 ring-border shadow-sm"
               aria-label="User avatar"
-              title={userFullName || "User"}
+              title={displayName}
             >
               {validImage && !imgError ? (
                 <AvatarImage
-                  alt={userFullName || "User"}
+                  alt={displayName}
                   src={userImageUrl as string}
                   loading="lazy"
                   onLoad={() => setImgLoaded(true)}

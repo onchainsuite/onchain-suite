@@ -2,6 +2,20 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { getSession } from "@/lib/auth-session";
 
+const pickNonEmpty = (...values: Array<string | undefined | null>) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return "";
+};
+
+const pickNonEmptyString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return "active";
+};
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
@@ -15,26 +29,22 @@ export async function GET(req: NextRequest) {
 
     const orgId = session.session.activeOrganizationId;
 
-    const rawBase =
-      process.env.BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      "http://127.0.0.1:3333";
-    const cleanOrigin = rawBase
-      .replace(/\/$/, "")
-      .replace(/\/api\/v1$/i, "");
+    const rawBase = pickNonEmpty(
+      process.env.BACKEND_URL,
+      process.env.NEXT_PUBLIC_BACKEND_URL,
+      "http://127.0.0.1:3333"
+    );
+    const cleanOrigin = rawBase.replace(/\/$/, "").replace(/\/api\/v1$/i, "");
 
     // Fetch organization details from the backend
     // We reuse the session token for authentication
-    const response = await fetch(
-      `${cleanOrigin}/api/v1/organization`,
-      {
-        headers: {
-          Authorization: `Bearer ${session.session.token}`, // Assuming token is available or cookie handles it
-          Cookie: req.headers.get("cookie") || "",
-          "x-org-id": orgId,
-        },
-      }
-    );
+    const response = await fetch(`${cleanOrigin}/api/v1/organization`, {
+      headers: {
+        Authorization: `Bearer ${session.session.token}`, // Assuming token is available or cookie handles it
+        Cookie: req.headers.get("cookie") ?? "",
+        "x-org-id": orgId,
+      },
+    });
 
     if (!response.ok) {
       // If we can't fetch it, assume active or handle error?
@@ -46,7 +56,10 @@ export async function GET(req: NextRequest) {
 
     // Determine status
     // Assuming 'status' field exists, or 'metadata.status'
-    const status = orgData.status || orgData.metadata?.status || "active";
+    const status = pickNonEmptyString(
+      orgData?.status,
+      orgData?.metadata?.status
+    );
     const isActive =
       status === "active" || status === "paid" || status === "trial";
 

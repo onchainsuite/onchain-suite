@@ -137,7 +137,9 @@ export function getCookieValue(
   return null;
 }
 
-export function getSelectedOrganizationId(cookieHeader?: string): string | null {
+export function getSelectedOrganizationId(
+  cookieHeader?: string
+): string | null {
   const v = getCookieValue(ORG_SELECTION_COOKIE, cookieHeader);
   if (!v) return null;
   const trimmed = v.trim();

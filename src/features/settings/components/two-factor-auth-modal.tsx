@@ -76,13 +76,14 @@ const TwoFactorAuthModal = ({
 
       if (res.data) {
         setTotpURI(res.data.totpURI);
-        setBackupCodes(res.data.backupCodes || []);
+        setBackupCodes(res.data.backupCodes ?? []);
         setStep("qr");
       } else if (res.error) {
-        setError(res.error.message || "An error occurred");
-        toast.error(res.error.message || "An error occurred");
+        const message = res.error.message ?? "An error occurred";
+        setError(message);
+        toast.error(message);
       }
-    } catch (e) {
+    } catch {
       setError("Failed to start 2FA setup");
       toast.error("Failed to start 2FA setup");
     } finally {
@@ -106,10 +107,11 @@ const TwoFactorAuthModal = ({
         toast.success("2FA enabled successfully");
         setStep("backup");
       } else if (res.error) {
-        setError(res.error.message || "An error occurred");
-        toast.error(res.error.message || "An error occurred");
+        const message = res.error.message ?? "An error occurred";
+        setError(message);
+        toast.error(message);
       }
-    } catch (e) {
+    } catch {
       setError("Invalid code");
       toast.error("Invalid code");
     } finally {
@@ -134,10 +136,11 @@ const TwoFactorAuthModal = ({
         onOpenChange(false);
         window.location.reload();
       } else {
-        setError(res.error?.message || "Failed to disable 2FA");
-        toast.error(res.error?.message || "Failed to disable 2FA");
+        const message = res.error?.message ?? "Failed to disable 2FA";
+        setError(message);
+        toast.error(message);
       }
-    } catch (e) {
+    } catch {
       setError("Failed to disable 2FA");
       toast.error("Failed to disable 2FA");
     } finally {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowDown,
@@ -23,14 +24,13 @@ import {
 import Link from "next/link";
 import type { ReactElement } from "react";
 import React, { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 
+import { audienceService } from "@/features/audience/audience.service";
 import {
   getHealthBarColor,
   getHealthColor,
   getStatusIcon,
 } from "@/features/audience/utils";
-import { audienceService } from "@/features/audience/audience.service";
 
 const generateMockProfiles = () => {
   const names = [
@@ -519,343 +519,364 @@ export function AudiencePages(): ReactElement {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="mx-2 rounded-xl border border-border bg-card shadow-md md:mx-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="w-12 px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={
-                          selectedIds.length === paginatedProfiles.length &&
-                          paginatedProfiles.length > 0
-                        }
-                        onChange={handleSelectAll}
-                        className="h-4 w-4 rounded border-border"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left">
-                      <button
-                        onClick={() => handleSort("name")}
-                        className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-                      >
-                        Profile
-                        {sortField === "name" ? (
-                          sortDirection === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3 opacity-50" />
-                        )}
-                      </button>
-                    </th>
-                    <th className="hidden px-4 py-3 text-left sm:table-cell">
-                      <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        Wallet
-                      </span>
-                    </th>
-                    <th className="px-4 py-3 text-left">
-                      <button
-                        onClick={() => handleSort("healthScore")}
-                        className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-                      >
-                        Health
-                        {sortField === "healthScore" ? (
-                          sortDirection === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3 opacity-50" />
-                        )}
-                      </button>
-                    </th>
-                    <th className="hidden px-4 py-3 text-left md:table-cell">
-                      <button
-                        onClick={() => handleSort("lastAction")}
-                        className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-                      >
-                        Last Action
-                        {sortField === "lastAction" ? (
-                          sortDirection === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
-                          ) : (
-                            <ArrowDown className="h-3 w-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3 opacity-50" />
-                        )}
-                      </button>
-                    </th>
-                  </tr>
-                </thead>
-                <motion.tbody
-                  variants={{
-                    initial: { opacity: 0 },
-                    animate: {
-                      opacity: 1,
-                      transition: {
-                        staggerChildren: 0.04,
-                      },
-                    },
-                  }}
-                  initial="initial"
-                  animate="animate"
-                >
-                  {paginatedProfiles.map((profile) => (
-                    <React.Fragment key={profile.id}>
-                      <motion.tr
-                        variants={{
-                          initial: { opacity: 0, y: 20 },
-                          animate: {
-                            opacity: 1,
-                            y: 0,
-                            transition: {
-                              duration: 0.3,
-                              ease: [0.25, 0.46, 0.45, 0.94],
-                            },
-                          },
-                        }}
-                        onClick={() => handleRowClick(profile.id)}
-                        className="cursor-pointer border-b border-border transition-colors hover:bg-emerald-500/5"
-                      >
-                        <td
-                          className="px-4 py-4"
-                          onClick={(e) => e.stopPropagation()}
+          {sortedProfiles.length === 0 ? (
+            <div className="mx-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center md:mx-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+                <UserPlus className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold text-foreground">
+                No profiles yet
+              </h2>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                Import your audience or add your first profile to start
+                segmenting and sending campaigns.
+              </p>
+              <Link
+                href="/audience/import-export"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
+              >
+                <UserPlus className="h-4 w-4" aria-hidden="true" />
+                Add Profile
+              </Link>
+            </div>
+          ) : (
+            <div className="mx-2 rounded-xl border border-border bg-card shadow-md md:mx-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="w-12 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={
+                            selectedIds.length === paginatedProfiles.length &&
+                            paginatedProfiles.length > 0
+                          }
+                          onChange={handleSelectAll}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left">
+                        <button
+                          onClick={() => handleSort("name")}
+                          className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
                         >
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(profile.id)}
-                            onChange={() => handleSelectOne(profile.id)}
-                            className="h-4 w-4 rounded border-border"
-                          />
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white"
-                              style={{
-                                backgroundColor: `hsl(${(profile.id * 47) % 360}, 70%, 50%)`,
-                              }}
-                            >
-                              {profile.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.location.href = `/audience/${profile.id}`;
-                                  }}
-                                  className="font-medium text-foreground transition-colors hover:text-accent hover:underline"
-                                >
-                                  {profile.name}
-                                </button>
-                                {getStatusIcon(profile.status)}
+                          Profile
+                          {sortField === "name" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 opacity-50" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="hidden px-4 py-3 text-left sm:table-cell">
+                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          Wallet
+                        </span>
+                      </th>
+                      <th className="px-4 py-3 text-left">
+                        <button
+                          onClick={() => handleSort("healthScore")}
+                          className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                        >
+                          Health
+                          {sortField === "healthScore" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 opacity-50" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="hidden px-4 py-3 text-left md:table-cell">
+                        <button
+                          onClick={() => handleSort("lastAction")}
+                          className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                        >
+                          Last Action
+                          {sortField === "lastAction" ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 opacity-50" />
+                          )}
+                        </button>
+                      </th>
+                    </tr>
+                  </thead>
+                  <motion.tbody
+                    variants={{
+                      initial: { opacity: 0 },
+                      animate: {
+                        opacity: 1,
+                        transition: {
+                          staggerChildren: 0.04,
+                        },
+                      },
+                    }}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    {paginatedProfiles.map((profile) => (
+                      <React.Fragment key={profile.id}>
+                        <motion.tr
+                          variants={{
+                            initial: { opacity: 0, y: 20 },
+                            animate: {
+                              opacity: 1,
+                              y: 0,
+                              transition: {
+                                duration: 0.3,
+                                ease: [0.25, 0.46, 0.45, 0.94],
+                              },
+                            },
+                          }}
+                          onClick={() => handleRowClick(profile.id)}
+                          className="cursor-pointer border-b border-border transition-colors hover:bg-emerald-500/5"
+                        >
+                          <td
+                            className="px-4 py-4"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(profile.id)}
+                              onChange={() => handleSelectOne(profile.id)}
+                              className="h-4 w-4 rounded border-border"
+                            />
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white"
+                                style={{
+                                  backgroundColor: `hsl(${(profile.id * 47) % 360}, 70%, 50%)`,
+                                }}
+                              >
+                                {profile.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
                               </div>
-                              <p className="truncate text-sm text-muted-foreground">
-                                {profile.email}
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.location.href = `/audience/${profile.id}`;
+                                    }}
+                                    className="font-medium text-foreground transition-colors hover:text-accent hover:underline"
+                                  >
+                                    {profile.name}
+                                  </button>
+                                  {getStatusIcon(profile.status)}
+                                </div>
+                                <p className="truncate text-sm text-muted-foreground">
+                                  {profile.email}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="hidden px-4 py-4 sm:table-cell">
+                            <div className="flex items-center gap-2">
+                              <code className="w-24 text-sm text-muted-foreground">
+                                {profile.wallet}
+                              </code>
+                              <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
+                                {profile.chain}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`font-medium ${getHealthColor(profile.healthScore)}`}
+                              >
+                                {profile.healthScore}
+                              </span>
+                              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+                                <div
+                                  className={`h-full rounded-full ${getHealthBarColor(profile.healthScore)}`}
+                                  style={{ width: `${profile.healthScore}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="hidden px-4 py-4 md:table-cell">
+                            <div>
+                              <p className="text-sm text-foreground">
+                                {profile.lastAction.label}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {profile.lastAction.time}
                               </p>
                             </div>
-                          </div>
-                        </td>
-                        <td className="hidden px-4 py-4 sm:table-cell">
-                          <div className="flex items-center gap-2">
-                            <code className="w-24 text-sm text-muted-foreground">
-                              {profile.wallet}
-                            </code>
-                            <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                              {profile.chain}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`font-medium ${getHealthColor(profile.healthScore)}`}
+                          </td>
+                        </motion.tr>
+                        <AnimatePresence>
+                          {expandedRow === profile.id && (
+                            <motion.tr
+                              variants={{
+                                initial: { opacity: 0, height: 0 },
+                                animate: {
+                                  opacity: 1,
+                                  height: "auto",
+                                  transition: {
+                                    duration: 0.3,
+                                    ease: [0.25, 0.46, 0.45, 0.94],
+                                  },
+                                },
+                                exit: {
+                                  opacity: 0,
+                                  height: 0,
+                                  transition: {
+                                    duration: 0.3,
+                                    ease: [0.25, 0.46, 0.45, 0.94],
+                                  },
+                                },
+                              }}
+                              initial="initial"
+                              animate="animate"
+                              exit="exit"
                             >
-                              {profile.healthScore}
-                            </span>
-                            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
-                              <div
-                                className={`h-full rounded-full ${getHealthBarColor(profile.healthScore)}`}
-                                style={{ width: `${profile.healthScore}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="hidden px-4 py-4 md:table-cell">
-                          <div>
-                            <p className="text-sm text-foreground">
-                              {profile.lastAction.label}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {profile.lastAction.time}
-                            </p>
-                          </div>
-                        </td>
-                      </motion.tr>
-                      <AnimatePresence>
-                        {expandedRow === profile.id && (
-                          <motion.tr
-                            variants={{
-                              initial: { opacity: 0, height: 0 },
-                              animate: {
-                                opacity: 1,
-                                height: "auto",
-                                transition: {
-                                  duration: 0.3,
-                                  ease: [0.25, 0.46, 0.45, 0.94],
-                                },
-                              },
-                              exit: {
-                                opacity: 0,
-                                height: 0,
-                                transition: {
-                                  duration: 0.3,
-                                  ease: [0.25, 0.46, 0.45, 0.94],
-                                },
-                              },
-                            }}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                          >
-                            <td colSpan={5} className="bg-muted/30 px-4 py-4">
-                              <div className="grid gap-4 sm:grid-cols-3">
-                                <div className="rounded-lg border border-border bg-card p-4">
-                                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                    Recent Activity
-                                  </h4>
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span>Opened email - 2h ago</span>
+                              <td colSpan={5} className="bg-muted/30 px-4 py-4">
+                                <div className="grid gap-4 sm:grid-cols-3">
+                                  <div className="rounded-lg border border-border bg-card p-4">
+                                    <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                      Recent Activity
+                                    </h4>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                                        <span>Opened email - 2h ago</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <MousePointer className="h-3.5 w-3.5 text-muted-foreground" />
+                                        <span>Clicked link - 1d ago</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                                        <span>Swapped tokens - 3d ago</span>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <MousePointer className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span>Clicked link - 1d ago</span>
+                                  </div>
+                                  <div className="rounded-lg border border-border bg-card p-4">
+                                    <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                      dApp Stats
+                                    </h4>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">
+                                          Total Volume
+                                        </span>
+                                        <span className="font-medium">
+                                          $12,450
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">
+                                          Transactions
+                                        </span>
+                                        <span className="font-medium">47</span>
+                                      </div>
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">
+                                          Active Days
+                                        </span>
+                                        <span className="font-medium">23</span>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span>Swapped tokens - 3d ago</span>
+                                  </div>
+                                  <div className="rounded-lg border border-border bg-card p-4">
+                                    <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                      Tags
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                      {profile.tags.map((tag: string) => (
+                                        <span
+                                          key={tag}
+                                          className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent"
+                                        >
+                                          {tag}
+                                        </span>
+                                      ))}
+                                      <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                                        {profile.engagement} Engagement
+                                      </span>
                                     </div>
                                   </div>
                                 </div>
-                                <div className="rounded-lg border border-border bg-card p-4">
-                                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                    dApp Stats
-                                  </h4>
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-muted-foreground">
-                                        Total Volume
-                                      </span>
-                                      <span className="font-medium">
-                                        $12,450
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-muted-foreground">
-                                        Transactions
-                                      </span>
-                                      <span className="font-medium">47</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-muted-foreground">
-                                        Active Days
-                                      </span>
-                                      <span className="font-medium">23</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="rounded-lg border border-border bg-card p-4">
-                                  <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                    Tags
-                                  </h4>
-                                  <div className="flex flex-wrap gap-2">
-                                    {profile.tags.map((tag: string) => (
-                                      <span
-                                        key={tag}
-                                        className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
-                                    <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                                      {profile.engagement} Engagement
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </motion.tr>
-                        )}
-                      </AnimatePresence>
-                    </React.Fragment>
-                  ))}
-                </motion.tbody>
-              </table>
-            </div>
+                              </td>
+                            </motion.tr>
+                          )}
+                        </AnimatePresence>
+                      </React.Fragment>
+                    ))}
+                  </motion.tbody>
+                </table>
+              </div>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between border-t border-border px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * itemsPerPage + 1}-
-                {Math.min(currentPage * itemsPerPage, sortedProfiles.length)} of{" "}
-                {sortedProfiles.length}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
+              {/* Pagination */}
+              <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                <p className="text-sm text-muted-foreground">
+                  Showing {(currentPage - 1) * itemsPerPage + 1}-
+                  {Math.min(currentPage * itemsPerPage, sortedProfiles.length)}{" "}
+                  of {sortedProfiles.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
                     }
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Bulk Actions Bar */}
           <AnimatePresence>

@@ -28,7 +28,9 @@ export default function RootLayout({
         className={`${instrumentSans.variable} antialiased`}
         suppressHydrationWarning
       >
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+        <GoogleOAuthProvider
+          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        >
           <RootProviders>{children}</RootProviders>
         </GoogleOAuthProvider>
       </body>

@@ -1,8 +1,9 @@
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
+
+import { Button } from "@/shared/components/ui/button";
 
 interface DnsRecordProps {
   record: {

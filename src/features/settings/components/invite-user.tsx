@@ -59,14 +59,17 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || "Failed to send invitation");
+        const message = (data as any)?.message ?? "Failed to send invitation";
+        throw new Error(message);
       }
 
       toast.success("Invitation sent successfully");
       onOpenChange(false);
       setInviteEmail("");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send invitation");
+      onSuccess?.();
+    } catch (error: unknown) {
+      const message = (error as any)?.message ?? "Failed to send invitation";
+      toast.error(String(message));
     } finally {
       setSaving(false);
     }

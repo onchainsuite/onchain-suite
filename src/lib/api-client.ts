@@ -38,12 +38,14 @@ apiClient.interceptors.response.use(
         ? configHeaders.get(SILENT_ERROR_HEADER)
         : configHeaders?.[SILENT_ERROR_HEADER];
     const isSilent =
-      silentHeaderValue === "1" || silentHeaderValue === 1 || silentHeaderValue === true;
+      silentHeaderValue === "1" ||
+      silentHeaderValue === 1 ||
+      silentHeaderValue === true;
 
     if (error.response) {
-      const status = error.response.status;
+      const { status } = error.response;
       const data = error.response.data as any;
-      const message = data?.error?.message || data?.message || error.message;
+      const message = data?.error?.message ?? data?.message ?? error.message;
 
       if (!isSilent && status !== 409) {
         console.error(`API Error [${status}]:`, message);

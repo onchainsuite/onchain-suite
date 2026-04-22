@@ -49,10 +49,25 @@ export class VerificationService {
     // We'll try the custom verify-token endpoint first, then fallback to BetterAuth if needed.
     const devDefault = "http://127.0.0.1:3333";
     const prodDefault = "https://onchain-backend-dvxw.onrender.com";
-    const backendUrl =
-      process.env.BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      (process.env.NODE_ENV === "production" ? prodDefault : devDefault);
+    const pickNonEmpty = (...values: Array<string | undefined | null>) => {
+      for (const value of values) {
+        if (typeof value === "string" && value.trim().length > 0) return value;
+      }
+      return "";
+    };
+
+    const pickNonEmptyString = (...values: unknown[]) => {
+      for (const value of values) {
+        if (typeof value === "string" && value.trim().length > 0) return value;
+      }
+      return undefined;
+    };
+
+    const backendUrl = pickNonEmpty(
+      process.env.BACKEND_URL,
+      process.env.NEXT_PUBLIC_BACKEND_URL,
+      process.env.NODE_ENV === "production" ? prodDefault : devDefault
+    );
 
     console.log(
       `Attempting verification at: ${backendUrl}/api/v1/auth/verify-token`
@@ -73,7 +88,7 @@ export class VerificationService {
     );
 
     const contentType = response.headers.get("content-type");
-    const isJson = contentType && contentType.includes("application/json");
+    const isJson = contentType?.includes("application/json") ?? false;
 
     if (!response.ok) {
       // If the custom endpoint doesn't exist (404), try the standard BetterAuth endpoint
@@ -100,7 +115,10 @@ export class VerificationService {
       if (isJson) {
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
+          const next =
+            pickNonEmptyString(errorData?.message, errorData?.error) ??
+            errorMessage;
+          errorMessage = next;
         } catch (e) {
           console.error("Failed to parse error JSON response", e);
         }

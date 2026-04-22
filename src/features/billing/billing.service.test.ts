@@ -1,6 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiClient } from "@/lib/api-client";
+
 import { billingService } from "./billing.service";
 
 type MockResponse<T> = { status: number; data: T };
@@ -17,12 +18,10 @@ describe("billingService", () => {
   });
 
   it("adds x-org-id header when orgId is provided", async () => {
-    const requestSpy = vi
-      .spyOn(apiClient, "request")
-      .mockResolvedValueOnce({
-        status: 200,
-        data: { data: { ok: true } },
-      } as MockResponse<any>);
+    const requestSpy = vi.spyOn(apiClient, "request").mockResolvedValueOnce({
+      status: 200,
+      data: { data: { ok: true } },
+    } as MockResponse<any>);
 
     const res = await billingService.getOverview({ orgId: "org-123" });
 
@@ -58,12 +57,10 @@ describe("billingService", () => {
   });
 
   it("hits the correct endpoint for invoice download", async () => {
-    const requestSpy = vi
-      .spyOn(apiClient, "request")
-      .mockResolvedValueOnce({
-        status: 200,
-        data: { data: { url: "https://example.com/invoice.pdf" } },
-      } as MockResponse<any>);
+    const requestSpy = vi.spyOn(apiClient, "request").mockResolvedValueOnce({
+      status: 200,
+      data: { data: { url: "https://example.com/invoice.pdf" } },
+    } as MockResponse<any>);
 
     const res = await billingService.getInvoiceDownloadUrl("inv_1", {
       orgId: "org-123",
@@ -97,12 +94,10 @@ describe("billingService", () => {
   });
 
   it("sets default payment method via PUT /billing/payment-methods/default", async () => {
-    const requestSpy = vi
-      .spyOn(apiClient, "request")
-      .mockResolvedValueOnce({
-        status: 200,
-        data: { data: { success: true } },
-      } as MockResponse<any>);
+    const requestSpy = vi.spyOn(apiClient, "request").mockResolvedValueOnce({
+      status: 200,
+      data: { data: { success: true } },
+    } as MockResponse<any>);
 
     const res = await billingService.setDefaultPaymentMethod(
       { id: "pm_1" },

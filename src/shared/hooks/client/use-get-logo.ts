@@ -1,4 +1,5 @@
 import useSWR from "swr";
+
 import { authClient } from "@/lib/auth-client";
 import { isOrganizationConfirmed } from "@/lib/utils";
 
@@ -31,10 +32,10 @@ export const useGetLogo = () => {
   const { primaryLogo, darkModeLogo, favicon } = branding.data;
 
   return {
-    lightIcon: primaryLogo || defaultLogos.lightIcon,
-    darkIcon: darkModeLogo || defaultLogos.darkIcon,
-    lightFull: primaryLogo || defaultLogos.lightFull,
-    darkFull: darkModeLogo || defaultLogos.darkFull,
-    favicon: favicon || defaultLogos.lightIcon,
+    lightIcon: primaryLogo ?? defaultLogos.lightIcon,
+    darkIcon: darkModeLogo ?? defaultLogos.darkIcon,
+    lightFull: primaryLogo ?? defaultLogos.lightFull,
+    darkFull: darkModeLogo ?? defaultLogos.darkFull,
+    favicon: favicon ?? defaultLogos.lightIcon,
   };
 };

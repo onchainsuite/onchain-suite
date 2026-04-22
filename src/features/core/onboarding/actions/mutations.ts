@@ -114,7 +114,7 @@ export async function completeOnboarding(
       isCompleted: true,
       startedAt: new Date(),
       completedAt: new Date(),
-      stepData: finalData || {},
+      stepData: finalData ?? {},
       timeSpentSeconds: 0,
       lastActivityAt: new Date(),
       sessionCount: 1,

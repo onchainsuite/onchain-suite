@@ -131,7 +131,7 @@ export function GetStartedSection() {
 
   useEffect(() => {
     const cookieHeader =
-      typeof document !== "undefined" ? document.cookie ?? "" : "";
+      typeof document !== "undefined" ? (document.cookie ?? "") : "";
     const pairs = cookieHeader
       .split(";")
       .map((p) => p.trim())
@@ -162,9 +162,7 @@ export function GetStartedSection() {
 
   return (
     <div className="my-6 md:my-8">
-      {!isLoading &&
-        !onboardingCompleteCookie &&
-        (!progress || !progress.is_completed) && (
+      {!isLoading && !onboardingCompleteCookie && !progress?.is_completed && (
         <div className="mb-4 rounded-xl border border-border bg-background p-4 md:mb-6 md:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>

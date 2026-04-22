@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+
 import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
 
@@ -23,10 +25,57 @@ export default async function CampaignsListsPage() {
     session?.user?.name ??
     (firstLast && firstLast.length > 0 ? firstLast : undefined);
 
-  // TODO: Implement API call to check if user has campaigns
-  // For now, assuming user has campaigns to skip new user flow, or logic based on user profile
-  // const campaignsCount = await apiClient.get('/campaigns').then(res => res.data.length).catch(() => 0);
-  const campaignsCount = 1; // Mocked to show campaigns list by default
+  const headersList = await headers();
+  const cookie = headersList.get("cookie") ?? "";
+
+  const forwardedProto = headersList.get("x-forwarded-proto") ?? "http";
+  const forwardedHost =
+    headersList.get("x-forwarded-host") ?? headersList.get("host");
+  const inferredBase = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : null;
+
+  const appBase =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.APP_URL ??
+    inferredBase ??
+    "http://localhost:3000";
+  const appClean = appBase.replace(/\/$/, "");
+
+  let campaignsCount = 0;
+  try {
+    const res = await fetch(`${appClean}/api/v1/campaigns?page=1&limit=1`, {
+      headers: { Cookie: cookie },
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const json: any = await res.json();
+      const totalRaw =
+        json?.total ??
+        json?.meta?.total ??
+        json?.data?.total ??
+        json?.data?.meta?.total ??
+        json?.data?.pagination?.total ??
+        json?.pagination?.total;
+      const total = Number(totalRaw);
+
+      if (Number.isFinite(total)) {
+        campaignsCount = total;
+      } else {
+        const list =
+          json?.items ??
+          json?.data?.items ??
+          json?.data ??
+          json?.data?.data ??
+          json;
+        const arr = Array.isArray(list) ? list : [];
+        campaignsCount = arr.length;
+      }
+    }
+  } catch (_e) {
+    String(_e);
+  }
 
   const shouldShowNewUserFlow =
     !!session?.user?.isNewUser && (campaignsCount as number) === 0;

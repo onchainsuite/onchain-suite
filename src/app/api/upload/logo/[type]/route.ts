@@ -2,6 +2,13 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 300; // 5 minutes
 
+const pickNonEmpty = (...values: Array<string | undefined | null>) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return "";
+};
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ type: string }> }
@@ -62,10 +69,11 @@ export async function POST(
     }
 
     // 4. Forward to Backend
-    const backendUrl =
-      process.env.BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      "https://onchain-backend-dvxw.onrender.com/api/v1";
+    const backendUrl = pickNonEmpty(
+      process.env.BACKEND_URL,
+      process.env.NEXT_PUBLIC_BACKEND_URL,
+      "https://onchain-backend-dvxw.onrender.com/api/v1"
+    );
 
     const cleanBase = backendUrl.replace(/\/$/, "");
     const targetUrl = `${cleanBase}/organization/branding/logo/${type}`;
@@ -95,14 +103,13 @@ export async function POST(
 
     let response;
     try {
-      // @ts-ignore - duplex is not in the standard types yet but needed for Node fetch
-      response = await fetch(targetUrl, {
+      const fetchInit: RequestInit & { duplex?: "half" } = {
         method: "POST",
         headers,
         body: forwardFormData,
-        // @ts-ignore - duplex is required for streaming uploads in Node fetch
         duplex: "half",
-      });
+      };
+      response = await fetch(targetUrl, fetchInit);
     } catch (fetchErr: any) {
       console.error("Fetch to backend failed:", fetchErr);
       return NextResponse.json(
@@ -131,7 +138,7 @@ export async function POST(
       return NextResponse.json(
         {
           error: "Backend upload failed",
-          details: errorJson || errorText,
+          details: errorJson ?? errorText,
           status: response.status,
         },
         { status: response.status }

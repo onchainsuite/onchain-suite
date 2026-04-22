@@ -4,21 +4,22 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  Copy,
   Globe,
   Loader2,
   Plus,
   RefreshCw,
   ShieldCheck,
   Trash2,
-  Wand2,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { cn, getSelectedOrganizationId } from "@/lib/utils";
+
+import { fadeInUp, staggerContainer } from "../../utils";
+import DnsRecord from "./dns-record";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -30,19 +31,17 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
-import { fadeInUp, staggerContainer } from "../../utils";
 
 interface SenderVerificationProps {
   refreshTrigger?: number;
 }
 
-import DnsRecord from "./dns-record";
-
 interface Domain {
   id: string;
   domain: string;
-  status: "verified" | "pending" | "failed";
+  status?: string;
   verifiedAt?: string;
+  verificationRecords?: Record<string, unknown>;
 }
 
 interface Sender {
@@ -60,6 +59,7 @@ interface DNSRecord {
   host: string;
   name?: string;
   value: string;
+  token?: string;
   ttl?: number;
   priority?: number;
   status?: string;
@@ -74,6 +74,65 @@ interface LiveDNSRecord {
   priority?: number;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const pickNonEmptyString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return undefined;
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (!isRecord(error)) return undefined;
+  const response = isRecord(error.response) ? error.response : undefined;
+  const data = response && isRecord(response.data) ? response.data : undefined;
+  const nestedError =
+    data && isRecord(data.error)
+      ? (data.error as Record<string, unknown>)
+      : undefined;
+
+  return pickNonEmptyString(nestedError?.message, data?.message, error.message);
+};
+
+const fetchJson = async (url: string, init?: RequestInit) => {
+  const res = await fetch(url, init);
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch (_e) {
+    String(_e);
+    data = null;
+  }
+  return { res, data };
+};
+
+const postSetActiveOrg = async (orgId: string) => {
+  try {
+    await fetch("/api/v1/organization/set-active", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ organizationId: orgId, organization_id: orgId }),
+    });
+  } catch (_e) {
+    String(_e);
+  }
+};
+
+const extractList = (payload: unknown): unknown[] => {
+  const root =
+    isRecord(payload) && "data" in payload
+      ? (payload.data ?? payload)
+      : payload;
+  if (Array.isArray(root)) return root;
+  if (isRecord(root) && Array.isArray(root.data)) return root.data;
+  if (isRecord(root) && Array.isArray(root.items)) return root.items;
+  if (isRecord(root) && Array.isArray(root.domains)) return root.domains;
+  if (isRecord(root) && Array.isArray(root.records)) return root.records;
+  return [];
+};
+
 const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
   const { data: session } = authClient.useSession();
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -85,8 +144,6 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
 
   // Modal States
   const [showAddDomainModal, setShowAddDomainModal] = useState(false);
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [showAutoDNSModal, setShowAutoDNSModal] = useState(false);
   const [showAddSenderModal, setShowAddSenderModal] = useState(false);
 
   // Selected Item States
@@ -106,69 +163,43 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
   const [newDomainName, setNewDomainName] = useState("");
   const [newSenderEmail, setNewSenderEmail] = useState("");
   const [newSenderName, setNewSenderName] = useState("");
-  const [autoDNSProvider, setAutoDNSProvider] = useState("godaddy");
-  const [autoDNSApiKey, setAutoDNSApiKey] = useState("");
-  const [autoDNSApiSecret, setAutoDNSApiSecret] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    kind: "domain" | "sender";
+    id: string;
+  } | null>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
-  const resolveOrgId = (): string | null => {
+  const resolveOrgId = useCallback((): string | null => {
     return (
       session?.session?.activeOrganizationId ??
       getSelectedOrganizationId() ??
       null
     );
-  };
+  }, [session?.session?.activeOrganizationId]);
 
-  const postSetActiveOrg = async (orgId: string) => {
-    try {
-      await fetch("/api/v1/organization/set-active", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: orgId, organization_id: orgId }),
-      });
-    } catch {}
-  };
-
-  const fetchJson = async (url: string, init?: RequestInit) => {
-    const res = await fetch(url, init);
-    let data: any = null;
-    try {
-      data = await res.json();
-    } catch {
-      data = null;
-    }
-    return { res, data };
-  };
-
-  const extractList = (payload: any): any[] => {
-    const root = payload?.data ?? payload;
-    if (Array.isArray(root)) return root;
-    if (Array.isArray(root?.data)) return root.data;
-    if (Array.isArray(root?.items)) return root.items;
-    if (Array.isArray(root?.domains)) return root.domains;
-    if (Array.isArray(root?.records)) return root.records;
-    return [];
-  };
-
-  const fetchDomainsList = async (orgId: string): Promise<Domain[]> => {
-    const { res, data } = await fetchJson("/api/v1/domain", {
-      headers: { "x-org-id": orgId },
-    });
-    if (res.status === 409) {
-      await postSetActiveOrg(orgId);
-      const retry = await fetchJson("/api/v1/domain", {
+  const fetchDomainsList = useCallback(
+    async (orgId: string): Promise<Domain[]> => {
+      const { res, data } = await fetchJson("/api/v1/domain", {
         headers: { "x-org-id": orgId },
       });
-      if (retry.res.status !== 200) return [];
-      const retryList = extractList(retry.data);
-      return Array.isArray(retryList) ? (retryList as Domain[]) : [];
-    }
-    if (res.status !== 200) return [];
-    const list = extractList(data);
-    return Array.isArray(list) ? (list as Domain[]) : [];
-  };
+      if (res.status === 409) {
+        await postSetActiveOrg(orgId);
+        const retry = await fetchJson("/api/v1/domain", {
+          headers: { "x-org-id": orgId },
+        });
+        if (retry.res.status !== 200) return [];
+        const retryList = extractList(retry.data);
+        return Array.isArray(retryList) ? (retryList as Domain[]) : [];
+      }
+      if (res.status !== 200) return [];
+      const list = extractList(data);
+      return Array.isArray(list) ? (list as Domain[]) : [];
+    },
+    []
+  );
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const orgId = resolveOrgId();
     if (!orgId) return;
     setLoading(true);
@@ -182,23 +213,21 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
       });
       if (sendersRes.status === 200) {
         const list = extractList(sendersRes.data);
-        setSenders(Array.isArray(list) ? (list as any[]) : []);
+        setSenders(Array.isArray(list) ? (list as Sender[]) : []);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to fetch data", error);
       const errorMessage =
-        error.response?.data?.error?.message ||
-        error.message ||
-        "Failed to load domains and senders";
+        getErrorMessage(error) ?? "Failed to load domains and senders";
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchDomainsList, resolveOrgId]);
 
   useEffect(() => {
     fetchData();
-  }, [session, refreshTrigger]);
+  }, [fetchData, refreshTrigger]);
 
   const normalizeDomainName = (raw: string): string => {
     let value = String(raw ?? "")
@@ -256,10 +285,16 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
 
       if (created.res.status === 200 || created.res.status === 201) {
         const newDomain = created.data;
-        // Handle wrapped response
-        const domainData = newDomain.data || newDomain;
-        const createdDomainId = String(domainData?.id ?? "");
-        const createdDomainName = String(domainData?.domain ?? domainName);
+        const domainData =
+          isRecord(newDomain) && isRecord(newDomain.data)
+            ? newDomain.data
+            : newDomain;
+        const createdDomainId = isRecord(domainData)
+          ? String(domainData.id ?? "")
+          : "";
+        const createdDomainName = isRecord(domainData)
+          ? String(domainData.domain ?? domainName)
+          : domainName;
 
         toast.success("Domain added");
         setShowAddDomainModal(false);
@@ -291,16 +326,15 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
         }
 
         const message =
-          (created.data as any)?.error?.message ||
-          (created.data as any)?.message ||
+          getErrorMessage(created.data) ??
           "Domain is already registered in a different organization or the organization context is not ready.";
-        toast.error(String(message));
+        toast.error(message);
       } else {
         toast.error("Failed to add domain");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Add domain error:", error);
-      toast.error(String(error?.message || "Failed to add domain"));
+      toast.error(getErrorMessage(error) ?? "Failed to add domain");
     } finally {
       setActionLoading(false);
     }
@@ -324,28 +358,32 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
     }
   };
 
-  const handleOpenVerifyModal = async (domain: Domain, expandOnly = false) => {
+  const handleOpenVerifyModal = async (domain: Domain, _expandOnly = false) => {
     setSelectedDomain(domain);
-    if (!expandOnly) {
-      setShowVerifyModal(true);
-    }
 
     const orgId = resolveOrgId();
     if (!orgId) return;
 
     // Use verificationRecords from the domain object if available (Prisma DB)
-    if ((domain as any).verificationRecords) {
-      const vRecords = (domain as any).verificationRecords;
-      let records: DNSRecord[] = [];
+    if (domain.verificationRecords) {
+      const vRecords = domain.verificationRecords;
+      const records: DNSRecord[] = [];
 
       if (typeof vRecords === "object" && !Array.isArray(vRecords)) {
-        Object.entries(vRecords).forEach(([key, val]: [string, any]) => {
-          if (val && typeof val === "object" && val.type) {
+        Object.entries(vRecords).forEach(([key, val]: [string, unknown]) => {
+          const v = isRecord(val) ? val : undefined;
+          if (v && typeof v.type === "string") {
             records.push({
-              type: val.type,
-              host: val.name || val.host || (key === "domain" ? "@" : key),
-              value: val.value || val.token || "",
-              ttl: val.ttl,
+              type: v.type,
+              host:
+                (typeof v.name === "string" ? v.name : undefined) ??
+                (typeof v.host === "string" ? v.host : undefined) ??
+                (key === "domain" ? "@" : key),
+              value:
+                (typeof v.value === "string" ? v.value : undefined) ??
+                (typeof v.token === "string" ? v.token : undefined) ??
+                "",
+              ttl: typeof v.ttl === "number" ? v.ttl : undefined,
               status: "Required",
               description:
                 key === "spf"
@@ -360,10 +398,6 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
         });
 
         if (records.length > 0) {
-          console.log(
-            `Using records from Domain object for ${domain.id}:`,
-            records
-          );
           setDomainDnsRecords((prev) => ({ ...prev, [domain.id]: records }));
           // Fetch live DNS as well
           fetchLiveDNS(domain.domain, domain.id);
@@ -381,62 +415,64 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
         const retry = await fetchJson(`/api/v1/domain/${domain.id}/dns`, {
           headers: { "x-org-id": orgId },
         });
-        res = retry.res;
-        data = retry.data;
+        ({ res, data } = retry);
       }
 
       if (res.status === 200) {
         let records: DNSRecord[] = [];
 
-        if ((data as any)?.data) {
-          const payload = (data as any).data;
-          if (Array.isArray(payload.records)) {
-            records = [...payload.records];
+        if (isRecord(data) && "data" in data) {
+          const payload = data.data;
+          if (isRecord(payload) && Array.isArray(payload.records)) {
+            records = [...(payload.records as DNSRecord[])];
           } else if (Array.isArray(payload)) {
-            records = [...payload];
-          } else if (typeof payload === "object") {
+            records = [...(payload as DNSRecord[])];
+          } else if (isRecord(payload)) {
             // Handle object-based records (e.g., { "spf": {...}, "dkim": {...} })
-            Object.values(payload).forEach((val: any) => {
-              if (
-                val &&
-                typeof val === "object" &&
-                val.type &&
-                (val.value || val.token)
-              ) {
+            Object.values(payload).forEach((val: unknown) => {
+              const v = isRecord(val) ? val : undefined;
+              if (v && typeof v.type === "string" && (v.value ?? v.token)) {
                 records.push({
-                  type: val.type,
-                  host: val.host || val.name || "@",
-                  value: val.value || val.token || "",
-                  ttl: val.ttl,
-                  priority: val.priority,
-                  status: val.status || "Required",
-                  description: val.description || "",
+                  type: v.type,
+                  host:
+                    (typeof v.host === "string" ? v.host : undefined) ??
+                    (typeof v.name === "string" ? v.name : undefined) ??
+                    "@",
+                  value:
+                    (typeof v.value === "string" ? v.value : undefined) ??
+                    (typeof v.token === "string" ? v.token : undefined) ??
+                    "",
+                  ttl: typeof v.ttl === "number" ? v.ttl : undefined,
+                  priority:
+                    typeof v.priority === "number" ? v.priority : undefined,
+                  status:
+                    (typeof v.status === "string" ? v.status : undefined) ??
+                    "Required",
+                  description:
+                    typeof v.description === "string" ? v.description : "",
                 });
               }
             });
           }
 
           // Also handle dkimTokens if present and not already in records
-          if (Array.isArray((payload as any).dkimTokens)) {
-            (payload as any).dkimTokens.forEach(
-              (token: string, idx: number) => {
-                const isAlreadyPresent = records.some(
-                  (r) => r.value === token || (r as any).token === token
-                );
-                if (!isAlreadyPresent) {
-                  records.push({
-                    type: "CNAME",
-                    host: `selector${idx + 1}._domainkey`,
-                    value: token,
-                    status: "Required",
-                    description: "DKIM Verification Token",
-                  });
-                }
+          if (isRecord(payload) && Array.isArray(payload.dkimTokens)) {
+            payload.dkimTokens.forEach((token, idx) => {
+              if (typeof token !== "string") return;
+              const isAlreadyPresent = records.some((r) => r.value === token);
+              if (!isAlreadyPresent) {
+                records.push({
+                  type: "CNAME",
+                  host: `selector${idx + 1}._domainkey`,
+                  value: token,
+                  status: "Required",
+                  description: "DKIM Verification Token",
+                });
               }
-            );
+            });
           }
         } else if (Array.isArray(data)) {
-          records = data as any;
+          records = data as DNSRecord[];
         }
 
         setDomainDnsRecords((prev) => ({ ...prev, [domain.id]: records }));
@@ -444,27 +480,26 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
 
       // Also fetch live DNS records for comparison
       fetchLiveDNS(domain.domain, domain.id);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("DNS fetch error:", error);
       const errorMessage =
-        error.response?.data?.error?.message ||
-        error.message ||
-        "Failed to load DNS records";
+        getErrorMessage(error) ?? "Failed to load DNS records";
       toast.error(errorMessage);
     }
   };
 
-  const handleCheckVerifyStatus = async () => {
+  const handleCheckVerifyStatus = async (domain: Domain) => {
     const orgId = resolveOrgId();
-    if (!selectedDomain || !orgId) {
+    if (!orgId) {
       toast.error("Please select an organization first");
       return;
     }
-    setVerifyingDomainId(selectedDomain.id);
+    setSelectedDomain(domain);
+    setVerifyingDomainId(domain.id);
     try {
       // Manual refresh of status as per user instructions
       const response = await apiClient.post(
-        `/domain/${selectedDomain.id}/recheck`,
+        `/domain/${domain.id}/recheck`,
         {},
         {
           headers: { "x-org-id": orgId },
@@ -473,18 +508,17 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
 
       if (response.status === 200) {
         const result = response.data;
-        const status = result.status || result.data?.status;
+        const status = result.status ?? result.data?.status;
 
         // After recheck, refresh DNS records as they might have been updated in Neon
-        handleOpenVerifyModal(selectedDomain, true);
+        handleOpenVerifyModal(domain, true);
 
         if (status === "verified") {
           toast.success("Domain verified successfully!");
-          setShowVerifyModal(false);
           // Update local state
           setDomains(
             domains.map((d) =>
-              d.id === selectedDomain.id ? { ...d, status: "verified" } : d
+              d.id === domain.id ? { ...d, status: "verified" } : d
             )
           );
         } else {
@@ -493,12 +527,10 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
       } else {
         toast.error("Verification check failed");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Verification error:", error);
       const errorMessage =
-        error.response?.data?.error?.message ||
-        error.message ||
-        "Verification check failed";
+        getErrorMessage(error) ?? "Verification check failed";
       toast.error(errorMessage);
     } finally {
       setVerifyingDomainId(null);
@@ -574,12 +606,9 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
       } else {
         toast.error("Failed to add sender");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Add sender error:", error);
-      const errorMessage =
-        error.response?.data?.error?.message ||
-        error.message ||
-        "Failed to add sender";
+      const errorMessage = getErrorMessage(error) ?? "Failed to add sender";
       toast.error(errorMessage);
     } finally {
       setActionLoading(false);
@@ -592,7 +621,6 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
       toast.error("Please select an organization first");
       return;
     }
-    if (!confirm("Are you sure you want to delete this domain?")) return;
 
     try {
       const response = await apiClient.delete(`/domain/${id}`, {
@@ -604,12 +632,9 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
       } else {
         toast.error("Failed to delete domain");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Delete domain error:", error);
-      const errorMessage =
-        error.response?.data?.error?.message ||
-        error.message ||
-        "Failed to delete domain";
+      const errorMessage = getErrorMessage(error) ?? "Failed to delete domain";
       toast.error(errorMessage);
     }
   };
@@ -620,7 +645,6 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
       toast.error("Please select an organization first");
       return;
     }
-    if (!confirm("Are you sure you want to delete this sender?")) return;
 
     try {
       const response = await apiClient.delete(`/sender-identities/${id}`, {
@@ -632,23 +656,15 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
       } else {
         toast.error("Failed to remove sender");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Remove sender error:", error);
-      const errorMessage =
-        error.response?.data?.error?.message ||
-        error.message ||
-        "Failed to remove sender";
+      const errorMessage = getErrorMessage(error) ?? "Failed to remove sender";
       toast.error(errorMessage);
     }
   };
 
   const toggleExpand = (domainId: string) => {
     setExpandedDomains((prev) => ({ ...prev, [domainId]: !prev[domainId] }));
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
   };
 
   return (
@@ -710,9 +726,9 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
               s.domain === domain.domain ||
               s.email.endsWith(`@${domain.domain}`)
           );
-          const status = String((domain as any)?.status ?? "").toLowerCase();
+          const status = String(domain.status ?? "").toLowerCase();
           const isVerified =
-            status === "verified" || status === "active" || !!(domain as any)?.verifiedAt;
+            status === "verified" || status === "active" || !!domain.verifiedAt;
           const isExpanded = expandedDomains[domain.id];
 
           return (
@@ -790,7 +806,9 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => handleDeleteDomain(domain.id)}
+                    onClick={() =>
+                      setConfirmDialog({ kind: "domain", id: domain.id })
+                    }
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -861,7 +879,10 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
                                       size="icon"
                                       className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                       onClick={() =>
-                                        handleRemoveSender(sender.id)
+                                        setConfirmDialog({
+                                          kind: "sender",
+                                          id: sender.id,
+                                        })
                                       }
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
@@ -905,9 +926,9 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
                                   No public DNS records found.
                                 </p>
                               ) : (
-                                liveDnsRecords[domain.id].map((record, i) => (
+                                liveDnsRecords[domain.id].map((record) => (
                                   <div
-                                    key={i}
+                                    key={`${record.type}-${record.name}-${record.value}-${record.ttl}-${record.priority ?? ""}`}
                                     className="rounded-lg border border-border bg-background p-2.5 text-xs"
                                   >
                                     <div className="flex justify-between items-start mb-1">
@@ -944,9 +965,14 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
                               size="sm"
                               variant="outline"
                               className="h-8 gap-2"
-                              onClick={() => handleCheckVerifyStatus()}
+                              onClick={() => handleCheckVerifyStatus(domain)}
+                              disabled={verifyingDomainId === domain.id}
                             >
-                              <RefreshCw className="h-3.5 w-3.5" />
+                              {verifyingDomainId === domain.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3.5 w-3.5" />
+                              )}
                               Check Status
                             </Button>
                           </div>
@@ -961,8 +987,11 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
                                 No required DNS records found in database.
                               </p>
                             ) : (
-                              domainDnsRecords[domain.id].map((record, i) => (
-                                <DnsRecord key={i} record={record} />
+                              domainDnsRecords[domain.id].map((record) => (
+                                <DnsRecord
+                                  key={`${record.type}-${record.host}-${record.value}`}
+                                  record={record}
+                                />
                               ))
                             )}
                           </div>
@@ -1001,9 +1030,9 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
                                 No public DNS records found.
                               </p>
                             ) : (
-                              liveDnsRecords[domain.id].map((record, i) => (
+                              liveDnsRecords[domain.id].map((record) => (
                                 <div
-                                  key={i}
+                                  key={`${record.type}-${record.name}-${record.value}-${record.ttl}-${record.priority ?? ""}`}
                                   className="rounded-lg border border-border bg-background p-2.5 text-xs"
                                 >
                                   <div className="flex justify-between items-start mb-1">
@@ -1132,8 +1161,9 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
             </div>
             {newSenderEmail && (
               <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                Preview: "{newSenderName || "..."}" &lt;{newSenderEmail}@
-                {selectedDomain?.domain}&gt;
+                Preview:{" "}
+                {newSenderName.trim().length > 0 ? newSenderName : "..."} &lt;
+                {newSenderEmail}@{selectedDomain?.domain}&gt;
               </div>
             )}
           </div>
@@ -1152,6 +1182,60 @@ const SenderVerification = ({ refreshTrigger }: SenderVerificationProps) => {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Add Sender
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmDialog !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDialog(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmDialog?.kind === "domain"
+                ? "Delete domain?"
+                : "Delete sender?"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDialog?.kind === "domain"
+                ? "This will remove the domain and its related configuration."
+                : "This will remove the sender identity."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialog(null)}
+              disabled={confirmLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={confirmLoading}
+              onClick={async () => {
+                if (!confirmDialog) return;
+                setConfirmLoading(true);
+                try {
+                  if (confirmDialog.kind === "domain") {
+                    await handleDeleteDomain(confirmDialog.id);
+                  } else {
+                    await handleRemoveSender(confirmDialog.id);
+                  }
+                } finally {
+                  setConfirmLoading(false);
+                  setConfirmDialog(null);
+                }
+              }}
+            >
+              {confirmLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

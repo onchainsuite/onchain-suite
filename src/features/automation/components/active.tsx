@@ -188,24 +188,24 @@ export const ActiveAutomationsList = ({
       </table>
 
       {automations.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-4 rounded-full bg-secondary p-4">
-            <Zap className="h-8 w-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+            <Zap className="h-5 w-5" aria-hidden="true" />
           </div>
-          <h3 className="text-lg font-medium text-foreground">
-            No automations found
+          <h3 className="mt-4 text-lg font-semibold text-foreground">
+            {searchQuery ? "No matches" : "No automations yet"}
           </h3>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-2 max-w-md text-sm text-muted-foreground">
             {searchQuery
-              ? "Try a different search term"
-              : "Create your first automation to get started"}
+              ? "Try a different search term."
+              : "Create an automation to trigger personalized flows and track performance in one place."}
           </p>
           {!searchQuery && (
             <Link
               href="/automations/new-id"
-              className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4" aria-hidden="true" />
               Create automation
             </Link>
           )}

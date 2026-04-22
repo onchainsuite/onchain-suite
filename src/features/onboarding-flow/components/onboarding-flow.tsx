@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-import { useSession } from "@/lib/auth-client";
 import { apiClient } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 
 interface OnboardingStep {
   id: string;

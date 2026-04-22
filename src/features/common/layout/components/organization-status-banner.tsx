@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
+
 import { authClient } from "@/lib/auth-client";
 import { isOrganizationConfirmed } from "@/lib/utils";
 
@@ -10,7 +11,7 @@ const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch");
   const json = await res.json();
-  return json.data || json;
+  return json?.data ?? json;
 };
 
 export function OrganizationStatusBanner() {
@@ -34,13 +35,17 @@ export function OrganizationStatusBanner() {
 
     // Assuming 'active' or 'paid' means the account is in good standing
     // Also handle missing status to avoid showing warning for undefined states
-    const status = data.status?.toLowerCase();
-    const isActive = !status || ["active", "paid", "trial"].includes(status);
+    const status =
+      typeof data.status === "string" ? data.status.toLowerCase() : "";
+    const isActive =
+      status.length === 0 || ["active", "paid", "trial"].includes(status);
 
     if (!isActive && !hasShownToast.current) {
       toast.error(
         `Your organization account is currently ${
-          data.status || "inactive"
+          typeof data.status === "string" && data.status.length > 0
+            ? data.status
+            : "inactive"
         }. Please contact support or update your billing information.`,
         { duration: 6000 }
       );
