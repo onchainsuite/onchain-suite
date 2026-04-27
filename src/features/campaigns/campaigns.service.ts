@@ -145,6 +145,70 @@ const isCampaignStatus = (value: unknown): value is Campaign["status"] =>
   typeof value === "string" &&
   campaignStatuses.has(value as Campaign["status"]);
 
+const apiCampaignTypeFromUi: Record<Campaign["type"], string> = {
+  "email-blast": "EMAIL_BLAST",
+  "drip-campaign": "DRIP_CAMPAIGN",
+  "smart-sending": "SMART_SENDING",
+  newsletter: "NEWSLETTER",
+  promotional: "PROMOTIONAL",
+  announcement: "ANNOUNCEMENT",
+  automation: "AUTOMATION",
+};
+
+const uiCampaignTypeFromApi: Record<string, Campaign["type"]> =
+  Object.fromEntries(
+    Object.entries(apiCampaignTypeFromUi).map(([ui, api]) => [
+      api,
+      ui as Campaign["type"],
+    ])
+  ) as Record<string, Campaign["type"]>;
+
+const apiCampaignStatusFromUi: Record<Campaign["status"], string> = {
+  draft: "DRAFT",
+  scheduled: "SCHEDULED",
+  sending: "SENDING",
+  sent: "SENT",
+  paused: "PAUSED",
+  failed: "FAILED",
+};
+
+const uiCampaignStatusFromApi: Record<string, Campaign["status"]> =
+  Object.fromEntries(
+    Object.entries(apiCampaignStatusFromUi).map(([ui, api]) => [
+      api,
+      ui as Campaign["status"],
+    ])
+  ) as Record<string, Campaign["status"]>;
+
+const normalizeApiEnumKey = (value: string) =>
+  value.trim().toUpperCase().replaceAll("-", "_");
+
+const toUiCampaignType = (value: unknown): Campaign["type"] | undefined => {
+  if (isCampaignType(value)) return value;
+  if (typeof value !== "string") return undefined;
+  return uiCampaignTypeFromApi[normalizeApiEnumKey(value)];
+};
+
+const toUiCampaignStatus = (value: unknown): Campaign["status"] | undefined => {
+  if (isCampaignStatus(value)) return value;
+  if (typeof value !== "string") return undefined;
+  return uiCampaignStatusFromApi[normalizeApiEnumKey(value)];
+};
+
+const toApiCampaignType = (value: unknown): string | undefined => {
+  if (typeof value !== "string") return undefined;
+  if (isCampaignType(value)) return apiCampaignTypeFromUi[value];
+  const normalized = normalizeApiEnumKey(value);
+  return uiCampaignTypeFromApi[normalized] ? normalized : undefined;
+};
+
+const toApiCampaignStatus = (value: unknown): string | undefined => {
+  if (typeof value !== "string") return undefined;
+  if (isCampaignStatus(value)) return apiCampaignStatusFromUi[value];
+  const normalized = normalizeApiEnumKey(value);
+  return uiCampaignStatusFromApi[normalized] ? normalized : undefined;
+};
+
 const extractList = (payload: unknown): unknown[] => {
   const root =
     isJsonObject(payload) && "data" in payload
@@ -165,8 +229,8 @@ const toCampaign = (raw: unknown): Campaign => {
     ? new Date(String(obj.scheduledFor))
     : undefined;
   const sentAt = obj.sentAt ? new Date(String(obj.sentAt)) : undefined;
-  const type = isCampaignType(obj.type) ? obj.type : "email-blast";
-  const status = isCampaignStatus(obj.status) ? obj.status : "draft";
+  const type = toUiCampaignType(obj.type) ?? "email-blast";
+  const status = toUiCampaignStatus(obj.status) ?? "draft";
 
   return {
     id: String(obj.id ?? ""),
@@ -193,8 +257,17 @@ export const campaignsService = {
   },
 
   createCampaign(body: Record<string, unknown>, orgId?: string) {
+    const nextBody: Record<string, unknown> = { ...body };
+    if ("type" in nextBody) {
+      const mappedType = toApiCampaignType(nextBody.type);
+      if (mappedType) nextBody.type = mappedType;
+    }
+    if ("status" in nextBody) {
+      const mappedStatus = toApiCampaignStatus(nextBody.status);
+      if (mappedStatus) nextBody.status = mappedStatus;
+    }
     return request<unknown>(
-      { method: "POST", url: "/campaigns", data: body },
+      { method: "POST", url: "/campaigns", data: nextBody },
       orgId
     ).then(toCampaign);
   },
@@ -207,8 +280,17 @@ export const campaignsService = {
   },
 
   updateCampaign(id: string, body: Record<string, unknown>, orgId?: string) {
+    const nextBody: Record<string, unknown> = { ...body };
+    if ("type" in nextBody) {
+      const mappedType = toApiCampaignType(nextBody.type);
+      if (mappedType) nextBody.type = mappedType;
+    }
+    if ("status" in nextBody) {
+      const mappedStatus = toApiCampaignStatus(nextBody.status);
+      if (mappedStatus) nextBody.status = mappedStatus;
+    }
     return request<unknown>(
-      { method: "PUT", url: `/campaigns/${id}`, data: body },
+      { method: "PUT", url: `/campaigns/${id}`, data: nextBody },
       orgId
     ).then(toCampaign);
   },
@@ -391,8 +473,10 @@ export const campaignsService = {
     ).then((d) =>
       extractList(d).map((t) => {
         const obj = isJsonObject(t) ? t : {};
+        const rawId = String(obj.id ?? obj.value ?? "");
+        const normalizedId = toUiCampaignType(rawId) ?? rawId;
         return {
-          id: String(obj.id ?? obj.value ?? ""),
+          id: normalizedId,
           label: obj.label ? String(obj.label) : undefined,
           ...obj,
         } as CampaignTypeItem;

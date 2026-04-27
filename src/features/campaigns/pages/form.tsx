@@ -85,6 +85,7 @@ export function CreateCampaignPage() {
     initialCampaignFromUrl
   );
   const [isBootstrappingCampaign, setIsBootstrappingCampaign] = useState(false);
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [isHydratingCampaign, setIsHydratingCampaign] = useState(false);
   const [hasHydratedCampaign, setHasHydratedCampaign] = useState(false);
 
@@ -92,6 +93,7 @@ export function CreateCampaignPage() {
   const currentStepRef = useRef<number>(currentStep);
   const isHydratingRef = useRef<boolean>(isHydratingCampaign);
   const isBootstrappingRef = useRef<boolean>(isBootstrappingCampaign);
+  const isBootstrappingInFlightRef = useRef<boolean>(false);
   const lastAutosavePayloadRef = useRef<string>("");
 
   const form = useForm<CampaignFormData>({
@@ -138,9 +140,13 @@ export function CreateCampaignPage() {
 
   useEffect(() => {
     const ensureCampaign = async () => {
-      if (campaignId) return;
-      if (isBootstrappingCampaign) return;
+      if (campaignIdRef.current) return;
+      if (isBootstrappingInFlightRef.current) return;
+      if (bootstrapError) return;
+
+      isBootstrappingInFlightRef.current = true;
       setIsBootstrappingCampaign(true);
+      setBootstrapError(null);
       try {
         const created = await campaignsService.createCampaign({
           name: "Untitled campaign",
@@ -152,26 +158,21 @@ export function CreateCampaignPage() {
 
         const next = new URLSearchParams(searchParams.toString());
         next.set("campaign", created.id);
-        next.set("step", String(currentStep));
+        next.set("step", String(currentStepRef.current));
         router.replace(`/campaigns/new?${next.toString()}`);
       } catch (e) {
         const message =
           e instanceof Error ? e.message : "Failed to create campaign";
+        setBootstrapError(message);
         toast.error(message);
       } finally {
         setIsBootstrappingCampaign(false);
+        isBootstrappingInFlightRef.current = false;
       }
     };
 
     ensureCampaign().catch(() => undefined);
-  }, [
-    campaignId,
-    currentStep,
-    form,
-    isBootstrappingCampaign,
-    router,
-    searchParams,
-  ]);
+  }, [bootstrapError, form, router, searchParams]);
 
   useEffect(() => {
     const hydrate = async () => {
@@ -385,6 +386,10 @@ export function CreateCampaignPage() {
 
     if (!isValid) return;
     if (!campaignId) {
+      if (bootstrapError) {
+        toast.error(bootstrapError);
+        return;
+      }
       toast.error("Campaign is still being created. Try again in a moment.");
       return;
     }
@@ -532,6 +537,27 @@ export function CreateCampaignPage() {
             <div className="bg-card border border-border rounded-2xl shadow-xl transition-all duration-300">
               {!showConfirmation ? (
                 <>
+                  {!campaignId && (
+                    <div className="border-b border-border p-6 md:p-8 lg:p-10">
+                      <div className="text-sm text-muted-foreground">
+                        {bootstrapError ?? "Creating campaign draft…"}
+                      </div>
+                      {bootstrapError && (
+                        <div className="mt-4">
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setBootstrapError(null);
+                              isBootstrappingInFlightRef.current = false;
+                            }}
+                            className="rounded-xl"
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {currentStep === 1 && <CampaignDetailsStep form={form} />}
                   {currentStep === 2 && <AudienceStep form={form} />}
                   {currentStep === 3 && (
@@ -556,6 +582,7 @@ export function CreateCampaignPage() {
                       {currentStep === TOTAL_STEPS ? (
                         <Button
                           type="submit"
+                          disabled={!campaignId || isBootstrappingCampaign}
                           className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-[1.02]"
                         >
                           {sendOption === "now"
@@ -571,6 +598,7 @@ export function CreateCampaignPage() {
                         <Button
                           type="button"
                           onClick={handleNext}
+                          disabled={!campaignId || isBootstrappingCampaign}
                           className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
                         >
                           Continue
@@ -587,6 +615,7 @@ export function CreateCampaignPage() {
                         type="button"
                         variant="ghost"
                         onClick={handleBack}
+                        disabled={isBootstrappingCampaign}
                         className="rounded-xl transition-all duration-300"
                       >
                         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -596,6 +625,7 @@ export function CreateCampaignPage() {
                       <Button
                         type="button"
                         onClick={handleNext}
+                        disabled={!campaignId || isBootstrappingCampaign}
                         className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
                       >
                         Continue

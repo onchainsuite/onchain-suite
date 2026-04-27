@@ -3,7 +3,15 @@ import useSWR from "swr";
 import { authClient } from "@/lib/auth-client";
 import { isOrganizationConfirmed } from "@/lib/utils";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) return { success: false, status: res.status };
+  try {
+    return await res.json();
+  } catch {
+    return { success: false };
+  }
+};
 
 export const useGetLogo = () => {
   const { data: session } = authClient.useSession();
@@ -11,7 +19,8 @@ export const useGetLogo = () => {
   const confirmed = isOrganizationConfirmed(activeOrganizationId);
   const { data: branding } = useSWR(
     confirmed ? "/api/v1/organization/branding" : null,
-    fetcher
+    fetcher,
+    { revalidateOnFocus: false, shouldRetryOnError: false }
   );
 
   const defaultLogos = {

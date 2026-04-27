@@ -182,14 +182,22 @@ export function OrganizationSwitcher() {
 
   const fetcher = React.useCallback(async (url: string) => {
     const res = await fetch(url);
-    if (!res.ok) throw new Error("Failed to fetch");
-    return res.json();
+    if (!res.ok) return { success: false, status: res.status };
+    try {
+      return await res.json();
+    } catch {
+      return { success: false };
+    }
   }, []);
 
   const { data: branding } = useSWR(
     confirmedActiveOrgId ? "/api/v1/organization/branding" : null,
     fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60_000,
+      shouldRetryOnError: false,
+    }
   );
 
   const brandingPayload: unknown = branding;

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   Bot,
   Calendar,
+  ChevronDown,
   Eye,
   Mail,
   Search,
@@ -15,6 +16,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/ui/dropdown-menu";
 
 export const reportsData = [
   {
@@ -132,7 +141,11 @@ interface ReportsTabProps {
 }
 
 export function ReportsTab({ setActiveTab }: ReportsTabProps) {
+  const filterTriggerClassName =
+    "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
+
   const [reportSearch, setReportSearch] = useState("");
+  const [reportDateRange, setReportDateRange] = useState<"30d" | "all">("30d");
   const [reportTypeFilter, setReportTypeFilter] = useState<
     "all" | "email" | "automation"
   >("all");
@@ -160,44 +173,131 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search campaigns..."
+            placeholder="Search reports..."
             value={reportSearch}
             onChange={(e) => setReportSearch(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-10 w-full rounded-lg border border-border bg-card py-2 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Last 30 days</span>
-          </div>
-          <select
-            value={reportTypeFilter}
-            onChange={(e) =>
-              setReportTypeFilter(
-                e.target.value as "all" | "email" | "automation"
-              )
-            }
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:border-primary focus:outline-none"
-          >
-            <option value="all">All Types</option>
-            <option value="email">Email</option>
-            <option value="automation">Automation</option>
-          </select>
-          <select
-            value={reportStatusFilter}
-            onChange={(e) =>
-              setReportStatusFilter(
-                e.target.value as "all" | "active" | "completed" | "paused"
-              )
-            }
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm focus:border-primary focus:outline-none"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="paused">Paused</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={filterTriggerClassName}>
+                <Calendar
+                  className="h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span>
+                  {reportDateRange === "30d" ? "Last 30 days" : "All time"}
+                </span>
+                <ChevronDown
+                  className="h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+            >
+              <DropdownMenuRadioGroup
+                value={reportDateRange}
+                onValueChange={(value) =>
+                  setReportDateRange(value === "all" ? "all" : "30d")
+                }
+              >
+                <DropdownMenuRadioItem value="30d">
+                  Last 30 days
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all">
+                  All time
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={filterTriggerClassName}>
+                <span>
+                  Type:{" "}
+                  {reportTypeFilter === "all"
+                    ? "All"
+                    : reportTypeFilter === "email"
+                      ? "Email"
+                      : "Automation"}
+                </span>
+                <ChevronDown
+                  className="h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+            >
+              <DropdownMenuRadioGroup
+                value={reportTypeFilter}
+                onValueChange={(value) =>
+                  setReportTypeFilter(value as "all" | "email" | "automation")
+                }
+              >
+                <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="email">
+                  Email
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="automation">
+                  Automation
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={filterTriggerClassName}>
+                <span>
+                  Status:{" "}
+                  {reportStatusFilter === "all"
+                    ? "All"
+                    : reportStatusFilter === "active"
+                      ? "Active"
+                      : reportStatusFilter === "completed"
+                        ? "Completed"
+                        : "Paused"}
+                </span>
+                <ChevronDown
+                  className="h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+            >
+              <DropdownMenuRadioGroup
+                value={reportStatusFilter}
+                onValueChange={(value) =>
+                  setReportStatusFilter(
+                    value as "all" | "active" | "completed" | "paused"
+                  )
+                }
+              >
+                <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="active">
+                  Active
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="completed">
+                  Completed
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="paused">
+                  Paused
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

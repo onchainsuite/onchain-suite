@@ -9,6 +9,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   Brain,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -23,6 +24,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import React, { type ReactElement, useEffect, useMemo, useState } from "react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/ui/dropdown-menu";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -149,6 +158,9 @@ const generateMockProfiles = () => {
 };
 
 export function AudiencePages(): ReactElement {
+  const filterTriggerClassName =
+    "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
+
   const profilesQuery = useQuery({
     queryKey: ["audience", "profiles", { page: 1, limit: 200 }],
     queryFn: async () => {
@@ -212,6 +224,16 @@ export function AudiencePages(): ReactElement {
   const [animatedScore, setAnimatedScore] = useState(0);
   const [isRefreshSpinning, setIsRefreshSpinning] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [profileScopeFilter, setProfileScopeFilter] = useState<
+    "all" | "verified" | "pending" | "unverified"
+  >("all");
+  const [engagementFilter, setEngagementFilter] = useState<
+    "all" | "active" | "cooling" | "cold"
+  >("all");
+  const [tagFilter, setTagFilter] = useState<
+    "all" | "whale" | "active-trader" | "nft-collector"
+  >("all");
 
   const itemsPerPage = 10;
 
@@ -229,8 +251,67 @@ export function AudiencePages(): ReactElement {
     });
   }, [profiles, sortField, sortDirection]);
 
-  const totalPages = Math.ceil(sortedProfiles.length / itemsPerPage);
-  const paginatedProfiles = sortedProfiles.slice(
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredProfiles = useMemo(() => {
+    return sortedProfiles.filter((p) => {
+      if (profileScopeFilter !== "all" && p.status !== profileScopeFilter) {
+        return false;
+      }
+
+      if (engagementFilter !== "all" && p.engagement !== engagementFilter) {
+        return false;
+      }
+
+      if (tagFilter !== "all") {
+        const normalizedTags = p.tags.map((t) => String(t).toLowerCase());
+        if (
+          tagFilter === "whale" &&
+          !normalizedTags.some((t) => t.includes("whale"))
+        ) {
+          return false;
+        }
+        if (
+          tagFilter === "active-trader" &&
+          !normalizedTags.some((t) => t.includes("trader"))
+        ) {
+          return false;
+        }
+        if (
+          tagFilter === "nft-collector" &&
+          !normalizedTags.some((t) => t.includes("collector"))
+        ) {
+          return false;
+        }
+      }
+
+      if (normalizedQuery.length === 0) return true;
+      const name = p.name.toLowerCase();
+      const email = p.email.toLowerCase();
+      const wallet = p.wallet.toLowerCase();
+      return (
+        name.includes(normalizedQuery) ||
+        email.includes(normalizedQuery) ||
+        wallet.includes(normalizedQuery)
+      );
+    });
+  }, [
+    engagementFilter,
+    normalizedQuery,
+    profileScopeFilter,
+    sortedProfiles,
+    tagFilter,
+  ]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds([]);
+  }, [engagementFilter, normalizedQuery, profileScopeFilter, tagFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProfiles.length / itemsPerPage)
+  );
+  const paginatedProfiles = filteredProfiles.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -500,28 +581,153 @@ export function AudiencePages(): ReactElement {
               <input
                 type="text"
                 placeholder="Search profiles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <select className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20">
-                <option>All Profiles</option>
-                <option>Verified</option>
-                <option>Pending</option>
-                <option>Unverified</option>
-              </select>
-              <select className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20">
-                <option>All</option>
-                <option>Active</option>
-                <option>Cooling</option>
-                <option>Cold</option>
-              </select>
-              <select className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20">
-                <option>All Tags</option>
-                <option>Whale</option>
-                <option>Active Trader</option>
-                <option>NFT Collector</option>
-              </select>
+            <div className="flex flex-wrap items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={filterTriggerClassName}>
+                    <span>
+                      {profileScopeFilter === "all"
+                        ? "All Profiles"
+                        : profileScopeFilter === "verified"
+                          ? "Verified"
+                          : profileScopeFilter === "pending"
+                            ? "Pending"
+                            : "Unverified"}
+                    </span>
+                    <ChevronDown
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                >
+                  <DropdownMenuRadioGroup
+                    value={profileScopeFilter}
+                    onValueChange={(value) =>
+                      setProfileScopeFilter(
+                        value as "all" | "verified" | "pending" | "unverified"
+                      )
+                    }
+                  >
+                    <DropdownMenuRadioItem value="all">
+                      All Profiles
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="verified">
+                      Verified
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="pending">
+                      Pending
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="unverified">
+                      Unverified
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={filterTriggerClassName}>
+                    <span>
+                      {engagementFilter === "all"
+                        ? "All engagement"
+                        : engagementFilter === "active"
+                          ? "Active"
+                          : engagementFilter === "cooling"
+                            ? "Cooling"
+                            : "Cold"}
+                    </span>
+                    <ChevronDown
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                >
+                  <DropdownMenuRadioGroup
+                    value={engagementFilter}
+                    onValueChange={(value) =>
+                      setEngagementFilter(
+                        value as "all" | "active" | "cooling" | "cold"
+                      )
+                    }
+                  >
+                    <DropdownMenuRadioItem value="all">
+                      All
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="active">
+                      Active
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="cooling">
+                      Cooling
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="cold">
+                      Cold
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={filterTriggerClassName}>
+                    <span>
+                      {tagFilter === "all"
+                        ? "All tags"
+                        : tagFilter === "whale"
+                          ? "Whale"
+                          : tagFilter === "active-trader"
+                            ? "Active Trader"
+                            : "NFT Collector"}
+                    </span>
+                    <ChevronDown
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                >
+                  <DropdownMenuRadioGroup
+                    value={tagFilter}
+                    onValueChange={(value) =>
+                      setTagFilter(
+                        value as
+                          | "all"
+                          | "whale"
+                          | "active-trader"
+                          | "nft-collector"
+                      )
+                    }
+                  >
+                    <DropdownMenuRadioItem value="all">
+                      All tags
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="whale">
+                      Whale
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="active-trader">
+                      Active Trader
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="nft-collector">
+                      NFT Collector
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
