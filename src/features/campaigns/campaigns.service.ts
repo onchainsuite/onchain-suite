@@ -108,6 +108,7 @@ const request = async <T>(
     return extractData<T>(res.data);
   } catch (e) {
     const err = e as AxiosError<unknown>;
+    const status = err.response?.status;
     const data = err.response?.data;
     const nestedError =
       isJsonObject(data) && isJsonObject(data.error) ? data.error : undefined;
@@ -116,7 +117,9 @@ const request = async <T>(
       : isJsonObject(data)
         ? data.message
         : (err.message ?? "Campaigns request failed");
-    throw new Error(String(message));
+    throw new Error(
+      status ? `[HTTP ${status}] ${String(message)}` : String(message)
+    );
   }
 };
 
@@ -425,6 +428,13 @@ export const campaignsService = {
     ).then(toCampaign);
   },
 
+  deleteCampaign(id: string, orgId?: string) {
+    return request<{ success?: boolean }>(
+      { method: "DELETE", url: `/campaigns/${id}` },
+      orgId
+    );
+  },
+
   cancelCampaign(id: string, orgId?: string) {
     return request<{ success?: boolean }>(
       { method: "POST", url: `/campaigns/${id}/cancel` },
@@ -475,10 +485,14 @@ export const campaignsService = {
         const obj = isJsonObject(t) ? t : {};
         const rawId = String(obj.id ?? obj.value ?? "");
         const normalizedId = toUiCampaignType(rawId) ?? rawId;
+        const rest: Record<string, unknown> = { ...obj };
+        delete rest.id;
+        delete rest.value;
+        delete rest.label;
         return {
+          ...rest,
           id: normalizedId,
           label: obj.label ? String(obj.label) : undefined,
-          ...obj,
         } as CampaignTypeItem;
       })
     );

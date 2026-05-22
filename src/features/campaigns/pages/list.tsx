@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CalendarIcon,
   ChevronDown,
+  LayoutGrid,
   List,
   Mail,
   Plus,
@@ -11,14 +12,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { templatesService } from "@/features/templates/templates.service";
-import { cn } from "@/lib/utils";
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,13 +25,19 @@ import {
   DropdownMenuTrigger,
 } from "@/ui/dropdown-menu";
 
+import { cn } from "@/lib/utils";
+
 import { CampaignsCalendar } from "../../campaigns/components/calendar";
 import { CampaignsTable } from "../../campaigns/components/table";
 import { campaignsService } from "../campaigns.service";
 import type { CampaignStatus } from "../types/campaign";
+import { templatesService } from "@/features/templates/templates.service";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export function CampaignsListsView() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const filterTriggerClassName =
     "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
@@ -67,6 +71,20 @@ export function CampaignsListsView() {
   const [templateViewMode, setTemplateViewMode] = useState<"grid" | "list">(
     "grid"
   );
+
+  useEffect(() => {
+    const viewRaw = searchParams.get("view");
+    if (viewRaw === "list" || viewRaw === "calendar" || viewRaw === "library") {
+      setViewMode(viewRaw);
+    }
+  }, [searchParams]);
+
+  const updateViewMode = (next: ViewMode) => {
+    setViewMode(next);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("view", next);
+    router.replace(`${pathname}?${nextParams.toString()}`);
+  };
 
   const campaignsQuery = useQuery({
     queryKey: ["campaigns", "list"],
@@ -240,35 +258,52 @@ export function CampaignsListsView() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl border-border bg-card px-3"
-            onClick={() => setViewMode("library")}
+          <div
+            role="tablist"
+            aria-label="Campaigns view"
+            className="flex items-center gap-1 rounded-full border border-border bg-card px-1 py-1 text-xs"
           >
-            View library
-          </Button>
-          <div className="flex items-center gap-1 rounded-full border border-border bg-card px-1 py-1 text-xs">
             <button
               type="button"
-              onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1 rounded-full px-3 py-1 ${
+              role="tab"
+              aria-selected={viewMode === "library"}
+              onClick={() => updateViewMode("library")}
+              className={cn(
+                "flex items-center gap-1 rounded-full px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20",
+                viewMode === "library"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
+              View library
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "list"}
+              onClick={() => updateViewMode("list")}
+              className={cn(
+                "flex items-center gap-1 rounded-full px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20",
                 viewMode === "list"
                   ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
               <List className="h-3.5 w-3.5" aria-hidden="true" />
               List
             </button>
             <button
               type="button"
-              onClick={() => setViewMode("calendar")}
-              className={`flex items-center gap-1 rounded-full px-3 py-1 ${
+              role="tab"
+              aria-selected={viewMode === "calendar"}
+              onClick={() => updateViewMode("calendar")}
+              className={cn(
+                "flex items-center gap-1 rounded-full px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20",
                 viewMode === "calendar"
                   ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              }`}
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
               <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
               Calendar

@@ -1,6 +1,7 @@
 "use client";
 
 import { Info, TrendingUp, Users } from "lucide-react";
+import Link from "next/link";
 import type { UseFormReturn } from "react-hook-form";
 
 import {
@@ -20,12 +21,16 @@ import {
 } from "../../../campaigns/constants";
 import type { CampaignFormData } from "../../validations";
 import { AudienceSelector } from "./audience-selector";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface AudienceStepProps {
   form: UseFormReturn<CampaignFormData>;
 }
 
 export function AudienceStep({ form }: AudienceStepProps) {
+  const UTM_HELP_URL =
+    "https://support.google.com/analytics/answer/1033863?hl=en";
+  const accountSettingsHref = `${PRIVATE_ROUTES.SETTINGS}?tab=account`;
   const selectedAudiences = form.watch("selectedAudiences");
 
   const estimatedRecipients = selectedAudiences.reduce((total, id) => {
@@ -81,9 +86,14 @@ export function AudienceStep({ form }: AudienceStepProps) {
                 Links in this campaign will include audience tracking
                 information, called UTM parameters. This allows bounce tracking
                 within third-party analytics tools such as Google Analytics.{" "}
-                <span className="text-primary hover:underline cursor-pointer">
+                <a
+                  href={UTM_HELP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
                   Learn more about UTM
-                </span>
+                </a>
                 .
               </FormDescription>
               <FormMessage />
@@ -120,9 +130,12 @@ export function AudienceStep({ form }: AudienceStepProps) {
                   message from you in the last{" "}
                   <span className="font-medium text-foreground">10 hours</span>.
                   Smart Sending (thresholds) can be updated in{" "}
-                  <span className="text-primary hover:underline cursor-pointer">
+                  <Link
+                    href={accountSettingsHref}
+                    className="text-primary hover:underline"
+                  >
                     account settings
-                  </span>
+                  </Link>
                   .
                 </FormDescription>
               </div>
@@ -161,9 +174,14 @@ export function AudienceStep({ form }: AudienceStepProps) {
                   information, called UTM parameters. This allows bounce
                   tracking within third-party analytics tools such as Google
                   Analytics.{" "}
-                  <span className="text-primary hover:underline cursor-pointer">
+                  <a
+                    href={UTM_HELP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
                     Learn more about UTM
-                  </span>
+                  </a>
                   .
                 </FormDescription>
               </div>

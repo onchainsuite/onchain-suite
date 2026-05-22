@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowLeft,
@@ -19,297 +20,208 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-import type { Profile } from "@/features/audience/types";
+import { isJsonObject } from "@/lib/utils";
 
-const createProfilesData = (): Record<string, Profile> => {
-  const data: Record<string, Profile> = {
-    "1": {
-      id: 1,
-      name: "Alex Thompson",
-      email: "alex@example.com",
-      wallet: "0x1234...5678",
-      walletFull: "0x1234567890abcdef1234567890abcdef12345678",
-      status: "verified",
-      segments: ["High Value", "NFT Holder"],
-      tags: ["VIP", "Early Supporter", "Active Trader"],
-      intelligenceSegments: ["Your Pudgy Whales >$5k", "Your Base Power Users"],
-      contractLabels: [
-        {
-          contract: "Pudgy Penguins",
-          label: "Whale",
-          volume: "$125,400",
-          txCount: 23,
-        },
-        {
-          contract: "Base Bridge",
-          label: "Power User",
-          volume: "$45,000",
-          txCount: 47,
-        },
-      ],
-      churnRisk: "low",
-      churnScore: 12,
-      predictedLtv: "$18,500",
-      revenueAttribution: "$4,200 from Your Pudgy Whales segment",
-      memberSince: "Jan 15, 2024",
-      lastActive: "2 hours ago",
-      engagement: "active",
-      engagementScore: 92,
-      holdings: "whale",
-      holdingsValue: "$125,000+",
-      onchainActivity: "active",
-      lastTx: "2 hours ago",
-      chain: "ETH",
-      dappActivity: {
-        totalTxns: 47,
-        lastInteraction: "2 hours ago",
-        lastAction: "stake",
-        activityLevel: "power",
-        totalVolume: "$45,230",
-        firstInteraction: "Jan 15, 2024",
-      },
-      emailStats: {
-        sent: 24,
-        opened: 22,
-        clicked: 18,
-        openRate: 91.7,
-        clickRate: 81.8,
-      },
-      notes: "Key account - referred 5 other high-value users.",
-    },
-  };
+import {
+  audienceService,
+  type AudienceProfile,
+  type AudienceProfileActivityEvent,
+  type AudienceProfileContractActivity,
+  type AudienceProfileEmailEvent,
+  type AudienceProfileTransaction,
+} from "@/features/audience/audience.service";
+import {
+  deriveDisplayName,
+  extractWalletFields,
+  hashHue,
+  normalizeTags,
+  shortenWallet,
+} from "@/features/audience/utils";
 
-  // Generate profiles 2-100
-  for (let i = 2; i <= 100; i++) {
-    const names = [
-      "Sarah Chen",
-      "Mike Johnson",
-      "Emily Davis",
-      "Chris Wilson",
-      "Anna Lee",
-      "David Kim",
-      "Lisa Wang",
-      "James Park",
-    ];
-    const name = names[(i - 2) % names.length];
-    data[String(i)] = {
-      id: i,
-      name,
-      email: `${name.toLowerCase().replace(" ", ".")}@example.com`,
-      wallet: `0x${i.toString(16).padStart(4, "0")}...${(i * 17).toString(16).slice(0, 4)}`,
-      walletFull: `0x${i.toString(16).padStart(40, "0")}`,
-      status: i % 3 === 0 ? "pending" : "verified",
-      segments: i % 2 === 0 ? ["High Value"] : ["New User"],
-      tags: i % 2 === 0 ? ["VIP"] : ["Onboarding"],
-      intelligenceSegments: i % 2 === 0 ? ["Your Pudgy Whales >$5k"] : [],
-      contractLabels: [
-        {
-          contract: "Base Bridge",
-          label: i % 2 === 0 ? "Power User" : "New",
-          volume: `$${i * 100}`,
-          txCount: i,
-        },
-      ],
-      churnRisk: i % 3 === 0 ? "high" : i % 3 === 1 ? "medium" : "low",
-      churnScore: (i * 7) % 100,
-      predictedLtv: `$${(i * 150).toLocaleString()}`,
-      revenueAttribution: i % 2 === 0 ? `$${i * 50} attributed` : null,
-      memberSince: "Jan 2024",
-      lastActive: `${i % 24} hours ago`,
-      engagement: i % 2 === 0 ? "active" : "cooling",
-      engagementScore: 50 + (i % 50),
-      holdings: i % 2 === 0 ? "whale" : "fish",
-      holdingsValue: i % 2 === 0 ? "$50,000+" : "$1,000-$5,000",
-      onchainActivity: "active",
-      lastTx: `${i % 48} hours ago`,
-      chain: "ETH",
-      dappActivity: {
-        totalTxns: i * 3,
-        lastInteraction: `${i % 24}h ago`,
-        lastAction: "stake",
-        activityLevel: "power",
-        totalVolume: `$${i * 500}`,
-        firstInteraction: "Jan 2024",
-      },
-      emailStats: {
-        sent: i * 2,
-        opened: i,
-        clicked: Math.floor(i * 0.7),
-        openRate: 50 + (i % 40),
-        clickRate: 30 + (i % 50),
-      },
-      notes: "",
-    };
+const formatUsd = (value: number | undefined) => {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `$${Math.round(value)}`;
   }
-  return data;
 };
 
-const profilesData = createProfilesData();
-
-const activityTimeline = [
-  {
-    id: 1,
-    type: "email_opened",
-    title: "Opened campaign email",
-    description: "Exclusive NFT Drop",
-    time: "2h ago",
-    icon: Eye,
-  },
-  {
-    id: 2,
-    type: "email_clicked",
-    title: "Clicked product link",
-    description: "Viewed NFT collection",
-    time: "2h ago",
-    icon: MousePointer,
-  },
-  {
-    id: 3,
-    type: "dapp_txn",
-    title: "Staked 5 ETH",
-    description: "Contract: 0x1234...5678",
-    time: "3h ago",
-    icon: Coins,
-    txHash: "0xabc...def",
-  },
-  {
-    id: 4,
-    type: "dapp_txn",
-    title: "Swapped tokens",
-    description: "500 USDC → 0.25 ETH",
-    time: "1d ago",
-    icon: ArrowRightLeft,
-    txHash: "0xdef...ghi",
-  },
-  {
-    id: 5,
-    type: "email_sent",
-    title: "Email sent",
-    description: "Weekly Digest",
-    time: "2d ago",
-    icon: Send,
-  },
-  {
-    id: 6,
-    type: "tag_added",
-    title: "Tag added",
-    description: "Added to VIP segment",
-    time: "3d ago",
-    icon: Tag,
-  },
-  {
-    id: 7,
-    type: "dapp_txn",
-    title: "Minted NFT",
-    description: "Genesis Collection #4521",
-    time: "5d ago",
-    icon: Gift,
-    txHash: "0xghi...jkl",
-  },
-  {
-    id: 8,
-    type: "profile_created",
-    title: "Profile created",
-    description: "Joined via wallet connect",
-    time: "Jan 15, 2024",
-    icon: CheckCircle2,
-  },
-];
-
-const emailHistory = [
-  {
-    id: 1,
-    subject: "Exclusive NFT Drop - Early Access",
-    status: "clicked",
-    sentAt: "Dec 1, 2024",
-    openedAt: "Dec 1, 2024",
-    clickedAt: "Dec 1, 2024",
-  },
-  {
-    id: 2,
-    subject: "Weekly Digest - Top Stories",
-    status: "opened",
-    sentAt: "Nov 28, 2024",
-    openedAt: "Nov 28, 2024",
-    clickedAt: null,
-  },
-  {
-    id: 3,
-    subject: "Your Staking Rewards Are Ready",
-    status: "clicked",
-    sentAt: "Nov 25, 2024",
-    openedAt: "Nov 25, 2024",
-    clickedAt: "Nov 25, 2024",
-  },
-  {
-    id: 4,
-    subject: "Monthly Product Update",
-    status: "opened",
-    sentAt: "Nov 20, 2024",
-    openedAt: "Nov 21, 2024",
-    clickedAt: null,
-  },
-];
-
-const dappTransactions = [
-  {
-    id: 1,
-    action: "Stake",
-    details: "5 ETH staked",
-    time: "3h ago",
-    txHash: "0xabc123...",
-    value: "$9,500",
-    chain: "ETH",
-  },
-  {
-    id: 2,
-    action: "Swap",
-    details: "500 USDC → 0.25 ETH",
-    time: "1d ago",
-    txHash: "0xdef456...",
-    value: "$500",
-    chain: "ETH",
-  },
-  {
-    id: 3,
-    action: "Mint",
-    details: "Genesis #4521",
-    time: "5d ago",
-    txHash: "0xghi789...",
-    value: "$250",
-    chain: "ETH",
-  },
-  {
-    id: 4,
-    action: "Claim",
-    details: "12.5 TOKEN rewards",
-    time: "1w ago",
-    txHash: "0xjkl012...",
-    value: "$125",
-    chain: "ETH",
-  },
-];
+const activityIconForType = (type: string) => {
+  const t = type.toLowerCase();
+  if (t.includes("open")) return Eye;
+  if (t.includes("click")) return MousePointer;
+  if (t.includes("tx") || t.includes("swap") || t.includes("stake"))
+    return Coins;
+  if (t.includes("tag")) return Tag;
+  if (t.includes("profile")) return CheckCircle2;
+  return ArrowRightLeft;
+};
 
 export function ProfileDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const profile = profilesData[id] || profilesData["1"];
 
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "activity" | "emails" | "transactions"
   >("activity");
 
+  const profileQuery = useQuery({
+    queryKey: [
+      "audience",
+      "profile",
+      id,
+      { include: "tags,attributes,wallets,health,lastAction" },
+    ],
+    queryFn: () =>
+      audienceService.getProfile(id) as unknown as Promise<AudienceProfile>,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const healthQuery = useQuery({
+    queryKey: ["audience", "profile", id, "health"],
+    queryFn: () => audienceService.getProfileHealth(id),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const churnQuery = useQuery({
+    queryKey: ["audience", "profile", id, "churn"],
+    queryFn: () => audienceService.getProfileChurn(id),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const contractActivityQuery = useQuery({
+    queryKey: ["audience", "profile", id, "contract-activity", { limit: 10 }],
+    queryFn: () =>
+      audienceService.getProfileContractActivity(id, { limit: 10 }),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const emailsQuery = useQuery({
+    queryKey: ["audience", "profile", id, "emails", { limit: 50 }],
+    queryFn: () => audienceService.getProfileEmails(id, { limit: 50 }),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const transactionsQuery = useQuery({
+    queryKey: ["audience", "profile", id, "transactions", { limit: 25 }],
+    queryFn: () => audienceService.getProfileTransactions(id, { limit: 25 }),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const activityQuery = useQuery({
+    queryKey: ["audience", "profile", id, "activity", { limit: 50 }],
+    queryFn: () => audienceService.getProfileActivity(id, { limit: 50 }),
+    enabled: activeTab === "activity",
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const profile = profileQuery.data;
+  const tags = useMemo(() => normalizeTags(profile?.tags), [profile?.tags]);
+  const { walletFull, wallet } = useMemo(
+    () => extractWalletFields(profile),
+    [profile]
+  );
+
+  const email = typeof profile?.email === "string" ? profile.email.trim() : "";
+  const name = useMemo(() => {
+    return deriveDisplayName({
+      name: profile?.name,
+      fullName: (profile as unknown as { fullName?: unknown })?.fullName,
+      email,
+      wallet: walletFull,
+      walletAddress: walletFull,
+    });
+  }, [email, profile, walletFull]);
+
+  const status = typeof profile?.status === "string" ? profile.status : "";
+
+  const intelligenceSegments = useMemo(() => {
+    const attr = isJsonObject(profile?.attributes) ? profile?.attributes : {};
+    const direct = (profile as unknown as { intelligenceSegments?: unknown })
+      ?.intelligenceSegments;
+    const pick = (v: unknown) =>
+      Array.isArray(v) ? v.filter((s) => typeof s === "string") : [];
+    const fromDirect = pick(direct);
+    const fromAttr = pick(
+      isJsonObject(attr)
+        ? (attr as Record<string, unknown>).intelligenceSegments
+        : undefined
+    );
+    return (fromDirect.length ? fromDirect : fromAttr) as string[];
+  }, [profile]);
+
+  const emailStats = useMemo(() => {
+    const direct = (profile as unknown as { emailStats?: unknown })?.emailStats;
+    const obj = isJsonObject(direct)
+      ? (direct as Record<string, unknown>)
+      : null;
+    if (
+      obj &&
+      typeof obj.openRate === "number" &&
+      typeof obj.clickRate === "number"
+    ) {
+      return {
+        openRate: obj.openRate as number,
+        clickRate: obj.clickRate as number,
+      };
+    }
+    const items = emailsQuery.data?.items ?? [];
+    const sent = items.length;
+    const opened = items.filter(
+      (e) => !!e.openedAt || String(e.status).includes("open")
+    ).length;
+    const clicked = items.filter(
+      (e) => !!e.clickedAt || String(e.status).includes("click")
+    ).length;
+    const openRate = sent > 0 ? Math.round((opened / sent) * 1000) / 10 : 0;
+    const clickRate = sent > 0 ? Math.round((clicked / sent) * 1000) / 10 : 0;
+    return { openRate, clickRate };
+  }, [emailsQuery.data, profile]);
+
+  const onchainSummary = useMemo(() => {
+    const direct = (profile as unknown as { onchainSummary?: unknown })
+      ?.onchainSummary;
+    const obj = isJsonObject(direct)
+      ? (direct as Record<string, unknown>)
+      : null;
+    const totalTxns =
+      obj && typeof obj.totalTxns === "number"
+        ? (obj.totalTxns as number)
+        : (transactionsQuery.data?.items?.length ?? 0);
+    const totalVolumeUsd =
+      obj && typeof obj.totalVolumeUsd === "number"
+        ? (obj.totalVolumeUsd as number)
+        : (transactionsQuery.data?.items ?? []).reduce((sum, t) => {
+            const v = typeof t.valueUsd === "number" ? t.valueUsd : 0;
+            return sum + v;
+          }, 0);
+    return { totalTxns, totalVolumeUsd };
+  }, [profile, transactionsQuery.data]);
+
   const copyWallet = () => {
-    navigator.clipboard.writeText(profile.walletFull);
+    if (!walletFull) return;
+    void navigator.clipboard.writeText(walletFull);
     setCopiedWallet(true);
-    setTimeout(() => setCopiedWallet(false), 2000);
+    window.setTimeout(() => setCopiedWallet(false), 2000);
   };
 
-  const getStatusStyles = (status: string) => {
-    switch (status) {
+  const getStatusStyles = (value: string) => {
+    switch (value) {
       case "verified":
         return "bg-primary/10 text-primary border-primary/20";
       case "pending":
@@ -319,8 +231,8 @@ export function ProfileDetailPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (value: string) => {
+    switch (value) {
       case "verified":
         return <CheckCircle2 className="h-3 w-3" />;
       case "pending":
@@ -330,11 +242,18 @@ export function ProfileDetailPage() {
     }
   };
 
+  const isLoading =
+    profileQuery.isLoading ||
+    healthQuery.isLoading ||
+    churnQuery.isLoading ||
+    contractActivityQuery.isLoading ||
+    emailsQuery.isLoading ||
+    transactionsQuery.isLoading;
+
   return (
     <div className="flex min-h-screen bg-background">
-      <main className="flex-1 px-6 py-12 md:px-16">
+      <main className="flex-1 px-6 py-12 md:px-16" aria-busy={isLoading}>
         <div className="mx-auto max-w-5xl">
-          {/* Back */}
           <Link
             href="/audience"
             className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -343,48 +262,87 @@ export function ProfileDetailPage() {
             Back to Audience
           </Link>
 
-          {/* Header */}
           <div className="mb-8 flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/80 text-xl font-semibold text-primary-foreground shadow-lg">
-                {profile.name.charAt(0)}
-              </div>
+              {isLoading ? (
+                <div className="h-14 w-14 rounded-full skeleton-wave" />
+              ) : (
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-xl font-semibold text-white shadow-lg"
+                  style={{
+                    backgroundColor: `hsl(${hashHue(profile?.id ?? id)}, 70%, 50%)`,
+                  }}
+                >
+                  {name.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-light tracking-tight text-foreground">
-                    {profile.name}
-                  </h1>
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusStyles(profile.status)}`}
-                  >
-                    {getStatusIcon(profile.status)}
-                    {profile.status}
-                  </span>
+                  {isLoading ? (
+                    <div className="h-7 w-56 rounded skeleton-wave" />
+                  ) : (
+                    <>
+                      <h1 className="text-2xl font-light tracking-tight text-foreground">
+                        {name}
+                      </h1>
+                      {status.length > 0 && (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusStyles(status)}`}
+                        >
+                          {getStatusIcon(status)}
+                          {status}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-                  <span>{profile.email}</span>
-                  <span className="text-muted-foreground/50">|</span>
-                  <span className="font-mono text-xs text-muted-foreground/70">
-                    {profile.wallet}
-                  </span>
-                  <button
-                    onClick={copyWallet}
-                    className="hover:text-foreground transition-colors"
-                  >
-                    {copiedWallet ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                  <a
-                    href={`https://etherscan.io/address/${profile.walletFull}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
+                  {isLoading ? (
+                    <>
+                      <div className="h-4 w-40 rounded skeleton-wave" />
+                      <div className="h-4 w-4 rounded skeleton-wave" />
+                      <div className="h-4 w-32 rounded skeleton-wave" />
+                    </>
+                  ) : (
+                    <>
+                      <span>{email.length > 0 ? email : "No email"}</span>
+                      {wallet.length > 0 && (
+                        <>
+                          <span className="text-muted-foreground/50">|</span>
+                          <span
+                            className="font-mono text-xs text-muted-foreground/70"
+                            title={walletFull}
+                          >
+                            {wallet}
+                          </span>
+                        </>
+                      )}
+                      {walletFull.length > 0 && (
+                        <>
+                          <button
+                            onClick={copyWallet}
+                            className="hover:text-foreground transition-colors"
+                            aria-label="Copy wallet address"
+                          >
+                            {copiedWallet ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                          <a
+                            href={`https://etherscan.io/address/${walletFull}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-foreground transition-colors"
+                            aria-label="Open wallet in explorer"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -394,21 +352,29 @@ export function ProfileDetailPage() {
             </button>
           </div>
 
-          {/* Tags */}
           <div className="mb-10 flex flex-wrap gap-2">
-            {profile.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm"
-              >
-                {tag}
-              </span>
-            ))}
+            {isLoading ? (
+              <>
+                <div className="h-7 w-20 rounded-full skeleton-wave" />
+                <div className="h-7 w-28 rounded-full skeleton-wave" />
+                <div className="h-7 w-24 rounded-full skeleton-wave" />
+              </>
+            ) : tags.length > 0 ? (
+              tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm"
+                >
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm text-muted-foreground">No tags</span>
+            )}
           </div>
 
-          {/* Intelligence Cards */}
           <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {profile.intelligenceSegments.length > 0 && (
+            {intelligenceSegments.length > 0 && (
               <div className="rounded-2xl border border-secondary/20 bg-linear-to-br from-secondary/5 to-card p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary/10">
@@ -419,7 +385,7 @@ export function ProfileDetailPage() {
                   </h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {profile.intelligenceSegments.map((seg) => (
+                  {intelligenceSegments.map((seg) => (
                     <span
                       key={seg}
                       className="rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary"
@@ -441,30 +407,52 @@ export function ProfileDetailPage() {
                 </h3>
               </div>
               <div className="space-y-3">
-                {profile.contractLabels.map((cl) => (
-                  <div
-                    key={cl.contract}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">
-                        {cl.contract}
-                      </span>
-                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                        {cl.label}
-                      </span>
-                    </div>
-                    <span className="text-muted-foreground">{cl.volume}</span>
+                {isLoading ? (
+                  <>
+                    <div className="h-5 w-full rounded skeleton-wave" />
+                    <div className="h-5 w-full rounded skeleton-wave" />
+                    <div className="h-5 w-2/3 rounded skeleton-wave" />
+                  </>
+                ) : (contractActivityQuery.data?.items ?? []).length > 0 ? (
+                  (contractActivityQuery.data?.items ?? []).map(
+                    (cl: AudienceProfileContractActivity) => (
+                      <div
+                        key={cl.contractAddress}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="truncate font-medium text-foreground">
+                            {cl.contractName?.length
+                              ? cl.contractName
+                              : shortenWallet(cl.contractAddress)}
+                          </span>
+                          {cl.label?.length ? (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                              {cl.label}
+                            </span>
+                          ) : null}
+                        </div>
+                        <span className="text-muted-foreground">
+                          {typeof cl.volumeUsd === "number"
+                            ? formatUsd(cl.volumeUsd)
+                            : ""}
+                        </span>
+                      </div>
+                    )
+                  )
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No contract activity
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
             <div
               className={`rounded-2xl border p-6 shadow-sm ${
-                profile.churnRisk === "high"
+                churnQuery.data?.risk === "high"
                   ? "border-destructive/20 bg-linear-to-br from-destructive/5 to-card"
-                  : profile.churnRisk === "medium"
+                  : churnQuery.data?.risk === "medium"
                     ? "border-secondary/20 bg-linear-to-br from-secondary/5 to-card"
                     : "border-primary/20 bg-linear-to-br from-primary/5 to-card"
               }`}
@@ -472,18 +460,18 @@ export function ProfileDetailPage() {
               <div className="flex items-center gap-2 mb-4">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-xl ${
-                    profile.churnRisk === "high"
+                    churnQuery.data?.risk === "high"
                       ? "bg-destructive/10"
-                      : profile.churnRisk === "medium"
+                      : churnQuery.data?.risk === "medium"
                         ? "bg-secondary/10"
                         : "bg-primary/10"
                   }`}
                 >
                   <AlertCircle
                     className={`h-4 w-4 ${
-                      profile.churnRisk === "high"
+                      churnQuery.data?.risk === "high"
                         ? "text-destructive"
-                        : profile.churnRisk === "medium"
+                        : churnQuery.data?.risk === "medium"
                           ? "text-secondary"
                           : "text-primary"
                     }`}
@@ -493,45 +481,57 @@ export function ProfileDetailPage() {
                   Churn Prediction
                 </h3>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      profile.churnRisk === "high"
-                        ? "bg-destructive/10 text-destructive"
-                        : profile.churnRisk === "medium"
-                          ? "bg-amber-500/10 text-amber-600"
-                          : "bg-primary/10 text-primary"
-                    }`}
-                  >
-                    {profile.churnRisk === "high"
-                      ? "High Risk"
-                      : profile.churnRisk === "medium"
-                        ? "Medium Risk"
-                        : "Low Risk"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Score: {profile.churnScore}/100
-                  </span>
+              {isLoading ? (
+                <div className="space-y-3">
+                  <div className="h-5 w-full rounded skeleton-wave" />
+                  <div className="h-5 w-2/3 rounded skeleton-wave" />
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Predicted LTV</span>
-                  <span className="font-semibold text-foreground">
-                    {profile.predictedLtv}
-                  </span>
+              ) : churnQuery.data ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        churnQuery.data.risk === "high"
+                          ? "bg-destructive/10 text-destructive"
+                          : churnQuery.data.risk === "medium"
+                            ? "bg-amber-500/10 text-amber-600"
+                            : "bg-primary/10 text-primary"
+                      }`}
+                    >
+                      {churnQuery.data.risk === "high"
+                        ? "High Risk"
+                        : churnQuery.data.risk === "medium"
+                          ? "Medium Risk"
+                          : "Low Risk"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Score: {churnQuery.data.score}/100
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Predicted LTV</span>
+                    <span className="font-semibold text-foreground">
+                      {typeof churnQuery.data.predictedLtvUsd === "number"
+                        ? formatUsd(churnQuery.data.predictedLtvUsd)
+                        : "Not available"}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No churn prediction
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Stats Row */}
           <div className="mb-10 grid grid-cols-2 gap-6 lg:grid-cols-4">
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Email Open Rate
               </p>
               <p className="mt-2 text-3xl font-light text-foreground">
-                {profile.emailStats.openRate}%
+                {emailStats.openRate}%
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -539,7 +539,7 @@ export function ProfileDetailPage() {
                 Click Rate
               </p>
               <p className="mt-2 text-3xl font-light text-foreground">
-                {profile.emailStats.clickRate}%
+                {emailStats.clickRate}%
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -547,7 +547,7 @@ export function ProfileDetailPage() {
                 Total Txns
               </p>
               <p className="mt-2 text-3xl font-light text-foreground">
-                {profile.dappActivity.totalTxns}
+                {onchainSummary.totalTxns}
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -555,12 +555,13 @@ export function ProfileDetailPage() {
                 Total Volume
               </p>
               <p className="mt-2 text-3xl font-light text-foreground">
-                {profile.dappActivity.totalVolume}
+                {onchainSummary.totalVolumeUsd > 0
+                  ? formatUsd(onchainSummary.totalVolumeUsd)
+                  : "Not available"}
               </p>
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="mb-6 flex gap-1 border-b border-border">
             {(["activity", "emails", "transactions"] as const).map((tab) => (
               <button
@@ -581,112 +582,162 @@ export function ProfileDetailPage() {
             ))}
           </div>
 
-          {/* Tab Content */}
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             {activeTab === "activity" && (
               <div className="space-y-4">
-                {activityTimeline.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-4 rounded-xl p-4 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                      <item.icon className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">
-                        {item.title}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
-                    </div>
-                    <span className="text-xs text-muted-foreground/70">
-                      {item.time}
-                    </span>
+                {activityQuery.isLoading ? (
+                  <>
+                    <div className="h-16 w-full rounded-xl skeleton-wave" />
+                    <div className="h-16 w-full rounded-xl skeleton-wave" />
+                    <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
+                  </>
+                ) : (activityQuery.data?.items ?? []).length > 0 ? (
+                  (activityQuery.data?.items ?? []).map(
+                    (item: AudienceProfileActivityEvent) => {
+                      const Icon = activityIconForType(item.type);
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-start gap-4 rounded-xl p-4 transition-colors hover:bg-muted/50"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">
+                              {item.title}
+                            </p>
+                            {item.description?.length ? (
+                              <p className="text-sm text-muted-foreground">
+                                {item.description}
+                              </p>
+                            ) : null}
+                          </div>
+                          <span className="text-xs text-muted-foreground/70">
+                            {item.at}
+                          </span>
+                        </div>
+                      );
+                    }
+                  )
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No activity yet
                   </div>
-                ))}
+                )}
               </div>
             )}
 
             {activeTab === "emails" && (
               <div className="space-y-3">
-                {emailHistory.map((email) => (
-                  <div
-                    key={email.id}
-                    className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-4">
+                {emailsQuery.isLoading ? (
+                  <>
+                    <div className="h-16 w-full rounded-xl skeleton-wave" />
+                    <div className="h-16 w-full rounded-xl skeleton-wave" />
+                    <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
+                  </>
+                ) : (emailsQuery.data?.items ?? []).length > 0 ? (
+                  (emailsQuery.data?.items ?? []).map(
+                    (emailItem: AudienceProfileEmailEvent) => (
                       <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                          email.status === "clicked"
-                            ? "bg-emerald-100"
-                            : email.status === "opened"
-                              ? "bg-blue-100"
-                              : "bg-muted"
-                        }`}
+                        key={emailItem.id}
+                        className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
                       >
-                        {email.status === "clicked" ? (
-                          <MousePointer className="h-4 w-4 text-emerald-600" />
-                        ) : email.status === "opened" ? (
-                          <Eye className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <Send className="h-4 w-4 text-muted-foreground" />
-                        )}
+                        <div className="flex min-w-0 items-center gap-4">
+                          <div
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                              String(emailItem.status) === "clicked"
+                                ? "bg-emerald-100"
+                                : String(emailItem.status) === "opened"
+                                  ? "bg-blue-100"
+                                  : "bg-muted"
+                            }`}
+                          >
+                            {String(emailItem.status) === "clicked" ? (
+                              <MousePointer className="h-4 w-4 text-emerald-600" />
+                            ) : String(emailItem.status) === "opened" ? (
+                              <Eye className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <Send className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">
+                              {emailItem.subject}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Sent {emailItem.sentAt}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
+                            String(emailItem.status) === "clicked"
+                              ? "bg-primary/20 text-primary"
+                              : String(emailItem.status) === "opened"
+                                ? "bg-secondary/20 text-secondary"
+                                : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {emailItem.status}
+                        </span>
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {email.subject}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Sent {email.sentAt}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        email.status === "clicked"
-                          ? "bg-primary/20 text-primary"
-                          : email.status === "opened"
-                            ? "bg-secondary/20 text-secondary"
-                            : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {email.status}
-                    </span>
+                    )
+                  )
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No email history
                   </div>
-                ))}
+                )}
               </div>
             )}
 
             {activeTab === "transactions" && (
               <div className="space-y-3">
-                {dappTransactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <Coins className="h-4 w-4 text-primary" />
+                {transactionsQuery.isLoading ? (
+                  <>
+                    <div className="h-16 w-full rounded-xl skeleton-wave" />
+                    <div className="h-16 w-full rounded-xl skeleton-wave" />
+                    <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
+                  </>
+                ) : (transactionsQuery.data?.items ?? []).length > 0 ? (
+                  (transactionsQuery.data?.items ?? []).map(
+                    (tx: AudienceProfileTransaction) => (
+                      <div
+                        key={tx.hash}
+                        className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
+                      >
+                        <div className="flex min-w-0 items-center gap-4">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                            <Coins className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">
+                              {shortenWallet(tx.hash)}
+                            </p>
+                            <p className="truncate text-sm text-muted-foreground">
+                              {shortenWallet(tx.from)} → {shortenWallet(tx.to)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-medium text-foreground">
+                            {typeof tx.valueUsd === "number"
+                              ? formatUsd(tx.valueUsd)
+                              : tx.value}
+                          </p>
+                          <p className="text-xs text-muted-foreground/70">
+                            {tx.blockTimestamp}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {tx.action}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {tx.details}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-foreground">{tx.value}</p>
-                      <p className="text-xs text-muted-foreground/70">
-                        {tx.time}
-                      </p>
-                    </div>
+                    )
+                  )
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No transactions
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>

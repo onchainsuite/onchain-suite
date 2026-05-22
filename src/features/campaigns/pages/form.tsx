@@ -400,7 +400,6 @@ export function CreateCampaignPage() {
         await campaignsService.updateCampaign(campaignId, {
           name: data.campaignName,
           type: data.campaignType,
-          template: data.template,
         });
       }
 
@@ -481,7 +480,24 @@ export function CreateCampaignPage() {
 
       const validation = await campaignsService.validateCampaign(campaignId);
       if (!validation?.valid) {
-        toast.error("Campaign is not ready to launch.");
+        const errors = Array.isArray(validation?.errors)
+          ? validation.errors
+              .map((e) => {
+                if (typeof e === "string") return e;
+                if (typeof e === "object" && e !== null && "message" in e) {
+                  const m = (e as { message?: unknown }).message;
+                  if (typeof m === "string" && m.trim().length > 0) return m;
+                }
+                return null;
+              })
+              .filter((m): m is string => Boolean(m && m.length > 0))
+          : [];
+
+        toast.error(
+          errors.length > 0
+            ? `Campaign is not ready: ${errors.slice(0, 3).join(" • ")}`
+            : "Campaign is not ready to launch."
+        );
         return;
       }
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 import AccountSettings from "../components/account/account";
 import BillingSettings from "../components/billing/billing";
@@ -11,7 +12,18 @@ import RewardsSettings from "../components/rewards/rewards";
 import { tabs } from "../utils";
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get("tab");
+
+  const tabIds = useMemo(() => new Set(tabs.map((t) => t.id)), []);
   const [activeTab, setActiveTab] = useState("profile");
+
+  useEffect(() => {
+    if (typeof tabFromUrl !== "string") return;
+    if (!tabIds.has(tabFromUrl)) return;
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl, tabIds]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,7 +46,12 @@ export default function SettingsPage() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    const next = new URLSearchParams(searchParams.toString());
+                    next.set("tab", tab.id);
+                    router.replace(`/settings?${next.toString()}`);
+                  }}
                   className={`relative flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     isActive
                       ? "text-foreground"

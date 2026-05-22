@@ -1,0 +1,95 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen } from "@testing-library/react";
+import React from "react";
+import { useForm } from "react-hook-form";
+import { describe, expect, it, vi } from "vitest";
+
+import { Form } from "@/components/ui/form";
+
+import type { CampaignFormData } from "../../validations";
+import { AudienceStep } from "./audience-step";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    className,
+  }: {
+    href: string;
+    children?: React.ReactNode;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
+
+vi.mock("./audience-selector", () => ({
+  AudienceSelector: () => <div data-testid="audience-selector" />,
+}));
+
+function Wrapper() {
+  const form = useForm<CampaignFormData>({
+    defaultValues: {
+      campaignName: "Test",
+      campaignType: "email-blast",
+      template: "email-blast",
+      selectedAudiences: [],
+      smartSending: true,
+      trackingParameters: true,
+      selectedTemplate: "",
+      emailSubject: "Subject",
+      previewText: "",
+      senderName: "Sender",
+      senderEmail: "sender@example.com",
+      useReplyTo: true,
+      replyToEmail: "reply@example.com",
+      sendOption: "now",
+      timezone: "UTC",
+    },
+  });
+
+  return (
+    <Form {...form}>
+      <AudienceStep form={form} />
+    </Form>
+  );
+}
+
+describe("AudienceStep links", () => {
+  it("renders UTM help links as secure external hyperlinks", () => {
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <Wrapper />
+      </QueryClientProvider>
+    );
+
+    const links = screen.getAllByRole("link", {
+      name: /learn more about utm/i,
+    });
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      expect(link.getAttribute("href") ?? "").toMatch(/^https:\/\//);
+    }
+  });
+
+  it("links account settings to settings page with account tab", () => {
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <Wrapper />
+      </QueryClientProvider>
+    );
+
+    const link = screen.getByRole("link", { name: /account settings/i });
+    expect(link).toHaveAttribute(
+      "href",
+      `${PRIVATE_ROUTES.SETTINGS}?tab=account`
+    );
+  });
+});

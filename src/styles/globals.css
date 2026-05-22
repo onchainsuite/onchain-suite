@@ -253,3 +253,22 @@ body {
 .glow-pulse {
   animation: glow-pulse 2s ease-in-out infinite;
 }
+
+.skeleton-wave {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--muted) 90%, transparent),
+    color-mix(in oklch, var(--muted) 55%, white),
+    color-mix(in oklch, var(--muted) 90%, transparent)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-wave {
+    animation: none;
+  }
+}

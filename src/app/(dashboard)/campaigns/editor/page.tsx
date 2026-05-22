@@ -1,14 +1,16 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { isJsonObject } from "@/lib/utils";
+import { cn, getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { Button } from "@/components/ui/button";
 import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +23,48 @@ const breadcrumbs = [
 const DEFAULT_EDITOR_ORIGIN_PROD = "https://editor.onchainsuite.com";
 const DEFAULT_EDITOR_ORIGIN_DEV = "https://email-builder-js-ycf8.onrender.com";
 
+const isPlaceholderEditorHost = (hostname: string) =>
+  hostname === "example.com" || hostname.endsWith(".example.com");
+
+const toEditorOrigin = (value: string | undefined | null): string | null => {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return null;
+
+  const candidates = [raw];
+  const needsScheme = !/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(raw);
+  if (needsScheme) {
+    const scheme =
+      raw.startsWith("localhost") || raw.startsWith("127.0.0.1")
+        ? "http://"
+        : "https://";
+    candidates.push(`${scheme}${raw}`);
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const url = new URL(candidate);
+      if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+      if (isPlaceholderEditorHost(url.hostname)) return null;
+      return url.origin;
+    } catch {
+      // continue
+    }
+  }
+
+  return null;
+};
+
 export default function CampaignEditorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hasRedirectedRef = useRef(false);
+  const [iframeFailed, setIframeFailed] = useState(false);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [fullscreenMode, setFullscreenMode] = useState<
+    "none" | "native" | "pseudo"
+  >("none");
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const campaignId = (searchParams.get("campaign") ?? "").trim();
   const returnTo = (searchParams.get("returnTo") ?? "").trim();
@@ -38,28 +78,20 @@ export default function CampaignEditorPage() {
   });
 
   const editorSessionEditorUrl = editorSessionQuery.data?.editorUrl;
+  const editorSessionToken = editorSessionQuery.data?.token;
 
   const editorOrigin = useMemo(() => {
-    if (editorSessionQuery.isSuccess && editorSessionEditorUrl) {
-      try {
-        return new URL(String(editorSessionEditorUrl)).origin;
-      } catch {
-        return DEFAULT_EDITOR_ORIGIN_DEV;
-      }
-    }
+    const fromSession = toEditorOrigin(editorSessionEditorUrl);
+    if (editorSessionQuery.isSuccess && fromSession) return fromSession;
 
-    const configured = process.env.NEXT_PUBLIC_EMAIL_EDITOR_ORIGIN;
-    if (configured && configured.trim().length > 0) {
-      try {
-        return new URL(configured).origin;
-      } catch {
-        return configured;
-      }
-    }
+    const configured = toEditorOrigin(
+      process.env.NEXT_PUBLIC_EMAIL_EDITOR_ORIGIN
+    );
+    if (configured) return configured;
 
-    if (process.env.NODE_ENV === "production")
-      return DEFAULT_EDITOR_ORIGIN_PROD;
-    return DEFAULT_EDITOR_ORIGIN_DEV;
+    return process.env.NODE_ENV === "production"
+      ? DEFAULT_EDITOR_ORIGIN_PROD
+      : DEFAULT_EDITOR_ORIGIN_DEV;
   }, [editorSessionEditorUrl, editorSessionQuery.isSuccess]);
 
   const allowedOrigins = useMemo(() => {
@@ -87,27 +119,162 @@ export default function CampaignEditorPage() {
       editorSessionQuery.isSuccess && editorSessionQuery.data?.editorUrl
         ? String(editorSessionQuery.data.editorUrl)
         : null;
+    const apiBaseUrl =
+      typeof window !== "undefined" ? `${window.location.origin}/api/v1` : null;
+    const orgId = getSelectedOrganizationId();
 
     if (sessionUrl) {
       try {
         const url = new URL(sessionUrl);
-        url.searchParams.set("campaign", campaignId);
-        url.searchParams.set("embedded", "true");
-        return url.toString();
+        if (!isPlaceholderEditorHost(url.hostname)) {
+          url.searchParams.set("campaign", campaignId);
+          url.searchParams.set("embedded", "true");
+          if (apiBaseUrl) url.searchParams.set("apiBaseUrl", apiBaseUrl);
+          if (orgId) url.searchParams.set("orgId", orgId);
+          return url.toString();
+        }
       } catch {
         // fall through
       }
     }
 
-    const url = new URL("/", editorOrigin);
-    url.searchParams.set("campaign", campaignId);
-    url.searchParams.set("embedded", "true");
-    return url.toString();
+    try {
+      const url = new URL("/", editorOrigin);
+      url.searchParams.set("campaign", campaignId);
+      url.searchParams.set("embedded", "true");
+      if (apiBaseUrl) url.searchParams.set("apiBaseUrl", apiBaseUrl);
+      if (orgId) url.searchParams.set("orgId", orgId);
+      return url.toString();
+    } catch {
+      return "";
+    }
   }, [
     campaignId,
     editorOrigin,
-    editorSessionQuery.data,
+    editorSessionToken,
     editorSessionQuery.isSuccess,
+  ]);
+
+  useEffect(() => {
+    setIframeFailed(false);
+    setIframeLoaded(false);
+  }, [iframeSrc]);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      const active = document.fullscreenElement === containerRef.current;
+      setFullscreenMode((prev) => {
+        if (active) return "native";
+        if (prev === "native") return "none";
+        return prev;
+      });
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    if (fullscreenMode !== "pseudo") return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [fullscreenMode]);
+
+  useEffect(() => {
+    if (fullscreenMode !== "pseudo") return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreenMode("none");
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [fullscreenMode]);
+
+  const toggleFullscreen = async () => {
+    if (fullscreenMode === "native") {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      return;
+    }
+
+    if (fullscreenMode === "pseudo") {
+      setFullscreenMode("none");
+      return;
+    }
+
+    const el = containerRef.current;
+    const canNative =
+      typeof document !== "undefined" &&
+      typeof el?.requestFullscreen === "function";
+    if (canNative) {
+      try {
+        await el!.requestFullscreen();
+        return;
+      } catch {
+        // fall through
+      }
+    }
+
+    setFullscreenMode("pseudo");
+  };
+
+  const iframeDiagnostics = useMemo(() => {
+    if (!iframeSrc) return null;
+    try {
+      const url = new URL(iframeSrc);
+      return { origin: url.origin, hostname: url.hostname };
+    } catch {
+      return null;
+    }
+  }, [iframeSrc]);
+
+  const postIframeConfig = () => {
+    const token =
+      editorSessionQuery.isSuccess && editorSessionToken
+        ? String(editorSessionToken)
+        : null;
+    const apiBaseUrl =
+      typeof window !== "undefined" ? `${window.location.origin}/api/v1` : null;
+    const targetOrigin = iframeDiagnostics?.origin ?? editorOrigin;
+    const orgId = getSelectedOrganizationId();
+
+    const payload = {
+      type: "HOST_CONFIG",
+      campaign: campaignId,
+      campaignId,
+      orgId,
+      token,
+      apiBaseUrl,
+      embedded: true,
+    };
+
+    try {
+      iframeRef.current?.contentWindow?.postMessage(payload, targetOrigin);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (!iframeLoaded) return;
+    if (!campaignId) return;
+
+    postIframeConfig();
+
+    const timeouts = [150, 500, 1200].map((ms) =>
+      window.setTimeout(() => postIframeConfig(), ms)
+    );
+    return () => {
+      for (const id of timeouts) window.clearTimeout(id);
+    };
+  }, [
+    campaignId,
+    editorOrigin,
+    editorSessionQuery.isSuccess,
+    editorSessionToken,
+    iframeDiagnostics?.origin,
+    iframeLoaded,
   ]);
 
   const nextWizardUrl = useMemo(() => {
@@ -118,19 +285,6 @@ export default function CampaignEditorPage() {
     return `${url.pathname}?${url.searchParams.toString()}`;
   }, [campaignId, returnTo]);
 
-  const saveMutation = useMutation({
-    mutationFn: async (payload: unknown) => {
-      const data = isJsonObject(payload) ? payload : {};
-      await campaignsService.editorSaved(campaignId, {
-        html: typeof data.html === "string" ? data.html : undefined,
-        json: data.json ?? undefined,
-        textVersion:
-          typeof data.textVersion === "string" ? data.textVersion : undefined,
-        assets: data.assets ?? undefined,
-      });
-    },
-  });
-
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const { data: messageData, origin } = event;
@@ -138,27 +292,24 @@ export default function CampaignEditorPage() {
 
       if (!isJsonObject(messageData)) return;
 
+      if (
+        messageData.type === "REQUEST_HOST_CONFIG" ||
+        messageData.type === "EDITOR_READY"
+      ) {
+        if (event.source !== iframeRef.current?.contentWindow) return;
+        postIframeConfig();
+        return;
+      }
+
       if (messageData.type === "EMAIL_SAVED" && !hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
-        const payload =
-          "payload" in messageData ? messageData.payload : undefined;
-        saveMutation
-          .mutateAsync(payload)
-          .then(() => {
-            toast.success("Email saved");
-            router.push(nextWizardUrl);
-          })
-          .catch((e: unknown) => {
-            hasRedirectedRef.current = false;
-            const message = isJsonObject(e) ? e.message : undefined;
-            toast.error(String(message ?? "Failed to save email"));
-          });
+        toast.success("Email saved");
+        router.push(nextWizardUrl);
       }
     };
 
     window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [allowedOrigins, nextWizardUrl, router, saveMutation]);
+  }, [allowedOrigins, nextWizardUrl, router]);
 
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
@@ -168,7 +319,56 @@ export default function CampaignEditorPage() {
             Missing campaign id.
           </div>
         ) : (
-          <div className="h-[calc(100vh-120px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
+          <div
+            ref={containerRef}
+            className={cn(
+              "relative overflow-hidden border border-border bg-background shadow-sm",
+              fullscreenMode === "none"
+                ? "h-[calc(100vh-120px)] rounded-2xl"
+                : "fixed inset-0 z-50 h-screen w-screen rounded-none border-0"
+            )}
+          >
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className="absolute right-3 top-3 z-20 h-9 w-9 rounded-full shadow-sm"
+              onClick={toggleFullscreen}
+              aria-label={
+                fullscreenMode === "none"
+                  ? "Enter fullscreen"
+                  : "Exit fullscreen"
+              }
+            >
+              {fullscreenMode === "none" ? (
+                <Maximize2 className="h-4 w-4" />
+              ) : (
+                <Minimize2 className="h-4 w-4" />
+              )}
+            </Button>
+
+            {iframeFailed ? (
+              <div className="absolute inset-0 z-10 flex h-full w-full flex-col items-center justify-center gap-3 bg-background px-6 text-center">
+                <div className="text-sm font-medium">
+                  Editor failed to load.
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {iframeDiagnostics?.origin
+                    ? `Tried: ${iframeDiagnostics.origin}`
+                    : "The editor URL is invalid."}
+                </div>
+                {iframeSrc ? (
+                  <a
+                    className="text-xs text-primary underline underline-offset-2"
+                    href={iframeSrc}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open editor URL
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
             <iframe
               key={iframeSrc}
               src={iframeSrc}
@@ -176,6 +376,15 @@ export default function CampaignEditorPage() {
               className="h-full w-full"
               style={{ border: "none" }}
               referrerPolicy="strict-origin-when-cross-origin"
+              ref={iframeRef}
+              onLoad={() => {
+                setIframeFailed(false);
+                setIframeLoaded(true);
+                postIframeConfig();
+              }}
+              onError={() => setIframeFailed(true)}
+              allow="fullscreen"
+              allowFullScreen
             />
           </div>
         )}

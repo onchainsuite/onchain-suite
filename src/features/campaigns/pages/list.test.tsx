@@ -5,6 +5,78 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CampaignsListsView } from "./list";
 
+vi.mock("@/ui/dropdown-menu", async () => {
+  const ReactImport = await import("react");
+  const ReactNs = ReactImport.default ?? ReactImport;
+
+  type InjectedRadioGroupProps = {
+    __groupValue?: string;
+    __onGroupValueChange?: (value: string) => void;
+  };
+
+  const DropdownMenu = ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  );
+
+  const DropdownMenuTrigger = ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  );
+
+  const DropdownMenuContent = ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  );
+
+  const DropdownMenuRadioGroup = ({
+    value,
+    onValueChange,
+    children,
+  }: {
+    value: string;
+    onValueChange: (value: string) => void;
+    children: React.ReactNode;
+  }) => (
+    <div>
+      {ReactNs.Children.map(children, (child) => {
+        if (!ReactNs.isValidElement(child)) return child;
+        return ReactNs.cloneElement(
+          child as React.ReactElement<InjectedRadioGroupProps>,
+          {
+            __groupValue: value,
+            __onGroupValueChange: onValueChange,
+          }
+        );
+      })}
+    </div>
+  );
+
+  const DropdownMenuRadioItem = ({
+    value,
+    children,
+    __groupValue,
+    __onGroupValueChange,
+  }: {
+    value: string;
+    children: React.ReactNode;
+  } & InjectedRadioGroupProps) => (
+    <button
+      type="button"
+      role="menuitemradio"
+      aria-checked={__groupValue === value}
+      onClick={() => __onGroupValueChange?.(value)}
+    >
+      {children}
+    </button>
+  );
+
+  return {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+  };
+});
+
 vi.mock("next/link", () => {
   return {
     default: ({
@@ -21,7 +93,10 @@ vi.mock("next/navigation", () => {
   return {
     useRouter: () => ({
       push: vi.fn(),
+      replace: vi.fn(),
     }),
+    usePathname: () => "/campaigns",
+    useSearchParams: () => new URLSearchParams(""),
   };
 });
 
@@ -53,7 +128,7 @@ vi.mock("../campaigns.service", () => {
           id: "c_1",
           name: "Welcome",
           subject: "Hello",
-          status: "draft",
+          status: "sent",
           type: "email-blast",
           createdAt: new Date(),
         },
@@ -62,7 +137,7 @@ vi.mock("../campaigns.service", () => {
         {
           id: "c_1",
           name: "Welcome",
-          status: "draft",
+          status: "sent",
           scheduledFor: new Date().toISOString(),
         },
       ]),
@@ -128,9 +203,7 @@ describe("CampaignsListsView", () => {
     );
 
     const statusTrigger = screen.getByRole("button", { name: /status:/i });
-    expect(statusTrigger.outerHTML).toMatchInlineSnapshot(
-      `"<button type=\\"button\\" class=\\"inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20\\"><span>Status: All status</span><svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\"24\\" height=\\"24\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\" class=\\"lucide lucide-chevron-down h-4 w-4 text-muted-foreground\\" aria-hidden=\\"true\\"><path d=\\"m6 9 6 6 6-6\\"></path></svg></button>"`
-    );
+    expect(statusTrigger).toHaveTextContent(/status:\s*all status/i);
 
     fireEvent.click(statusTrigger);
     fireEvent.click(await screen.findByRole("menuitemradio", { name: "Sent" }));
@@ -138,7 +211,7 @@ describe("CampaignsListsView", () => {
       await screen.findByRole("button", { name: /status: sent/i })
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Calendar" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Calendar" }));
     expect(await screen.findByTestId("campaigns-calendar")).toHaveTextContent(
       "events:1"
     );
@@ -146,10 +219,10 @@ describe("CampaignsListsView", () => {
       screen.getByRole("button", { name: /status: sent/i })
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /view library/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /view library/i }));
     expect(await screen.findByText("Template A")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "List" }));
+    fireEvent.click(screen.getByRole("tab", { name: "List" }));
     expect(await screen.findByTestId("campaigns-table")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /status: sent/i })

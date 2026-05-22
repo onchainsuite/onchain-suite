@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { campaignsService } from "./campaigns.service";
 
@@ -13,6 +13,10 @@ vi.mock("@/lib/api-client", () => {
 });
 
 describe("campaignsService enum mapping", () => {
+  beforeEach(() => {
+    requestMock.mockReset();
+  });
+
   it("normalizes campaign types from API into UI values", async () => {
     requestMock.mockResolvedValueOnce({
       data: {
@@ -50,7 +54,7 @@ describe("campaignsService enum mapping", () => {
     expect(created.type).toBe("email-blast");
     expect(created.status).toBe("draft");
 
-    const call = requestMock.mock.calls[0]?.[0] as
+    const call = requestMock.mock.calls.at(-1)?.[0] as
       | { data?: unknown; method?: unknown; url?: unknown }
       | undefined;
     expect(call?.method).toBe("POST");

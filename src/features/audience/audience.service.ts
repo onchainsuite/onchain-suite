@@ -4,6 +4,13 @@ import { apiClient } from "@/lib/api-client";
 import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 export interface AudienceOverview {
+  total?: number;
+  withWallet?: number;
+  avgHealth?: number;
+  activeCount?: number;
+  coolingCount?: number;
+  coldCount?: number;
+  updatedAt?: string;
   [key: string]: unknown;
 }
 
@@ -12,10 +19,18 @@ export interface AudienceProfile {
   name?: string;
   email?: string;
   wallet?: string;
+  walletAddress?: string;
+  wallets?: Array<{
+    address: string;
+    chain?: string;
+    isPrimary?: boolean;
+  }>;
   status?: string;
   healthScore?: number;
   engagement?: string;
-  tags?: string[];
+  tags?: string[] | Array<Record<string, unknown>>;
+  attributes?: Record<string, unknown>;
+  lastAction?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -28,6 +43,128 @@ export interface ListProfilesParams {
   page?: number;
   limit?: number;
   q?: string;
+  status?: "verified" | "pending" | "unverified" | string;
+  tag?: string;
+  engagement?: "active" | "cooling" | "cold" | string;
+  hasWallet?: boolean;
+  sort?: "name" | "healthScore" | "lastActionAt" | string;
+  direction?: "asc" | "desc" | string;
+  include?: string;
+}
+
+export type AudienceImportExportFormat = "csv" | "json";
+
+export type AudienceJobState =
+  | "queued"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export interface AudienceImportJobStatus {
+  jobId: string;
+  state: AudienceJobState | string;
+  format?: AudienceImportExportFormat | string;
+  createdAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  progress?: number;
+  totalRows?: number;
+  processedRows?: number;
+  createdCount?: number;
+  updatedCount?: number;
+  skippedCount?: number;
+  errorCount?: number;
+  errorSample?: Array<{
+    rowNumber?: number;
+    key?: string;
+    message?: string;
+    code?: string;
+  }>;
+}
+
+export interface AudienceExportJobStatus {
+  jobId: string;
+  state: AudienceJobState | string;
+  format?: AudienceImportExportFormat | string;
+  createdAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  progress?: number;
+  totalRows?: number;
+  processedRows?: number;
+  downloadUrl?: string;
+  expiresAt?: string;
+  fileSizeBytes?: number;
+}
+
+export interface AudienceAttributeKey {
+  key: string;
+  type: "string" | "number" | "boolean" | "date" | string;
+  label?: string;
+  exampleValues?: string[];
+  countProfiles?: number;
+}
+
+export interface AudienceAttributeValuesResponse {
+  key: string;
+  values: Array<{ value: string; count: number }>;
+}
+
+export interface AudienceProfileHealth {
+  score: number;
+  trend: "up" | "down" | "stable" | string;
+  updatedAt: string;
+  factors?: Array<{ key: string; value: number | string; weight: number }>;
+}
+
+export interface AudienceProfileChurn {
+  risk: "low" | "medium" | "high" | string;
+  score: number;
+  predictedLtvUsd?: number;
+  updatedAt: string;
+  explanation?: string[];
+}
+
+export interface AudienceProfileActivityEvent {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  at: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AudienceProfileEmailEvent {
+  id: string;
+  campaignId: string;
+  subject: string;
+  status: "sent" | "opened" | "clicked" | "bounced" | string;
+  sentAt: string;
+  openedAt?: string | null;
+  clickedAt?: string | null;
+}
+
+export interface AudienceProfileTransaction {
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  valueUsd?: number;
+  asset?: string;
+  blockNumber: number;
+  blockTimestamp: string;
+  status?: string;
+  method?: string;
+  contractAddress?: string;
+}
+
+export interface AudienceProfileContractActivity {
+  contractAddress: string;
+  contractName?: string;
+  label?: string;
+  volumeUsd?: number;
+  txCount: number;
 }
 
 const pickOrgId = (orgId?: string) =>
@@ -63,7 +200,9 @@ const request = async <T>(
       ? nestedError.message
       : isJsonObject(data)
         ? data.message
-        : (err.message ?? "Audience request failed");
+        : typeof data === "string"
+          ? data
+          : (err.message ?? "Audience request failed");
     throw new Error(String(message));
   }
 };
@@ -132,5 +271,248 @@ export const audienceService = {
       },
       orgId
     );
+  },
+
+  listAttributeKeys(params?: { q?: string; limit?: number }, orgId?: string) {
+    return request<{ keys: AudienceAttributeKey[] }>(
+      { method: "GET", url: "/audience/attributes/keys", params },
+      orgId
+    );
+  },
+
+  listAttributeValues(
+    key: string,
+    params?: { q?: string; limit?: number },
+    orgId?: string
+  ) {
+    return request<AudienceAttributeValuesResponse>(
+      {
+        method: "GET",
+        url: `/audience/attributes/${encodeURIComponent(key)}/values`,
+        params,
+      },
+      orgId
+    );
+  },
+
+  getProfileActivity(
+    id: string,
+    params?: {
+      cursor?: string;
+      limit?: number;
+      types?: string;
+      from?: string;
+      to?: string;
+    },
+    orgId?: string
+  ) {
+    return request<{
+      items: AudienceProfileActivityEvent[];
+      nextCursor?: string;
+    }>(
+      { method: "GET", url: `/audience/profiles/${id}/activity`, params },
+      orgId
+    );
+  },
+
+  getProfileEmails(
+    id: string,
+    params?: {
+      cursor?: string;
+      limit?: number;
+      from?: string;
+      to?: string;
+      campaignId?: string;
+    },
+    orgId?: string
+  ) {
+    return request<{ items: AudienceProfileEmailEvent[]; nextCursor?: string }>(
+      { method: "GET", url: `/audience/profiles/${id}/emails`, params },
+      orgId
+    );
+  },
+
+  getProfileTransactions(
+    id: string,
+    params?: {
+      chain?: string;
+      cursor?: string;
+      limit?: number;
+      fromBlock?: number;
+      toBlock?: number;
+    },
+    orgId?: string
+  ) {
+    return request<
+      {
+        items: AudienceProfileTransaction[];
+        nextCursor?: string;
+      } & { meta?: Record<string, unknown> }
+    >(
+      { method: "GET", url: `/audience/profiles/${id}/transactions`, params },
+      orgId
+    );
+  },
+
+  getProfileContractActivity(
+    id: string,
+    params?: { chain?: string; from?: string; to?: string; limit?: number },
+    orgId?: string
+  ) {
+    return request<{
+      items: AudienceProfileContractActivity[];
+      refreshedAt?: string;
+    }>(
+      {
+        method: "GET",
+        url: `/audience/profiles/${id}/contract-activity`,
+        params,
+      },
+      orgId
+    );
+  },
+
+  getProfileHealth(id: string, orgId?: string) {
+    return request<AudienceProfileHealth>(
+      { method: "GET", url: `/audience/profiles/${id}/health` },
+      orgId
+    );
+  },
+
+  getProfileChurn(id: string, orgId?: string) {
+    return request<AudienceProfileChurn>(
+      { method: "GET", url: `/audience/profiles/${id}/churn` },
+      orgId
+    );
+  },
+
+  enrichProfile(
+    id: string,
+    body?: { chains?: string[]; force?: boolean },
+    orgId?: string
+  ) {
+    return request<{ jobId: string }>(
+      {
+        method: "POST",
+        url: `/audience/profiles/${id}/enrich`,
+        data: body ?? {},
+      },
+      orgId
+    );
+  },
+
+  createImportJob(
+    input: {
+      file: File;
+      format?: AudienceImportExportFormat;
+      mapping?: Record<string, string>;
+      options?: Record<string, unknown>;
+      query?: Record<string, string | number | boolean | undefined>;
+    },
+    orgId?: string
+  ) {
+    const fd = new FormData();
+    fd.append("file", input.file);
+    if (input.mapping && Object.keys(input.mapping).length > 0) {
+      fd.append("mapping", JSON.stringify(input.mapping));
+    }
+    if (input.options && Object.keys(input.options).length > 0) {
+      fd.append("options", JSON.stringify(input.options));
+    }
+
+    const params: Record<string, unknown> = { ...(input.query ?? {}) };
+    if (input.format) params.format = input.format;
+
+    return request<{ jobId?: string; id?: string } & AudienceImportJobStatus>(
+      {
+        method: "POST",
+        url: "/audience/imports",
+        data: fd,
+        params,
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+      orgId
+    );
+  },
+
+  getImportJob(jobId: string, orgId?: string) {
+    return request<AudienceImportJobStatus>(
+      { method: "GET", url: `/audience/imports/${encodeURIComponent(jobId)}` },
+      orgId
+    );
+  },
+
+  cancelImportJob(jobId: string, orgId?: string) {
+    return request<{ success?: boolean } & { jobId?: string; state?: string }>(
+      {
+        method: "POST",
+        url: `/audience/imports/${encodeURIComponent(jobId)}/cancel`,
+      },
+      orgId
+    );
+  },
+
+  async downloadImportErrors(jobId: string, orgId?: string) {
+    const resolvedOrgId = pickOrgId(orgId);
+    const headers = {
+      ...(resolvedOrgId ? { "x-org-id": resolvedOrgId } : {}),
+      "x-onchain-silent-error": "1",
+    };
+    const res = await apiClient.request<Blob>({
+      method: "GET",
+      url: `/audience/imports/${encodeURIComponent(jobId)}/errors`,
+      responseType: "blob",
+      headers,
+    });
+    return res.data;
+  },
+
+  createExportJob(
+    body: {
+      format: AudienceImportExportFormat;
+      filters?: Record<string, unknown>;
+      fields?: string[];
+      includeAttributes?: boolean;
+      includeTags?: boolean;
+      sort?: { by: string; direction: "asc" | "desc" };
+    },
+    orgId?: string
+  ) {
+    return request<{ jobId?: string; id?: string } & AudienceExportJobStatus>(
+      { method: "POST", url: "/audience/exports", data: body },
+      orgId
+    );
+  },
+
+  getExportJob(jobId: string, orgId?: string) {
+    return request<AudienceExportJobStatus>(
+      { method: "GET", url: `/audience/exports/${encodeURIComponent(jobId)}` },
+      orgId
+    );
+  },
+
+  cancelExportJob(jobId: string, orgId?: string) {
+    return request<{ success?: boolean } & { jobId?: string; state?: string }>(
+      {
+        method: "POST",
+        url: `/audience/exports/${encodeURIComponent(jobId)}/cancel`,
+      },
+      orgId
+    );
+  },
+
+  async downloadExport(jobId: string, orgId?: string) {
+    const resolvedOrgId = pickOrgId(orgId);
+    const headers = {
+      ...(resolvedOrgId ? { "x-org-id": resolvedOrgId } : {}),
+      "x-onchain-silent-error": "1",
+    };
+    const res = await apiClient.request<Blob>({
+      method: "GET",
+      url: `/audience/exports/${encodeURIComponent(jobId)}/download`,
+      responseType: "blob",
+      headers,
+    });
+    return res.data;
   },
 };
