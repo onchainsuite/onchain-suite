@@ -26,6 +26,7 @@ export async function getSession() {
     const cookie = headersList.get("cookie") ?? "";
     const cookieLength = cookie.length;
     const hasCookieHeader = cookieLength > 0;
+    if (!hasCookieHeader) return null;
     const cookiePairs = cookie
       .split(";")
       .map((p) => p.trim())
@@ -119,17 +120,19 @@ export async function getSession() {
       });
 
       if (!profileResponse.ok) {
-        console.warn("[getSession]", {
-          at: new Date().toISOString(),
-          ok: false,
-          status: profileResponse.status,
-          hasCookieHeader,
-          cookieLength,
-          endpoint: "/user/profile",
-          tokenPresent: !!sessionToken,
-          hasBetterAuthCookie,
-          cookieNames: cookieNames.slice(0, 10),
-        });
+        if (profileResponse.status !== 404 && profileResponse.status !== 401) {
+          console.warn("[getSession]", {
+            at: new Date().toISOString(),
+            ok: false,
+            status: profileResponse.status,
+            hasCookieHeader,
+            cookieLength,
+            endpoint: "/user/profile",
+            tokenPresent: !!sessionToken,
+            hasBetterAuthCookie,
+            cookieNames: cookieNames.slice(0, 10),
+          });
+        }
         return null;
       }
 

@@ -39,12 +39,14 @@ interface Organization {
 export function OrganizationSwitcher() {
   const { data: session } = authClient.useSession();
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
-  const [activeOrgId, setActiveOrgId] = React.useState<string | null>(null);
+  const [activeOrgId, setActiveOrgId] = React.useState<string | null>(() =>
+    getCookieValue(ORG_SELECTION_COOKIE)
+  );
   const [isLoading, setIsLoading] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
   const [selectedOrgCookie, setSelectedOrgCookie] = React.useState<
     string | null
-  >(null);
+  >(() => getCookieValue(ORG_SELECTION_COOKIE));
   const lastAutoSyncOrgIdRef = React.useRef<string | null>(null);
   const hasLoadedOrganizationsRef = React.useRef(false);
   const router = useRouter();
@@ -97,8 +99,10 @@ export function OrganizationSwitcher() {
 
   React.useEffect(() => {
     if (!isMounted) return;
-    setSelectedOrgCookie(getCookieValue(ORG_SELECTION_COOKIE));
-  }, [isMounted]);
+    const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
+    setSelectedOrgCookie(cookieOrgId);
+    if (cookieOrgId && !activeOrgId) setActiveOrgId(cookieOrgId);
+  }, [activeOrgId, isMounted]);
 
   React.useEffect(() => {
     if (session?.session?.activeOrganizationId) {
@@ -240,20 +244,24 @@ export function OrganizationSwitcher() {
     async (orgId: string, silent = false) => {
       if (orgId === activeOrgId) {
         setSelectedOrgCookieValue(orgId);
-        window.dispatchEvent(
-          new CustomEvent("onchain:org-changed", {
-            detail: { orgId, previousOrgId: activeOrgId },
-          })
-        );
-        router.refresh();
+        if (!silent) {
+          window.dispatchEvent(
+            new CustomEvent("onchain:org-changed", {
+              detail: { orgId, previousOrgId: activeOrgId },
+            })
+          );
+          router.refresh();
+        }
         return;
       }
 
-      window.dispatchEvent(
-        new CustomEvent("onchain:org-switch-start", {
-          detail: { orgId, previousOrgId: activeOrgId },
-        })
-      );
+      if (!silent) {
+        window.dispatchEvent(
+          new CustomEvent("onchain:org-switch-start", {
+            detail: { orgId, previousOrgId: activeOrgId },
+          })
+        );
+      }
 
       setIsLoading(true);
       try {
@@ -334,11 +342,16 @@ export function OrganizationSwitcher() {
 
   React.useEffect(() => {
     if (!isMounted || !session) return;
+    const sessionOrgId =
+      typeof session.session?.activeOrganizationId === "string"
+        ? session.session.activeOrganizationId
+        : null;
     const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
     setSelectedOrgCookie(cookieOrgId);
     if (!cookieOrgId) return;
     if (lastAutoSyncOrgIdRef.current === cookieOrgId) return;
-    if (!activeOrgId || activeOrgId !== cookieOrgId) {
+    if (sessionOrgId === cookieOrgId && activeOrgId === cookieOrgId) return;
+    if (!activeOrgId || activeOrgId !== cookieOrgId || sessionOrgId !== cookieOrgId) {
       lastAutoSyncOrgIdRef.current = cookieOrgId;
       handleSwitchOrg(cookieOrgId, true);
     }

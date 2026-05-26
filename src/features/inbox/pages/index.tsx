@@ -1,49 +1,117 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import ConversationPanel from "../components/conversation";
 import EmailListPanel from "../components/email-list-panel";
 import FloatingBulk from "../components/floating-bulk";
-import { emails, folders } from "../data";
-import { type Email } from "../types";
+import { folders } from "../data";
+import { type InboxThreadListItem } from "../types";
+
+import { connectInboxSocket, inboxService } from "../inbox.service";
 
 export function InboxPages() {
   const [selectedFolder, setSelectedFolder] = useState("All");
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEmails, setSelectedEmails] = useState<number[]>([]);
+  const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const emailListRef = useRef<HTMLDivElement>(null);
 
-  const filteredEmails = emails.filter((email) => {
-    const matchesFolder =
-      selectedFolder === "All" ||
-      (selectedFolder === "Unread" && email.unread) ||
-      (selectedFolder === "Starred" && email.starred);
-    const matchesSearch =
-      searchQuery === "" ||
-      email.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.preview.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFolder && matchesSearch;
+  const queryClient = useQueryClient();
+
+  const listParams = useMemo(() => {
+    const q = searchQuery.trim();
+    if (selectedFolder === "Archived") {
+      return { folder: "ARCHIVE" as const, q: q.length > 0 ? q : undefined };
+    }
+    if (selectedFolder === "Unread") {
+      return {
+        folder: "INBOX" as const,
+        unread: true as const,
+        q: q.length > 0 ? q : undefined,
+      };
+    }
+    if (selectedFolder === "Starred") {
+      return {
+        folder: "INBOX" as const,
+        starred: true as const,
+        q: q.length > 0 ? q : undefined,
+      };
+    }
+    return { folder: "INBOX" as const, q: q.length > 0 ? q : undefined };
+  }, [searchQuery, selectedFolder]);
+
+  const threadsQuery = useQuery({
+    queryKey: ["inbox", "threads", listParams],
+    queryFn: () =>
+      inboxService.listThreads({ ...listParams, page: 1, limit: 100 }),
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
-  const toggleEmailSelection = (emailId: number) => {
-    setSelectedEmails((prev) =>
-      prev.includes(emailId)
-        ? prev.filter((id) => id !== emailId)
-        : [...prev, emailId]
+  const unreadQuery = useQuery({
+    queryKey: ["inbox", "unread-count"],
+    queryFn: () => inboxService.getUnreadCount(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const threads: InboxThreadListItem[] = threadsQuery.data?.items ?? [];
+
+  const selectedThread = useMemo(() => {
+    if (!selectedThreadId) return null;
+    return threads.find((t) => t.id === selectedThreadId) ?? null;
+  }, [selectedThreadId, threads]);
+
+  const threadDetailQuery = useQuery({
+    queryKey: ["inbox", "thread", selectedThreadId],
+    queryFn: () => inboxService.getThread(selectedThreadId!),
+    enabled: !!selectedThreadId,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (threadId: string) =>
+      inboxService.markThreadRead(threadId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["inbox", "threads"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["inbox", "unread-count"],
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (!selectedThreadId) return;
+    const unreadCount =
+      (selectedThread?.unreadCount ?? 0) ||
+      ((threadDetailQuery.data as { unreadCount?: number } | null)
+        ?.unreadCount ??
+        0);
+    if (unreadCount > 0) {
+      markReadMutation.mutate(selectedThreadId);
+    }
+  }, [selectedThread?.unreadCount, selectedThreadId, threadDetailQuery.data]);
+
+  const toggleThreadSelection = (threadId: string) => {
+    setSelectedThreadIds((prev) =>
+      prev.includes(threadId)
+        ? prev.filter((id) => id !== threadId)
+        : [...prev, threadId]
     );
   };
 
   const toggleSelectAll = () => {
-    if (selectedEmails.length === filteredEmails.length) {
-      setSelectedEmails([]);
+    if (selectedThreadIds.length === threads.length) {
+      setSelectedThreadIds([]);
     } else {
-      setSelectedEmails(filteredEmails.map((e) => e.id));
+      setSelectedThreadIds(threads.map((t) => t.id));
     }
   };
 
@@ -63,9 +131,7 @@ export function InboxPages() {
       switch (e.key) {
         case "j":
           e.preventDefault();
-          setFocusedIndex((prev) =>
-            Math.min(prev + 1, filteredEmails.length - 1)
-          );
+          setFocusedIndex((prev) => Math.min(prev + 1, threads.length - 1));
           break;
         case "k":
           e.preventDefault();
@@ -73,19 +139,19 @@ export function InboxPages() {
           break;
         case "Enter":
           e.preventDefault();
-          if (filteredEmails[focusedIndex]) {
-            setSelectedEmail(filteredEmails[focusedIndex]);
+          if (threads[focusedIndex]) {
+            setSelectedThreadId(threads[focusedIndex].id);
           }
           break;
         case "x":
           e.preventDefault();
-          if (filteredEmails[focusedIndex]) {
-            toggleEmailSelection(filteredEmails[focusedIndex].id);
+          if (threads[focusedIndex]) {
+            toggleThreadSelection(threads[focusedIndex].id);
           }
           break;
         case "r":
           e.preventDefault();
-          if (selectedEmail) {
+          if (selectedThreadId) {
             document.querySelector("textarea")?.focus();
           }
           break;
@@ -106,7 +172,7 @@ export function InboxPages() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [filteredEmails, focusedIndex, selectedEmail]);
+  }, [focusedIndex, selectedThreadId, threads]);
 
   useEffect(() => {
     const emailElement = emailListRef.current?.children[
@@ -115,7 +181,35 @@ export function InboxPages() {
     emailElement?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [focusedIndex]);
 
-  const unreadCount = emails.filter((e) => e.unread).length;
+  useEffect(() => {
+    const socket = connectInboxSocket(null);
+    const onNewMessage = () => {
+      queryClient.invalidateQueries({ queryKey: ["inbox", "threads"] });
+      queryClient.invalidateQueries({ queryKey: ["inbox", "unread-count"] });
+      if (selectedThreadId) {
+        queryClient.invalidateQueries({
+          queryKey: ["inbox", "thread", selectedThreadId],
+        });
+      }
+    };
+    socket.on("new_message", onNewMessage);
+    socket.on("thread_updated", onNewMessage);
+    socket.on("unread_count_changed", onNewMessage);
+    return () => {
+      socket.off("new_message", onNewMessage);
+      socket.off("thread_updated", onNewMessage);
+      socket.off("unread_count_changed", onNewMessage);
+      socket.disconnect();
+    };
+  }, [queryClient, selectedThreadId]);
+
+  const unreadCount = unreadQuery.data?.unreadCount ?? 0;
+  const foldersUi = useMemo(() => {
+    return folders.map((f) => {
+      if (f.name === "Unread") return { ...f, count: unreadCount };
+      return { ...f, count: f.count };
+    });
+  }, [unreadCount]);
 
   return (
     <div className="flex h-full min-h-[calc(100vh-8rem)] bg-background text-foreground">
@@ -136,13 +230,14 @@ export function InboxPages() {
         <div className="flex flex-1 overflow-hidden relative">
           {/* Email List Panel */}
           <EmailListPanel
-            filteredEmails={filteredEmails}
-            selectedEmail={selectedEmail}
-            setSelectedEmail={setSelectedEmail}
-            selectedEmails={selectedEmails}
+            threads={threads}
+            isLoading={threadsQuery.isFetching}
+            selectedThreadId={selectedThreadId}
+            setSelectedThreadId={setSelectedThreadId}
+            selectedThreadIds={selectedThreadIds}
             toggleSelectAll={toggleSelectAll}
-            toggleEmailSelection={toggleEmailSelection}
-            folders={folders}
+            toggleThreadSelection={toggleThreadSelection}
+            folders={foldersUi}
             selectedFolder={selectedFolder}
             setSelectedFolder={setSelectedFolder}
             searchQuery={searchQuery}
@@ -150,15 +245,18 @@ export function InboxPages() {
             searchInputRef={searchInputRef}
             emailListRef={emailListRef}
             focusedIndex={focusedIndex}
-            setSelectedEmails={setSelectedEmails}
+            setSelectedThreadIds={setSelectedThreadIds}
           />
 
           {/* Right Panel - Conversation */}
-          <ConversationPanel selectedEmail={selectedEmail} />
+          <ConversationPanel
+            selectedThreadId={selectedThreadId}
+            selectedThread={threadDetailQuery.data ?? selectedThread}
+          />
 
           <FloatingBulk
-            selectedEmails={selectedEmails}
-            setSelectedEmails={setSelectedEmails}
+            selectedThreadIds={selectedThreadIds}
+            setSelectedThreadIds={setSelectedThreadIds}
           />
         </div>
       </main>

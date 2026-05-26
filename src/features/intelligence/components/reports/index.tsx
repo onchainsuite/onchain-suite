@@ -17,6 +17,8 @@ import {
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { useQuery } from "@tanstack/react-query";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,116 +27,142 @@ import {
   DropdownMenuTrigger,
 } from "@/ui/dropdown-menu";
 
-export const reportsData = [
-  {
-    id: "1",
-    name: "Your Pudgy Whales Win-back",
-    type: "email",
-    status: "completed",
-    sentDate: "Dec 2, 2025",
-    recipients: 714,
-    openRate: 68,
-    clickRate: 24,
-    revenue: 45200,
-    revenueChange: "+$45.2k",
-  },
-  {
-    id: "2",
-    name: "Your Base Users Welcome",
-    type: "automation",
-    status: "active",
-    sentDate: "Nov 28, 2025",
-    recipients: 2341,
-    openRate: 72,
-    clickRate: 31,
-    revenue: 89400,
-    revenueChange: "+$89.4k",
-    conversions: 412,
-    entries: 2341,
-    exits: 1847,
-    exitRate: 79,
-    topTrigger: "On-chain purchase",
-    topTriggerRevenue: 68,
-  },
-  {
-    id: "3",
-    name: "Your DeFi Users Alert",
-    type: "email",
-    status: "completed",
-    sentDate: "Nov 25, 2025",
-    recipients: 1892,
-    openRate: 54,
-    clickRate: 18,
-    revenue: 23100,
-    revenueChange: "+$23.1k",
-  },
-  {
-    id: "4",
-    name: "Your NFT Collectors Drop",
-    type: "email",
-    status: "completed",
-    sentDate: "Nov 22, 2025",
-    recipients: 3241,
-    openRate: 62,
-    clickRate: 28,
-    revenue: 67800,
-    revenueChange: "+$67.8k",
-  },
-  {
-    id: "5",
-    name: "Your Dormant Users Re-engage",
-    type: "automation",
-    status: "active",
-    sentDate: "Nov 18, 2025",
-    recipients: 892,
-    openRate: 45,
-    clickRate: 12,
-    revenue: 18400,
-    revenueChange: "+$18.4k",
-    conversions: 89,
-    entries: 892,
-    exits: 634,
-    exitRate: 71,
-    topTrigger: "90-day inactive",
-    topTriggerRevenue: 54,
-  },
-  {
-    id: "6",
-    name: "Your Multi-chain Users Promo",
-    type: "automation",
-    status: "active",
-    sentDate: "Nov 15, 2025",
-    recipients: 4521,
-    openRate: 71,
-    clickRate: 34,
-    revenue: 124500,
-    revenueChange: "+$124.5k",
-    conversions: 847,
-    entries: 4521,
-    exits: 3892,
-    exitRate: 86,
-    topTrigger: "Portfolio change >10%",
-    topTriggerRevenue: 72,
-  },
-  {
-    id: "7",
-    name: "Your Whale Alert",
-    type: "automation",
-    status: "active",
-    sentDate: "Nov 10, 2025",
-    recipients: 1247,
-    openRate: 78,
-    clickRate: 45,
-    revenue: 156800,
-    revenueChange: "+$156.8k",
-    conversions: 324,
-    entries: 1247,
-    exits: 892,
-    exitRate: 72,
-    topTrigger: "Wallet balance >$50k",
-    topTriggerRevenue: 82,
-  },
-];
+import { isJsonObject } from "@/lib/utils";
+
+import { intelligenceService } from "../../intelligence.service";
+
+type ReportType = "email" | "automation" | "unknown";
+type ReportStatus = "active" | "completed" | "paused" | "unknown";
+
+type UiReport = {
+  id: string;
+  name: string;
+  type: ReportType;
+  status: ReportStatus;
+  sentDate: string;
+  recipients: number;
+  openRate: number;
+  clickRate: number;
+  revenueChange: string;
+  conversions?: number;
+  exitRate?: number;
+  topTrigger?: string;
+};
+
+const asNumber = (v: unknown): number | null => {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim().length > 0) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
+
+const asString = (v: unknown): string => (typeof v === "string" ? v : "");
+
+const formatDate = (v: unknown): string => {
+  const raw = asString(v);
+  if (raw.length > 0) return raw;
+  const n = asNumber(v);
+  if (n === null) return "—";
+  const d = new Date(n);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString();
+};
+
+const normalizeRate = (v: unknown): number => {
+  const n = asNumber(v);
+  if (n === null) return 0;
+  if (n <= 1 && n >= 0) return Math.round(n * 100);
+  return Math.round(n);
+};
+
+const formatMoneyChange = (v: unknown): string => {
+  if (typeof v === "string" && v.trim().length > 0) return v;
+  const n = asNumber(v);
+  if (n === null) return "—";
+  const dollars = Math.round(n);
+  if (dollars >= 1000) {
+    const k = Math.round((dollars / 1000) * 10) / 10;
+    return `+$${k}k`;
+  }
+  return `+$${dollars.toLocaleString()}`;
+};
+
+const toUiReport = (input: unknown): UiReport | null => {
+  if (!isJsonObject(input)) return null;
+  const r = input as Record<string, unknown>;
+  const id =
+    asString(r.id) ||
+    asString(r.reportId) ||
+    asString(r.campaignId) ||
+    asString(r.campaign_id);
+  if (id.length === 0) return null;
+
+  const name =
+    asString(r.name) ||
+    asString(r.title) ||
+    asString(r.subject) ||
+    `Report ${id}`;
+
+  const typeRaw =
+    asString(r.type) || asString(r.kind) || asString(r.reportType);
+  const type: ReportType =
+    typeRaw === "email"
+      ? "email"
+      : typeRaw === "automation"
+        ? "automation"
+        : "unknown";
+
+  const statusRaw =
+    asString(r.status) || asString(r.state) || asString(r.reportStatus);
+  const status: ReportStatus =
+    statusRaw === "active"
+      ? "active"
+      : statusRaw === "completed"
+        ? "completed"
+        : statusRaw === "paused"
+          ? "paused"
+          : "unknown";
+
+  const sentDate =
+    formatDate(r.sentDate) ||
+    formatDate(r.sentAt) ||
+    formatDate(r.createdAt) ||
+    "—";
+
+  const recipients =
+    asNumber(r.recipients) ??
+    asNumber(r.recipientCount) ??
+    asNumber(r.audienceSize) ??
+    0;
+
+  const openRate = normalizeRate(r.openRate ?? r.open_rate ?? r.openRatio);
+  const clickRate = normalizeRate(r.clickRate ?? r.click_rate ?? r.clickRatio);
+
+  const revenueChange = formatMoneyChange(
+    r.revenueChange ?? r.revenue_change ?? r.revenueUsd ?? r.revenue
+  );
+
+  const conversions = asNumber(r.conversions ?? r.conversionCount) ?? undefined;
+  const exitRate = normalizeRate(r.exitRate ?? r.exit_rate);
+  const topTrigger = asString(r.topTrigger ?? r.trigger ?? r.top_trigger) || undefined;
+
+  return {
+    id,
+    name,
+    type,
+    status,
+    sentDate,
+    recipients,
+    openRate,
+    clickRate,
+    revenueChange,
+    conversions,
+    exitRate: exitRate > 0 ? exitRate : undefined,
+    topTrigger,
+  };
+};
 
 interface ReportsTabProps {
   setActiveTab: (tab: string) => void;
@@ -153,8 +181,50 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
     "all" | "active" | "completed" | "paused"
   >("all");
 
+  const normalizedSearch = reportSearch.trim();
+
+  const reportsQuery = useQuery({
+    queryKey: ["intelligence", "reports", { search: normalizedSearch }],
+    queryFn: async () => {
+      const res = await intelligenceService.listReports({
+        search: normalizedSearch.length > 0 ? normalizedSearch : undefined,
+        page: 1,
+        limit: 100,
+      });
+      const root = Array.isArray(res)
+        ? res
+        : ((res as { items?: unknown[] }).items ?? []);
+      const items = Array.isArray(root) ? root : [];
+      return items.map(toUiReport).filter((r): r is UiReport => !!r);
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const metricsQuery = useQuery({
+    queryKey: ["intelligence", "reports", "metrics"],
+    queryFn: () => intelligenceService.getReportsMetrics(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const summaryQuery = useQuery({
+    queryKey: ["intelligence", "reports", "summary"],
+    queryFn: () => intelligenceService.getReportsSummary(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const filtersQuery = useQuery({
+    queryKey: ["intelligence", "reports", "filters"],
+    queryFn: () => intelligenceService.getReportsFilters(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   const filteredReports = useMemo(() => {
-    return reportsData.filter((report) => {
+    const source = reportsQuery.data ?? [];
+    return source.filter((report) => {
       const matchesSearch = report.name
         .toLowerCase()
         .includes(reportSearch.toLowerCase());
@@ -164,10 +234,39 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
         reportStatusFilter === "all" || report.status === reportStatusFilter;
       return matchesSearch && matchesType && matchesStatus;
     });
-  }, [reportSearch, reportTypeFilter, reportStatusFilter]);
+  }, [reportSearch, reportStatusFilter, reportTypeFilter, reportsQuery.data]);
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <span className="text-muted-foreground">Reports</span>{" "}
+          <span className="font-medium text-foreground">
+            {typeof (metricsQuery.data as Record<string, unknown> | undefined)?.reportsCount ===
+            "number"
+              ? String(
+                  (metricsQuery.data as { reportsCount: number }).reportsCount
+                )
+              : (filteredReports.length ?? 0).toLocaleString()}
+          </span>
+        </div>
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <span className="text-muted-foreground">Summary</span>{" "}
+          <span className="font-medium text-foreground">
+            {typeof (summaryQuery.data as Record<string, unknown> | undefined)?.summary ===
+            "string"
+              ? String((summaryQuery.data as { summary: string }).summary)
+              : "—"}
+          </span>
+        </div>
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <span className="text-muted-foreground">Filters</span>{" "}
+          <span className="font-medium text-foreground">
+            {filtersQuery.data ? "Loaded" : "—"}
+          </span>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -302,7 +401,16 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {filteredReports.length === 0 ? (
+        {reportsQuery.isFetching ? (
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+              <Send className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-foreground">
+              Loading reports…
+            </h3>
+          </div>
+        ) : filteredReports.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
               <Send className="h-5 w-5" aria-hidden="true" />
@@ -311,8 +419,13 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
               No intelligence reports yet
             </h3>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              Run your first campaign or automation to start tracking opens,
-              clicks, and revenue attribution here.
+              {reportsQuery.error
+                ? String(
+                    reportsQuery.error instanceof Error
+                      ? reportsQuery.error.message
+                      : "Failed to load reports"
+                  )
+                : "Run your first campaign or automation to start tracking opens, clicks, and revenue attribution here."}
             </p>
             <button
               type="button"
@@ -449,7 +562,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                             {report.conversions.toLocaleString()} conv
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {report.exitRate}% exited
+                            {report.exitRate ?? "—"}% exited
                           </span>
                         </div>
                       ) : (

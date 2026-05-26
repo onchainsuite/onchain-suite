@@ -2,7 +2,9 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 
@@ -15,28 +17,25 @@ import { AutomationTabs } from "./tabs";
 import { TemplatesList } from "./templates-list";
 import { Toast } from "./toast";
 import {
-  draftsData,
-  initialAutomationsData,
-  templatesData,
-} from "@/features/automation/data";
-import {
   type Automation,
   type Draft,
   type Template,
 } from "@/features/automation/types";
 
+import {
+  automationService,
+  type AutomationsStatus,
+} from "../automation.service";
+
+import { isJsonObject } from "@/lib/utils";
+
 export const AutomationList = () => {
   const [activeTab, setActiveTab] = useState("active");
   const [searchQuery, setSearchQuery] = useState("");
-  const [automations, setAutomations] = useState<Automation[]>(
-    initialAutomationsData as unknown as Automation[]
-  );
-  const [drafts, setDrafts] = useState<Draft[]>(
-    draftsData as unknown as Draft[]
-  );
-  const [templates] = useState<Template[]>(
-    templatesData as unknown as Template[]
-  );
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
+  const queryClient = useQueryClient();
   const [deleteModal, setDeleteModal] = useState<{
     show: boolean;
     automation: Automation | null;
@@ -46,72 +45,337 @@ export const AutomationList = () => {
     message: string;
     type: "success" | "error";
   } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  const filteredAutomations = automations.filter((a) =>
-    a.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const normalizedSearch = searchQuery.trim();
 
-  const stats = {
-    active: automations.filter((a) => a.status === "active").length,
-    totalEntries: automations.reduce((sum, a) => sum + a.entries, 0),
-    totalConversions: automations.reduce((sum, a) => sum + a.conversions, 0),
-    totalRevenue: automations.reduce((sum, a) => sum + a.revenue, 0),
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, normalizedSearch]);
+
+  const asString = (v: unknown): string => (typeof v === "string" ? v : "");
+  const asNumber = (v: unknown): number => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string" && v.trim().length > 0) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
   };
 
-  const handleDuplicate = (automation: Automation) => {
-    const newDraft: Draft = {
-      id: `d${Date.now()}`,
-      name: `${automation.name} - copy`,
-      description: automation.description,
-      trigger: automation.trigger,
-      lastEdited: "Just now",
+  const toAutomation = (input: unknown): Automation | null => {
+    if (!isJsonObject(input)) return null;
+    const a = input as Record<string, unknown>;
+    const id =
+      asString(a.id) || asString(a.automationId) || asString(a.automation_id);
+    if (id.length === 0) return null;
+    const status = (asString(a.status) as AutomationsStatus) || "draft";
+    const name = asString(a.name) || "Untitled automation";
+    const description = asString(a.description);
+    const triggerObj = isJsonObject(a.trigger)
+      ? (a.trigger as Record<string, unknown>)
+      : null;
+    const triggerType =
+      asString(triggerObj?.type) || asString(a.triggerType) || "onchain";
+    const triggerEvent =
+      asString(triggerObj?.event) || asString(a.triggerEvent) || "—";
+    const triggerContract =
+      asString(triggerObj?.contract) ||
+      asString(a.triggerContract) ||
+      undefined;
+    const entries = asNumber(a.entries ?? a.entryCount);
+    const conversions = asNumber(a.conversions ?? a.conversionCount);
+    const conversionRate =
+      asNumber(a.conversionRate ?? a.conversion_rate) ||
+      (entries > 0 ? Math.round((conversions / entries) * 1000) / 10 : 0);
+    const revenue = asNumber(a.revenue ?? a.revenueUsd ?? a.revenue_usd);
+    const lastTriggered =
+      asString(a.lastTriggered ?? a.last_triggered ?? a.updatedAt) || "—";
+    const createdAt = asString(a.createdAt ?? a.created_at) || "—";
+    return {
+      id,
+      name,
+      description,
+      trigger: {
+        type: triggerType,
+        contract: triggerContract,
+        event: triggerEvent,
+      },
+      status:
+        status === "paused"
+          ? "paused"
+          : status === "active"
+            ? "active"
+            : "draft",
+      entries,
+      conversions,
+      conversionRate,
+      revenue,
+      lastTriggered,
+      createdAt,
     };
-    setDrafts([newDraft, ...drafts]);
-    setActiveTab("drafts");
-    setToast({
-      show: true,
-      message: `Duplicated "${automation.name}"`,
-      type: "success",
-    });
-    setTimeout(() => setToast(null), 3000);
   };
 
-  const handleDelete = async () => {
-    if (deleteModal.automation) {
-      setIsDeleting(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setAutomations(
-        automations.filter((a) => a.id !== deleteModal.automation?.id)
+  const toDraft = (input: unknown): Draft | null => {
+    const a = toAutomation(input);
+    if (!a) return null;
+    if (a.status !== "draft") return null;
+    return {
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      trigger: a.trigger,
+      lastEdited: a.createdAt,
+    };
+  };
+
+  const toTemplate = (input: unknown): Template | null => {
+    if (!isJsonObject(input)) return null;
+    const t = input as Record<string, unknown>;
+    const id =
+      asString(t.id) || asString(t.templateId) || asString(t.template_id);
+    if (id.length === 0) return null;
+    return {
+      id,
+      name: asString(t.name) || asString(t.title) || "Template",
+      description: asString(t.description),
+      category: asString(t.category) || "template",
+      uses: asNumber(t.uses ?? t.useCount ?? t.appliedCount),
+    };
+  };
+
+  const countsQuery = useQuery({
+    queryKey: ["automations", "counts"],
+    queryFn: () => automationService.getCounts(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const metricsQuery = useQuery({
+    queryKey: ["automations", "metrics"],
+    queryFn: () => automationService.getMetrics(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const itemsQuery = useQuery({
+    queryKey: [
+      "automations",
+      "list",
+      { activeTab, page, limit, q: normalizedSearch },
+    ],
+    queryFn: async () => {
+      if (activeTab === "templates") return { items: [], total: 0 };
+
+      if (normalizedSearch.length > 0) {
+        const res = await automationService.searchAutomations({
+          q: normalizedSearch,
+          page,
+          limit,
+        });
+        const root = Array.isArray(res)
+          ? res
+          : ((res as { items?: unknown[] }).items ?? []);
+        const list = Array.isArray(root) ? root : [];
+        const filtered =
+          activeTab === "drafts"
+            ? list.filter((x) => {
+                if (!isJsonObject(x)) return false;
+                const s = asString((x as Record<string, unknown>).status);
+                return s === "draft";
+              })
+            : list.filter((x) => {
+                if (!isJsonObject(x)) return false;
+                const s = asString((x as Record<string, unknown>).status);
+                return s !== "draft";
+              });
+        return { items: filtered, total: filtered.length };
+      }
+
+      if (activeTab === "drafts") {
+        const res = await automationService.listAutomations({
+          tab: "drafts",
+          page,
+          limit,
+        });
+        const root = Array.isArray(res)
+          ? res
+          : ((res as { items?: unknown[]; data?: unknown[] }).items ??
+            (res as { data?: unknown[] }).data ??
+            []);
+        const list = Array.isArray(root) ? root : [];
+        return { items: list, total: list.length };
+      }
+
+      const [activeRes, pausedRes] = await Promise.all([
+        automationService.listAutomations({ status: "active", page, limit }),
+        automationService.listAutomations({ status: "paused", page, limit }),
+      ]);
+      const pick = (res: unknown) => {
+        const root = Array.isArray(res)
+          ? res
+          : ((res as { items?: unknown[]; data?: unknown[] }).items ??
+            (res as { data?: unknown[] }).data ??
+            []);
+        return Array.isArray(root) ? root : [];
+      };
+      const items = [...pick(activeRes), ...pick(pausedRes)];
+      return { items, total: items.length };
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const templatesQuery = useQuery({
+    queryKey: ["automations", "templates", { q: normalizedSearch }],
+    queryFn: async () => {
+      const res = await automationService.listTemplates();
+      const root = Array.isArray(res)
+        ? res
+        : ((res as { items?: unknown[] }).items ?? []);
+      const list = Array.isArray(root) ? root : [];
+      const mapped = list.map(toTemplate).filter((t): t is Template => !!t);
+      if (normalizedSearch.length === 0) return mapped;
+      return mapped.filter((t) =>
+        t.name.toLowerCase().includes(normalizedSearch.toLowerCase())
       );
-      setDrafts(drafts.filter((d) => d.id !== deleteModal.automation?.id));
-      setIsDeleting(false);
+    },
+    enabled: activeTab === "templates",
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const automations: Automation[] = useMemo(() => {
+    if (activeTab !== "active") return [];
+    const items = itemsQuery.data?.items ?? [];
+    return items.map(toAutomation).filter((a): a is Automation => !!a);
+  }, [activeTab, itemsQuery.data?.items]);
+
+  const drafts: Draft[] = useMemo(() => {
+    if (activeTab !== "drafts") return [];
+    const items = itemsQuery.data?.items ?? [];
+    return items.map(toDraft).filter((d): d is Draft => !!d);
+  }, [activeTab, itemsQuery.data?.items]);
+
+  const filteredAutomations = useMemo(() => {
+    if (normalizedSearch.length === 0) return automations;
+    return automations.filter((a) =>
+      a.name.toLowerCase().includes(normalizedSearch.toLowerCase())
+    );
+  }, [automations, normalizedSearch]);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (automationId: string) => {
+      await automationService.deleteAutomation(automationId);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["automations"] });
+      setToast({ show: true, message: "Deleted automation", type: "success" });
+      setTimeout(() => setToast(null), 3000);
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "Failed to delete";
+      setToast({ show: true, message, type: "error" });
+      setTimeout(() => setToast(null), 3000);
+    },
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (automationId: string) => {
+      return automationService.duplicateAutomation(automationId);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["automations"] });
+      setActiveTab("drafts");
       setToast({
         show: true,
-        message: `Deleted "${deleteModal.automation.name}"`,
+        message: "Duplicated automation",
         type: "success",
       });
       setTimeout(() => setToast(null), 3000);
-    }
-    setDeleteModal({ show: false, automation: null });
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to duplicate";
+      setToast({ show: true, message, type: "error" });
+      setTimeout(() => setToast(null), 3000);
+    },
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (automation: Automation) => {
+      const next = automation.status === "active" ? "paused" : "active";
+      await automationService.updateAutomationStatus(automation.id, {
+        status: next,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["automations"] });
+      setToast({ show: true, message: "Updated status", type: "success" });
+      setTimeout(() => setToast(null), 3000);
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to update status";
+      setToast({ show: true, message, type: "error" });
+      setTimeout(() => setToast(null), 3000);
+    },
+  });
+
+  const applyTemplateMutation = useMutation({
+    mutationFn: async (templateId: string) => {
+      await automationService.getTemplate(templateId);
+      return automationService.applyTemplate(templateId);
+    },
+    onSuccess: (res) => {
+      const automationId =
+        typeof (res as { automationId?: unknown }).automationId === "string"
+          ? (res as { automationId: string }).automationId
+          : null;
+      if (automationId) {
+        window.location.href = `/automations/${automationId}`;
+        return;
+      }
+      setToast({ show: true, message: "Template applied", type: "success" });
+      setTimeout(() => setToast(null), 3000);
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to apply template";
+      setToast({ show: true, message, type: "error" });
+      setTimeout(() => setToast(null), 3000);
+    },
+  });
+
+  const stats = {
+    active:
+      typeof metricsQuery.data?.active === "number"
+        ? metricsQuery.data.active
+        : filteredAutomations.filter((a) => a.status === "active").length,
+    entries:
+      typeof metricsQuery.data?.entries === "number"
+        ? metricsQuery.data.entries
+        : 0,
+    conversions:
+      typeof metricsQuery.data?.conversions === "number"
+        ? metricsQuery.data.conversions
+        : 0,
+    revenue:
+      typeof metricsQuery.data?.revenue === "number"
+        ? metricsQuery.data.revenue
+        : 0,
   };
 
-  const handleToggleStatus = (automation: Automation) => {
-    setAutomations(
-      automations.map((a) =>
-        a.id === automation.id
-          ? { ...a, status: a.status === "active" ? "paused" : "active" }
-          : a
-      )
-    );
-    setToast({
-      show: true,
-      message: `${automation.name} ${
-        automation.status === "active" ? "paused" : "resumed"
-      }`,
-      type: "success",
-    });
-    setTimeout(() => setToast(null), 3000);
+  const pageCount = useMemo(() => {
+    const total = itemsQuery.data?.total ?? 0;
+    return Math.max(1, Math.ceil(Math.max(0, total) / limit));
+  }, [itemsQuery.data?.total, limit]);
+
+  const handleDeleteConfirm = async () => {
+    const a = deleteModal.automation;
+    if (a) {
+      deleteMutation.mutate(a.id);
+    }
+    setDeleteModal({ show: false, automation: null });
   };
 
   return (
@@ -147,8 +411,18 @@ export const AutomationList = () => {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           counts={{
-            active: stats.active,
-            drafts: drafts.length,
+            active:
+              typeof countsQuery.data?.active === "number"
+                ? countsQuery.data.active
+                : stats.active,
+            drafts:
+              typeof countsQuery.data?.drafts === "number"
+                ? countsQuery.data.drafts
+                : drafts.length,
+            templates:
+              typeof countsQuery.data?.templates === "number"
+                ? countsQuery.data.templates
+                : undefined,
           }}
         />
 
@@ -156,29 +430,98 @@ export const AutomationList = () => {
           <ActiveAutomationsList
             automations={filteredAutomations}
             searchQuery={searchQuery}
-            onToggleStatus={handleToggleStatus}
-            onDuplicate={handleDuplicate}
+            onToggleStatus={(automation) =>
+              toggleStatusMutation.mutate(automation)
+            }
+            onDuplicate={(automation) =>
+              duplicateMutation.mutate(automation.id)
+            }
             onDelete={(automation) =>
               setDeleteModal({ show: true, automation })
             }
           />
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-xs text-muted-foreground">
+              Page {page} of {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              disabled={page >= pageCount}
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </TabsContent>
 
         <TabsContent value="drafts" className="space-y-4">
-          <DraftsList drafts={drafts} />
+          <DraftsList
+            drafts={drafts}
+            onDelete={(draft) =>
+              setDeleteModal({
+                show: true,
+                automation: {
+                  id: draft.id,
+                  name: draft.name,
+                  description: draft.description,
+                  trigger: draft.trigger,
+                  status: "draft",
+                  entries: 0,
+                  conversions: 0,
+                  conversionRate: 0,
+                  revenue: 0,
+                  lastTriggered: "—",
+                  createdAt: draft.lastEdited,
+                },
+              })
+            }
+          />
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-xs text-muted-foreground">
+              Page {page} of {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+              disabled={page >= pageCount}
+              className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </TabsContent>
 
         <TabsContent value="templates" className="space-y-4">
-          <TemplatesList templates={templates} />
+          <TemplatesList
+            templates={templatesQuery.data ?? []}
+            onApply={(template) => applyTemplateMutation.mutate(template.id)}
+          />
         </TabsContent>
       </Tabs>
 
       <DeleteModal
         show={deleteModal.show}
         automation={deleteModal.automation}
-        isDeleting={isDeleting}
+        isDeleting={deleteMutation.isPending}
         onClose={() => setDeleteModal({ show: false, automation: null })}
-        onConfirm={handleDelete}
+        onConfirm={handleDeleteConfirm}
       />
 
       <Toast

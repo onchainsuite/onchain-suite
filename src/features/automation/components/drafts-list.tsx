@@ -13,9 +13,10 @@ import { type Draft } from "@/features/automation/types";
 
 interface DraftsListProps {
   drafts: Draft[];
+  onDelete: (draft: Draft) => void;
 }
 
-export const DraftsList = ({ drafts }: DraftsListProps) => {
+export const DraftsList = ({ drafts, onDelete }: DraftsListProps) => {
   if (drafts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
@@ -52,7 +53,10 @@ export const DraftsList = ({ drafts }: DraftsListProps) => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => onDelete(draft)}
+                >
                   Delete draft
                 </DropdownMenuItem>
               </DropdownMenuContent>

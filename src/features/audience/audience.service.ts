@@ -217,7 +217,8 @@ export const audienceService = {
 
   listProfiles(params?: ListProfilesParams, orgId?: string) {
     return request<
-      | { items?: AudienceProfile[]; data?: AudienceProfile[] }
+      | { items?: AudienceProfile[]; data?: AudienceProfile[]; meta?: unknown }
+      | { data?: AudienceProfile[]; meta?: unknown }
       | AudienceProfile[]
     >({ method: "GET", url: "/audience/profiles", params }, orgId);
   },
@@ -229,9 +230,9 @@ export const audienceService = {
     );
   },
 
-  getProfile(id: string, orgId?: string) {
+  getProfile(id: string, params?: { include?: string }, orgId?: string) {
     return request<AudienceProfile>(
-      { method: "GET", url: `/audience/profiles/${id}` },
+      { method: "GET", url: `/audience/profiles/${id}`, params },
       orgId
     );
   },
@@ -239,6 +240,13 @@ export const audienceService = {
   updateProfile(id: string, body: Record<string, unknown>, orgId?: string) {
     return request<AudienceProfile>(
       { method: "PUT", url: `/audience/profiles/${id}`, data: body },
+      orgId
+    );
+  },
+
+  deleteProfile(id: string, orgId?: string) {
+    return request<{ success?: boolean }>(
+      { method: "DELETE", url: `/audience/profiles/${id}` },
       orgId
     );
   },
@@ -269,6 +277,13 @@ export const audienceService = {
         method: "DELETE",
         url: `/audience/profiles/${id}/tags/${encodeURIComponent(tagName)}`,
       },
+      orgId
+    );
+  },
+
+  listAttributes(params?: { q?: string; limit?: number }, orgId?: string) {
+    return request<{ keys: AudienceAttributeKey[] }>(
+      { method: "GET", url: "/audience/attributes", params },
       orgId
     );
   },

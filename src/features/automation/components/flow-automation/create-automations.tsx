@@ -18,7 +18,7 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type React from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   addEdge,
   Background,
@@ -27,6 +27,7 @@ import {
   Controls,
   MarkerType,
   MiniMap,
+  type Edge,
   type Node,
   ReactFlow,
   ReactFlowProvider,
@@ -47,6 +48,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import "reactflow/dist/style.css";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Confetti } from "../confetti";
 import {
   BranchNode,
@@ -72,6 +74,10 @@ import {
   getInitialNodes,
   isValidConnection,
 } from "@/features/automation/utils";
+
+import { isJsonObject } from "@/lib/utils";
+
+import { automationService } from "../../automation.service";
 
 // This is a known benign error with ReactFlow that can be safely ignored
 if (typeof window === "undefined") {
@@ -106,10 +112,31 @@ const nodeTypes = {
   placeholder: PlaceholderNode,
 };
 
+const asString = (v: unknown): string => (typeof v === "string" ? v : "");
+
+const asNumber = (v: unknown): number => {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim().length > 0) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
+
+const pickArray = (payload: unknown): unknown[] => {
+  if (Array.isArray(payload)) return payload;
+  if (isJsonObject(payload) && Array.isArray(payload.items))
+    return payload.items;
+  if (isJsonObject(payload) && Array.isArray(payload.data)) return payload.data;
+  return [];
+};
+
 const CreateAutomationContent = () => {
   const params = useParams();
   const automationId = params?.id as string;
   const isNew = automationId === "new-id";
+
+  const queryClient = useQueryClient();
 
   const [nodes, setNodes, onNodesChange] = useNodesState(
     getInitialNodes(automationId)
@@ -133,6 +160,428 @@ const CreateAutomationContent = () => {
   }>({ show: false, x: 0, y: 0 });
 
   const { project } = useReactFlow();
+
+  const resolvedTriggerNodes = useMemo(() => {
+    return triggerNodes;
+  }, []);
+
+  const resolvedActionNodes = useMemo(() => {
+    return actionNodes;
+  }, []);
+
+  const triggersQuery = useQuery({
+    queryKey: ["automations", "builder", "triggers"],
+    queryFn: async () => {
+      try {
+        const primary = await automationService.listTriggerTypes();
+        const primaryItems = pickArray(primary);
+        if (primaryItems.length > 0) return primaryItems;
+        const alias = await automationService.listAvailableTriggers();
+        return pickArray(alias);
+      } catch {
+        return [];
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const actionsQuery = useQuery({
+    queryKey: ["automations", "builder", "actions"],
+    queryFn: async () => {
+      try {
+        const res = await automationService.listActionTypes();
+        return pickArray(res);
+      } catch {
+        return [];
+      }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const triggerCatalog = useMemo(() => {
+    const fetched = triggersQuery.data ?? [];
+    if (fetched.length === 0) return resolvedTriggerNodes;
+    const normalized = fetched
+      .map((t) => {
+        if (!isJsonObject(t)) return null;
+        const rec = t as Record<string, unknown>;
+        const type = asString(rec.type) || asString(rec.id);
+        if (type.length === 0) return null;
+        const label = asString(rec.label) || asString(rec.name) || type;
+        const description = asString(rec.description);
+        return {
+          type,
+          label,
+          description,
+          icon: <Target className="h-4 w-4" />,
+        };
+      })
+      .filter((x): x is (typeof triggerNodes)[number] => !!x);
+    return normalized.length > 0 ? normalized : resolvedTriggerNodes;
+  }, [resolvedTriggerNodes, triggersQuery.data]);
+
+  const actionCatalog = useMemo(() => {
+    const fetched = actionsQuery.data ?? [];
+    if (fetched.length === 0) return resolvedActionNodes;
+    const normalized = fetched
+      .map((a) => {
+        if (!isJsonObject(a)) return null;
+        const rec = a as Record<string, unknown>;
+        const type = asString(rec.type) || asString(rec.id);
+        if (type.length === 0) return null;
+        const label = asString(rec.label) || asString(rec.name) || type;
+        const description = asString(rec.description);
+        return {
+          type,
+          label,
+          description,
+          icon: <ChevronRight className="h-4 w-4" />,
+        };
+      })
+      .filter((x): x is (typeof actionNodes)[number] => !!x);
+    return normalized.length > 0 ? normalized : resolvedActionNodes;
+  }, [actionsQuery.data, resolvedActionNodes]);
+
+  const automationDetailQuery = useQuery({
+    queryKey: ["automations", "detail", automationId],
+    queryFn: () => automationService.getAutomation(automationId),
+    enabled:
+      !isNew && typeof automationId === "string" && automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const builderQuery = useQuery({
+    queryKey: ["automations", automationId, "builder"],
+    queryFn: () => automationService.getBuilder(automationId),
+    enabled:
+      !isNew && typeof automationId === "string" && automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const lastEditedQuery = useQuery({
+    queryKey: ["automations", automationId, "last-edited"],
+    queryFn: () => automationService.getLastEdited(automationId),
+    enabled:
+      !isNew && typeof automationId === "string" && automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: async () => automationService.publishAutomation(automationId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["automations"] });
+      await automationDetailQuery.refetch();
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "Failed to publish";
+      window.alert(message);
+    },
+  });
+
+  const previewMutation = useMutation({
+    mutationFn: async () => {
+      const triggerNode = nodes.find((n) => n.type === "trigger");
+      const trigger = isJsonObject(triggerNode?.data)
+        ? (triggerNode?.data as Record<string, unknown>)
+        : {};
+      return automationService.previewAutomation(automationId, { trigger });
+    },
+    onSuccess: (res) => {
+      const raw = (res as Record<string, unknown>).matches;
+      const matches = typeof raw === "number" ? raw : asNumber(raw);
+      window.alert(`Preview matches: ${matches.toLocaleString()}`);
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "Failed to preview";
+      window.alert(message);
+    },
+  });
+
+  const statsOverviewQuery = useQuery({
+    queryKey: ["automations", automationId, "stats"],
+    queryFn: () => automationService.getStatsOverview(automationId),
+    enabled:
+      !isNew &&
+      activeTab === "stats" &&
+      typeof automationId === "string" &&
+      automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const statsPerformanceQuery = useQuery({
+    queryKey: ["automations", automationId, "performance"],
+    queryFn: () => automationService.getPerformance(automationId),
+    enabled:
+      !isNew &&
+      activeTab === "stats" &&
+      typeof automationId === "string" &&
+      automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const statsPreviewQuery = useQuery({
+    queryKey: ["automations", automationId, "stats", "preview"],
+    queryFn: () => automationService.getStatsPreview(automationId),
+    enabled:
+      !isNew &&
+      activeTab === "stats" &&
+      typeof automationId === "string" &&
+      automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const statsTimeSeriesQuery = useQuery({
+    queryKey: ["automations", automationId, "stats", "time-series", "30days"],
+    queryFn: () =>
+      automationService.getStatsTimeSeries(automationId, { period: "30days" }),
+    enabled:
+      !isNew &&
+      activeTab === "stats" &&
+      typeof automationId === "string" &&
+      automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const statsPathsQuery = useQuery({
+    queryKey: ["automations", automationId, "stats", "paths"],
+    queryFn: () => automationService.getStatsPaths(automationId),
+    enabled:
+      !isNew &&
+      activeTab === "stats" &&
+      typeof automationId === "string" &&
+      automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const statsEntriesQuery = useQuery({
+    queryKey: ["automations", automationId, "stats", "entries"],
+    queryFn: () =>
+      automationService.listStatsEntries(automationId, { page: 1, limit: 10 }),
+    enabled:
+      !isNew &&
+      activeTab === "stats" &&
+      typeof automationId === "string" &&
+      automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const statsRevenueQuery = useQuery({
+    queryKey: ["automations", automationId, "stats", "revenue"],
+    queryFn: () => automationService.getStatsRevenue(automationId),
+    enabled:
+      !isNew &&
+      activeTab === "stats" &&
+      typeof automationId === "string" &&
+      automationId.length > 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const statsOverview =
+    statsOverviewQuery.data ??
+    statsPerformanceQuery.data ??
+    statsPreviewQuery.data ??
+    {};
+  const statsEntries = asNumber(
+    (statsOverview as Record<string, unknown>).entries
+  );
+  const statsConversions = asNumber(
+    (statsOverview as Record<string, unknown>).conversions
+  );
+  const statsRevenue =
+    asNumber(
+      (statsRevenueQuery.data as Record<string, unknown> | undefined)?.revenue
+    ) || asNumber((statsOverview as Record<string, unknown>).revenue);
+  const statsConvRate =
+    asNumber((statsOverview as Record<string, unknown>).conversionRate) ||
+    (statsEntries > 0
+      ? Math.round((statsConversions / statsEntries) * 1000) / 10
+      : 0);
+
+  const chartData = useMemo(() => {
+    const list = pickArray((statsTimeSeriesQuery.data as unknown) ?? []);
+    if (list.length === 0) return statsChartData;
+    const mapped = list
+      .map((r) => {
+        if (!isJsonObject(r)) return null;
+        const rec = r as Record<string, unknown>;
+        return {
+          date: asString(rec.date) || asString(rec.at) || "—",
+          entries: asNumber(rec.entries),
+          conversions: asNumber(rec.conversions),
+          revenue: asNumber(rec.revenue),
+        };
+      })
+      .filter(
+        (
+          x
+        ): x is {
+          date: string;
+          entries: number;
+          conversions: number;
+          revenue: number;
+        } => !!x
+      );
+    return mapped.length > 0 ? mapped : statsChartData;
+  }, [statsTimeSeriesQuery.data]);
+
+  const pathRows = useMemo(() => {
+    const list = pickArray((statsPathsQuery.data as unknown) ?? []);
+    if (list.length === 0) return pathPerformance;
+    const mapped = list
+      .map((p) => {
+        if (!isJsonObject(p)) return null;
+        const rec = p as Record<string, unknown>;
+        const rate = asNumber(rec.rate ?? rec.conversionRate);
+        return {
+          path: asString(rec.path) || "Path",
+          entries: asNumber(rec.entries),
+          conversions: asNumber(rec.conversions),
+          rate,
+          revenue: asNumber(rec.revenue),
+        };
+      })
+      .filter((x): x is (typeof pathPerformance)[number] => !!x);
+    return mapped.length > 0 ? mapped : pathPerformance;
+  }, [statsPathsQuery.data]);
+
+  const recentRows = useMemo(() => {
+    const list = pickArray((statsEntriesQuery.data as unknown) ?? []);
+    if (list.length === 0) return recentEntries;
+    const mapped = list
+      .map((e) => {
+        if (!isJsonObject(e)) return null;
+        const rec = e as Record<string, unknown>;
+        return {
+          id: asString(rec.id) || asString(rec.entryId) || crypto.randomUUID(),
+          wallet: asString(rec.wallet) || "—",
+          email: asString(rec.email) || "—",
+          timestamp: asString(rec.timestamp ?? rec.at) || "—",
+          outcome: asString(rec.outcome ?? rec.status) || "entered",
+          revenue: asNumber(rec.revenue),
+          path: asString(rec.path) || "—",
+        };
+      })
+      .filter((x): x is (typeof recentEntries)[number] => !!x);
+    return mapped.length > 0 ? mapped : recentEntries;
+  }, [statsEntriesQuery.data]);
+
+  useEffect(() => {
+    if (isNew) return;
+    const detail = automationDetailQuery.data;
+    if (!detail || !isJsonObject(detail)) return;
+    setAutomationData((prev) => ({
+      ...prev,
+      id: automationId,
+      name: asString(detail.name) || prev.name,
+      description: asString(detail.description) || prev.description,
+      status: asString(detail.status) || prev.status,
+      createdAt:
+        asString(detail.updatedAt ?? detail.createdAt) || prev.createdAt,
+      lastTriggered: asString(detail.lastTriggered) || prev.lastTriggered,
+    }));
+  }, [automationDetailQuery.data, automationId, isNew]);
+
+  useEffect(() => {
+    if (isNew) return;
+    const payload = builderQuery.data;
+    if (!payload || !isJsonObject(payload)) return;
+    const nodesArr = pickArray((payload as Record<string, unknown>).nodes);
+    const edgesArr = pickArray((payload as Record<string, unknown>).edges);
+    if (nodesArr.length > 0) setNodes(nodesArr as Node[]);
+    if (edgesArr.length > 0) setEdges(edgesArr as Edge[]);
+  }, [builderQuery.data, isNew, setEdges, setNodes]);
+
+  const validateMutation = useMutation({
+    mutationFn: async () => {
+      if (isNew) return { errors: [], warnings: [] };
+      return automationService.validateBuilder(automationId, {
+        nodes,
+        edges,
+      });
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const name =
+        typeof automationData.name === "string"
+          ? automationData.name.trim()
+          : "";
+      if (name.length === 0) throw new Error("Automation name is required");
+
+      if (isNew) {
+        const created = await automationService.createAutomation({
+          name,
+          description: automationData.description ?? "",
+          builder: { nodes, edges },
+        });
+        const createdId = created.automationId;
+        if (createdId) {
+          await automationService.saveBuilder(createdId, { nodes, edges });
+        }
+        return { createdId };
+      }
+
+      await automationService.updateAutomation(automationId, {
+        name,
+        description: automationData.description ?? "",
+      });
+      await automationService.saveBuilder(automationId, { nodes, edges });
+      return { createdId: null as string | null };
+    },
+    onSuccess: async (res) => {
+      await queryClient.invalidateQueries({ queryKey: ["automations"] });
+      setIsSaving(false);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+      if (res.createdId) {
+        window.location.href = `/automations/${res.createdId}`;
+      }
+    },
+    onError: (err) => {
+      setIsSaving(false);
+      const message = err instanceof Error ? err.message : "Failed to save";
+      window.alert(message);
+    },
+  });
+
+  const draftSaveMutation = useMutation({
+    mutationFn: async () => {
+      if (isNew) return;
+      await automationService.saveBuilderDraft(automationId, { nodes, edges });
+    },
+  });
+
+  useEffect(() => {
+    if (isNew) return;
+    const t = window.setTimeout(() => {
+      draftSaveMutation.mutate();
+    }, 1000);
+    return () => window.clearTimeout(t);
+  }, [automationId, draftSaveMutation, edges, isNew, nodes]);
+
+  const discardMutation = useMutation({
+    mutationFn: async () => {
+      if (isNew) return;
+      await automationService.discardBuilder(automationId);
+    },
+    onSuccess: async () => {
+      if (isNew) return;
+      await builderQuery.refetch();
+    },
+  });
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -164,13 +613,21 @@ const CreateAutomationContent = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSaving(false);
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 5000);
-    if (isNew) {
-      // router.push("/automations/123");
+    try {
+      const validation = await validateMutation.mutateAsync();
+      const errors = pickArray(
+        isJsonObject(validation) ? validation.errors : undefined
+      );
+      if (errors.length > 0) {
+        setIsSaving(false);
+        window.alert("Builder has validation errors");
+        return;
+      }
+      saveMutation.mutate();
+    } catch (err) {
+      setIsSaving(false);
+      const message = err instanceof Error ? err.message : "Failed to save";
+      window.alert(message);
     }
   };
 
@@ -255,6 +712,31 @@ const CreateAutomationContent = () => {
 
     setNodes((nds) => nds.concat(newNode));
     setShowNodeSelector({ show: false, x: 0, y: 0 });
+
+    if (!isNew) {
+      const schemaType = type;
+      const loadSchema = async () => {
+        try {
+          const schema =
+            newNode.type === "trigger"
+              ? await automationService.getTriggerSchema(schemaType)
+              : await automationService.getActionSchema(schemaType);
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === newNode.id
+                ? {
+                    ...n,
+                    data: { ...(n.data as Record<string, unknown>), schema },
+                  }
+                : n
+            )
+          );
+        } catch (_e) {
+          String(_e);
+        }
+      };
+      void loadSchema();
+    }
   };
 
   return (
@@ -294,7 +776,15 @@ const CreateAutomationContent = () => {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Last edited {automationData.createdAt}
+              Last edited{" "}
+              {typeof (
+                lastEditedQuery.data as { lastEditedAt?: unknown } | null
+              )?.lastEditedAt === "string"
+                ? String(
+                    (lastEditedQuery.data as { lastEditedAt: string })
+                      .lastEditedAt
+                  )
+                : automationData.createdAt}
             </p>
           </div>
         </div>
@@ -313,10 +803,40 @@ const CreateAutomationContent = () => {
 
           <div className="h-6 w-px bg-border" />
 
+          {!isNew && (
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+              onClick={() => previewMutation.mutate()}
+              disabled={previewMutation.isPending}
+            >
+              Preview
+            </button>
+          )}
+
+          {!isNew && automationData.status === "draft" && (
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              onClick={() => publishMutation.mutate()}
+              disabled={publishMutation.isPending}
+            >
+              {publishMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : null}
+              Publish
+            </button>
+          )}
+
           <button
             className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => {
-              /* Handle discard */
+              if (isNew) {
+                setNodes(getInitialNodes("new-id"));
+                setEdges(getInitialEdges("new-id"));
+                return;
+              }
+              discardMutation.mutate();
             }}
           >
             <XCircle className="h-3.5 w-3.5" />
@@ -368,7 +888,7 @@ const CreateAutomationContent = () => {
                           Triggers
                         </h3>
                         <div className="space-y-2">
-                          {triggerNodes.map((node) => (
+                          {triggerCatalog.map((node) => (
                             <div
                               key={node.type}
                               draggable
@@ -407,7 +927,7 @@ const CreateAutomationContent = () => {
                           Actions
                         </h3>
                         <div className="space-y-2">
-                          {actionNodes.map((node) => (
+                          {actionCatalog.map((node) => (
                             <div
                               key={node.type}
                               draggable
@@ -499,7 +1019,7 @@ const CreateAutomationContent = () => {
                     Add Action
                   </p>
                   <div className="space-y-1">
-                    {actionNodes.map((node) => (
+                    {actionCatalog.map((node) => (
                       <button
                         key={node.type}
                         onClick={() => addNode(node.type, node.label)}
@@ -699,26 +1219,29 @@ const CreateAutomationContent = () => {
                 {[
                   {
                     label: "Entries",
-                    value: "1,247",
-                    change: "+12.5%",
+                    value: statsEntries.toLocaleString(),
+                    change: "—",
                     icon: <Users className="h-4 w-4 text-blue-500" />,
                   },
                   {
                     label: "Conversions",
-                    value: "342",
-                    change: "+8.2%",
+                    value: statsConversions.toLocaleString(),
+                    change: "—",
                     icon: <CheckCircle2 className="h-4 w-4 text-primary" />,
                   },
                   {
                     label: "Conv. Rate",
-                    value: "27.4%",
-                    change: "-1.1%",
+                    value: `${statsConvRate}%`,
+                    change: "—",
                     icon: <Target className="h-4 w-4 text-purple-500" />,
                   },
                   {
                     label: "Revenue",
-                    value: "$127k",
-                    change: "+24.3%",
+                    value:
+                      statsRevenue > 0
+                        ? `$${(statsRevenue / 1000).toFixed(0)}k`
+                        : "—",
+                    change: "—",
                     icon: <DollarSign className="h-4 w-4 text-amber-500" />,
                   },
                 ].map((stat, i) => (
@@ -767,7 +1290,7 @@ const CreateAutomationContent = () => {
                   <h3 className="mb-6 font-semibold">Performance Over Time</h3>
                   <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={statsChartData}>
+                      <AreaChart data={chartData}>
                         <defs>
                           <linearGradient
                             id="colorRevenue"
@@ -824,7 +1347,7 @@ const CreateAutomationContent = () => {
                 <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                   <h3 className="mb-6 font-semibold">Path Performance</h3>
                   <div className="space-y-6">
-                    {pathPerformance.map((path) => (
+                    {pathRows.map((path) => (
                       <div key={path.path} className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-medium text-muted-foreground">
@@ -867,10 +1390,19 @@ const CreateAutomationContent = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {recentEntries.map((entry) => (
+                      {recentRows.map((entry) => (
                         <tr
                           key={entry.id}
-                          className="border-b border-border/50 transition-colors hover:bg-muted/50"
+                          className="border-b border-border/50 transition-colors hover:bg-muted/50 cursor-pointer"
+                          onClick={() => {
+                            if (isNew) return;
+                            automationService
+                              .getStatsEntryDetails(automationId, entry.id)
+                              .then((data) => {
+                                window.alert(JSON.stringify(data, null, 2));
+                              })
+                              .catch((_e) => String(_e));
+                          }}
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">

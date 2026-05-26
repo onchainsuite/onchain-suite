@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 
 import { getSession } from "@/lib/auth-session";
+import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 // Types
 interface AuthGuardProps {
@@ -28,7 +29,7 @@ interface Session {
 // 1. Server Component Guard
 export async function AuthGuard({
   children,
-  redirectTo = "/",
+  redirectTo = AUTH_ROUTES.LOGIN,
   requireRole,
   requireOrganization = false,
 }: AuthGuardProps) {
@@ -131,7 +132,7 @@ export async function requireAuth() {
   const session = await getSession();
 
   if (!session) {
-    redirect("/");
+    redirect(AUTH_ROUTES.LOGIN);
   }
 
   return session;

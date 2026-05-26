@@ -136,7 +136,7 @@ export function DashboardNavbar({
                 return (
                   <Tooltip key={`${item.href}-${item.label}`}>
                     <TooltipTrigger asChild>
-                      <a
+                      <Link
                         href={item.href}
                         className={cn(
                           "relative flex items-center",
@@ -159,7 +159,7 @@ export function DashboardNavbar({
                         {item.label === "Notifications" && unreadCount > 0 && (
                           <span className="absolute right-1 top-1 flex h-2 w-2 items-center justify-center rounded-full bg-red-500" />
                         )}
-                      </a>
+                      </Link>
                     </TooltipTrigger>
                     <TooltipContent side="right">{item.label}</TooltipContent>
                   </Tooltip>

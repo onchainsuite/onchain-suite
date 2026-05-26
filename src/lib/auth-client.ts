@@ -28,7 +28,7 @@ export const signInWithGoogle = async (idToken?: string) => {
     type SocialPayload = Parameters<typeof authClient.signIn.social>[0];
     const payload = {
       provider: "google",
-      callbackURL: PRIVATE_ROUTES.CAMPAIGNS,
+      callbackURL: PRIVATE_ROUTES.DASHBOARD,
       newUserCallbackURL: AUTH_ROUTES.ONBOARDING,
       ...(idToken ? { idToken: { token: idToken } } : {}),
     } satisfies SocialPayload;

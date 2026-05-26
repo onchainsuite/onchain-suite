@@ -66,8 +66,7 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 - `POST /identity/bind`: Persist encrypted channel binding.
   - **Body**:
     - Required: `{ walletAddress, channelType, valueHash, otp, encryptedValue }`
-    - Optional fields supported by the zk-v2 contract:
-      `{ proof, identityCommitment, walletSignature, source }`
+    - Optional fields supported by the zk-v2 contract: `{ proof, identityCommitment, walletSignature, source }`
 
 Example (issue OTP):
 
@@ -197,6 +196,91 @@ curl -X POST "$BASE_URL/identity/bind" \
 - `POST /email/send`: Queue a single transactional email.
 - `DELETE /domain/{id}`: Delete a domain.
 
+## Inbox (Gmail-like)
+
+All Inbox endpoints are scoped to the active organization + current user:
+
+- **Org context**: header `x-org-id` or active org in session.
+- **Permissions**: Viewer+ for reads, Editor+ for writes.
+
+### Threads
+
+- `GET /inbox/threads` — List threads.
+  - **Query**:
+    - `folder?` = `INBOX | SENT | ARCHIVE | TRASH`
+    - `unread?` = `true|false` (when `true`, only threads with `unreadCount > 0`)
+    - `starred?` = `true|false`
+    - `labelId?` = label id
+    - `q?` = search across subject + snippet + message content
+    - `page?` (default `1`), `limit?` (default `50`, max `200`)
+  - **Response**:
+    - `{ items: ThreadListItem[], meta: { totalItems, totalPages, page, limit, hasPreviousPage, hasNextPage } }`
+
+- `GET /inbox/threads/unread-count` — Global unread count.
+  - **Response**: `{ unreadCount: number }`
+
+- `GET /inbox/threads/{threadId}` — Full thread + messages (up to 200).
+
+- `GET /inbox/threads/{threadId}/messages` — List messages (cursor pagination).
+  - **Query**: `cursor?` (messageId), `limit?` (default `50`, max `200`)
+  - **Response**: `{ items: Message[], nextCursor: string|null }`
+
+### Sending
+
+- `POST /inbox/threads/{threadId}/messages` — Send reply in an existing thread.
+  - **Status**: `202`
+  - **Body**: `{ content: string, to?: string, fromEmail?: string, attachments?: any }`
+  - **Notes**: If `to` is omitted, backend attempts to reply to the most recent inbound sender in the thread.
+  - **Response**: `{ ok: true, messageId: string }`
+
+- `POST /inbox/messages` — Send a new message (creates a new thread in `SENT`).
+  - **Status**: `202`
+  - **Body**: `{ to: string[]|string, subject: string, content: string, fromEmail?: string, attachments?: any }`
+  - **Response**: `{ ok: true, threadId: string, messageId: string }`
+
+### Thread actions
+
+- `PUT /inbox/threads/{threadId}/read` — Mark thread read (sets `unreadCount = 0`).
+- `PUT /inbox/threads/{threadId}/unread` — Mark thread unread (sets `unreadCount = 1` if currently `0`).
+- `PUT /inbox/threads/{threadId}/star` — Toggle/set starred.
+  - **Body**: `{ starred?: boolean }` (if omitted, toggles)
+  - **Response**: `{ ok: true, starred: boolean }`
+- `PUT /inbox/threads/{threadId}/label` — Add/remove labels on a thread.
+  - **Body**: `{ add?: string[], remove?: string[] }`
+  - **Response**: `{ ok: true, labels: { id, name, color }[] }`
+
+### Labels
+
+- `GET /inbox/labels` — List labels.
+  - **Response**: `{ items: { id, name, color }[] }`
+- `POST /inbox/labels` — Create label.
+  - **Body**: `{ name: string, color?: string }`
+  - **Response**: `{ id, name, color }`
+
+### Search
+
+- `GET /inbox/search?q=...&limit?=...` — Global search across threads + messages.
+  - **Response**: `{ threads: ThreadSearchItem[], messages: MessageSearchItem[] }`
+
+### Drafts
+
+- `GET /inbox/drafts` — List drafts.
+- `POST /inbox/drafts` — Create draft.
+  - **Body**: `{ to?: string[], subject?: string, content: string, attachments?: any }`
+- `PUT /inbox/drafts/{draftId}` — Update draft.
+  - **Body**: `{ to?: string[], subject?: string, content?: string, attachments?: any }`
+
+### Real-time (Socket.IO)
+
+- `WS /ws/inbox` (Socket.IO)
+  - **Handshake**:
+    - `handshake.auth.token` or `Authorization: Bearer <token>`
+    - Org context: `handshake.auth.organizationId` or header `x-org-id` (or active org in session)
+  - **Server → Client events**:
+    - `new_message` `{ threadId, message }`
+    - `thread_updated` `{ threadId, thread?: any, patch?: any }`
+    - `unread_count_changed` `{ unreadCount }`
+
 ## Billing
 
 ## Billing & Subscription
@@ -229,197 +313,254 @@ curl -X POST "$BASE_URL/identity/bind" \
 
 - `POST /webhook/blockradar` — Handle Blockradar payment notifications (public).
 
+## Intelligence
+
+All Intelligence endpoints are org-scoped (send `x-org-id`) and require authentication.
+
+### MVP behavior (frontend expectations)
+
+- Query execution is async and read-only validated (SELECT-only). The current "execution" returns rows derived from org contacts (wallet/email/score-based fields) rather than running arbitrary SQL against Neon.
+- Segments-from-query stores wallets from the query result into the segment criteria (enough to list profiles via `/intelligence/segments/{segmentId}/profiles`).
+- Reports are campaign-backed MVP responses (basic list/detail/metrics/summary scaffolding).
+
+### Query
+
+- `POST /intelligence/query/run`: Execute a user query (async).
+  - **Body**: `{ query: "SELECT ..." }`
+  - **Response**: `{ queryId, status, resultSummary?, columns, rows, totalRows }`
+- `POST /intelligence/query/validate`: Validate query syntax before running.
+  - **Body**: `{ query: "..." }`
+  - **Response**: `{ valid: true, suggestions?: string[] }`
+- `GET /intelligence/query/history`: List recent queries run by the current user.
+- `GET /intelligence/query/{queryId}/status`: Check status (`running|completed|failed`).
+- `GET /intelligence/query/{queryId}/results`: Fetch paginated results.
+  - **Query**: `page?=1`, `limit?=50`
+  - **Response**: `{ rows: [...], total: number }`
+- `GET /intelligence/query/{queryId}/summary`: Summary line for a query.
+  - **Response**: `{ summary, winbackPotential, score }`
+- `POST /intelligence/query/{queryId}/save`: Save query as a named report.
+  - **Body**: `{ name: string }`
+- `POST /intelligence/query/segments/from-query`: Create an audience segment from query results.
+  - **Body**: `{ queryId: string, name: string, tags?: string[] }`
+  - **Response**: `{ segmentId, profileCount }`
+- `POST /intelligence/query/campaign/from-query`: Create a campaign from query results.
+  - **Body**: `{ queryId: string, subject?: string, templateId?: any }`
+  - **Response**: `{ campaignId }`
+
+### Meta
+
+- `GET /intelligence/schema`: Schema hints for query editor autocomplete.
+- `GET /intelligence/metrics`: Top-right metrics.
+  - **Response**: `{ score, segmentsCount, revenuePotential }`
+
+### Segments
+
+- `GET /intelligence/segments`: List segments.
+  - **Query**: `search?`, `page?`, `limit?`, `sort?`
+- `GET /intelligence/segments/metrics`: Segments metrics.
+  - **Response**: `{ segmentsCount, revenuePotential }`
+- `GET /intelligence/segments/{segmentId}`: Segment detail.
+- `POST /intelligence/segments`: Create segment (manual).
+  - **Body**: `{ name, rules?, tags? }`
+  - **Response**: `{ segmentId, size }`
+- `POST /intelligence/segments/import-from-query`: Create segment from a previous query.
+  - **Body**: `{ queryId, name }`
+  - **Response**: `{ segmentId, size, emailMatch?, revenue? }`
+- `PUT /intelligence/segments/{segmentId}`: Update segment (rename/rules).
+- `DELETE /intelligence/segments/{segmentId}`: Delete segment.
+- `POST /intelligence/segments/{segmentId}/refresh`: Refresh segment stats.
+- `GET /intelligence/segments/{segmentId}/profiles`: Paginated profiles in segment.
+  - **Query**: `page?`, `limit?`
+- `POST /intelligence/segments/{segmentId}/use`: Mark segment used (updates last used timestamp).
+
+### Reports
+
+- `GET /intelligence/reports`: List reports (campaign-backed MVP).
+  - **Query**: `search?`, `page?`, `limit?`
+- `GET /intelligence/reports/{reportId}`: Report detail (campaign row).
+- `GET /intelligence/reports/metrics`: Reports metrics.
+- `GET /intelligence/reports/summary`: Reports summary.
+- `GET /intelligence/reports/filters`: Reports filter options.
+- `POST /intelligence/reports/{reportId}/refresh`: Refresh report (no-op MVP).
+
+## Automations
+
+All Automations endpoints are org-scoped (send `x-org-id`) and require authentication.
+
+- `GET /automations`: List automations.
+  - **Query**: `status?=draft|active|paused`, `tab?=drafts`, `search?`, `page?=1`, `limit?=20`
+- `GET /automations/search`: Search automations.
+  - **Query**: `q?`, `page?`, `limit?`
+- `GET /automations/counts`: Tab counters.
+  - **Response**: `{ active, drafts, templates }`
+- `GET /automations/metrics`: Summary badges (MVP).
+  - **Response**: `{ active, entries, conversions, revenue }`
+
+- `POST /automations`: Create automation (starts as draft). Permissions: Editor+.
+  - **Body**: `{ name, description?, triggerSpec? | trigger?, flowGraph? | builder? | steps? }`
+  - **Response**: `{ automationId, status: "draft" }`
+- `GET /automations/{automationId}`: Get automation detail.
+- `PUT /automations/{automationId}`: Update automation. Permissions: Editor+.
+- `PUT /automations/{automationId}/status`: Quick status toggle. Permissions: Editor+.
+  - **Body**: `{ status: "active"|"paused"|"draft"|"archived" }`
+- `POST /automations/{automationId}/publish`: Publish draft → active. Permissions: Editor+.
+- `POST /automations/{automationId}/duplicate`: Duplicate automation → new draft. Permissions: Editor+.
+- `DELETE /automations/{automationId}`: Delete automation. Permissions: Editor+.
+- `GET /automations/{automationId}/last-edited`: Last edited timestamp (legacy).
+
+### Templates
+
+- `GET /automations/templates`: List automation templates (Plays).
+- `GET /automations/templates/{templateId}`: Get template.
+- `POST /automations/templates/{templateId}/apply`: Apply template → create draft automation. Permissions: Editor+.
+
+### Builder
+
+- `GET /automations/{automationId}/builder`: Load builder definition.
+- `PUT /automations/{automationId}/builder`: Save builder graph. Permissions: Editor+.
+- `PUT /automations/{automationId}/builder/draft`: Auto-save builder graph. Permissions: Editor+.
+- `POST /automations/{automationId}/builder/validate`: Validate builder graph.
+  - **Response**: `{ errors: [{code,message}], warnings: [{code,message}] }`
+- `POST /automations/{automationId}/builder/discard`: Discard changes (no-op MVP).
+- `GET /automations/builder/triggers`: List trigger types.
+- `GET /automations/builder/triggers/{triggerType}`: Trigger config schema.
+- `GET /automations/triggers/available`: Alias for trigger list.
+- `GET /automations/builder/actions`: List action node types.
+- `GET /automations/builder/actions/{actionType}`: Action config schema.
+- `POST /automations/{automationId}/preview`: Preview audience match for a trigger.
+  - **Response**: `{ matches, trigger }`
+
+### Stats
+
+- `GET /automations/{automationId}/stats`: Stats overview.
+- `GET /automations/{automationId}/stats/preview`: Projected stats preview.
+- `GET /automations/{automationId}/stats/time-series`: Time series.
+  - **Query**: `period?=7days|30days|90days`
+- `GET /automations/{automationId}/stats/paths`: Path performance (MVP).
+- `GET /automations/{automationId}/stats/entries`: Paginated entries.
+  - **Query**: `page?`, `limit?`, `sort?`
+- `GET /automations/{automationId}/stats/entries/{entryId}`: Entry details.
+- `GET /automations/{automationId}/stats/revenue`: Revenue attribution (MVP).
+- `GET /automations/{automationId}/performance`: Alias for stats overview.
+
 ## Audience (CRM)
 
-- `GET /audience/overview`: Get audience stats.
-- `GET /audience/profiles`: List contacts.
+- `GET /audience/overview`: Top-of-page audience stats (org-scoped).
+  - **Response**: `{ total, withWallet, avgHealth, activeCount, coolingCount, coldCount, updatedAt }`
+
+- `GET /audience/profiles`: Audience list/table endpoint (org-scoped).
+  - **Query**:
+    - `page?` (default `1`)
+    - `limit?` (default `50`, max `200`)
+    - `q?` (or legacy `search?`)
+    - `status?=verified|pending|unverified` (matches contact metadata `status` / `verificationStatus`)
+    - `tag?=<tagName>`
+    - `engagement?=active|cooling|cold` (derived from health score thresholds)
+    - `hasWallet?=true|false`
+    - `sort?=name|healthScore|lastActionAt` (default `healthScore`)
+    - `direction?=asc|desc` (default `desc`)
+    - `include?=wallets,tags,attributes,health,lastAction` (comma-separated; legacy: `wallet`)
+    - `fields?=...` (comma-separated allowlist)
+  - **Includes**:
+    - `wallets`: adds `wallets: [{ address, chain?, isPrimary? }]`
+    - `tags`: adds `tags: string[]` (default included when `include` is omitted)
+    - `attributes`: adds `attributes` from contact metadata
+    - `health`: adds `health { score, trend, updatedAt }`
+    - `lastAction`: adds `lastAction { type, label, at }` (derived from delivery events)
+    - `wallet` (legacy): adds `wallet { address, network, health_score, status }`
+  - **Pagination wrapper**:
+    - `data.data` is the array of rows
+    - `meta` contains `{ page, limit, totalItems, totalPages, hasNextPage, hasPreviousPage }`
+
+- `GET /audience/profiles/{id}`: Profile detail (org-scoped).
+  - **Query**: `include?=tags,attributes,wallets,health,lastAction` (same semantics as list)
+  - **Response**: Profile fields + `{ createdAt, updatedAt, primaryWallet?, emailStats? }`
+- `DELETE /audience/profiles/{id}`: Delete a profile/contact (org-scoped). Permissions: Editor+.
+
+- `GET /audience/profiles/{id}/activity`: Unified activity timeline (org-scoped).
+  - **Query**: `cursor?`, `limit?=50` (max `200`), `types?=...`, `from?`, `to?`
+  - **Response**: `{ items: [{ id, type, title, description?, at, metadata }], nextCursor }`
+
+- `GET /audience/profiles/{id}/emails`: Email history (org-scoped).
+  - **Query**: `cursor?`, `limit?=50` (max `200`), `from?`, `to?`, `campaignId?`
+  - **Response**: `{ items: [{ id, campaignId, subject, status, sentAt, openedAt?, clickedAt? }], nextCursor }`
+
+- `GET /audience/profiles/{id}/transactions`: Transactions (Alchemy-backed; cached).
+  - **Query**: `chain?=eth-mainnet|base-mainnet|...`, `cursor?`, `limit?=25` (max `100`), `fromBlock?`, `toBlock?`
+  - **Response**: `{ items: [...], nextCursor, meta: { source: "cache"|"alchemy", refreshedAt? } }`
+
+- `GET /audience/profiles/{id}/contract-activity`: Contract activity (Alchemy-backed; derived from txns).
+  - **Query**: `chain?`, `from?`, `to?`, `limit?=10` (max `50`)
+  - **Response**: `{ items: [{ contractAddress, contractName?, label?, volumeUsd?, txCount }], refreshedAt? }`
+
+- `GET /audience/profiles/{id}/health`: Health detail (org-scoped).
+  - **Response**: `{ score, trend, updatedAt, factors: [] }`
+
+- `GET /audience/profiles/{id}/churn`: Churn prediction (org-scoped).
+  - **Response**: `{ risk, score, predictedLtvUsd?, updatedAt, explanation? }`
+
+- `POST /audience/profiles/{id}/enrich`: Trigger onchain enrichment refresh (org-scoped, async).
+  - **Body**: `{ chains?: string[], force?: boolean }`
+  - **Response**: `{ jobId }` (HTTP `202`)
+
+- `GET /audience/attributes`: List attribute keys (schema) (org-scoped).
+  - **Query**: `q?`, `limit?` (max `500`)
+  - **Response**: `{ keys: [{ key, type, label?, exampleValues?, countProfiles? }] }`
+- `GET /audience/attributes/keys`: Alias for `/audience/attributes`.
+  - **Query**: `q?`, `limit?` (max `500`)
+- `GET /audience/attributes/{key}/values`: List values for an attribute key (org-scoped).
+  - **Query**: `q?`, `limit?` (default `50`, max `200`)
+  - **Response**: `{ key, values: [{ value, count }] }`
+
 - `POST /audience/profiles`: Create new contact.
-- `GET /audience/profiles/{id}`: Get contact details.
 - `PUT /audience/profiles/{id}`: Update contact.
 - `GET /audience/tags`: List all tags.
 - `POST /audience/tags`: Create a new tag.
 - `PUT /audience/profiles/{id}/tags`: Add tags to contact.
 - `DELETE /audience/profiles/{id}/tags/{tagName}`: Remove tag from contact.
 
-### Audience Page (List + Detail) — Required Endpoints (Neon DB + Alchemy RPC)
+- `GET /audience/fields`: List available profile fields for import mapping.
 
-Audience UI requires two data planes:
+- `GET /audience/profiles/{id}/dapp-stats`: Derived dapp/onchain stats.
+  - **Query**: `chain?`
+  - **Response**: `{ total_volume_usd, transactions_count, active_days }`
 
-- **Web2 / Neon (source of truth)**: profiles, tags, attributes, email engagement events, computed
-  health/churn snapshots.
-- **Web3 / Alchemy RPC (enrichment)**: wallet transaction history, contract activity, onchain
-  volume/tx counts, last onchain interaction.
+- `GET /audience/segments`: List saved segments.
+- `POST /audience/segments`: Create a new segment (Body: `{ name, criteria? }`).
 
-All Audience endpoints are organization-scoped via `x-org-id` and require authentication (cookie
-session or `Authorization: Bearer <token>`).
+- `GET /audience/reengagement-count`: Quick count of profiles needing re-engagement.
+  - **Response**: `{ count }`
 
-#### 1) List Page (`/audience`) — Table + Filters
+- `GET /audience/health-score`: Health score calculation details (legacy alias).
+  - **Query**: `profileId?` (if provided, returns that profile's health detail)
 
-**GET `/audience/profiles` (Neon; optionally enriched)**
+- `GET /audience/automation/suggestions`: Suggested automations (legacy alias).
+  - **Response**: `{ items: [{ id, title, description }] }`
 
-- **Purpose**: Populate the main table (Profile, Wallet, Health, Last Action) and drive
-  filters/search/sort without rendering placeholder values.
-- **Headers**:
-  - `x-org-id: <orgId>` (required)
-  - `Authorization: Bearer <token>` or cookie session (required)
-- **Query**:
-  - `page?` number (default `1`)
-  - `limit?` number (default `50`, max `200`)
-  - `q?` string (search across name/email/wallet)
-  - `status?` `"verified"|"pending"|"unverified"`
-  - `tag?` string (filter by tag name)
-  - `engagement?` `"active"|"cooling"|"cold"` (derived from health score or engagement snapshot)
-  - `hasWallet?` boolean
-  - `sort?` `"name"|"healthScore"|"lastActionAt"` (default `"healthScore"`)
-  - `direction?` `"asc"|"desc"` (default `"desc"`)
-  - `include?` comma-separated:
-    - `wallets` (include wallet(s) relation if stored separately)
-    - `attributes` (include attributes map)
-    - `tags` (include tags; prefer string array, but tag objects are acceptable)
-    - `health` (include health snapshot: score + updatedAt)
-    - `lastAction` (include lastAction summary: label + at + type)
-- **Response (200)**:
-  - `{ data: AudienceProfileRow[], meta: { page, limit, totalItems, totalPages, hasNextPage, hasPreviousPage } }`
-  - `AudienceProfileRow`:
-    - `id: string`
-    - `name: string`
-    - `email?: string`
-    - `walletAddress?: string` (canonical full address for UI + copy)
-    - `wallets?: Array<{ address: string; chain?: string; isPrimary?: boolean }>`
-    - `tags?: string[] | Array<{ id: string; name: string; color?: string }>`
-    - `attributes?: Record<string, string | number | boolean | null>`
-    - `health?: { score: number; trend?: "up"|"down"|"stable"; updatedAt: string }`
-    - `lastAction?: { type: string; label: string; at: string }`
-- **Validation / Error handling**:
-  - 400 if `limit > 200` or invalid enum values
-  - 401 if unauthenticated
-  - 403 if org access denied
-  - 429 if rate-limited
+### Audience Import/Export (Legacy Aliases)
 
-**GET `/audience/overview` (Neon)**
+These endpoints exist for backward compatibility with older frontend flows. Prefer the Jobs APIs below for new development.
 
-- **Purpose**: top-of-page audience stats (counts and health distribution).
-- **Headers**: `x-org-id`, auth required.
-- **Response (200)**:
-  - `{ data: { total, withWallet, avgHealth, activeCount, coolingCount, coldCount, updatedAt } }`
+- `GET /audience/import/sample/csv`: Download sample CSV template.
+- `GET /audience/import/sample/json`: Download sample JSON template.
 
-**GET `/audience/attributes/keys` (Neon)**
+- `POST /audience/import/upload`: Upload import file (alias; returns `{ importId, status, filename }`).
+- `POST /audience/import`: Import multiple profiles (alias; returns `{ importId, status, filename }`).
+- `GET /audience/import/recent`: List recent imports.
+- `GET /audience/import/{importId}`: Get import details.
+- `GET /audience/import/{importId}/status`: Get import status (`progress`, `recordsProcessed`, `totalRecords`, `errors`).
+- `GET /audience/import/{importId}/errors`: Get import error list (from job `errorSample`).
+- `POST /audience/import/{importId}/map`: Map import columns (no-op placeholder, returns `{ status: "mapped" }`).
+- `POST /audience/import/{importId}/confirm`: Confirm import (no-op placeholder, returns `{ status: "started" }`).
 
-- **Purpose**: Drive filter UI and safely render “Attributes” without guessing keys client-side.
-- **Headers**: `x-org-id`, auth required.
-- **Query**: `q?` (search keys), `limit?` (max 500)
-- **Response (200)**:
-  - `{ data: { keys: Array<{ key: string; type: "string"|"number"|"boolean"|"date"; label?: string; exampleValues?: string[]; countProfiles?: number }> } }`
-
-**GET `/audience/attributes/{key}/values` (Neon; optional)**
-
-- **Purpose**: Power dropdown filters for high-cardinality attributes without shipping all profiles.
-- **Headers**: `x-org-id`, auth required.
-- **Query**: `q?`, `limit?` (default 50, max 200)
-- **Response (200)**:
-  - `{ data: { key: string, values: Array<{ value: string; count: number }> } }`
-
-#### 2) Profile Detail Page (`/audience/{id}`) — Cards + Tabs
-
-**GET `/audience/profiles/{id}` (Neon; optionally enriched)**
-
-- **Purpose**: Header section (name/email/wallet/status/tags) + quick stats.
-- **Headers**: `x-org-id`, auth required.
-- **Query**: `include?=tags,attributes,wallets,health,lastAction` (same semantics as list)
-- **Response (200)**:
-  - `{ data: AudienceProfileDetail }`
-  - `AudienceProfileDetail` includes all `AudienceProfileRow` fields plus:
-    - `createdAt: string`
-    - `updatedAt: string`
-    - `primaryWallet?: { address: string; chain?: string }`
-    - `emailStats?: { sent: number; opened: number; clicked: number; openRate: number; clickRate: number }`
-    - `onchainSummary?: { totalTxns: number; totalVolumeUsd?: number; lastInteractionAt?: string; chainBreakdown?: Record<string, number> }`
-
-**GET `/audience/profiles/{id}/activity` (Neon; unified timeline)**
-
-- **Purpose**: “Activity Timeline” tab (email + web + onchain events) in a single feed.
-- **Headers**: `x-org-id`, auth required.
-- **Query**:
-  - `cursor?` string (pagination token)
-  - `limit?` number (default 50, max 200)
-  - `types?` comma-separated (e.g. `email_open,email_click,onchain_tx,tag_added,profile_created`)
-  - `from?` / `to?` ISO timestamps
-- **Response (200)**:
-  - `{ data: { items: ActivityEvent[], nextCursor?: string } }`
-  - `ActivityEvent`: `{ id, type, title, description?, at, metadata? }`
-
-**GET `/audience/profiles/{id}/emails` (Neon)**
-
-- **Purpose**: “Email History” tab (campaign sends/opens/clicks).
-- **Headers**: `x-org-id`, auth required.
-- **Query**: `cursor?`, `limit?`, `from?`, `to?`, `campaignId?`
-- **Response (200)**:
-  - `{ data: { items: Array<{ id, campaignId, subject, status: "sent"|"opened"|"clicked"|"bounced", sentAt, openedAt?, clickedAt? }>, nextCursor? } }`
-
-**GET `/audience/profiles/{id}/transactions` (Alchemy-backed + cached in Neon)**
-
-- **Purpose**: “Transactions” tab + contract activity.
-- **Headers**: `x-org-id`, auth required.
-- **Query**:
-  - `chain?` `"eth-mainnet"|"base-mainnet"|...` (default org/campaign chain or inferred)
-  - `cursor?` string
-  - `limit?` number (default 25, max 100)
-  - `fromBlock?` / `toBlock?` (optional)
-- **Response (200)**:
-  - `{ data: { items: Array<{ hash, from, to, value, valueUsd?, asset?, blockNumber, blockTimestamp, status?, method?, contractAddress? }>, nextCursor? }, meta?: { source: "cache"|"alchemy", refreshedAt? } }`
-- **Implementation requirements**:
-  - Cache results per `(orgId, walletAddress, chain)` in Neon with TTL (e.g. 5–15 minutes) to avoid
-    hitting Alchemy for every page load.
-  - Server-side rate limit Alchemy requests per org + per IP.
-
-**GET `/audience/profiles/{id}/contract-activity` (Alchemy-backed + cached in Neon)**
-
-- **Purpose**: “Contract Activity” card (top contracts + volume + tx counts).
-- **Headers**: `x-org-id`, auth required.
-- **Query**: `chain?`, `from?`, `to?`, `limit?` (default 10, max 50)
-- **Response (200)**:
-  - `{ data: { items: Array<{ contractAddress, contractName?, label?, volumeUsd?, txCount }>, refreshedAt } }`
-
-**GET `/audience/profiles/{id}/health` (Neon; computed)**
-
-- **Purpose**: Health score + trend used in list and detail.
-- **Headers**: `x-org-id`, auth required.
-- **Response (200)**:
-  - `{ data: { score: number, trend: "up"|"down"|"stable", updatedAt: string, factors?: Array<{ key: string, value: number|string, weight: number }> } }`
-- **Implementation requirements**:
-  - Health is computed from Neon-backed events (email/web/app usage) + onchain summary (cached).
-  - Persist periodic snapshots in Neon to make list sorting/filtering fast.
-
-**GET `/audience/profiles/{id}/churn` (Neon; computed)**
-
-- **Purpose**: Churn Prediction card (risk + score) + predicted LTV.
-- **Headers**: `x-org-id`, auth required.
-- **Response (200)**:
-  - `{ data: { risk: "low"|"medium"|"high", score: number, predictedLtvUsd?: number, updatedAt: string, explanation?: string[] } }`
-
-**POST `/audience/profiles/{id}/enrich` (triggers Alchemy refresh; optional)**
-
-- **Purpose**: Manual refresh button (or background job) to re-fetch onchain summary/contracts/txns.
-- **Headers**: `x-org-id`, auth required.
-- **Body**: `{ chains?: string[], force?: boolean }`
-- **Response (202)**:
-  - `{ data: { jobId: string } }`
-- **Implementation requirements**:
-  - Use a background queue; do not block request on Alchemy.
-  - Enforce stricter rate limits (per user/org).
-
-#### 3) Security / Logging / Rate limiting (Audience + Alchemy)
-
-- **AuthZ**: Verify org membership + role:
-  - Viewer+: read endpoints
-  - Editor+: create/update/import/enrich
-- **Rate limiting**:
-  - Apply org-scoped rate limits for `transactions`, `contract-activity`, `enrich` to protect
-    Alchemy quota.
-- **Logging**:
-  - Log `orgId`, `userId`, endpoint, walletAddress (hashed), chain, duration, upstream Alchemy calls
-    count.
-  - Never log full wallet lists or full raw Alchemy payloads in production logs.
+- `POST /audience/export`: Start export job (alias; returns `{ exportId, status }`).
+- `GET /audience/export/options`: Export options for UI cards.
+- `GET /audience/export/recent`: List recent exports.
+- `GET /audience/export/{exportId}`: Export details.
+- `GET /audience/export/{exportId}/status`: Export job status.
+- `GET /audience/export/status/{exportId}`: Export job status (alternate legacy path).
+- `GET /audience/export/download/{exportId}`: Download export file.
+- `DELETE /audience/export/{exportId}`: Delete an export record.
 
 ### Audience Import/Export (Jobs)
 
@@ -427,8 +568,7 @@ All import/export endpoints are organization-scoped via `x-org-id`.
 
 - `POST /audience/imports`: Create an import job (multipart/form-data).
   - **Body**: `file` (required), `mapping` (optional JSON string), `options` (optional JSON string)
-  - **Query**: `format?=csv|json`, `dryRun?=true|false`, `mode?=upsert|create_only|update_only`,
-    `onConflict?=skip|update`, `dedupeKey?=email|walletAddress`, `maxErrors?=0..10000`
+  - **Query**: `format?=csv|json`, `dryRun?=true|false`, `mode?=upsert|create_only|update_only`, `onConflict?=skip|update`, `dedupeKey?=email|walletAddress`, `maxErrors?=0..10000`
   - **Permissions**: Editor, Admin, Owner.
 - `GET /audience/imports/{jobId}`: Get import job status (progress + counts).
   - **Permissions**: Viewer+.
@@ -450,10 +590,9 @@ All import/export endpoints are organization-scoped via `x-org-id`.
 ## Campaigns
 
 - `GET /campaigns`: List all campaigns.
-  - **Query**: `search?`, `status?` (comma-separated), `type?` (comma-separated), `sort?`
-    (`createdAt` | `name` | `schedule`), `page?`, `limit?`.
-  - **Response**:
-    `{ data: Campaign[], meta: { page, limit, totalItems, totalPages, hasMore, hasPreviousPage, hasNextPage } }`
+  - **Query**: `search?`, `status?` (comma-separated), `type?` (comma-separated),
+    `sort?` (`createdAt` | `name` | `schedule`), `page?`, `limit?`.
+  - **Response**: `{ data: Campaign[], meta: { page, limit, totalItems, totalPages, hasMore, hasPreviousPage, hasNextPage } }`
 - `POST /campaigns`: Create a new campaign.
 - `GET /campaigns/{id}`: Get campaign details.
 - `GET /campaigns/{id}/email`: Get campaign email (headers + html + optional editor payload).
@@ -507,7 +646,7 @@ All campaign endpoints are organization-scoped via the `x-org-id` header.
 
 There are two supported auth patterns:
 
-1. **Same-site browser app (cookie session)**
+1) **Same-site browser app (cookie session)**
 
 - Sign in using `POST /auth/sign-in/email` from the browser.
 - Use `credentials: "include"` on all subsequent requests.
@@ -528,7 +667,7 @@ const res = await fetch(`${baseUrl}/campaigns/${campaignId}/email`, {
 });
 ```
 
-2. **Embedded builder (no cookies) via editor token (recommended)**
+2) **Embedded builder (no cookies) via editor token (recommended)**
 
 - Step A: Your app (with a cookie session) requests an editor token:
   - `GET /campaigns/{id}/editor-session` with `credentials: "include"` and `x-org-id`
@@ -537,7 +676,6 @@ const res = await fetch(`${baseUrl}/campaigns/${campaignId}/email`, {
   - Send `Authorization: Bearer <editorToken>` (or `x-editor-token: <editorToken>`)
 
 Endpoints that accept editor token auth:
-
 - `GET /campaigns/{id}/email`
 - `PUT /campaigns/{id}/email`
 - `GET /campaigns/{id}/editor/content`

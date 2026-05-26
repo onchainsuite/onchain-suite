@@ -5,9 +5,10 @@ import { type Template } from "@/features/automation/types";
 
 interface TemplatesListProps {
   templates: Template[];
+  onApply: (template: Template) => void;
 }
 
-export const TemplatesList = ({ templates }: TemplatesListProps) => {
+export const TemplatesList = ({ templates, onApply }: TemplatesListProps) => {
   if (templates.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
@@ -47,7 +48,11 @@ export const TemplatesList = ({ templates }: TemplatesListProps) => {
           </p>
           <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
             <span>{template.uses.toLocaleString()} uses</span>
-            <button className="flex items-center gap-1 font-medium text-primary hover:text-primary/90">
+            <button
+              type="button"
+              className="flex items-center gap-1 font-medium text-primary hover:text-primary/90"
+              onClick={() => onApply(template)}
+            >
               <Plus className="h-3 w-3" />
               Use template
             </button>

@@ -3,7 +3,13 @@
 import { motion } from "framer-motion";
 import { Code, Copy, Loader2, Mail, Play, Plus, X, Zap } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { isJsonObject } from "@/lib/utils";
+
+import { intelligenceService } from "../../intelligence.service";
 
 const DEFAULT_SQL_QUERY = `SELECT
   u.wallet,
@@ -17,199 +23,16 @@ WHERE pp.volume_last_90d > 5000
   AND pp.last_active_days_ago > 60
 ORDER BY pp.volume_last_90d DESC`;
 
-const mockQueryResults = [
-  {
-    id: "1",
-    name: "whale.eth",
-    wallet: "0x7a2...f4e2",
-    email: "whale@defi.com",
-    volume: "$847,234",
-    engagement: "Cold",
-    ltv: "$12,400",
-    avatar: "W",
-    score: 94,
-    lastActive: 67,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "2",
-    name: "degen.base",
-    wallet: "0x3b1...a8c9",
-    email: "degen@base.org",
-    volume: "$523,891",
-    engagement: "Cold",
-    ltv: "$8,200",
-    avatar: "D",
-    score: 87,
-    lastActive: 82,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "3",
-    name: "nftking.eth",
-    wallet: "0x9c4...b2d1",
-    email: "king@nft.io",
-    volume: "$412,567",
-    engagement: "Cold",
-    ltv: "$6,800",
-    avatar: "N",
-    score: 72,
-    lastActive: 91,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "4",
-    name: "yield_maxi",
-    wallet: "0x5e8...f7f3",
-    email: "yield@maxi.io",
-    volume: "$389,234",
-    engagement: "Warm",
-    ltv: "$5,400",
-    avatar: "Y",
-    score: 65,
-    lastActive: 74,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "5",
-    name: "onchain_og",
-    wallet: "0x1d2...e9a6",
-    email: "og@chain.xyz",
-    volume: "$287,123",
-    engagement: "Cold",
-    ltv: "$9,100",
-    avatar: "O",
-    score: 91,
-    lastActive: 63,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "6",
-    name: "basehodler",
-    wallet: "0x6f7...d4b8",
-    email: "hodl@base.net",
-    volume: "$234,567",
-    engagement: "Cold",
-    ltv: "$4,200",
-    avatar: "B",
-    score: 68,
-    lastActive: 95,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "7",
-    name: "pudgy_lover",
-    wallet: "0x8a3...f1c5",
-    email: "pudgy@lover.com",
-    volume: "$198,432",
-    engagement: "Warm",
-    ltv: "$2,100",
-    avatar: "P",
-    score: 58,
-    lastActive: 88,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "8",
-    name: "defi_wizard",
-    wallet: "0x2c9...a3e7",
-    email: "wiz@defi.app",
-    volume: "$176,891",
-    engagement: "Cold",
-    ltv: "$7,300",
-    avatar: "D",
-    score: 85,
-    lastActive: 71,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "9",
-    name: "nft_flipper",
-    wallet: "0x4e1...b5d2",
-    email: "flipper@nft.market",
-    volume: "$156,234",
-    engagement: "Cold",
-    ltv: "$3,800",
-    avatar: "N",
-    score: 62,
-    lastActive: 78,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-  {
-    id: "10",
-    name: "crypto_kate",
-    wallet: "0x7b8...c9e4",
-    email: "kate@crypto.vc",
-    volume: "$134,567",
-    engagement: "Warm",
-    ltv: "$5,600",
-    avatar: "C",
-    score: 78,
-    lastActive: 65,
-    sourceContract: "0xBd3531...Penguins",
-    contractLabel: "Pudgy Penguins",
-  },
-];
+const asRecord = (row: unknown): Record<string, unknown> =>
+  isJsonObject(row) ? (row as Record<string, unknown>) : { value: row };
 
-// const exampleQueries = [
-//   {
-//     name: "Your Pudgy Holders",
-//     description: "Your users who hold Pudgy Penguins NFTs",
-//     icon: Anchor,
-//     query: `SELECT u.wallet, u.email, u.engagement_score, pp.volume_usd
-// FROM users u
-// INNER JOIN pudgy_penguins.holders pp ON u.wallet = pp.wallet
-// WHERE pp.volume_usd > 5000
-// ORDER BY pp.volume_usd DESC`,
-//   },
-//   {
-//     name: "Your Base Power Users",
-//     description: "Your users active on Base chain",
-//     icon: Flame,
-//     query: `SELECT u.wallet, u.email, u.ltv, b.tvl_usd, b.tx_count
-// FROM users u
-// INNER JOIN base.wallet_stats b ON u.wallet = b.wallet
-// WHERE b.tvl_usd > 10000
-// ORDER BY b.tvl_usd DESC`,
-//   },
-//   {
-//     name: "Your DeFi Stakers",
-//     description: "Your users with DeFi positions",
-//     icon: Target,
-//     query: `SELECT u.wallet, u.email, d.staked_usd, d.protocol
-// FROM users u
-// INNER JOIN ethereum.defi_positions d ON u.wallet = d.wallet
-// WHERE d.staked_usd > 25000`,
-//   },
-//   {
-//     name: "Your Dormant Whales",
-//     description: "Your high-value users inactive 90+ days",
-//     icon: Crosshair,
-//     query: `SELECT u.wallet, u.email, u.ltv, u.last_active_date
-// FROM users u
-// WHERE u.ltv > 5000
-//   AND u.last_active_date < NOW() - INTERVAL '90 days'`,
-//   },
-//   {
-//     name: "Your Multi-chain Users",
-//     description: "Your users active on 3+ chains",
-//     icon: Layers,
-//     query: `SELECT u.wallet, u.email, COUNT(DISTINCT c.chain) as chains
-// FROM users u
-// INNER JOIN all_chains.activity c ON u.wallet = c.wallet
-// GROUP BY u.wallet, u.email
-// HAVING COUNT(DISTINCT c.chain) >= 3`,
-//   },
-// ];
+const columnsFromRows = (rows: Array<Record<string, unknown>>) => {
+  const keys = new Set<string>();
+  for (const r of rows) {
+    Object.keys(r).forEach((k) => keys.add(k));
+  }
+  return Array.from(keys);
+};
 
 interface QueryTabProps {
   openEmailComposer: (recipient: unknown) => void;
@@ -217,25 +40,191 @@ interface QueryTabProps {
 }
 
 export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
+  const queryClient = useQueryClient();
   const [sqlQuery, setSqlQuery] = useState(DEFAULT_SQL_QUERY);
-  const [isQueryRunning, setIsQueryRunning] = useState(false);
-  const [queryResults, setQueryResults] =
-    useState<typeof mockQueryResults>(mockQueryResults);
-  const [hasRunQuery, setHasRunQuery] = useState(true);
+  const [queryId, setQueryId] = useState<string | null>(null);
+  const [hasRunQuery, setHasRunQuery] = useState(false);
+  const [page, setPage] = useState(1);
+  const limit = 50;
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  // const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
-  const totalRows = 714;
-  const potentialRevenue = "$127k";
+  const schemaQuery = useQuery({
+    queryKey: ["intelligence", "schema"],
+    queryFn: () => intelligenceService.getSchema(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
-  const runQuery = useCallback(() => {
-    setIsQueryRunning(true);
-    setHasRunQuery(true);
-    setTimeout(() => {
-      setQueryResults(mockQueryResults);
-      setIsQueryRunning(false);
-    }, 600);
-  }, []);
+  const historyQuery = useQuery({
+    queryKey: ["intelligence", "query", "history"],
+    queryFn: async () => {
+      const res = await intelligenceService.getQueryHistory();
+      const items = Array.isArray(res)
+        ? res
+        : ((res as { items?: unknown[] }).items ?? []);
+      return Array.isArray(items) ? items : [];
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const validateMutation = useMutation({
+    mutationFn: async () =>
+      intelligenceService.validateQuery({ query: sqlQuery }),
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to validate query";
+      window.alert(message);
+    },
+  });
+
+  const runMutation = useMutation({
+    mutationFn: async () => intelligenceService.runQuery({ query: sqlQuery }),
+    onSuccess: (res) => {
+      setQueryId(res.queryId);
+      setHasRunQuery(true);
+      setPage(1);
+      setSelectedRows([]);
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to run query";
+      window.alert(message);
+    },
+  });
+
+  const statusQuery = useQuery({
+    queryKey: ["intelligence", "query", queryId, "status"],
+    queryFn: async () =>
+      queryId ? intelligenceService.getQueryStatus(queryId) : null,
+    enabled: !!queryId,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchInterval: (q) => {
+      const s = (q.state.data as { status?: string } | null)?.status;
+      return s === "completed" || s === "failed" ? false : 1000;
+    },
+  });
+
+  const resultsQuery = useQuery({
+    queryKey: ["intelligence", "query", queryId, "results", { page, limit }],
+    queryFn: async () =>
+      queryId
+        ? intelligenceService.getQueryResults(queryId, { page, limit })
+        : null,
+    enabled: !!queryId && statusQuery.data?.status === "completed",
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const summaryQuery = useQuery({
+    queryKey: ["intelligence", "query", queryId, "summary"],
+    queryFn: async () =>
+      queryId ? intelligenceService.getQuerySummary(queryId) : null,
+    enabled: !!queryId && statusQuery.data?.status === "completed",
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const saveReportMutation = useMutation({
+    mutationFn: async (name: string) => {
+      if (!queryId) throw new Error("No query to save");
+      return intelligenceService.saveQuery(queryId, { name });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "reports"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "reports", "metrics"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "reports", "summary"],
+      });
+      window.alert("Report saved");
+      setActiveTab("reports");
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to save report";
+      window.alert(message);
+    },
+  });
+
+  const createSegmentMutation = useMutation({
+    mutationFn: async (name: string) => {
+      if (!queryId) throw new Error("No query to use");
+      return intelligenceService.createSegmentFromQuery({ queryId, name });
+    },
+    onSuccess: async (res) => {
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "segments"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "segments", "metrics"],
+      });
+      setActiveTab("segments");
+      window.location.href = `/intelligence/segments/detail/${res.segmentId}`;
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to create segment";
+      window.alert(message);
+    },
+  });
+
+  const createCampaignMutation = useMutation({
+    mutationFn: async (subject: string) => {
+      if (!queryId) throw new Error("No query to use");
+      return intelligenceService.createCampaignFromQuery({ queryId, subject });
+    },
+    onSuccess: (res) => {
+      window.location.href = `/campaigns/editor?campaign=${encodeURIComponent(
+        res.campaignId
+      )}`;
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to create campaign";
+      window.alert(message);
+    },
+  });
+
+  const status = statusQuery.data?.status ?? runMutation.data?.status ?? "";
+  const isQueryRunning =
+    runMutation.isPending || status === "running" || statusQuery.isFetching;
+
+  const rows = useMemo(() => {
+    const raw = resultsQuery.data?.rows ?? runMutation.data?.rows ?? [];
+    const arr = Array.isArray(raw) ? raw : [];
+    return arr.map(asRecord);
+  }, [resultsQuery.data?.rows, runMutation.data?.rows]);
+
+  const columns = useMemo(() => {
+    const cols = runMutation.data?.columns;
+    if (Array.isArray(cols) && cols.length > 0) {
+      return cols
+        .map((c) =>
+          isJsonObject(c) && typeof c.name === "string" ? c.name : ""
+        )
+        .filter((c) => c.length > 0);
+    }
+    return columnsFromRows(rows);
+  }, [rows, runMutation.data?.columns]);
+
+  const totalRows =
+    typeof resultsQuery.data?.total === "number"
+      ? resultsQuery.data.total
+      : typeof runMutation.data?.totalRows === "number"
+        ? runMutation.data.totalRows
+        : 0;
+
+  const pageCount = Math.max(1, Math.ceil(Math.max(0, totalRows) / limit));
+
+  useEffect(() => {
+    if (!queryId) return;
+    setSelectedRows([]);
+  }, [queryId]);
 
   const toggleRowSelection = useCallback((id: string) => {
     setSelectedRows((prev) =>
@@ -244,25 +233,12 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
   }, []);
 
   const toggleAllRows = useCallback(() => {
-    if (selectedRows.length === queryResults.length) {
+    if (selectedRows.length === rows.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(queryResults.map((r) => r.id));
+      setSelectedRows(rows.map((_r, i) => String(i)));
     }
-  }, [selectedRows.length, queryResults]);
-
-  const getEngagementColor = useCallback((engagement: string) => {
-    switch (engagement) {
-      case "Hot":
-        return "bg-secondary/10 text-secondary";
-      case "Warm":
-        return "bg-primary/10 text-primary";
-      case "Cold":
-        return "bg-destructive/10 text-destructive";
-      default:
-        return "bg-secondary text-muted-foreground";
-    }
-  }, []);
+  }, [rows, selectedRows.length]);
 
   return (
     <div className="space-y-4">
@@ -282,7 +258,19 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
               <Copy className="h-3.5 w-3.5" />
             </button>
             <button
-              onClick={runQuery}
+              onClick={() => validateMutation.mutate()}
+              disabled={validateMutation.isPending}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50"
+            >
+              {validateMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Zap className="h-3.5 w-3.5" />
+              )}
+              Validate
+            </button>
+            <button
+              onClick={() => runMutation.mutate()}
               disabled={isQueryRunning}
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
             >
@@ -303,7 +291,32 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
         />
       </div>
 
-      {hasRunQuery && queryResults.length > 0 && (
+      {validateMutation.data ? (
+        <div className="rounded-xl border border-border bg-card p-4 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-foreground">
+              {validateMutation.data.valid
+                ? "Valid query"
+                : "Query needs attention"}
+            </span>
+            {schemaQuery.data ? (
+              <span className="text-xs text-muted-foreground">
+                Schema loaded
+              </span>
+            ) : null}
+          </div>
+          {Array.isArray(validateMutation.data.suggestions) &&
+          validateMutation.data.suggestions.length > 0 ? (
+            <ul className="mt-2 list-disc pl-5 text-muted-foreground">
+              {validateMutation.data.suggestions.slice(0, 6).map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {hasRunQuery && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -312,18 +325,17 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/30 px-4 py-3">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-foreground">
-                {totalRows} of your users
-                <span className="ml-2 text-muted-foreground">·</span>
-                <span className="ml-2 text-muted-foreground">
-                  interacted with Pudgy Penguins
-                </span>
+                {typeof totalRows === "number" ? totalRows.toLocaleString() : 0}{" "}
+                results
               </span>
-              <span className="text-sm text-muted-foreground">
-                Win-back potential:{" "}
-                <span className="font-medium text-primary">
-                  {potentialRevenue}
+              {summaryQuery.data?.winbackPotential ? (
+                <span className="text-sm text-muted-foreground">
+                  Win-back potential:{" "}
+                  <span className="font-medium text-primary">
+                    {summaryQuery.data.winbackPotential}
+                  </span>
                 </span>
-              </span>
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
               {selectedRows.length > 0 && (
@@ -338,14 +350,45 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
                   </button>
                 </span>
               )}
-              <Link
-                href="/intelligence/segments/create"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:shadow-[0_0_16px_rgba(var(--primary),0.4)]"
-                onClick={() => setActiveTab("segments")}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Create segment
-              </Link>
+              {queryId ? (
+                <>
+                  <button
+                    onClick={() => {
+                      const name = window.prompt("Report name");
+                      if (!name) return;
+                      saveReportMutation.mutate(name);
+                    }}
+                    disabled={saveReportMutation.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50"
+                  >
+                    Save report
+                  </button>
+                  <button
+                    onClick={() => {
+                      const name = window.prompt("Segment name");
+                      if (!name) return;
+                      createSegmentMutation.mutate(name);
+                    }}
+                    disabled={createSegmentMutation.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:shadow-[0_0_16px_rgba(var(--primary),0.4)] disabled:opacity-50"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create segment
+                  </button>
+                  <button
+                    onClick={() => {
+                      const subject =
+                        window.prompt("Campaign subject (optional)") ?? "";
+                      createCampaignMutation.mutate(subject);
+                    }}
+                    disabled={createCampaignMutation.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    Create campaign
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -356,92 +399,152 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
                   <th className="px-4 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedRows.length === queryResults.length}
+                      checked={
+                        rows.length > 0 && selectedRows.length === rows.length
+                      }
                       onChange={toggleAllRows}
                     />
                   </th>
-                  <th className="px-4 py-3">User</th>
-                  <th className="px-4 py-3">Engagement</th>
-                  <th className="px-4 py-3">Volume</th>
-                  <th className="px-4 py-3">LTV</th>
-                  <th className="px-4 py-3">Last Active</th>
-                  <th className="px-4 py-3">Source</th>
+                  {columns.slice(0, 8).map((c) => (
+                    <th key={c} className="px-4 py-3">
+                      {c}
+                    </th>
+                  ))}
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {queryResults.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-border/50 transition-colors hover:bg-muted/50"
-                    // onMouseEnter={() => setHoveredRow(row.id)}
-                    // onMouseLeave={() => setHoveredRow(null)}
-                  >
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.includes(row.id)}
-                        onChange={() => toggleRowSelection(row.id)}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <span className="text-xs font-medium">
-                            {row.avatar}
-                          </span>
+                {rows.map((row, idx) => {
+                  const email = typeof row.email === "string" ? row.email : "";
+                  const key =
+                    typeof row.id === "string" && row.id.length > 0
+                      ? row.id
+                      : String(idx);
+                  return (
+                    <tr
+                      key={key}
+                      className="border-b border-border/50 transition-colors hover:bg-muted/50"
+                    >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.includes(String(idx))}
+                          onChange={() => toggleRowSelection(String(idx))}
+                        />
+                      </td>
+                      {columns.slice(0, 8).map((c) => (
+                        <td key={c} className="px-4 py-3">
+                          {typeof row[c] === "string" ||
+                          typeof row[c] === "number"
+                            ? String(row[c])
+                            : row[c] == null
+                              ? ""
+                              : isJsonObject(row[c])
+                                ? "[object]"
+                                : Array.isArray(row[c])
+                                  ? "[array]"
+                                  : String(row[c])}
+                        </td>
+                      ))}
+                      <td className="px-4 py-3 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          {email.length > 0 ? (
+                            <button
+                              className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+                              onClick={() => openEmailComposer({ email })}
+                            >
+                              <Mail className="mr-1 inline-block h-3.5 w-3.5" />
+                              Email
+                            </button>
+                          ) : null}
+                          <button
+                            className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+                            onClick={() =>
+                              navigator.clipboard.writeText(
+                                JSON.stringify(row, null, 2)
+                              )
+                            }
+                          >
+                            <Copy className="mr-1 inline-block h-3.5 w-3.5" />
+                            Copy
+                          </button>
                         </div>
-                        <div>
-                          <p className="font-medium">{row.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {row.email}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${getEngagementColor(row.engagement)}`}
-                      >
-                        {row.engagement}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">{row.volume}</td>
-                    <td className="px-4 py-3">{row.ltv}</td>
-                    <td className="px-4 py-3">{row.lastActive}d</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs bg-primary/10 text-primary">
-                        <Zap className="h-3 w-3" />
-                        {row.contractLabel}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        <button
-                          className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
-                          onClick={() =>
-                            openEmailComposer({
-                              name: row.name,
-                              email: row.email,
-                            })
-                          }
-                        >
-                          <Mail className="mr-1 inline-block h-3.5 w-3.5" />
-                          Email
-                        </button>
-                        <button className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10">
-                          <Copy className="mr-1 inline-block h-3.5 w-3.5" />
-                          Copy
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+
+          {queryId && status === "completed" && pageCount > 1 ? (
+            <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
+              <span className="text-muted-foreground">
+                Page {page} of {pageCount}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                  disabled={page >= pageCount}
+                  className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          ) : null}
         </motion.div>
       )}
+
+      {(historyQuery.data?.length ?? 0) > 0 ? (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="mb-2 text-sm font-medium text-foreground">
+            Recent queries
+          </div>
+          <div className="space-y-2">
+            {historyQuery.data!.slice(0, 5).map((h) => {
+              const item = isJsonObject(h)
+                ? (h as Record<string, unknown>)
+                : {};
+              const qid = typeof item.queryId === "string" ? item.queryId : "";
+              const q = typeof item.query === "string" ? item.query : "";
+              const s = typeof item.status === "string" ? item.status : "";
+              if (!qid) return null;
+              return (
+                <button
+                  key={qid}
+                  type="button"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-left text-sm hover:bg-muted/40"
+                  onClick={() => {
+                    setQueryId(qid);
+                    setHasRunQuery(true);
+                    if (q.length > 0) setSqlQuery(q);
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate font-mono text-xs text-muted-foreground">
+                      {qid}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{s}</span>
+                  </div>
+                  {q.length > 0 ? (
+                    <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                      {q}
+                    </div>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

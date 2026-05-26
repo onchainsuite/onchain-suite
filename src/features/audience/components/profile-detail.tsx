@@ -81,7 +81,9 @@ export function ProfileDetailPage() {
       { include: "tags,attributes,wallets,health,lastAction" },
     ],
     queryFn: () =>
-      audienceService.getProfile(id) as unknown as Promise<AudienceProfile>,
+      audienceService.getProfile(id, {
+        include: "tags,attributes,wallets,health,lastAction",
+      }) as unknown as Promise<AudienceProfile>,
     retry: false,
     refetchOnWindowFocus: false,
   });

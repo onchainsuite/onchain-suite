@@ -8,6 +8,7 @@ interface AutomationTabsProps {
   counts: {
     active: number;
     drafts: number;
+    templates?: number;
   };
 }
 
@@ -40,6 +41,11 @@ export const AutomationTabs = ({
             {tab === "drafts" && (
               <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
                 {counts.drafts}
+              </span>
+            )}
+            {tab === "templates" && typeof counts.templates === "number" && (
+              <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {counts.templates}
               </span>
             )}
           </button>

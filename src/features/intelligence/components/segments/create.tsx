@@ -1,9 +1,13 @@
 "use client";
 
-import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { useMutation } from "@tanstack/react-query";
+
+import { intelligenceService } from "../../intelligence.service";
 
 interface Condition {
   id: string;
@@ -15,8 +19,13 @@ interface Condition {
 export function CreateSegmentPage() {
   const router = useRouter();
   const [segmentName, setSegmentName] = useState("");
+  const [importQueryId, setImportQueryId] = useState("");
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [logicOperator, setLogicOperator] = useState<"AND" | "OR">("AND");
+
+  const normalizedName = segmentName.trim();
+  const normalizedImportQueryId = importQueryId.trim();
+  const isImportingFromQuery = normalizedImportQueryId.length > 0;
 
   const addCondition = () => {
     setConditions([
@@ -44,11 +53,38 @@ export function CreateSegmentPage() {
     );
   };
 
-  const handleSave = () => {
-    // Logic to save segment would go here
-    // For now, just navigate back
-    router.push("/intelligence");
-  };
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (normalizedName.length === 0) throw new Error("Segment name is required");
+      if (isImportingFromQuery) {
+        return intelligenceService.importSegmentFromQuery({
+          queryId: normalizedImportQueryId,
+          name: normalizedName,
+        });
+      }
+      const rules = {
+        operator: logicOperator,
+        conditions: conditions.map((c) => ({
+          field: c.field,
+          operator: c.operator,
+          value: c.value,
+        })),
+      };
+      return intelligenceService.createSegment({ name: normalizedName, rules });
+    },
+    onSuccess: (res) => {
+      const segmentId = (res as { segmentId?: string }).segmentId;
+      if (segmentId) {
+        router.push(`/intelligence/segments/detail/${segmentId}`);
+        return;
+      }
+      router.push("/intelligence");
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "Failed to save segment";
+      window.alert(message);
+    },
+  });
 
   return (
     <div className="space-y-6 p-6">
@@ -81,94 +117,111 @@ export function CreateSegmentPage() {
               />
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Conditions</label>
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-background p-1">
-                  <button
-                    onClick={() => setLogicOperator("AND")}
-                    className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                      logicOperator === "AND"
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    AND
-                  </button>
-                  <button
-                    onClick={() => setLogicOperator("OR")}
-                    className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                      logicOperator === "OR"
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    OR
-                  </button>
-                </div>
-              </div>
+            <div>
+              <label className="text-sm font-medium">Import from Query</label>
+              <input
+                type="text"
+                value={importQueryId}
+                onChange={(e) => setImportQueryId(e.target.value)}
+                placeholder="Optional queryId (imports results into a segment)"
+                className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              />
+            </div>
 
-              <div className="space-y-3">
-                {conditions.map((condition, index) => (
-                  <div key={condition.id} className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-muted-foreground w-8">
-                      {index === 0 ? "Where" : logicOperator}
-                    </span>
-                    <select
-                      value={condition.field}
-                      onChange={(e) =>
-                        updateCondition(condition.id, "field", e.target.value)
-                      }
-                      className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="wallet_balance">Wallet Balance</option>
-                      <option value="last_active">Last Active</option>
-                      <option value="transaction_count">
-                        Transaction Count
-                      </option>
-                    </select>
-                    <select
-                      value={condition.operator}
-                      onChange={(e) =>
-                        updateCondition(
-                          condition.id,
-                          "operator",
-                          e.target.value
-                        )
-                      }
-                      className="w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="gt">Greater than</option>
-                      <option value="lt">Less than</option>
-                      <option value="eq">Equals</option>
-                    </select>
-                    <input
-                      type="text"
-                      value={condition.value}
-                      onChange={(e) =>
-                        updateCondition(condition.id, "value", e.target.value)
-                      }
-                      className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                      placeholder="Value"
-                    />
+            {!isImportingFromQuery && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Conditions</label>
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-background p-1">
                     <button
-                      onClick={() => removeCondition(condition.id)}
-                      className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      type="button"
+                      onClick={() => setLogicOperator("AND")}
+                      className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                        logicOperator === "AND"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      AND
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLogicOperator("OR")}
+                      className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                        logicOperator === "OR"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      OR
                     </button>
                   </div>
-                ))}
-              </div>
+                </div>
 
-              <button
-                onClick={addCondition}
-                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
-              >
-                <Plus className="h-4 w-4" />
-                Add condition
-              </button>
-            </div>
+                <div className="space-y-3">
+                  {conditions.map((condition, index) => (
+                    <div key={condition.id} className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-muted-foreground w-8">
+                        {index === 0 ? "Where" : logicOperator}
+                      </span>
+                      <select
+                        value={condition.field}
+                        onChange={(e) =>
+                          updateCondition(condition.id, "field", e.target.value)
+                        }
+                        className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="wallet_balance">Wallet Balance</option>
+                        <option value="last_active">Last Active</option>
+                        <option value="transaction_count">
+                          Transaction Count
+                        </option>
+                      </select>
+                      <select
+                        value={condition.operator}
+                        onChange={(e) =>
+                          updateCondition(
+                            condition.id,
+                            "operator",
+                            e.target.value
+                          )
+                        }
+                        className="w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="gt">Greater than</option>
+                        <option value="lt">Less than</option>
+                        <option value="eq">Equals</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={condition.value}
+                        onChange={(e) =>
+                          updateCondition(condition.id, "value", e.target.value)
+                        }
+                        className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                        placeholder="Value"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCondition(condition.id)}
+                        className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addCondition}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add condition
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -184,12 +237,17 @@ export function CreateSegmentPage() {
               </div>
               <div className="pt-4 border-t border-border">
                 <button
-                  onClick={handleSave}
-                  disabled={!segmentName}
+                  type="button"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={normalizedName.length === 0 || saveMutation.isPending}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4" />
-                  Save Segment
+                  {saveMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {isImportingFromQuery ? "Import Segment" : "Save Segment"}
                 </button>
               </div>
             </div>

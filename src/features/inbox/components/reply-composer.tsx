@@ -4,6 +4,8 @@ import React from "react";
 interface ReplyComposerProps {
   replyText: string;
   setReplyText: (text: string) => void;
+  onSend?: () => void;
+  isSending?: boolean;
   generateAIReply?: () => void;
   isGeneratingReply?: boolean;
 }
@@ -11,9 +13,12 @@ interface ReplyComposerProps {
 const ReplyComposer = ({
   replyText,
   setReplyText,
+  onSend,
+  isSending = false,
   generateAIReply,
   isGeneratingReply = false,
 }: ReplyComposerProps) => {
+  const disabled = isSending || replyText.trim().length === 0;
   return (
     <div className="border-t border-border p-4">
       <div className="mx-auto flex max-w-2xl items-end gap-3">
@@ -45,7 +50,12 @@ const ReplyComposer = ({
             </div>
           </div>
         </div>
-        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90">
+        <button
+          type="button"
+          onClick={onSend}
+          disabled={disabled}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+        >
           <Send className="h-4 w-4" />
         </button>
       </div>

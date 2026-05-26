@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowDown,
@@ -53,100 +53,8 @@ export function AudiencePages(): ReactElement {
   const filterTriggerClassName =
     "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
 
-  const profilesQuery = useQuery({
-    queryKey: [
-      "audience",
-      "profiles",
-      {
-        page: 1,
-        limit: 200,
-        include: "wallets,attributes,tags,health,lastAction",
-      },
-    ],
-    queryFn: async () => {
-      const res = await audienceService.listProfiles({
-        page: 1,
-        limit: 200,
-        include: "wallets,attributes,tags,health,lastAction",
-      });
-      const root = Array.isArray(res) ? res : (res.items ?? res.data ?? []);
-      return Array.isArray(root) ? root : [];
-    },
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const queryClient = useQueryClient();
 
-  const overviewQuery = useQuery({
-    queryKey: ["audience", "overview"],
-    queryFn: () => audienceService.getOverview(),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const showPureLoading = profilesQuery.isLoading || profilesQuery.isFetching;
-
-  const profiles = useMemo(() => {
-    if (profilesQuery.isSuccess && Array.isArray(profilesQuery.data)) {
-      return profilesQuery.data.map((p: AudienceProfile, idx: number) => {
-        const lastAction = isJsonObject(p.lastAction) ? p.lastAction : {};
-        const idRaw =
-          typeof p.id === "string" && p.id.trim().length > 0
-            ? p.id
-            : `${idx + 1}`;
-        const id = idRaw.trim();
-        const email = typeof p.email === "string" ? p.email.trim() : "";
-        const { walletFull, wallet } = extractWalletFields(p);
-        const name = deriveDisplayName({
-          name: p.name,
-          fullName: (p as unknown as { fullName?: unknown }).fullName,
-          email,
-          wallet: walletFull,
-          walletAddress: walletFull,
-        });
-        const tags = normalizeTags(p.tags);
-        const healthScoreRaw = Number(p.healthScore);
-        const healthScore = Number.isFinite(healthScoreRaw)
-          ? healthScoreRaw
-          : null;
-        const status = typeof p.status === "string" ? p.status : "unverified";
-        const chain = typeof p.chain === "string" ? p.chain : "";
-        const engagement = typeof p.engagement === "string" ? p.engagement : "";
-        const attributes = isJsonObject(p.attributes) ? p.attributes : {};
-
-        const label =
-          typeof lastAction.label === "string" &&
-          lastAction.label.trim().length > 0
-            ? lastAction.label.trim()
-            : "";
-        const time =
-          typeof lastAction.time === "string" &&
-          lastAction.time.trim().length > 0
-            ? lastAction.time.trim()
-            : "";
-
-        return {
-          id,
-          name,
-          email,
-          wallet,
-          walletFull,
-          chain,
-          healthScore,
-          status,
-          engagement,
-          tags: tags.length ? tags : [],
-          attributes,
-          lastAction: {
-            type: typeof lastAction.type === "string" ? lastAction.type : "",
-            label,
-            time,
-          },
-          healthTrend: String(p.healthTrend ?? "stable"),
-        };
-      });
-    }
-    return [];
-  }, [profilesQuery.isSuccess, profilesQuery.data]);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [sortField, setSortField] = useState<
     "name" | "healthScore" | "lastAction"
@@ -170,89 +78,227 @@ export function AudiencePages(): ReactElement {
   >("all");
 
   const itemsPerPage = 10;
-
-  const sortedProfiles = useMemo(() => {
-    return [...profiles].sort((a, b) => {
-      let comparison = 0;
-      if (sortField === "name") {
-        comparison = a.name.localeCompare(b.name);
-      } else if (sortField === "healthScore") {
-        const aScore = typeof a.healthScore === "number" ? a.healthScore : -1;
-        const bScore = typeof b.healthScore === "number" ? b.healthScore : -1;
-        comparison = aScore - bScore;
-      } else if (sortField === "lastAction") {
-        comparison = a.lastAction.time.localeCompare(b.lastAction.time);
-      }
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-  }, [profiles, sortField, sortDirection]);
-
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredProfiles = useMemo(() => {
-    return sortedProfiles.filter((p) => {
-      if (profileScopeFilter !== "all" && p.status !== profileScopeFilter) {
-        return false;
-      }
-
-      if (engagementFilter !== "all" && p.engagement !== engagementFilter) {
-        return false;
-      }
-
-      if (tagFilter !== "all") {
-        const normalizedTags = p.tags.map((t) => String(t).toLowerCase());
-        if (
-          tagFilter === "whale" &&
-          !normalizedTags.some((t) => t.includes("whale"))
-        ) {
-          return false;
-        }
-        if (
-          tagFilter === "active-trader" &&
-          !normalizedTags.some((t) => t.includes("trader"))
-        ) {
-          return false;
-        }
-        if (
-          tagFilter === "nft-collector" &&
-          !normalizedTags.some((t) => t.includes("collector"))
-        ) {
-          return false;
-        }
-      }
-
-      if (normalizedQuery.length === 0) return true;
-      const name = p.name.toLowerCase();
-      const email = p.email.toLowerCase();
-      const wallet = p.wallet.toLowerCase();
-      return (
-        name.includes(normalizedQuery) ||
-        email.includes(normalizedQuery) ||
-        wallet.includes(normalizedQuery)
-      );
-    });
-  }, [
-    engagementFilter,
-    normalizedQuery,
-    profileScopeFilter,
-    sortedProfiles,
-    tagFilter,
-  ]);
+  const normalizedQuery = searchQuery.trim();
+  const sortParam =
+    sortField === "lastAction"
+      ? "lastActionAt"
+      : sortField === "healthScore"
+        ? "healthScore"
+        : "name";
 
   useEffect(() => {
     setCurrentPage(1);
     setSelectedIds([]);
-  }, [engagementFilter, normalizedQuery, profileScopeFilter, tagFilter]);
+  }, [
+    engagementFilter,
+    normalizedQuery,
+    profileScopeFilter,
+    tagFilter,
+    sortField,
+    sortDirection,
+  ]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredProfiles.length / itemsPerPage)
-  );
-  const paginatedProfiles = filteredProfiles.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const profilesQuery = useQuery<{
+    items: AudienceProfile[];
+    meta: unknown | null;
+  }>({
+    queryKey: [
+      "audience",
+      "profiles",
+      {
+        page: currentPage,
+        limit: itemsPerPage,
+        q: normalizedQuery.length > 0 ? normalizedQuery : undefined,
+        status: profileScopeFilter !== "all" ? profileScopeFilter : undefined,
+        engagement: engagementFilter !== "all" ? engagementFilter : undefined,
+        tag: tagFilter !== "all" ? tagFilter : undefined,
+        sort: sortParam,
+        direction: sortDirection,
+        include: "wallets,attributes,tags,health,lastAction",
+      },
+    ],
+    queryFn: async () => {
+      const res = await audienceService.listProfiles({
+        page: currentPage,
+        limit: itemsPerPage,
+        q: normalizedQuery.length > 0 ? normalizedQuery : undefined,
+        status: profileScopeFilter !== "all" ? profileScopeFilter : undefined,
+        engagement: engagementFilter !== "all" ? engagementFilter : undefined,
+        tag: tagFilter !== "all" ? tagFilter : undefined,
+        sort: sortParam,
+        direction: sortDirection,
+        include: "wallets,attributes,tags,health,lastAction",
+      });
+      if (Array.isArray(res)) return { items: res, meta: null };
+      if (isJsonObject(res)) {
+        const obj = res as Record<string, unknown>;
+        const meta = obj.meta ?? null;
+        if (Array.isArray(obj.items)) {
+          return { items: obj.items as AudienceProfile[], meta };
+        }
+        if (Array.isArray(obj.data)) {
+          return { items: obj.data as AudienceProfile[], meta };
+        }
+        if (isJsonObject(obj.data)) {
+          const nested = obj.data as Record<string, unknown>;
+          if (Array.isArray(nested.data)) {
+            return {
+              items: nested.data as AudienceProfile[],
+              meta: nested.meta ?? meta,
+            };
+          }
+        }
+      }
+      return { items: [], meta: null };
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const overviewQuery = useQuery({
+    queryKey: ["audience", "overview"],
+    queryFn: () => audienceService.getOverview(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const showPureLoading = profilesQuery.isLoading || profilesQuery.isFetching;
+
+  const profiles = useMemo(() => {
+    if (profilesQuery.isSuccess && Array.isArray(profilesQuery.data?.items)) {
+      return profilesQuery.data.items.map((p: AudienceProfile, idx: number) => {
+        const lastAction = isJsonObject(p.lastAction) ? p.lastAction : {};
+        const idRaw =
+          typeof p.id === "string" && p.id.trim().length > 0
+            ? p.id
+            : `${idx + 1}`;
+        const id = idRaw.trim();
+        const email = typeof p.email === "string" ? p.email.trim() : "";
+        const { walletFull, wallet } = extractWalletFields(p);
+        const name = deriveDisplayName({
+          name: p.name,
+          fullName: (p as unknown as { fullName?: unknown }).fullName,
+          email,
+          wallet: walletFull,
+          walletAddress: walletFull,
+        });
+        const tags = normalizeTags(p.tags);
+        const healthObj = isJsonObject(
+          (p as unknown as { health?: unknown }).health
+        )
+          ? ((p as unknown as { health?: unknown }).health as Record<
+              string,
+              unknown
+            >)
+          : null;
+        const healthScoreRaw =
+          healthObj && typeof healthObj.score === "number"
+            ? healthObj.score
+            : Number(p.healthScore);
+        const healthScore = Number.isFinite(healthScoreRaw)
+          ? healthScoreRaw
+          : null;
+        const status = typeof p.status === "string" ? p.status : "unverified";
+        const chain =
+          typeof (p as unknown as { chain?: unknown }).chain === "string"
+            ? String((p as unknown as { chain?: unknown }).chain)
+            : Array.isArray((p as unknown as { wallets?: unknown }).wallets) &&
+                (p as unknown as { wallets?: Array<{ chain?: unknown }> })
+                  .wallets?.[0] &&
+                typeof (
+                  p as unknown as { wallets?: Array<{ chain?: unknown }> }
+                ).wallets?.[0]?.chain === "string"
+              ? String(
+                  (p as unknown as { wallets?: Array<{ chain?: unknown }> })
+                    .wallets?.[0]?.chain
+                )
+              : "";
+        const engagement = typeof p.engagement === "string" ? p.engagement : "";
+        const attributes = isJsonObject(p.attributes) ? p.attributes : {};
+
+        const label =
+          typeof lastAction.label === "string" &&
+          lastAction.label.trim().length > 0
+            ? lastAction.label.trim()
+            : "";
+        const time =
+          typeof lastAction.at === "string" && lastAction.at.trim().length > 0
+            ? lastAction.at.trim()
+            : typeof lastAction.time === "string" &&
+                lastAction.time.trim().length > 0
+              ? lastAction.time.trim()
+              : "";
+
+        return {
+          id,
+          name,
+          email,
+          wallet,
+          walletFull,
+          chain,
+          healthScore,
+          status,
+          engagement,
+          tags: tags.length ? tags : [],
+          attributes,
+          lastAction: {
+            type: typeof lastAction.type === "string" ? lastAction.type : "",
+            label,
+            time,
+          },
+          healthTrend: String(
+            (healthObj?.trend ?? p.healthTrend ?? "stable") as string
+          ),
+        };
+      });
+    }
+    return [];
+  }, [profilesQuery.isSuccess, profilesQuery.data?.items]);
+
+  const meta = profilesQuery.data?.meta;
+  const totalItems =
+    isJsonObject(meta) &&
+    typeof meta.totalItems === "number" &&
+    meta.totalItems >= 0
+      ? meta.totalItems
+      : profiles.length;
+  const totalPages =
+    isJsonObject(meta) &&
+    typeof meta.totalPages === "number" &&
+    meta.totalPages > 0
+      ? meta.totalPages
+      : 1;
+  const paginatedProfiles = profiles;
 
   const aggregatedStats = useMemo(() => {
+    if (
+      isJsonObject(overviewQuery.data) &&
+      typeof overviewQuery.data.total === "number"
+    ) {
+      return {
+        avgHealth:
+          typeof overviewQuery.data.avgHealth === "number"
+            ? overviewQuery.data.avgHealth
+            : 0,
+        activeCount:
+          typeof overviewQuery.data.activeCount === "number"
+            ? overviewQuery.data.activeCount
+            : 0,
+        coolingCount:
+          typeof overviewQuery.data.coolingCount === "number"
+            ? overviewQuery.data.coolingCount
+            : 0,
+        coldCount:
+          typeof overviewQuery.data.coldCount === "number"
+            ? overviewQuery.data.coldCount
+            : 0,
+        engagementTrend: 0,
+        onchainTrend: 0,
+        opensTrend: 0,
+        total: overviewQuery.data.total,
+      };
+    }
+
     const scored = profiles.filter((p) => typeof p.healthScore === "number");
     const totalHealth = scored.reduce(
       (sum, p) => sum + (p.healthScore as number),
@@ -285,7 +331,7 @@ export function AudiencePages(): ReactElement {
       opensTrend,
       total: profiles.length,
     };
-  }, [profiles]);
+  }, [overviewQuery.data, profiles]);
 
   useEffect(() => {
     if (showCerebra && animatedScore < aggregatedStats.avgHealth) {
@@ -335,8 +381,36 @@ export function AudiencePages(): ReactElement {
     }, 1500);
   };
 
+  const deleteProfilesMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(
+        ids.map((profileId) => audienceService.deleteProfile(profileId))
+      );
+    },
+    onSuccess: async () => {
+      setSelectedIds([]);
+      setExpandedRow(null);
+      await queryClient.invalidateQueries({
+        queryKey: ["audience", "profiles"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["audience", "overview"],
+      });
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to delete profiles";
+      window.alert(message);
+    },
+  });
+
   const handleBulkDelete = () => {
-    setSelectedIds([]);
+    if (selectedIds.length === 0) return;
+    const ok = window.confirm(
+      `Delete ${selectedIds.length} profile${selectedIds.length === 1 ? "" : "s"}? This cannot be undone.`
+    );
+    if (!ok) return;
+    deleteProfilesMutation.mutate(selectedIds);
   };
 
   const handleBulkExport = () => {
@@ -737,7 +811,7 @@ export function AudiencePages(): ReactElement {
                     </div>
                   </div>
 
-                  {sortedProfiles.length === 0 ? (
+                  {totalItems === 0 ? (
                     <div className="mx-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center md:mx-0">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
                         <UserPlus className="h-5 w-5" aria-hidden="true" />
@@ -1116,12 +1190,12 @@ export function AudiencePages(): ReactElement {
                       {/* Pagination */}
                       <div className="flex items-center justify-between border-t border-border px-4 py-3">
                         <p className="text-sm text-muted-foreground">
-                          Showing {(currentPage - 1) * itemsPerPage + 1}-
-                          {Math.min(
-                            currentPage * itemsPerPage,
-                            sortedProfiles.length
-                          )}{" "}
-                          of {sortedProfiles.length}
+                          Showing{" "}
+                          {totalItems === 0
+                            ? 0
+                            : (currentPage - 1) * itemsPerPage + 1}
+                          - {Math.min(currentPage * itemsPerPage, totalItems)}{" "}
+                          of {totalItems}
                         </p>
                         <div className="flex items-center gap-2">
                           <button
@@ -1196,10 +1270,13 @@ export function AudiencePages(): ReactElement {
                           </button>
                           <button
                             onClick={handleBulkDelete}
+                            disabled={deleteProfilesMutation.isPending}
                             className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
                           >
                             <Trash2 className="h-4 w-4" />
-                            Delete
+                            {deleteProfilesMutation.isPending
+                              ? "Deleting..."
+                              : "Delete"}
                           </button>
                           <div className="h-4 w-px bg-border" />
                           <button

@@ -1,24 +1,36 @@
-export interface Message {
-  id: number;
-  from: string;
-  to: string;
-  time: string;
-  content: string;
+export interface InboxLabel {
+  id: string;
+  name: string;
+  color: string;
 }
 
-export interface Email {
-  id: number;
+export interface InboxMessage {
+  id: string;
+  threadId: string;
   from: string;
-  email: string;
-  profileId: string;
-  avatar: string;
+  to: string[];
+  createdAt: string;
+  content: string;
+  subject?: string;
+  direction?: "inbound" | "outbound";
+  attachments?: unknown;
+}
+
+export interface InboxThreadListItem {
+  id: string;
+  folder?: "INBOX" | "SENT" | "ARCHIVE" | "TRASH";
+  from?: string;
+  fromEmail?: string;
   subject: string;
-  preview: string;
-  time: string;
-  date: string;
-  unread: boolean;
+  snippet: string;
+  updatedAt?: string;
+  createdAt?: string;
+  unreadCount: number;
   starred: boolean;
-  hasAttachment: boolean;
-  campaign: string;
-  thread: Message[];
+  hasAttachment?: boolean;
+  labels?: InboxLabel[];
+}
+
+export interface InboxThreadDetail extends InboxThreadListItem {
+  messages: InboxMessage[];
 }

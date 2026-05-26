@@ -1,58 +1,75 @@
 import React from "react";
 
-import { type Email } from "../types";
+import { type InboxThreadDetail, type InboxThreadListItem } from "../types";
 
 interface ThreadProps {
-  selectedEmail: Email;
+  thread: InboxThreadDetail | InboxThreadListItem;
 }
 
-const Thread = ({ selectedEmail }: ThreadProps) => {
+const Thread = ({ thread }: ThreadProps) => {
+  const messages =
+    "messages" in thread && Array.isArray(thread.messages)
+      ? thread.messages
+      : [];
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="mx-auto max-w-4xl space-y-4">
-        {selectedEmail.thread.map((message) => {
-          const isYou = message.from === "You";
-          return (
-            <div
-              key={message.id}
-              className={`flex ${isYou ? "justify-end" : "justify-start"}`}
-            >
+        {messages.length === 0 ? (
+          <div className="text-sm text-muted-foreground">Loading thread…</div>
+        ) : (
+          messages.map((message) => {
+            const isYou =
+              message.direction === "outbound" ||
+              message.from.toLowerCase().includes("you");
+            return (
               <div
-                className={`flex max-w-[80%] gap-2 ${isYou ? "flex-row-reverse" : "flex-row"}`}
+                key={message.id}
+                className={`flex ${isYou ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-                    isYou
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
-                  }`}
+                  className={`flex max-w-[80%] gap-2 ${isYou ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  {isYou ? "Y" : selectedEmail.avatar}
-                </div>
-                <div>
                   <div
-                    className={`rounded-2xl px-4 py-3 ${
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
                       isYou
-                        ? "rounded-br-md bg-primary text-primary-foreground"
-                        : "rounded-bl-md bg-card text-foreground border border-border"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {message.content}
+                    {isYou
+                      ? "Y"
+                      : (thread.from ?? thread.subject ?? "?")
+                          .trim()
+                          .slice(0, 1)
+                          .toUpperCase()}
+                  </div>
+                  <div>
+                    <div
+                      className={`rounded-2xl px-4 py-3 ${
+                        isYou
+                          ? "rounded-br-md bg-primary text-primary-foreground"
+                          : "rounded-bl-md bg-card text-foreground border border-border"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {message.content}
+                      </p>
+                    </div>
+                    <p
+                      className={`mt-1 text-xs text-muted-foreground ${
+                        isYou ? "text-right" : "text-left"
+                      }`}
+                    >
+                      {message.createdAt
+                        ? new Date(message.createdAt).toLocaleString()
+                        : "—"}
                     </p>
                   </div>
-                  <p
-                    className={`mt-1 text-xs text-muted-foreground ${
-                      isYou ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {message.time}
-                  </p>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );

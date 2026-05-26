@@ -1,6 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { isJsonObject } from "@/lib/utils";
+import {
+  appendMessageToThread,
+  createLabel,
+  createThreadWithMessage,
+  ensureDefaultLabels,
+  getInboxStore,
+  inboxEvents,
+  type InboxFolder,
+} from "@/server/inbox-state";
 
 export const dynamic = "force-dynamic";
 
@@ -1073,6 +1082,614 @@ const handleAudienceImportExport = async (
   return null;
 };
 
+const pickUserKey = (req: NextRequest): string => {
+  const auth = extractBearer(req.headers.get("authorization"));
+  if (auth) return `bearer:${auth.slice(0, 16)}`;
+  const cookie = req.headers.get("cookie") ?? "";
+  const token = extractTokenFromCookie(cookie);
+  if (token) return `cookie:${token.slice(0, 16)}`;
+  const sessionMatch =
+    /(^|;\s*)(__Secure-)?better-auth\.session_token=([^;]+)/.exec(cookie) ??
+    /(^|;\s*)(__Host-)?better-auth\.session_token=([^;]+)/.exec(cookie);
+  const session = sessionMatch?.[3] ?? "";
+  if (session) return `session:${decodeURIComponent(session).slice(0, 16)}`;
+  return "session";
+};
+
+const toBool = (raw: string | null): boolean | null => {
+  if (!raw) return null;
+  const v = raw.trim().toLowerCase();
+  if (v === "true" || v === "1") return true;
+  if (v === "false" || v === "0") return false;
+  return null;
+};
+
+const toInt = (raw: string | null, fallback: number): number => {
+  if (!raw) return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(1, Math.floor(n));
+};
+
+const clampInt = (n: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, n));
+
+const toFolder = (raw: string | null): InboxFolder | null => {
+  if (!raw) return null;
+  const v = raw.trim().toUpperCase();
+  if (v === "INBOX" || v === "SENT" || v === "ARCHIVE" || v === "TRASH") {
+    return v as InboxFolder;
+  }
+  return null;
+};
+
+const sendEmailViaAcs = async (input: {
+  fromEmail: string;
+  to: string[];
+  subject: string;
+  content: string;
+}) => {
+  const conn = (process.env.AZURE_COMMUNICATION_CONNECTION_STRING ?? "").trim();
+  const from = (
+    process.env.AZURE_COMMUNICATION_EMAIL_FROM ?? input.fromEmail
+  ).trim();
+  if (conn.length === 0 || from.length === 0) return;
+
+  try {
+    const mod = (await import("@azure/communication-email")) as unknown as {
+      EmailClient?: new (connectionString: string) => {
+        beginSend: (message: unknown) => Promise<unknown>;
+      };
+    };
+    if (!mod.EmailClient) return;
+    const client = new mod.EmailClient(conn);
+    const recipients = input.to.map((address) => ({ address }));
+    await client.beginSend({
+      senderAddress: from,
+      content: {
+        subject: input.subject,
+        plainText: input.content,
+        html: `<pre>${input.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`,
+      },
+      recipients: { to: recipients },
+    });
+  } catch (_e) {
+    String(_e);
+  }
+};
+
+const handleInbox = async (
+  req: NextRequest,
+  path: string[],
+  method: string
+) => {
+  if (path.length === 0 || path[0] !== "inbox") return null;
+
+  const orgId = requireOrgId(req);
+  if (!orgId) {
+    return okJson(
+      req,
+      {
+        success: false,
+        error: { code: "BAD_REQUEST", message: "Missing x-org-id header" },
+      },
+      400
+    );
+  }
+
+  if (!hasAnyAuth(req)) {
+    return okJson(
+      req,
+      {
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "Authentication failed" },
+      },
+      401
+    );
+  }
+
+  const userKey = pickUserKey(req);
+  const store = getInboxStore(orgId, userKey);
+  ensureDefaultLabels(store);
+
+  const sub = path[1] ?? "";
+  const nowIso = () => new Date().toISOString();
+
+  const computeUnread = () => {
+    let unreadCount = 0;
+    for (const t of store.threads.values()) {
+      if (t.folder === "TRASH") continue;
+      if (t.unreadCount > 0) unreadCount += t.unreadCount;
+    }
+    return unreadCount;
+  };
+
+  if (sub === "labels") {
+    if (method === "GET") {
+      return okJson(req, { items: Array.from(store.labels.values()) });
+    }
+    if (method === "POST") {
+      const body = await readJsonSafe(req);
+      const name =
+        isJsonObject(body) && typeof body.name === "string"
+          ? body.name.trim()
+          : "";
+      const color =
+        isJsonObject(body) && typeof body.color === "string"
+          ? body.color.trim()
+          : undefined;
+      if (name.length === 0) {
+        return okJson(
+          req,
+          {
+            success: false,
+            error: { code: "BAD_REQUEST", message: "Missing name" },
+          },
+          400
+        );
+      }
+      const created = createLabel(store, { name, color });
+      return okJson(req, created, 201);
+    }
+    return okJson(
+      req,
+      {
+        success: false,
+        error: { code: "METHOD_NOT_ALLOWED", message: "Not supported" },
+      },
+      405
+    );
+  }
+
+  if (sub === "drafts") {
+    if (method === "GET") {
+      return okJson(req, { items: Array.from(store.drafts.values()) });
+    }
+    if (method === "POST") {
+      const body = await readJsonSafe(req);
+      const content =
+        isJsonObject(body) && typeof body.content === "string"
+          ? body.content
+          : "";
+      const to =
+        isJsonObject(body) && Array.isArray(body.to)
+          ? body.to.filter((v: unknown) => typeof v === "string")
+          : undefined;
+      const subject =
+        isJsonObject(body) && typeof body.subject === "string"
+          ? body.subject
+          : undefined;
+      const attachments = isJsonObject(body) ? body.attachments : undefined;
+
+      const id = randomJobId();
+      const draft = {
+        id,
+        to,
+        subject,
+        content,
+        attachments,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      store.drafts.set(id, draft);
+      return okJson(req, draft, 201);
+    }
+
+    if (method === "PUT" && path.length >= 3) {
+      const draftId = path[2] ?? "";
+      const existing = store.drafts.get(draftId);
+      if (!existing)
+        return okJson(
+          req,
+          {
+            success: false,
+            error: { code: "NOT_FOUND", message: "Draft not found" },
+          },
+          404
+        );
+      const body = await readJsonSafe(req);
+      const next = { ...existing };
+      if (isJsonObject(body) && Array.isArray(body.to)) {
+        next.to = body.to.filter((v: unknown) => typeof v === "string");
+      }
+      if (isJsonObject(body) && typeof body.subject === "string")
+        next.subject = body.subject;
+      if (isJsonObject(body) && typeof body.content === "string")
+        next.content = body.content;
+      if (isJsonObject(body) && "attachments" in body)
+        next.attachments = body.attachments;
+      next.updatedAt = nowIso();
+      store.drafts.set(draftId, next);
+      return okJson(req, next);
+    }
+
+    return okJson(
+      req,
+      {
+        success: false,
+        error: { code: "METHOD_NOT_ALLOWED", message: "Not supported" },
+      },
+      405
+    );
+  }
+
+  if (sub === "search" && method === "GET") {
+    const q = (req.nextUrl.searchParams.get("q") ?? "").trim().toLowerCase();
+    const limit = clampInt(
+      toInt(req.nextUrl.searchParams.get("limit"), 20),
+      1,
+      200
+    );
+    const threads: unknown[] = [];
+    const messages: unknown[] = [];
+    if (q.length > 0) {
+      for (const t of store.threads.values()) {
+        if (threads.length >= limit) break;
+        const hit =
+          t.subject.toLowerCase().includes(q) ||
+          t.snippet.toLowerCase().includes(q);
+        if (hit) threads.push(t);
+      }
+      for (const m of store.messages.values()) {
+        if (messages.length >= limit) break;
+        const hit =
+          m.subject.toLowerCase().includes(q) ||
+          m.content.toLowerCase().includes(q) ||
+          m.from.toLowerCase().includes(q);
+        if (hit) messages.push(m);
+      }
+    }
+    return okJson(req, { threads, messages });
+  }
+
+  if (sub === "messages" && method === "POST") {
+    const body = await readJsonSafe(req);
+    const subject =
+      isJsonObject(body) && typeof body.subject === "string"
+        ? body.subject
+        : "";
+    const content =
+      isJsonObject(body) && typeof body.content === "string"
+        ? body.content
+        : "";
+    const fromEmail =
+      isJsonObject(body) && typeof body.fromEmail === "string"
+        ? body.fromEmail
+        : "you@onchainsuite.com";
+    const rawTo = isJsonObject(body) ? body.to : null;
+    const to =
+      typeof rawTo === "string"
+        ? [rawTo]
+        : Array.isArray(rawTo)
+          ? rawTo.filter((v: unknown) => typeof v === "string")
+          : [];
+    if (
+      to.length === 0 ||
+      subject.trim().length === 0 ||
+      content.trim().length === 0
+    ) {
+      return okJson(
+        req,
+        { ok: false, message: "Missing to/subject/content" },
+        400
+      );
+    }
+
+    const { thread, message } = createThreadWithMessage(store, {
+      threadId: "",
+      from: fromEmail,
+      to,
+      subject,
+      content,
+      attachments: isJsonObject(body) ? body.attachments : undefined,
+      direction: "outbound",
+    });
+    thread.folder = "SENT";
+    thread.unreadCount = 0;
+    thread.updatedAt = nowIso();
+    store.threads.set(thread.id, thread);
+
+    inboxEvents.emit("new_message", { orgId, threadId: thread.id, message });
+    inboxEvents.emit("thread_updated", { orgId, threadId: thread.id });
+    inboxEvents.emit("unread_count_changed", {
+      orgId,
+      unreadCount: computeUnread(),
+    });
+
+    void sendEmailViaAcs({ fromEmail, to, subject, content });
+
+    return okJson(
+      req,
+      { ok: true, threadId: thread.id, messageId: message.id },
+      202
+    );
+  }
+
+  if (sub === "threads") {
+    if (method === "GET" && path.length === 3 && path[2] === "unread-count") {
+      return okJson(req, { unreadCount: computeUnread() });
+    }
+
+    if (method === "GET" && path.length === 2) {
+      const folder =
+        toFolder(req.nextUrl.searchParams.get("folder")) ?? "INBOX";
+      const unread = toBool(req.nextUrl.searchParams.get("unread"));
+      const starred = toBool(req.nextUrl.searchParams.get("starred"));
+      const labelId = (req.nextUrl.searchParams.get("labelId") ?? "").trim();
+      const q = (req.nextUrl.searchParams.get("q") ?? "").trim().toLowerCase();
+      const page = toInt(req.nextUrl.searchParams.get("page"), 1);
+      const limit = clampInt(
+        toInt(req.nextUrl.searchParams.get("limit"), 50),
+        1,
+        200
+      );
+
+      const all = Array.from(store.threads.values())
+        .filter((t) => t.folder === folder)
+        .filter((t) =>
+          unread === null
+            ? true
+            : unread
+              ? t.unreadCount > 0
+              : t.unreadCount === 0
+        )
+        .filter((t) => (starred === null ? true : t.starred === starred))
+        .filter((t) => (labelId ? t.labelIds.includes(labelId) : true))
+        .filter((t) => {
+          if (q.length === 0) return true;
+          if (
+            t.subject.toLowerCase().includes(q) ||
+            t.snippet.toLowerCase().includes(q)
+          )
+            return true;
+          for (const mid of t.messageIds) {
+            const m = store.messages.get(mid);
+            if (!m) continue;
+            if (m.content.toLowerCase().includes(q)) return true;
+          }
+          return false;
+        })
+        .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+
+      const totalItems = all.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+      const safePage = clampInt(page, 1, totalPages);
+      const start = (safePage - 1) * limit;
+      const items = all.slice(start, start + limit).map((t) => {
+        const labels = t.labelIds
+          .map((id) => store.labels.get(id))
+          .filter((x): x is NonNullable<typeof x> => !!x);
+        const lastMessageId = t.messageIds[t.messageIds.length - 1] ?? "";
+        const lastMessage = lastMessageId
+          ? store.messages.get(lastMessageId)
+          : null;
+        const from =
+          lastMessage?.direction === "inbound"
+            ? lastMessage.from
+            : (lastMessage?.to?.[0] ?? lastMessage?.from ?? "");
+        const fromEmail =
+          lastMessage?.direction === "inbound" ? lastMessage.from : "";
+        const hasAttachment = !!lastMessage?.attachments;
+        return { ...t, labels, from, fromEmail, hasAttachment };
+      });
+
+      return okJson(req, {
+        items,
+        meta: {
+          totalItems,
+          totalPages,
+          page: safePage,
+          limit,
+          hasPreviousPage: safePage > 1,
+          hasNextPage: safePage < totalPages,
+        },
+      });
+    }
+
+    if (path.length >= 3) {
+      const threadId = path[2] ?? "";
+      const thread = store.threads.get(threadId);
+      if (!thread) {
+        return okJson(
+          req,
+          {
+            success: false,
+            error: { code: "NOT_FOUND", message: "Thread not found" },
+          },
+          404
+        );
+      }
+
+      if (method === "GET" && path.length === 3) {
+        const messages = thread.messageIds
+          .slice(-200)
+          .map((id) => store.messages.get(id))
+          .filter((m): m is NonNullable<typeof m> => !!m);
+        const labels = thread.labelIds
+          .map((id) => store.labels.get(id))
+          .filter((l): l is NonNullable<typeof l> => !!l);
+        return okJson(req, { ...thread, labels, messages });
+      }
+
+      if (method === "GET" && path.length === 4 && path[3] === "messages") {
+        const cursor = (req.nextUrl.searchParams.get("cursor") ?? "").trim();
+        const limit = clampInt(
+          toInt(req.nextUrl.searchParams.get("limit"), 50),
+          1,
+          200
+        );
+        const ids = thread.messageIds;
+        const startIdx = cursor
+          ? Math.max(0, ids.indexOf(cursor) + 1)
+          : Math.max(0, ids.length - limit);
+        const slice = ids.slice(startIdx, startIdx + limit);
+        const items = slice
+          .map((id) => store.messages.get(id))
+          .filter((m): m is NonNullable<typeof m> => !!m);
+        const nextCursor =
+          startIdx + limit < ids.length
+            ? (slice[slice.length - 1] ?? null)
+            : null;
+        return okJson(req, { items, nextCursor });
+      }
+
+      if (method === "POST" && path.length === 4 && path[3] === "messages") {
+        const body = await readJsonSafe(req);
+        const content =
+          isJsonObject(body) && typeof body.content === "string"
+            ? body.content
+            : "";
+        const fromEmail =
+          isJsonObject(body) && typeof body.fromEmail === "string"
+            ? body.fromEmail
+            : "you@onchainsuite.com";
+        const explicitTo =
+          isJsonObject(body) && typeof body.to === "string"
+            ? body.to.trim()
+            : "";
+        const toFallback = (() => {
+          const ids = [...thread.messageIds].reverse();
+          for (const id of ids) {
+            const m = store.messages.get(id);
+            if (!m) continue;
+            if (m.direction === "inbound") return m.from;
+          }
+          return "";
+        })();
+        const to = (explicitTo || toFallback).trim();
+        if (content.trim().length === 0) {
+          return okJson(req, { ok: false, message: "Missing content" }, 400);
+        }
+        if (to.length === 0) {
+          return okJson(req, { ok: false, message: "Missing recipient" }, 400);
+        }
+
+        const next = appendMessageToThread(store, threadId, {
+          from: fromEmail,
+          to: [to],
+          subject: thread.subject,
+          content,
+          attachments: isJsonObject(body) ? body.attachments : undefined,
+          direction: "outbound",
+        });
+        if (!next)
+          return okJson(req, { ok: false, message: "Thread not found" }, 404);
+
+        inboxEvents.emit("new_message", {
+          orgId,
+          threadId,
+          message: next.message,
+        });
+        inboxEvents.emit("thread_updated", { orgId, threadId });
+        inboxEvents.emit("unread_count_changed", {
+          orgId,
+          unreadCount: computeUnread(),
+        });
+
+        void sendEmailViaAcs({
+          fromEmail,
+          to: [to],
+          subject: thread.subject,
+          content,
+        });
+
+        return okJson(req, { ok: true, messageId: next.message.id }, 202);
+      }
+
+      if (method === "PUT" && path.length === 4 && path[3] === "read") {
+        thread.unreadCount = 0;
+        thread.updatedAt = nowIso();
+        store.threads.set(threadId, thread);
+        inboxEvents.emit("thread_updated", {
+          orgId,
+          threadId,
+          patch: { unreadCount: 0 },
+        });
+        inboxEvents.emit("unread_count_changed", {
+          orgId,
+          unreadCount: computeUnread(),
+        });
+        return okJson(req, { ok: true });
+      }
+
+      if (method === "PUT" && path.length === 4 && path[3] === "unread") {
+        thread.unreadCount = thread.unreadCount > 0 ? thread.unreadCount : 1;
+        thread.updatedAt = nowIso();
+        store.threads.set(threadId, thread);
+        inboxEvents.emit("thread_updated", {
+          orgId,
+          threadId,
+          patch: { unreadCount: thread.unreadCount },
+        });
+        inboxEvents.emit("unread_count_changed", {
+          orgId,
+          unreadCount: computeUnread(),
+        });
+        return okJson(req, { ok: true });
+      }
+
+      if (method === "PUT" && path.length === 4 && path[3] === "star") {
+        const body = await readJsonSafe(req);
+        const provided =
+          isJsonObject(body) && typeof body.starred === "boolean"
+            ? body.starred
+            : null;
+        thread.starred = provided === null ? !thread.starred : provided;
+        thread.updatedAt = nowIso();
+        store.threads.set(threadId, thread);
+        inboxEvents.emit("thread_updated", {
+          orgId,
+          threadId,
+          patch: { starred: thread.starred },
+        });
+        return okJson(req, { ok: true, starred: thread.starred });
+      }
+
+      if (method === "PUT" && path.length === 4 && path[3] === "label") {
+        const body = await readJsonSafe(req);
+        const add =
+          isJsonObject(body) && Array.isArray(body.add)
+            ? body.add.filter((v: unknown) => typeof v === "string")
+            : [];
+        const remove =
+          isJsonObject(body) && Array.isArray(body.remove)
+            ? body.remove.filter((v: unknown) => typeof v === "string")
+            : [];
+        const set = new Set(thread.labelIds);
+        add.forEach((id: string) => set.add(id));
+        remove.forEach((id: string) => set.delete(id));
+        thread.labelIds = Array.from(set);
+        thread.updatedAt = nowIso();
+        store.threads.set(threadId, thread);
+        const labels = thread.labelIds
+          .map((id) => store.labels.get(id))
+          .filter((l): l is NonNullable<typeof l> => !!l);
+        inboxEvents.emit("thread_updated", {
+          orgId,
+          threadId,
+          patch: { labelIds: thread.labelIds },
+        });
+        return okJson(req, { ok: true, labels });
+      }
+
+      return okJson(
+        req,
+        {
+          success: false,
+          error: { code: "METHOD_NOT_ALLOWED", message: "Not supported" },
+        },
+        405
+      );
+    }
+  }
+
+  return okJson(
+    req,
+    { success: false, error: { code: "NOT_FOUND", message: "Not found" } },
+    404
+  );
+};
+
 const ensureBackendAuthHeaders = (req: NextRequest, headers: Headers) => {
   const tokenFromAuth = extractBearer(headers.get("authorization"));
   const tokenFromHeader =
@@ -1119,6 +1736,9 @@ const forward = async (
     method
   );
   if (audienceImportExport) return audienceImportExport;
+
+  const inbox = await handleInbox(req, path, method);
+  if (inbox) return inbox;
 
   if (method === "OPTIONS" && cors) {
     return new NextResponse(null, {

@@ -4,36 +4,108 @@ import { Brain, Plus, Search, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import {
+  intelligenceService,
+  type IntelligenceSegment,
+} from "../../intelligence.service";
 import { type Segment } from "../../types";
 
 interface SegmentsTabProps {
-  savedSegments: Segment[];
-  onDeleteSegment: (id: string) => void;
   openEmailComposer: (recipient: unknown | null) => void;
+  savedSegments?: Segment[];
+  onDeleteSegment?: (segmentId: string) => void;
 }
 
-export function SegmentsTab({
-  savedSegments,
-  onDeleteSegment,
-  openEmailComposer,
-}: SegmentsTabProps) {
+const toUiSegment = (input: IntelligenceSegment): Segment => {
+  const size =
+    typeof input.size === "number"
+      ? input.size
+      : typeof input.matchCount === "number"
+        ? input.matchCount
+        : undefined;
+  const lastUpdated =
+    typeof input.updatedAt === "string"
+      ? input.updatedAt
+      : typeof input.lastUsedAt === "string"
+        ? input.lastUsedAt
+        : undefined;
+  return {
+    id: input.id,
+    name: input.name,
+    matchCount: size,
+    lastUpdated,
+    isEmailable: true,
+  };
+};
+
+export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(
     null
   );
 
-  const filteredSegments = useMemo(
-    () =>
-      savedSegments.filter((seg) =>
-        seg.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    [savedSegments, searchQuery]
-  );
+  const queryClient = useQueryClient();
+  const normalizedSearch = searchQuery.trim();
+
+  const segmentsQuery = useQuery({
+    queryKey: ["intelligence", "segments", { search: normalizedSearch }],
+    queryFn: async () => {
+      const res = await intelligenceService.listSegments({
+        search: normalizedSearch.length > 0 ? normalizedSearch : undefined,
+        page: 1,
+        limit: 100,
+      });
+      const root = Array.isArray(res)
+        ? res
+        : ((res as { items?: IntelligenceSegment[] }).items ?? []);
+      return (Array.isArray(root) ? root : []).map(toUiSegment);
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   const selectedSegment = useMemo(
-    () => savedSegments.find((seg) => seg.id === selectedSegmentId),
-    [savedSegments, selectedSegmentId]
+    () => segmentsQuery.data?.find((seg) => seg.id === selectedSegmentId),
+    [segmentsQuery.data, selectedSegmentId]
   );
+
+  const deleteMutation = useMutation({
+    mutationFn: async (segmentId: string) => {
+      await intelligenceService.deleteSegment(segmentId);
+    },
+    onSuccess: async () => {
+      setSelectedSegmentId(null);
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "segments"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["intelligence", "segments", "metrics"],
+      });
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to delete segment";
+      window.alert(message);
+    },
+  });
+
+  const segmentDetailQuery = useQuery({
+    queryKey: ["intelligence", "segments", selectedSegmentId],
+    queryFn: async () => {
+      if (!selectedSegmentId) return null;
+      return intelligenceService.getSegment(selectedSegmentId);
+    },
+    enabled: !!selectedSegmentId,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const segmentSize =
+    typeof segmentDetailQuery.data?.size === "number"
+      ? segmentDetailQuery.data.size
+      : (selectedSegment?.matchCount ?? 0);
 
   return (
     <div className="flex gap-6">
@@ -64,19 +136,13 @@ export function SegmentsTab({
               <h3 className="font-medium">Saved Segments</h3>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">
-                  {filteredSegments.length} results
+                  {(segmentsQuery.data?.length ?? 0).toLocaleString()} results
                 </span>
-                <div className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs">
-                  <span className="rounded bg-muted px-2 py-0.5 text-[10px]">
-                    email matched
-                  </span>
-                  <span className="text-muted-foreground">84%</span>
-                </div>
               </div>
             </div>
           </div>
 
-          {filteredSegments.length === 0 ? (
+          {(segmentsQuery.data?.length ?? 0) === 0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
                 <Brain className="h-5 w-5" aria-hidden="true" />
@@ -112,7 +178,7 @@ export function SegmentsTab({
                 </tr>
               </thead>
               <tbody>
-                {filteredSegments.map((segment) => (
+                {(segmentsQuery.data ?? []).map((segment) => (
                   <tr
                     key={segment.id}
                     className={`border-b border-border/50 transition-colors ${
@@ -154,7 +220,7 @@ export function SegmentsTab({
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm font-medium text-foreground">
-                        {segment.matchCount?.toLocaleString() ?? 0}
+                        {(segment.matchCount ?? 0).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -163,26 +229,31 @@ export function SegmentsTab({
                           <div className="h-full rounded-full bg-primary" />
                         </div>
                         <span className="text-sm font-medium text-primary">
-                          84%
+                          —
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm font-medium text-primary">
-                        {segment.revenue ?? "+$45k"}
+                        {segment.revenue ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs text-muted-foreground">
-                        2d ago
+                        {segment.lastUpdated ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteSegment(segment.id);
+                          const ok = window.confirm(
+                            `Delete segment "${segment.name}"? This cannot be undone.`
+                          );
+                          if (!ok) return;
+                          deleteMutation.mutate(segment.id);
                         }}
+                        disabled={deleteMutation.isPending}
                         className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -206,13 +277,13 @@ export function SegmentsTab({
               <div>
                 <p className="text-xs text-muted-foreground">Profiles</p>
                 <p className="text-xl font-semibold">
-                  {selectedSegment.matchCount ?? 0}
+                  {segmentSize.toLocaleString()}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Email Match</p>
                 <p className="text-xl font-semibold text-secondary-foreground">
-                  84%
+                  —
                 </p>
               </div>
             </div>

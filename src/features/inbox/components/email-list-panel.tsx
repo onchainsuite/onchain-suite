@@ -7,10 +7,12 @@ import {
   Send,
   Star,
 } from "lucide-react";
-import Link from "next/link";
 import React, { type RefObject } from "react";
 
-import { type Email } from "../types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { inboxService } from "../inbox.service";
+import { type InboxThreadListItem } from "../types";
 
 interface Folder {
   name: string;
@@ -19,12 +21,13 @@ interface Folder {
 }
 
 interface EmailListPanelProps {
-  filteredEmails: Email[];
-  selectedEmail: Email | null;
-  setSelectedEmail: (email: Email) => void;
-  selectedEmails: number[];
+  threads: InboxThreadListItem[];
+  isLoading: boolean;
+  selectedThreadId: string | null;
+  setSelectedThreadId: (threadId: string) => void;
+  selectedThreadIds: string[];
   toggleSelectAll: () => void;
-  toggleEmailSelection: (id: number) => void;
+  toggleThreadSelection: (threadId: string) => void;
   folders: Folder[];
   selectedFolder: string;
   setSelectedFolder: (folder: string) => void;
@@ -33,16 +36,17 @@ interface EmailListPanelProps {
   searchInputRef: RefObject<HTMLInputElement | null>;
   emailListRef: RefObject<HTMLDivElement | null>;
   focusedIndex: number;
-  setSelectedEmails: (ids: number[]) => void;
+  setSelectedThreadIds: (ids: string[]) => void;
 }
 
 const EmailListPanel = ({
-  filteredEmails,
-  selectedEmail,
-  setSelectedEmail,
-  selectedEmails,
+  threads,
+  isLoading,
+  selectedThreadId,
+  setSelectedThreadId,
+  selectedThreadIds,
   toggleSelectAll,
-  toggleEmailSelection,
+  toggleThreadSelection,
   folders,
   selectedFolder,
   setSelectedFolder,
@@ -51,8 +55,17 @@ const EmailListPanel = ({
   searchInputRef,
   emailListRef,
   focusedIndex,
-  setSelectedEmails,
+  setSelectedThreadIds,
 }: EmailListPanelProps) => {
+  const queryClient = useQueryClient();
+  const toggleStarMutation = useMutation({
+    mutationFn: async (threadId: string) => inboxService.toggleThreadStar(threadId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["inbox", "threads"] });
+      await queryClient.invalidateQueries({ queryKey: ["inbox", "unread-count"] });
+    },
+  });
+
   return (
     <div className="w-80 shrink-0 overflow-y-auto border-r border-border">
       {/* Search + Folder Tabs / Bulk Actions */}
@@ -70,17 +83,17 @@ const EmailListPanel = ({
         </div>
 
         <div className="flex items-center justify-between">
-          {selectedEmails.length > 0 ? (
+          {selectedThreadIds.length > 0 ? (
             // Bulk actions when emails selected
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={selectedEmails.length === filteredEmails.length}
+                checked={selectedThreadIds.length === threads.length}
                 onChange={toggleSelectAll}
                 className="h-3.5 w-3.5 rounded border-border accent-primary"
               />
               <span className="text-xs font-medium text-primary">
-                {selectedEmails.length}
+                {selectedThreadIds.length}
               </span>
               <div className="mx-1 h-4 w-px bg-border" />
               <button
@@ -106,7 +119,7 @@ const EmailListPanel = ({
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedEmails([])}
+                onClick={() => setSelectedThreadIds([])}
                 className="ml-auto rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted"
                 title="Clear selection"
               >
@@ -147,7 +160,16 @@ const EmailListPanel = ({
 
       {/* Email List */}
       <div ref={emailListRef} className="divide-y divide-border">
-        {filteredEmails.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+              <Send className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-foreground">
+              Loading…
+            </h3>
+          </div>
+        ) : threads.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
               <Send className="h-5 w-5" aria-hidden="true" />
@@ -162,11 +184,11 @@ const EmailListPanel = ({
             </p>
           </div>
         ) : (
-          filteredEmails.map((email, index) => (
+          threads.map((thread, index) => (
             <div
-              key={email.id}
+              key={thread.id}
               className={`group relative transition-colors ${
-                selectedEmail?.id === email.id
+                selectedThreadId === thread.id
                   ? "bg-primary/10"
                   : focusedIndex === index
                     ? "bg-card"
@@ -176,23 +198,23 @@ const EmailListPanel = ({
               <div className="absolute left-2 top-4 z-10">
                 <input
                   type="checkbox"
-                  checked={selectedEmails.includes(email.id)}
+                  checked={selectedThreadIds.includes(thread.id)}
                   onChange={(e) => {
                     e.stopPropagation();
-                    toggleEmailSelection(email.id);
+                    toggleThreadSelection(thread.id);
                   }}
                   className="h-3.5 w-3.5 rounded border-border opacity-0 accent-primary transition-opacity group-hover:opacity-100"
                   style={{
-                    opacity: selectedEmails.includes(email.id) ? 1 : undefined,
+                    opacity: selectedThreadIds.includes(thread.id) ? 1 : undefined,
                   }}
                 />
               </div>
 
               <div
-                onClick={() => setSelectedEmail(email)}
+                onClick={() => setSelectedThreadId(thread.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
-                    setSelectedEmail(email);
+                    setSelectedThreadId(thread.id);
                   }
                 }}
                 role="button"
@@ -201,54 +223,52 @@ const EmailListPanel = ({
               >
                 <div className="mb-1 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Link
-                      href={`/audience/${email.profileId}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-transform hover:scale-110 ${
-                        email.unread
+                    <span
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
+                        thread.unreadCount > 0
                           ? "bg-primary/20 text-primary"
                           : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {email.avatar}
-                    </Link>
+                      {(thread.from ?? thread.subject ?? "?").trim().slice(0, 1).toUpperCase()}
+                    </span>
                     <span
                       className={`text-sm ${
-                        email.unread
+                        thread.unreadCount > 0
                           ? "font-semibold text-foreground"
                           : "text-muted-foreground"
                       }`}
                     >
-                      {email.from}
+                      {thread.from && thread.from.length > 0 ? thread.from : "Unknown"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {email.hasAttachment && (
+                    {thread.hasAttachment && (
                       <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
-                    {email.starred && (
+                    {thread.starred && (
                       <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {email.time}
+                      {thread.updatedAt ? new Date(thread.updatedAt).toLocaleString() : "—"}
                     </span>
                   </div>
                 </div>
                 <p
                   className={`mb-1 truncate text-sm ${
-                    email.unread
+                    thread.unreadCount > 0
                       ? "font-medium text-foreground"
                       : "text-muted-foreground"
                   }`}
                 >
-                  {email.subject}
+                  {thread.subject}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {email.preview}
+                  {thread.snippet}
                 </p>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                    {email.campaign}
+                    {(thread.labels?.[0]?.name ?? selectedFolder).toString()}
                   </span>
                   <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
@@ -263,6 +283,7 @@ const EmailListPanel = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        toggleStarMutation.mutate(thread.id);
                       }}
                       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-400"
                       title="Star"

@@ -54,13 +54,21 @@ export function SignInForm({
     return undefined;
   };
 
+  const safeRedirectPath = (raw: string | null): string | null => {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed.startsWith("/")) return null;
+    if (trimmed.startsWith("//")) return null;
+    return trimmed;
+  };
+
   const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
     try {
       const { error } = await authClient.signIn.email({
         email: data.email,
         password: data.password,
-        callbackURL: PRIVATE_ROUTES.CAMPAIGNS,
+        callbackURL: PRIVATE_ROUTES.DASHBOARD,
       });
 
       if (error) {
@@ -71,11 +79,11 @@ export function SignInForm({
       }
 
       toast.success("Successfully signed in!");
-      const redirectTo = searchParams.get("redirectTo");
+      const redirectTo = safeRedirectPath(searchParams.get("redirectTo"));
       if (redirectTo) {
         push(redirectTo);
       } else {
-        push(PRIVATE_ROUTES.CAMPAIGNS);
+        push(PRIVATE_ROUTES.DASHBOARD);
       }
     } catch (error: unknown) {
       console.error("Sign in error:", error);

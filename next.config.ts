@@ -32,6 +32,16 @@ const nextConfig: NextConfig = {
     );
     const clean = backendBase.replace(/\/$/, "");
     return {
+      beforeFiles: [
+        {
+          source: "/ws/inbox",
+          destination: "/api/ws/inbox",
+        },
+        {
+          source: "/ws/inbox/:path*",
+          destination: "/api/ws/inbox",
+        },
+      ],
       fallback: [
         {
           source: "/api/v1/:path*",

@@ -2,20 +2,20 @@ import { Archive, Check, Send, Star } from "lucide-react";
 import React from "react";
 
 interface FloatingBulkProps {
-  selectedEmails: number[];
-  setSelectedEmails: (ids: number[]) => void;
+  selectedThreadIds: string[];
+  setSelectedThreadIds: (ids: string[]) => void;
 }
 
 const FloatingBulk = ({
-  selectedEmails,
-  setSelectedEmails,
+  selectedThreadIds,
+  setSelectedThreadIds,
 }: FloatingBulkProps) => {
-  if (selectedEmails.length === 0) return null;
+  if (selectedThreadIds.length === 0) return null;
 
   return (
     <div className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
       <span className="text-sm font-medium">
-        {selectedEmails.length} selected
+        {selectedThreadIds.length} selected
       </span>
       <div className="h-4 w-px bg-border" />
       <button
@@ -37,7 +37,7 @@ const FloatingBulk = ({
         <Archive className="h-4 w-4" />
       </button>
       <button
-        onClick={() => setSelectedEmails([])}
+        onClick={() => setSelectedThreadIds([])}
         className="ml-auto rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted"
         title="Clear selection"
       >
