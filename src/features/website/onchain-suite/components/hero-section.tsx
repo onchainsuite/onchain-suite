@@ -9,6 +9,10 @@ import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 export function HeroSection() {
   const { push } = useRouter();
+  const authEntryEnabled =
+    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "true" ||
+    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "1" ||
+    process.env.NODE_ENV === "development";
   // Web3-relevant words for Onchain Suite
   const fromWords = [
     "Wallet Analytics",
@@ -61,13 +65,15 @@ export function HeroSection() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col gap-4 sm:flex-row">
-            <Button
-              size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => push(AUTH_ROUTES.REGISTER)}
-            >
-              Get Started
-            </Button>
+            {authEntryEnabled ? (
+              <Button
+                size="lg"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => push(AUTH_ROUTES.REGISTER)}
+              >
+                Get Started
+              </Button>
+            ) : null}
             <Button
               size="lg"
               variant="outline"

@@ -24,6 +24,10 @@ export function OnchainNavbar() {
   const { isMobileMenuOpen, setIsMobileMenuOpen, handleRouting } =
     useHandNavRouting();
   const { data: session, isPending } = useSession();
+  const authEntryEnabled =
+    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "true" ||
+    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "1" ||
+    process.env.NODE_ENV === "development";
 
   return (
     <Navbar>
@@ -40,22 +44,22 @@ export function OnchainNavbar() {
               <DashboardButton onClick={() => handleRouting("dashboard")} />
               <UserMenu />
             </>
-          ) : (
+          ) : authEntryEnabled ? (
             <>
-              <NavbarButton
-                variant="secondary"
-                onClick={() => handleRouting("login")}
-              >
-                Login
-              </NavbarButton>
-              <NavbarButton
-                variant="primary"
-                onClick={() => handleRouting("signup")}
-              >
-                Get Started
-              </NavbarButton>
+              {/* <NavbarButton
+                  variant="secondary"
+                  onClick={() => handleRouting("login")}
+                >
+                  Login
+                </NavbarButton>
+                <NavbarButton
+                  variant="primary"
+                  onClick={() => handleRouting("signup")}
+                >
+                  Get Started
+                </NavbarButton> */}
             </>
-          )}
+          ) : null}
         </div>
       </NavBody>
 
@@ -101,7 +105,7 @@ export function OnchainNavbar() {
                 </NavbarButton>
                 <UserMenu />
               </>
-            ) : (
+            ) : authEntryEnabled ? (
               <>
                 <NavbarButton
                   onClick={() => handleRouting("login")}
@@ -118,7 +122,7 @@ export function OnchainNavbar() {
                   Get Started
                 </NavbarButton>
               </>
-            )}
+            ) : null}
           </div>
         </MobileNavMenu>
       </MobileNav>

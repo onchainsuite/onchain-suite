@@ -31,6 +31,66 @@ interface SignInFormProps {
   onSwitchToForgotPassword: () => void;
 }
 
+function GoogleOAuthButtons({
+  isLoading,
+  setIsLoading,
+}: {
+  isLoading: boolean;
+  setIsLoading: (next: boolean) => void;
+}) {
+  const { push } = useRouter();
+  const searchParams = useSearchParams();
+
+  const safeRedirectPath = (raw: string | null): string | null => {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed.startsWith("/")) return null;
+    if (trimmed.startsWith("//")) return null;
+    return trimmed;
+  };
+
+  const handleOAuthSignIn = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        const userInfo = await axios.get(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          }
+        );
+
+        await authClient.signIn.social({
+          provider: "google",
+          idToken: userInfo.data.sub,
+        });
+
+        const redirectToRaw = searchParams?.get("redirectTo") ?? null;
+        const redirectTo = safeRedirectPath(redirectToRaw);
+        push(redirectTo ?? PRIVATE_ROUTES.DASHBOARD);
+      } catch (error) {
+        console.error("OAuth error:", error);
+        toast.error("Failed to sign in with Google");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.error("Google login error:", error);
+      toast.error("Google login failed");
+    },
+  });
+
+  return (
+    <OAuthButtons
+      onOAuthSignIn={async (_provider: string) => {
+        handleOAuthSignIn();
+      }}
+      isLoading={isLoading}
+    />
+  );
+}
+
 export function SignInForm({
   onSwitchToSignUp,
   onSwitchToForgotPassword,
@@ -79,7 +139,8 @@ export function SignInForm({
       }
 
       toast.success("Successfully signed in!");
-      const redirectTo = safeRedirectPath(searchParams.get("redirectTo"));
+      const redirectToRaw = searchParams?.get("redirectTo") ?? null;
+      const redirectTo = safeRedirectPath(redirectToRaw);
       if (redirectTo) {
         push(redirectTo);
       } else {
@@ -97,37 +158,9 @@ export function SignInForm({
       setIsLoading(false);
     }
   };
-
-  const handleOAuthSignIn = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setIsLoading(true);
-      try {
-        const userInfo = await axios.get(
-          "https://www.googleapis.com/oauth2/v3/userinfo",
-          {
-            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-          }
-        );
-
-        await authClient.signIn.social({
-          provider: "google",
-          idToken: userInfo.data.sub, // Use the user's Google ID as the ID token
-        });
-
-        // Sync user to our database
-        // await fetch("/api/auth/sync-user", { method: "POST" });
-      } catch (error) {
-        console.error("OAuth error:", error);
-        toast.error(`Failed to sign in with Google`);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onError: (error) => {
-      console.error("Google login error:", error);
-      toast.error("Google login failed");
-    },
-  });
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const isGoogleConfigured =
+    typeof googleClientId === "string" && googleClientId.trim().length > 0;
 
   return (
     <>
@@ -136,10 +169,18 @@ export function SignInForm({
         subtitle="Sign in to your R3tain account"
       />
 
-      <OAuthButtons
-        onOAuthSignIn={async () => handleOAuthSignIn()}
-        isLoading={isLoading}
-      />
+      {isGoogleConfigured ? (
+        <GoogleOAuthButtons isLoading={isLoading} setIsLoading={setIsLoading} />
+      ) : (
+        <OAuthButtons
+          onOAuthSignIn={async (_provider: string) => {
+            toast.error(
+              "Google sign-in is not configured for this environment"
+            );
+          }}
+          isLoading={isLoading}
+        />
+      )}
 
       <div className="my-6">
         <FormDivider />

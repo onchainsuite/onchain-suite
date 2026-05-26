@@ -16,6 +16,10 @@ export function CTASection() {
     offset: ["start start", "end start"],
   });
   const { push } = useRouter();
+  const authEntryEnabled =
+    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "true" ||
+    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "1" ||
+    process.env.NODE_ENV === "development";
 
   const pathLengthFirst = useTransform(scrollYProgress, [0, 0.8], [0.2, 1.2]);
   const pathLengthSecond = useTransform(scrollYProgress, [0, 0.8], [0.15, 1.2]);
@@ -40,13 +44,15 @@ export function CTASection() {
         ]}
       >
         <div className="md:mt-12 mt-8 flex items-center justify-center z-30 gap-3">
-          <Button
-            className="group min-w-[160px] md:text-base text-xs md:px-4 md:py-2 px-2 py-1"
-            onClick={() => push(AUTH_ROUTES.REGISTER)}
-          >
-            Get Started
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Button>
+          {authEntryEnabled ? (
+            <Button
+              className="group min-w-[160px] md:text-base text-xs md:px-4 md:py-2 px-2 py-1"
+              onClick={() => push(AUTH_ROUTES.REGISTER)}
+            >
+              Get Started
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+          ) : null}
           <Button
             variant="outline"
             className="min-w-[160px] md:text-base text-xs md:px-4 md:py-2 px-2 py-1"
