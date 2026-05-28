@@ -25,6 +25,13 @@ import Link from "next/link";
 import React, { type ReactElement, useEffect, useMemo, useState } from "react";
 
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
@@ -45,9 +52,97 @@ import {
   getStatusIcon,
   deriveDisplayName,
   extractWalletFields,
+  extractSocialHandles,
+  getChainMeta,
   hashHue,
   normalizeTags,
 } from "@/features/audience/utils";
+
+type SocialIconLinkProps = {
+  href: string;
+  label: string;
+  children: ReactElement;
+};
+
+const SvgIcon = ({
+  children,
+  viewBox,
+  className,
+}: {
+  children: React.ReactNode;
+  viewBox: string;
+  className?: string;
+}) => {
+  return (
+    <svg
+      viewBox={viewBox}
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+      className={className ?? "h-4 w-4"}
+      fill="currentColor"
+    >
+      {children}
+    </svg>
+  );
+};
+
+const EnsLogo = () => (
+  <SvgIcon viewBox="0 0 24 24" className="h-4 w-4 text-sky-500">
+    <path d="M12 2l8 4.6v10.8L12 22l-8-4.6V6.6L12 2z" opacity="0.9" />
+    <path
+      d="M8.2 8.6h7.6v6.8H8.2V8.6zm1.6 1.6v3.6h4.4v-3.6H9.8z"
+      fill="white"
+    />
+  </SvgIcon>
+);
+
+const XLogo = () => (
+  <SvgIcon viewBox="0 0 24 24" className="h-4 w-4 text-foreground">
+    <path d="M18.6 2H21l-6.6 7.6L22 22h-6.6l-5.1-6.6L4.7 22H2.3l7.1-8.2L2 2h6.7l4.6 6L18.6 2zm-1.2 18h1.3L7.3 3.9H6L17.4 20z" />
+  </SvgIcon>
+);
+
+const DiscordLogo = () => (
+  <SvgIcon viewBox="0 0 24 24" className="h-4 w-4 text-indigo-500">
+    <path d="M19.5 5.4A15 15 0 0 0 16 4.2l-.3.6a13.4 13.4 0 0 1 3.1 1.2c-1.7-2.5-3.5-3.6-3.5-3.6A15.4 15.4 0 0 0 12 2a15.4 15.4 0 0 0-3.3.4S6.9 3.5 5.2 6a13.4 13.4 0 0 1 3.1-1.2L8 4.2A15 15 0 0 0 4.5 5.4C2.3 8.8 2 12.1 2 12.1c1.4 2.1 3.5 3.3 3.5 3.3l.8-1.1c-1.3-.4-1.9-1-1.9-1a9.8 9.8 0 0 0 17.2 0s-.6.6-1.9 1l.8 1.1s2.1-1.2 3.5-3.3c0 0-.3-3.3-2.5-6.7z" />
+    <path
+      d="M9.3 13.2c-.8 0-1.5-.7-1.5-1.6 0-.9.7-1.6 1.5-1.6s1.5.7 1.5 1.6c0 .9-.7 1.6-1.5 1.6zm5.4 0c-.8 0-1.5-.7-1.5-1.6 0-.9.7-1.6 1.5-1.6s1.5.7 1.5 1.6c0 .9-.7 1.6-1.5 1.6z"
+      fill="white"
+    />
+  </SvgIcon>
+);
+
+const TelegramLogo = () => (
+  <SvgIcon viewBox="0 0 24 24" className="h-4 w-4 text-sky-500">
+    <path d="M21.6 4.6c.3-1.2-1-2.2-2.1-1.7L3.4 9.4c-1.3.5-1.2 2.4.2 2.8l4.1 1.2 1.6 5c.4 1.2 2 1.4 2.8.4l2.3-2.8 4.5 3.3c1 .7 2.4.2 2.7-1L21.6 4.6z" />
+    <path
+      d="M8.3 13.1l9.6-6c.2-.1.5.2.3.4l-7.9 7.2-.3 3.3-1.7-4.9z"
+      fill="white"
+      opacity="0.75"
+    />
+  </SvgIcon>
+);
+
+const SocialIconLink = ({ href, label, children }: SocialIconLinkProps) => {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label={label}
+        >
+          {children}
+        </a>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  );
+};
 
 export function AudiencePages(): ReactElement {
   const filterTriggerClassName =
@@ -439,17 +534,21 @@ export function AudiencePages(): ReactElement {
   };
 
   return (
-    <motion.div
-      variants={{
-        initial: { opacity: 0 },
-        animate: { opacity: 1, transition: { duration: 0.4, ease: "easeOut" } },
-      }}
-      initial="initial"
-      animate="animate"
-      className="flex min-h-screen bg-background"
-    >
-      <main className="flex-1 overflow-auto" aria-busy={showPureLoading}>
-        <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8">
+    <TooltipProvider delayDuration={150}>
+      <motion.div
+        variants={{
+          initial: { opacity: 0 },
+          animate: {
+            opacity: 1,
+            transition: { duration: 0.4, ease: "easeOut" },
+          },
+        }}
+        initial="initial"
+        animate="animate"
+        className="flex min-h-screen bg-background"
+      >
+        <main className="flex-1 overflow-auto" aria-busy={showPureLoading}>
+          <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -871,6 +970,11 @@ export function AudiencePages(): ReactElement {
                                   Wallet
                                 </span>
                               </th>
+                              <th className="hidden px-4 py-3 text-left md:table-cell">
+                                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                  Socials
+                                </span>
+                              </th>
                               <th className="px-4 py-3 text-left">
                                 <button
                                   onClick={() => handleSort("healthScore")}
@@ -990,14 +1094,32 @@ export function AudiencePages(): ReactElement {
                                     </div>
                                   </td>
                                   <td className="hidden px-4 py-4 sm:table-cell">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex min-w-0 items-center gap-2">
                                       {profile.wallet.length > 0 ? (
-                                        <code
-                                          className="w-24 text-sm text-muted-foreground"
-                                          title={profile.walletFull}
-                                        >
-                                          {profile.wallet}
-                                        </code>
+                                        <>
+                                          {(() => {
+                                            const chainMeta = getChainMeta(
+                                              profile.chain
+                                            );
+                                            if (!chainMeta) return null;
+                                            return (
+                                              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-secondary/40 px-2 py-1 text-xs font-medium text-muted-foreground">
+                                                <span className="shrink-0">
+                                                  {chainMeta.icon}
+                                                </span>
+                                                <span className="max-w-24 truncate">
+                                                  {chainMeta.name}
+                                                </span>
+                                              </span>
+                                            );
+                                          })()}
+                                          <code
+                                            className="w-24 shrink-0 text-sm text-muted-foreground"
+                                            title={profile.walletFull}
+                                          >
+                                            {profile.wallet}
+                                          </code>
+                                        </>
                                       ) : (
                                         <span className="text-sm text-muted-foreground">
                                           No wallet
@@ -1018,12 +1140,88 @@ export function AudiencePages(): ReactElement {
                                           <Copy className="h-3.5 w-3.5" />
                                         </button>
                                       )}
-                                      {profile.chain.length > 0 && (
-                                        <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                          {profile.chain}
-                                        </span>
-                                      )}
                                     </div>
+                                  </td>
+                                  <td className="hidden px-4 py-4 md:table-cell">
+                                    {(() => {
+                                      const socials = extractSocialHandles(
+                                        profile.attributes
+                                      );
+                                      const items: ReactElement[] = [];
+
+                                      if (socials.ens) {
+                                        const ens = socials.ens;
+                                        items.push(
+                                          <SocialIconLink
+                                            key={`ens:${ens}`}
+                                            href={`https://app.ens.domains/name/${encodeURIComponent(ens)}`}
+                                            label={`ENS: ${ens}`}
+                                          >
+                                            <EnsLogo />
+                                          </SocialIconLink>
+                                        );
+                                      }
+
+                                      if (socials.twitter) {
+                                        const handle = socials.twitter;
+                                        items.push(
+                                          <SocialIconLink
+                                            key={`x:${handle}`}
+                                            href={`https://x.com/${encodeURIComponent(handle)}`}
+                                            label={`X: @${handle}`}
+                                          >
+                                            <XLogo />
+                                          </SocialIconLink>
+                                        );
+                                      }
+
+                                      if (socials.discord) {
+                                        const discord = socials.discord;
+                                        const trimmed = discord.trim();
+                                        const isId = /^[0-9]{16,20}$/.test(
+                                          trimmed
+                                        );
+                                        const href = isId
+                                          ? `https://discord.com/users/${trimmed}`
+                                          : `https://discord.com/users/${encodeURIComponent(trimmed)}`;
+                                        items.push(
+                                          <SocialIconLink
+                                            key={`discord:${trimmed}`}
+                                            href={href}
+                                            label={`Discord: ${discord}`}
+                                          >
+                                            <DiscordLogo />
+                                          </SocialIconLink>
+                                        );
+                                      }
+
+                                      if (socials.telegram) {
+                                        const handle = socials.telegram;
+                                        items.push(
+                                          <SocialIconLink
+                                            key={`tg:${handle}`}
+                                            href={`https://t.me/${encodeURIComponent(handle)}`}
+                                            label={`Telegram: @${handle}`}
+                                          >
+                                            <TelegramLogo />
+                                          </SocialIconLink>
+                                        );
+                                      }
+
+                                      if (items.length === 0) {
+                                        return (
+                                          <span className="text-sm text-muted-foreground">
+                                            —
+                                          </span>
+                                        );
+                                      }
+
+                                      return (
+                                        <div className="flex items-center gap-1.5">
+                                          {items}
+                                        </div>
+                                      );
+                                    })()}
                                   </td>
                                   <td className="px-4 py-4">
                                     <div className="flex items-center gap-2">
@@ -1091,7 +1289,7 @@ export function AudiencePages(): ReactElement {
                                       exit="exit"
                                     >
                                       <td
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="bg-muted/30 px-4 py-4"
                                       >
                                         <div className="grid gap-4 sm:grid-cols-3">
@@ -1293,8 +1491,9 @@ export function AudiencePages(): ReactElement {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </main>
-    </motion.div>
+          </div>
+        </main>
+      </motion.div>
+    </TooltipProvider>
   );
 }

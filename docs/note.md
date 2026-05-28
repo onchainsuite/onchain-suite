@@ -2,7 +2,6 @@
   homepage.
 - Display logo image on the select-orginaztion top-bar when it has been uploaded.
 - In the 'Schedule Campaign' section, the timezone should be the same as the Settings timezone.
-- We need to make sure that organization access is not frequently checked.
 - An extra campaign type which is the in-app push should be created which has farcaster, X, discord, etc. so users are sent notifications or messages.
 
 

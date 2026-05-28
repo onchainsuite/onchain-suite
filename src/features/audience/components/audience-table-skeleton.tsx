@@ -56,6 +56,11 @@ export function AudienceTableSkeleton() {
                     Wallet
                   </span>
                 </th>
+                <th className="hidden px-4 py-3 text-left md:table-cell">
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Socials
+                  </span>
+                </th>
                 <th className="px-4 py-3 text-left">
                   <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Health
@@ -85,6 +90,13 @@ export function AudienceTableSkeleton() {
                   </td>
                   <td className="hidden px-4 py-4 sm:table-cell">
                     <div className="h-6 w-36 rounded skeleton-wave" />
+                  </td>
+                  <td className="hidden px-4 py-4 md:table-cell">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg skeleton-wave" />
+                      <div className="h-7 w-7 rounded-lg skeleton-wave opacity-80" />
+                      <div className="h-7 w-7 rounded-lg skeleton-wave opacity-60" />
+                    </div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">

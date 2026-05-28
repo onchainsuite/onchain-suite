@@ -3,9 +3,7 @@
 import { motion } from "framer-motion";
 
 import { fadeInUp, staggerContainer } from "../../utils";
-import ApiKey from "./api-key";
-import ConnectedApps from "./connected-apps";
-import Webhooks from "./webhooks";
+import InAppIntegration from "./inapp";
 
 export default function IntegrationsSettings() {
   return (
@@ -26,22 +24,19 @@ export default function IntegrationsSettings() {
           variants={fadeInUp}
           className="text-xl font-light tracking-tight text-foreground lg:text-2xl"
         >
-          Developer tools
+          In-app integration
         </motion.h2>
         <motion.p variants={fadeInUp} className="mt-3 text-muted-foreground">
-          API access and webhook configuration
+          Configure SDK keys, allowed origins, and test delivery
         </motion.p>
 
         <motion.div
           variants={fadeInUp}
           className="mt-8 border-t border-border/60 pt-8 space-y-6 lg:mt-10 lg:pt-10 lg:space-y-8"
         >
-          <ApiKey />
-          <Webhooks />
+          <InAppIntegration />
         </motion.div>
       </motion.section>
-
-      <ConnectedApps />
     </motion.div>
   );
 }

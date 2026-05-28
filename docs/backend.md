@@ -15,6 +15,20 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
   - `x-session-token: <token>`
   - Query: `?token=<token>` (or `?sessionToken=<token>`)
 
+### Protocol Server-to-Server Auth (Secret Keys)
+
+Some protocol-facing endpoints accept **secret keys** (`sk_*`) for server-to-server authentication.
+
+- **Header**:
+  - `Authorization: Bearer sk_<env>_<keyId>.<verifier>` or
+    `x-secret-key: sk_<env>_<keyId>.<verifier>`
+- **Org context**: derived from the secret key (no `x-org-id` required for these calls).
+- **Key management (org admin)**:
+  - `GET /integrations/keys/secret`: List secret keys (masked prefixes only).
+  - `POST /integrations/keys/secret`: Create a secret key (Body:
+    `{ environment: "live" | "test", name?: string }`).
+  - `DELETE /integrations/keys/secret/{keyId}`: Revoke a secret key.
+
 ### Auth Routes
 
 - `POST /auth/sign-up/email`: Sign up with email/password.
@@ -66,7 +80,8 @@ BetterAuth configuration). The `x-api-key` header is optional and used for rate 
 - `POST /identity/bind`: Persist encrypted channel binding.
   - **Body**:
     - Required: `{ walletAddress, channelType, valueHash, otp, encryptedValue }`
-    - Optional fields supported by the zk-v2 contract: `{ proof, identityCommitment, walletSignature, source }`
+    - Optional fields supported by the zk-v2 contract:
+      `{ proof, identityCommitment, walletSignature, source }`
 
 Example (issue OTP):
 
@@ -100,15 +115,59 @@ curl -X POST "$BASE_URL/identity/bind" \
 
 - `POST /channels/dispatch`: Create a campaign run record for a fanout.
   - **Body**: `{ automationId, campaignRunId?, walletAddresses?, triggeredBy?, channelsUsed? }`
+- `POST /v2/channels/dispatch`: Protocol server-to-server dispatch (secret-key auth).
+  - **Auth**: `Authorization: Bearer sk_*` or `x-secret-key: sk_*`
 
-### In-app Push (WebSocket)
+### In-app Push (SDK Runtime + WebSocket)
 
-- `WS /inapp` (socket.io namespace)
-  - **Handshake**: `handshake.auth.token` or `Authorization: Bearer <token>`
-  - **Org context**: `handshake.auth.organizationId` or header `x-org-id` (or session active org)
+- `POST /inapp/challenge`: Get a nonce to sign (publishable-key auth).
+  - **Auth**: `x-publishable-key: pk_*` or `Authorization: Bearer pk_*`
+  - **Body**: `{ walletAddress }`
+  - **Returns**: `{ nonceId, message, expiresAt }`
+- `POST /inapp/verify`: Verify signature and mint a short-lived in-app session token.
+  - **Auth**: `x-publishable-key: pk_*` or `Authorization: Bearer pk_*`
+  - **Body**: `{ walletAddress, signature }`
+  - **Returns**: `{ token, wsUrl, expiresAt }`
+- `WS /api/v1/inapp/register` (Socket.IO path)
+  - **Handshake auth token**:
+    - `handshake.auth.token = <token>` (recommended), or `Authorization: Bearer <token>`, or query
+      `?t=<token>`
   - **Client → Server**:
     - `REGISTER` `{ walletAddress }`
-    - `EVENT` `{ campaignRunId, deliveryId, type, walletAddress?, metadata? }`
+    - `EVENT`
+      `{ campaignRunId, deliveryId, type: "delivered"|"viewed"|"dismissed"|"clicked", walletAddress?, metadata? }`
+
+### In-app Integrations (Org Admin)
+
+- `GET /integrations/inapp/status`: Keys + usage + session count for the active org.
+  - **Behavior (lazy publishable keys)**:
+    - Publishable keys (`pk_*`) are created automatically the first time an org hits this endpoint
+      (or any codepath calling `InappConfigService.getOrCreateKeys`).
+    - Storage:
+      `Organization.metadata.inapp.keys = { production: "pk_live_...", test: "pk_test_..." }`
+  - **Returns** (shape may evolve):
+    - `publishableKeys`: `{ production, test }` (preferred) or `publishableKey` (legacy)
+    - `secretKeys`: array of secret key metadata (no raw `sk_*` values)
+    - `sessionCount`, `usage`
+- `GET /integrations/inapp/origins`: List allowed origins.
+- `POST /integrations/inapp/origins`: Add allowed origin (Body:
+  `{ origin: "https://app.example.com", environment: "production"|"staging"|"development" }`).
+- `DELETE /integrations/inapp/origins/{originId}`: Remove allowed origin.
+- `POST /integrations/inapp/test-push`: Send a test push to a wallet (Body:
+  `{ walletAddress, title, body, ctaLabel?, ctaUrl? }`).
+- `POST /integrations/keys/secret`: Create a new secret key token (`sk_*`) (Owner/Admin only).
+  - **Body**: `{ environment: "live"|"test", name? }`
+  - **Returns**: `{ token: "sk_live_..." }` (token is shown once at creation time; save it
+    immediately)
+  - **Storage**: only a verifier/hash is stored:
+    - `Organization.metadata.apiKeys.secretKeys[]` (stores `id`, `environment`, `verifierHash`,
+      timestamps, optional name)
+
+### In-app Protocol Push (Secret Key)
+
+- `POST /inapp/push`: Send an in-app push from a protocol backend (secret-key auth).
+  - **Auth**: `Authorization: Bearer sk_*` or `x-secret-key: sk_*`
+  - **Body**: `{ walletAddress, title, body, automationId?, ctaLabel?, ctaUrl? }`
 
 ### Analytics (Campaign Runs)
 
@@ -230,18 +289,21 @@ All Inbox endpoints are scoped to the active organization + current user:
 - `POST /inbox/threads/{threadId}/messages` — Send reply in an existing thread.
   - **Status**: `202`
   - **Body**: `{ content: string, to?: string, fromEmail?: string, attachments?: any }`
-  - **Notes**: If `to` is omitted, backend attempts to reply to the most recent inbound sender in the thread.
+  - **Notes**: If `to` is omitted, backend attempts to reply to the most recent inbound sender in
+    the thread.
   - **Response**: `{ ok: true, messageId: string }`
 
 - `POST /inbox/messages` — Send a new message (creates a new thread in `SENT`).
   - **Status**: `202`
-  - **Body**: `{ to: string[]|string, subject: string, content: string, fromEmail?: string, attachments?: any }`
+  - **Body**:
+    `{ to: string[]|string, subject: string, content: string, fromEmail?: string, attachments?: any }`
   - **Response**: `{ ok: true, threadId: string, messageId: string }`
 
 ### Thread actions
 
 - `PUT /inbox/threads/{threadId}/read` — Mark thread read (sets `unreadCount = 0`).
-- `PUT /inbox/threads/{threadId}/unread` — Mark thread unread (sets `unreadCount = 1` if currently `0`).
+- `PUT /inbox/threads/{threadId}/unread` — Mark thread unread (sets `unreadCount = 1` if currently
+  `0`).
 - `PUT /inbox/threads/{threadId}/star` — Toggle/set starred.
   - **Body**: `{ starred?: boolean }` (if omitted, toggles)
   - **Response**: `{ ok: true, starred: boolean }`
@@ -316,12 +378,6 @@ All Inbox endpoints are scoped to the active organization + current user:
 ## Intelligence
 
 All Intelligence endpoints are org-scoped (send `x-org-id`) and require authentication.
-
-### MVP behavior (frontend expectations)
-
-- Query execution is async and read-only validated (SELECT-only). The current "execution" returns rows derived from org contacts (wallet/email/score-based fields) rather than running arbitrary SQL against Neon.
-- Segments-from-query stores wallets from the query result into the segment criteria (enough to list profiles via `/intelligence/segments/{segmentId}/profiles`).
-- Reports are campaign-backed MVP responses (basic list/detail/metrics/summary scaffolding).
 
 ### Query
 
@@ -404,7 +460,8 @@ All Automations endpoints are org-scoped (send `x-org-id`) and require authentic
 - `PUT /automations/{automationId}/status`: Quick status toggle. Permissions: Editor+.
   - **Body**: `{ status: "active"|"paused"|"draft"|"archived" }`
 - `POST /automations/{automationId}/publish`: Publish draft → active. Permissions: Editor+.
-- `POST /automations/{automationId}/duplicate`: Duplicate automation → new draft. Permissions: Editor+.
+- `POST /automations/{automationId}/duplicate`: Duplicate automation → new draft. Permissions:
+  Editor+.
 - `DELETE /automations/{automationId}`: Delete automation. Permissions: Editor+.
 - `GET /automations/{automationId}/last-edited`: Last edited timestamp (legacy).
 
@@ -412,7 +469,8 @@ All Automations endpoints are org-scoped (send `x-org-id`) and require authentic
 
 - `GET /automations/templates`: List automation templates (Plays).
 - `GET /automations/templates/{templateId}`: Get template.
-- `POST /automations/templates/{templateId}/apply`: Apply template → create draft automation. Permissions: Editor+.
+- `POST /automations/templates/{templateId}/apply`: Apply template → create draft automation.
+  Permissions: Editor+.
 
 ### Builder
 
@@ -446,14 +504,16 @@ All Automations endpoints are org-scoped (send `x-org-id`) and require authentic
 ## Audience (CRM)
 
 - `GET /audience/overview`: Top-of-page audience stats (org-scoped).
-  - **Response**: `{ total, withWallet, avgHealth, activeCount, coolingCount, coldCount, updatedAt }`
+  - **Response**:
+    `{ total, withWallet, avgHealth, activeCount, coolingCount, coldCount, updatedAt }`
 
 - `GET /audience/profiles`: Audience list/table endpoint (org-scoped).
   - **Query**:
     - `page?` (default `1`)
     - `limit?` (default `50`, max `200`)
     - `q?` (or legacy `search?`)
-    - `status?=verified|pending|unverified` (matches contact metadata `status` / `verificationStatus`)
+    - `status?=verified|pending|unverified` (matches contact metadata `status` /
+      `verificationStatus`)
     - `tag?=<tagName>`
     - `engagement?=active|cooling|cold` (derived from health score thresholds)
     - `hasWallet?=true|false`
@@ -483,15 +543,24 @@ All Automations endpoints are org-scoped (send `x-org-id`) and require authentic
 
 - `GET /audience/profiles/{id}/emails`: Email history (org-scoped).
   - **Query**: `cursor?`, `limit?=50` (max `200`), `from?`, `to?`, `campaignId?`
-  - **Response**: `{ items: [{ id, campaignId, subject, status, sentAt, openedAt?, clickedAt? }], nextCursor }`
+  - **Response**:
+    `{ items: [{ id, campaignId, subject, status, sentAt, openedAt?, clickedAt? }], nextCursor }`
 
-- `GET /audience/profiles/{id}/transactions`: Transactions (Alchemy-backed; cached).
-  - **Query**: `chain?=eth-mainnet|base-mainnet|...`, `cursor?`, `limit?=25` (max `100`), `fromBlock?`, `toBlock?`
-  - **Response**: `{ items: [...], nextCursor, meta: { source: "cache"|"alchemy", refreshedAt? } }`
+- `GET /audience/profiles/{id}/balances`: Wallet balances (GoldRush-backed; cached).
+  - **Query**: `chain?=eth-mainnet|base-mainnet|...`, `noSpam?=true|false` (default `true`)
+  - **Response**:
+    `{ items: [{ contractAddress, symbol, name, decimals, balance, quoteRate?, quote?, isNativeToken?, logoUrl?, type?, isSpam? }], meta: { source, refreshedAt? } }`
 
-- `GET /audience/profiles/{id}/contract-activity`: Contract activity (Alchemy-backed; derived from txns).
+- `GET /audience/profiles/{id}/transactions`: Transactions (GoldRush-backed; cached).
+  - **Query**: `chain?=eth-mainnet|base-mainnet|...`, `cursor?`, `limit?=25` (max `100`),
+    `fromBlock?`, `toBlock?`
+  - **Response**: `{ items: [...], nextCursor, meta: { source: "cache"|"goldrush", refreshedAt? } }`
+
+- `GET /audience/profiles/{id}/contract-activity`: Contract activity (GoldRush-backed; derived from
+  txns).
   - **Query**: `chain?`, `from?`, `to?`, `limit?=10` (max `50`)
-  - **Response**: `{ items: [{ contractAddress, contractName?, label?, volumeUsd?, txCount }], refreshedAt? }`
+  - **Response**:
+    `{ items: [{ contractAddress, contractName?, label?, volumeUsd?, txCount }], refreshedAt? }`
 
 - `GET /audience/profiles/{id}/health`: Health detail (org-scoped).
   - **Response**: `{ score, trend, updatedAt, factors: [] }`
@@ -539,19 +608,25 @@ All Automations endpoints are org-scoped (send `x-org-id`) and require authentic
 
 ### Audience Import/Export (Legacy Aliases)
 
-These endpoints exist for backward compatibility with older frontend flows. Prefer the Jobs APIs below for new development.
+These endpoints exist for backward compatibility with older frontend flows. Prefer the Jobs APIs
+below for new development.
 
 - `GET /audience/import/sample/csv`: Download sample CSV template.
 - `GET /audience/import/sample/json`: Download sample JSON template.
 
-- `POST /audience/import/upload`: Upload import file (alias; returns `{ importId, status, filename }`).
-- `POST /audience/import`: Import multiple profiles (alias; returns `{ importId, status, filename }`).
+- `POST /audience/import/upload`: Upload import file (alias; returns
+  `{ importId, status, filename }`).
+- `POST /audience/import`: Import multiple profiles (alias; returns
+  `{ importId, status, filename }`).
 - `GET /audience/import/recent`: List recent imports.
 - `GET /audience/import/{importId}`: Get import details.
-- `GET /audience/import/{importId}/status`: Get import status (`progress`, `recordsProcessed`, `totalRecords`, `errors`).
+- `GET /audience/import/{importId}/status`: Get import status (`progress`, `recordsProcessed`,
+  `totalRecords`, `errors`).
 - `GET /audience/import/{importId}/errors`: Get import error list (from job `errorSample`).
-- `POST /audience/import/{importId}/map`: Map import columns (no-op placeholder, returns `{ status: "mapped" }`).
-- `POST /audience/import/{importId}/confirm`: Confirm import (no-op placeholder, returns `{ status: "started" }`).
+- `POST /audience/import/{importId}/map`: Map import columns (no-op placeholder, returns
+  `{ status: "mapped" }`).
+- `POST /audience/import/{importId}/confirm`: Confirm import (no-op placeholder, returns
+  `{ status: "started" }`).
 
 - `POST /audience/export`: Start export job (alias; returns `{ exportId, status }`).
 - `GET /audience/export/options`: Export options for UI cards.
@@ -568,7 +643,8 @@ All import/export endpoints are organization-scoped via `x-org-id`.
 
 - `POST /audience/imports`: Create an import job (multipart/form-data).
   - **Body**: `file` (required), `mapping` (optional JSON string), `options` (optional JSON string)
-  - **Query**: `format?=csv|json`, `dryRun?=true|false`, `mode?=upsert|create_only|update_only`, `onConflict?=skip|update`, `dedupeKey?=email|walletAddress`, `maxErrors?=0..10000`
+  - **Query**: `format?=csv|json`, `dryRun?=true|false`, `mode?=upsert|create_only|update_only`,
+    `onConflict?=skip|update`, `dedupeKey?=email|walletAddress`, `maxErrors?=0..10000`
   - **Permissions**: Editor, Admin, Owner.
 - `GET /audience/imports/{jobId}`: Get import job status (progress + counts).
   - **Permissions**: Viewer+.
@@ -590,9 +666,10 @@ All import/export endpoints are organization-scoped via `x-org-id`.
 ## Campaigns
 
 - `GET /campaigns`: List all campaigns.
-  - **Query**: `search?`, `status?` (comma-separated), `type?` (comma-separated),
-    `sort?` (`createdAt` | `name` | `schedule`), `page?`, `limit?`.
-  - **Response**: `{ data: Campaign[], meta: { page, limit, totalItems, totalPages, hasMore, hasPreviousPage, hasNextPage } }`
+  - **Query**: `search?`, `status?` (comma-separated), `type?` (comma-separated), `sort?`
+    (`createdAt` | `name` | `schedule`), `page?`, `limit?`.
+  - **Response**:
+    `{ data: Campaign[], meta: { page, limit, totalItems, totalPages, hasMore, hasPreviousPage, hasNextPage } }`
 - `POST /campaigns`: Create a new campaign.
 - `GET /campaigns/{id}`: Get campaign details.
 - `GET /campaigns/{id}/email`: Get campaign email (headers + html + optional editor payload).
@@ -646,7 +723,7 @@ All campaign endpoints are organization-scoped via the `x-org-id` header.
 
 There are two supported auth patterns:
 
-1) **Same-site browser app (cookie session)**
+1. **Same-site browser app (cookie session)**
 
 - Sign in using `POST /auth/sign-in/email` from the browser.
 - Use `credentials: "include"` on all subsequent requests.
@@ -667,7 +744,7 @@ const res = await fetch(`${baseUrl}/campaigns/${campaignId}/email`, {
 });
 ```
 
-2) **Embedded builder (no cookies) via editor token (recommended)**
+2. **Embedded builder (no cookies) via editor token (recommended)**
 
 - Step A: Your app (with a cookie session) requests an editor token:
   - `GET /campaigns/{id}/editor-session` with `credentials: "include"` and `x-org-id`
@@ -676,6 +753,7 @@ const res = await fetch(`${baseUrl}/campaigns/${campaignId}/email`, {
   - Send `Authorization: Bearer <editorToken>` (or `x-editor-token: <editorToken>`)
 
 Endpoints that accept editor token auth:
+
 - `GET /campaigns/{id}/email`
 - `PUT /campaigns/{id}/email`
 - `GET /campaigns/{id}/editor/content`
