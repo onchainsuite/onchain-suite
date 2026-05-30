@@ -351,7 +351,11 @@ export function OrganizationSwitcher() {
     if (!cookieOrgId) return;
     if (lastAutoSyncOrgIdRef.current === cookieOrgId) return;
     if (sessionOrgId === cookieOrgId && activeOrgId === cookieOrgId) return;
-    if (!activeOrgId || activeOrgId !== cookieOrgId || sessionOrgId !== cookieOrgId) {
+    if (
+      !activeOrgId ||
+      activeOrgId !== cookieOrgId ||
+      sessionOrgId !== cookieOrgId
+    ) {
       lastAutoSyncOrgIdRef.current = cookieOrgId;
       handleSwitchOrg(cookieOrgId, true);
     }

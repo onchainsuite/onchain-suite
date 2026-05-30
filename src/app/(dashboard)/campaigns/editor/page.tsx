@@ -3,14 +3,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
 
 import { cn, getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
-import { Button } from "@/components/ui/button";
 import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export const dynamic = "force-dynamic";
@@ -21,13 +22,43 @@ const breadcrumbs = [
 ];
 
 const DEFAULT_EDITOR_ORIGIN_PROD = "https://editor.onchainsuite.com";
-const DEFAULT_EDITOR_ORIGIN_DEV = "https://email-builder-js-ycf8.onrender.com";
+const DEFAULT_EDITOR_ORIGIN_DEV = DEFAULT_EDITOR_ORIGIN_PROD;
+const DEFAULT_BACKEND_API_BASE_PROD =
+  "https://onchain-backend-dvxw.onrender.com/api/v1";
 
 const isPlaceholderEditorHost = (hostname: string) =>
   hostname === "example.com" || hostname.endsWith(".example.com");
 
+const isLoopbackHost = (hostname: string) =>
+  hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+
+const normalizeEnvString = (value: string | undefined | null) => {
+  let out = typeof value === "string" ? value : "";
+  const stripSpace = (s: string) =>
+    s.replace(/^[\s\u200B\uFEFF]+|[\s\u200B\uFEFF]+$/g, "");
+  out = stripSpace(out);
+  if (out.length === 0) return out;
+  const wrappers = new Set(["`", '"', "'"]);
+  while (out.length > 0) {
+    const prev = out;
+    while (out.length > 0 && wrappers.has(out[0])) out = out.slice(1);
+    while (out.length > 0 && wrappers.has(out[out.length - 1]))
+      out = out.slice(0, -1);
+    out = stripSpace(out);
+    if (out === prev) break;
+  }
+  return out;
+};
+
+const toBackendApiBase = (value: string | undefined | null): string | null => {
+  const raw = normalizeEnvString(value);
+  if (!raw) return null;
+  const clean = raw.replace(/\/$/, "");
+  return clean.toLowerCase().endsWith("/api/v1") ? clean : `${clean}/api/v1`;
+};
+
 const toEditorOrigin = (value: string | undefined | null): string | null => {
-  const raw = typeof value === "string" ? value.trim() : "";
+  const raw = normalizeEnvString(value);
   if (!raw) return null;
 
   const candidates = [raw];
@@ -58,6 +89,7 @@ export default function CampaignEditorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hasRedirectedRef = useRef(false);
+  const hasWarnedAuth401Ref = useRef(false);
   const [iframeFailed, setIframeFailed] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [fullscreenMode, setFullscreenMode] = useState<
@@ -66,8 +98,8 @@ export default function CampaignEditorPage() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
-  const campaignId = (searchParams.get("campaign") ?? "").trim();
-  const returnTo = (searchParams.get("returnTo") ?? "").trim();
+  const campaignId = (searchParams?.get("campaign") ?? "").trim();
+  const returnTo = (searchParams?.get("returnTo") ?? "").trim();
 
   const editorSessionQuery = useQuery({
     queryKey: ["campaigns", "editor-session", campaignId],
@@ -75,19 +107,104 @@ export default function CampaignEditorPage() {
     enabled: campaignId.length > 0,
     retry: false,
     refetchOnWindowFocus: false,
+    refetchInterval: (query) => {
+      const data = query.state.data as unknown;
+      const expiresAtRaw = isJsonObject(data) ? data.expiresAt : undefined;
+      if (
+        typeof expiresAtRaw !== "string" ||
+        expiresAtRaw.trim().length === 0
+      ) {
+        return false;
+      }
+      const expiresAtMs = new Date(expiresAtRaw).getTime();
+      if (!Number.isFinite(expiresAtMs)) return 60_000;
+      const msUntilExpiry = expiresAtMs - Date.now();
+      const refreshIn = msUntilExpiry - 30_000;
+      const clamped = Math.min(Math.max(refreshIn, 15_000), 5 * 60_000);
+      return clamped;
+    },
+    refetchIntervalInBackground: true,
   });
 
-  const editorSessionEditorUrl = editorSessionQuery.data?.editorUrl;
-  const editorSessionToken = editorSessionQuery.data?.token;
+  const editorSessionData = useMemo(() => {
+    const raw = editorSessionQuery.data as unknown;
+    if (!isJsonObject(raw)) return null;
+    const level1 = isJsonObject(raw.data) ? raw.data : raw;
+    const level2 = isJsonObject(level1.data) ? level1.data : level1;
+    return isJsonObject(level2) ? level2 : null;
+  }, [editorSessionQuery.data]);
+
+  const pickStringField = useCallback(
+    (obj: Record<string, unknown> | null, keys: string[]) => {
+      if (!obj) return undefined;
+      for (const key of keys) {
+        const raw = obj[key];
+        if (typeof raw !== "string") continue;
+        const cleaned = normalizeEnvString(raw);
+        if (cleaned.length > 0) return cleaned;
+      }
+      return undefined;
+    },
+    []
+  );
+
+  const editorSessionEditorUrl = pickStringField(editorSessionData, [
+    "editorUrl",
+    "editorURL",
+    "url",
+    "sessionUrl",
+    "sessionURL",
+  ]);
+  const editorSessionToken = pickStringField(editorSessionData, [
+    "token",
+    "sessionToken",
+    "editorToken",
+    "accessToken",
+    "jwt",
+  ]);
+  const editorSessionExpiresAt = pickStringField(editorSessionData, [
+    "expiresAt",
+    "expires_at",
+    "expires",
+  ]);
+
+  useEffect(() => {
+    if (!campaignId) return;
+    if (!editorSessionQuery.isError) return;
+    const err = editorSessionQuery.error;
+    const message =
+      err instanceof Error ? err.message : "Failed to start editor session";
+    toast.error(message);
+  }, [campaignId, editorSessionQuery.error, editorSessionQuery.isError]);
+
+  useEffect(() => {
+    if (!campaignId) return;
+    const tokenLength =
+      typeof editorSessionToken === "string" ? editorSessionToken.length : 0;
+    if (
+      editorSessionQuery.isSuccess &&
+      (!editorSessionToken || tokenLength === 0)
+    ) {
+      toast.error(
+        "Editor session started but no token was returned by the API."
+      );
+    }
+  }, [
+    campaignId,
+    editorSessionEditorUrl,
+    editorSessionExpiresAt,
+    editorSessionQuery.isSuccess,
+    editorSessionToken,
+  ]);
 
   const editorOrigin = useMemo(() => {
-    const fromSession = toEditorOrigin(editorSessionEditorUrl);
-    if (editorSessionQuery.isSuccess && fromSession) return fromSession;
-
     const configured = toEditorOrigin(
       process.env.NEXT_PUBLIC_EMAIL_EDITOR_ORIGIN
     );
     if (configured) return configured;
+
+    const fromSession = toEditorOrigin(editorSessionEditorUrl);
+    if (editorSessionQuery.isSuccess && fromSession) return fromSession;
 
     return process.env.NODE_ENV === "production"
       ? DEFAULT_EDITOR_ORIGIN_PROD
@@ -96,10 +213,10 @@ export default function CampaignEditorPage() {
 
   const allowedOrigins = useMemo(() => {
     const fromSession =
-      editorSessionQuery.isSuccess && editorSessionQuery.data?.editorUrl
+      editorSessionQuery.isSuccess && editorSessionEditorUrl
         ? (() => {
             try {
-              return new URL(String(editorSessionQuery.data.editorUrl)).origin;
+              return new URL(String(editorSessionEditorUrl)).origin;
             } catch {
               return null;
             }
@@ -111,26 +228,93 @@ export default function CampaignEditorPage() {
       editorOrigin,
       ...(fromSession ? [fromSession] : []),
     ]);
-  }, [editorOrigin, editorSessionQuery.data, editorSessionQuery.isSuccess]);
+  }, [editorOrigin, editorSessionEditorUrl, editorSessionQuery.isSuccess]);
+
+  const apiBaseUrlForEditor = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const localProxy = `${window.location.origin}/api/v1`;
+
+    let hostHostname = "";
+    try {
+      hostHostname = new URL(window.location.origin).hostname;
+    } catch {
+      hostHostname = window.location.hostname;
+    }
+
+    if (!isLoopbackHost(hostHostname)) return localProxy;
+
+    const editorIsLoopback = (() => {
+      try {
+        return isLoopbackHost(new URL(editorOrigin).hostname);
+      } catch {
+        return false;
+      }
+    })();
+    if (editorIsLoopback) return localProxy;
+
+    return (
+      toBackendApiBase(process.env.NEXT_PUBLIC_BACKEND_URL) ??
+      toBackendApiBase(process.env.BACKEND_URL) ??
+      DEFAULT_BACKEND_API_BASE_PROD
+    );
+  }, [editorOrigin]);
 
   const iframeSrc = useMemo(() => {
     if (!campaignId) return "";
     const sessionUrl =
-      editorSessionQuery.isSuccess && editorSessionQuery.data?.editorUrl
-        ? String(editorSessionQuery.data.editorUrl)
+      editorSessionQuery.isSuccess && editorSessionEditorUrl
+        ? String(editorSessionEditorUrl)
         : null;
+    const hostOrigin =
+      typeof window !== "undefined" ? window.location.origin : null;
     const apiBaseUrl =
-      typeof window !== "undefined" ? `${window.location.origin}/api/v1` : null;
+      typeof apiBaseUrlForEditor === "string"
+        ? normalizeEnvString(apiBaseUrlForEditor)
+        : null;
     const orgId = getSelectedOrganizationId();
+    const token =
+      editorSessionQuery.isSuccess && editorSessionToken
+        ? String(editorSessionToken)
+        : null;
 
     if (sessionUrl) {
       try {
         const url = new URL(sessionUrl);
         if (!isPlaceholderEditorHost(url.hostname)) {
+          if (url.origin !== editorOrigin) {
+            throw new Error("Editor session URL origin mismatch");
+          }
           url.searchParams.set("campaign", campaignId);
+          url.searchParams.set("campaignId", campaignId);
+          url.searchParams.set("campaign_id", campaignId);
+          url.searchParams.set("id", campaignId);
+          url.searchParams.set("campaign.id", campaignId);
           url.searchParams.set("embedded", "true");
-          if (apiBaseUrl) url.searchParams.set("apiBaseUrl", apiBaseUrl);
-          if (orgId) url.searchParams.set("orgId", orgId);
+          if (hostOrigin) {
+            url.searchParams.set("hostOrigin", hostOrigin);
+            url.searchParams.set("parentOrigin", hostOrigin);
+            url.searchParams.set("appOrigin", hostOrigin);
+            url.searchParams.set("targetOrigin", hostOrigin);
+          }
+          if (apiBaseUrl) {
+            url.searchParams.set("apiBaseUrl", apiBaseUrl);
+            url.searchParams.set("baseUrl", apiBaseUrl);
+            url.searchParams.set("backendBaseUrl", apiBaseUrl);
+          }
+          if (orgId) {
+            url.searchParams.set("orgId", orgId);
+            url.searchParams.set("xOrgId", orgId);
+            url.searchParams.set("organizationId", orgId);
+            url.searchParams.set("activeOrganizationId", orgId);
+            url.searchParams.set("x-org-id", orgId);
+            url.searchParams.set("org.id", orgId);
+            url.searchParams.set("organization.id", orgId);
+          }
+          if (token) {
+            url.searchParams.set("token", token);
+            url.searchParams.set("sessionToken", token);
+            url.searchParams.set("editorToken", token);
+          }
           return url.toString();
         }
       } catch {
@@ -141,16 +325,45 @@ export default function CampaignEditorPage() {
     try {
       const url = new URL("/", editorOrigin);
       url.searchParams.set("campaign", campaignId);
+      url.searchParams.set("campaignId", campaignId);
+      url.searchParams.set("campaign_id", campaignId);
+      url.searchParams.set("id", campaignId);
+      url.searchParams.set("campaign.id", campaignId);
       url.searchParams.set("embedded", "true");
-      if (apiBaseUrl) url.searchParams.set("apiBaseUrl", apiBaseUrl);
-      if (orgId) url.searchParams.set("orgId", orgId);
+      if (hostOrigin) {
+        url.searchParams.set("hostOrigin", hostOrigin);
+        url.searchParams.set("parentOrigin", hostOrigin);
+        url.searchParams.set("appOrigin", hostOrigin);
+        url.searchParams.set("targetOrigin", hostOrigin);
+      }
+      if (apiBaseUrl) {
+        url.searchParams.set("apiBaseUrl", apiBaseUrl);
+        url.searchParams.set("baseUrl", apiBaseUrl);
+        url.searchParams.set("backendBaseUrl", apiBaseUrl);
+      }
+      if (orgId) {
+        url.searchParams.set("orgId", orgId);
+        url.searchParams.set("xOrgId", orgId);
+        url.searchParams.set("organizationId", orgId);
+        url.searchParams.set("activeOrganizationId", orgId);
+        url.searchParams.set("x-org-id", orgId);
+        url.searchParams.set("org.id", orgId);
+        url.searchParams.set("organization.id", orgId);
+      }
+      if (token) {
+        url.searchParams.set("token", token);
+        url.searchParams.set("sessionToken", token);
+        url.searchParams.set("editorToken", token);
+      }
       return url.toString();
     } catch {
       return "";
     }
   }, [
     campaignId,
+    apiBaseUrlForEditor,
     editorOrigin,
+    editorSessionEditorUrl,
     editorSessionToken,
     editorSessionQuery.isSuccess,
   ]);
@@ -209,10 +422,11 @@ export default function CampaignEditorPage() {
       typeof el?.requestFullscreen === "function";
     if (canNative) {
       try {
-        await el!.requestFullscreen();
+        if (!el) return;
+        await el.requestFullscreen();
         return;
-      } catch {
-        // fall through
+      } catch (e) {
+        String(e);
       }
     }
 
@@ -229,32 +443,68 @@ export default function CampaignEditorPage() {
     }
   }, [iframeSrc]);
 
-  const postIframeConfig = () => {
-    const token =
-      editorSessionQuery.isSuccess && editorSessionToken
-        ? String(editorSessionToken)
-        : null;
-    const apiBaseUrl =
-      typeof window !== "undefined" ? `${window.location.origin}/api/v1` : null;
-    const targetOrigin = iframeDiagnostics?.origin ?? editorOrigin;
-    const orgId = getSelectedOrganizationId();
+  const postIframeConfig = useCallback(
+    (opts?: {
+      targetWindow?: Window | null;
+      targetOrigin?: string | null;
+      requestId?: string | null;
+    }) => {
+      const token =
+        editorSessionQuery.isSuccess && editorSessionToken
+          ? String(editorSessionToken)
+          : null;
+      const apiBaseUrl =
+        typeof apiBaseUrlForEditor === "string"
+          ? normalizeEnvString(apiBaseUrlForEditor)
+          : null;
+      const hostOrigin =
+        typeof window !== "undefined" ? window.location.origin : null;
+      const postTargetOrigin = "*";
+      const orgId = getSelectedOrganizationId();
 
-    const payload = {
-      type: "HOST_CONFIG",
-      campaign: campaignId,
+      const hostConfig = {
+        embedded: true,
+        id: campaignId,
+        campaignId,
+        campaign: campaignId,
+        orgId,
+        token,
+        apiBaseUrl: apiBaseUrl ?? undefined,
+        sessionToken: token,
+        editorToken: token,
+        baseUrl: apiBaseUrl ?? undefined,
+        backendBaseUrl: apiBaseUrl ?? undefined,
+        hostOrigin: hostOrigin ?? undefined,
+      };
+
+      try {
+        const win = opts?.targetWindow ?? iframeRef.current?.contentWindow;
+        win?.postMessage(
+          { type: "HOST_CONFIG", ...hostConfig },
+          postTargetOrigin
+        );
+        win?.postMessage(
+          {
+            type: "HOST_CONFIG",
+            hostConfig,
+            requestId: opts?.requestId ?? undefined,
+          },
+          postTargetOrigin
+        );
+      } catch (e) {
+        String(e);
+      }
+    },
+    [
+      apiBaseUrlForEditor,
       campaignId,
-      orgId,
-      token,
-      apiBaseUrl,
-      embedded: true,
-    };
-
-    try {
-      iframeRef.current?.contentWindow?.postMessage(payload, targetOrigin);
-    } catch {
-      // ignore
-    }
-  };
+      editorOrigin,
+      editorSessionExpiresAt,
+      editorSessionQuery.isSuccess,
+      editorSessionToken,
+      iframeDiagnostics?.origin,
+    ]
+  );
 
   useEffect(() => {
     if (!iframeLoaded) return;
@@ -275,6 +525,7 @@ export default function CampaignEditorPage() {
     editorSessionToken,
     iframeDiagnostics?.origin,
     iframeLoaded,
+    postIframeConfig,
   ]);
 
   const nextWizardUrl = useMemo(() => {
@@ -286,18 +537,112 @@ export default function CampaignEditorPage() {
   }, [campaignId, returnTo]);
 
   useEffect(() => {
+    const sanitizeAuthDebug = (value: Record<string, unknown>) => {
+      const removed = new Set([
+        "authorization",
+        "Authorization",
+        "token",
+        "editorToken",
+        "bearer",
+        "headers",
+        "requestHeaders",
+        "responseHeaders",
+      ]);
+      return Object.fromEntries(
+        Object.entries(value).filter(([key]) => !removed.has(key))
+      );
+    };
+
     const handleMessage = (event: MessageEvent) => {
       const { data: messageData, origin } = event;
-      if (!allowedOrigins.has(origin)) return;
+      const originClean = normalizeEnvString(origin);
+      const fromIframe =
+        Boolean(iframeRef.current?.contentWindow) &&
+        event.source === iframeRef.current?.contentWindow;
+      const originAllowed =
+        allowedOrigins.has(originClean) ||
+        (fromIframe &&
+          (originClean === "null" ||
+            originClean.endsWith(".onchainsuite.com") ||
+            originClean === "http://localhost:3000" ||
+            originClean === "http://127.0.0.1:3000"));
+      if (!originAllowed) return;
 
       if (!isJsonObject(messageData)) return;
 
-      if (
-        messageData.type === "REQUEST_HOST_CONFIG" ||
-        messageData.type === "EDITOR_READY"
-      ) {
-        if (event.source !== iframeRef.current?.contentWindow) return;
-        postIframeConfig();
+      const messageType =
+        typeof messageData.type === "string" ? messageData.type : "";
+      const requestId =
+        typeof messageData.requestId === "string"
+          ? messageData.requestId
+          : null;
+      const looksLikeConfigRequest =
+        messageType === "REQUEST_HOST_CONFIG" ||
+        messageType === "EDITOR_READY" ||
+        messageType === "EMAIL_EDITOR_READY" ||
+        messageType === "EMAIL_EDITOR_REQUEST_HOST_CONFIG" ||
+        messageType.endsWith("REQUEST_HOST_CONFIG") ||
+        messageType.endsWith("EDITOR_READY");
+
+      if (looksLikeConfigRequest) {
+        const sourceWindow =
+          event.source &&
+          typeof (event.source as Window).postMessage === "function"
+            ? (event.source as Window)
+            : null;
+        postIframeConfig({
+          targetWindow: sourceWindow,
+          targetOrigin: originClean,
+          requestId,
+        });
+        if (requestId) {
+          try {
+            sourceWindow?.postMessage(
+              { type: "HOST_CONFIG_ACK", requestId },
+              "*"
+            );
+          } catch (e) {
+            String(e);
+          }
+        }
+        return;
+      }
+
+      if (messageData.type === "EMAIL_AUTH_DEBUG") {
+        const safe = sanitizeAuthDebug(messageData);
+        const hasAuthorization = safe.hasAuthorization === true;
+        const hasOrgId = safe.hasOrgId === true;
+        const expiresAtIso =
+          editorSessionQuery.isSuccess &&
+          typeof editorSessionExpiresAt === "string"
+            ? editorSessionExpiresAt
+            : null;
+        const expiresAtMs = expiresAtIso
+          ? new Date(expiresAtIso).getTime()
+          : NaN;
+        const isExpired = Number.isFinite(expiresAtMs)
+          ? Date.now() >= expiresAtMs
+          : null;
+        const status =
+          typeof safe.status === "number"
+            ? safe.status
+            : typeof safe.statusCode === "number"
+              ? safe.statusCode
+              : null;
+
+        if (
+          status === 401 &&
+          hasAuthorization &&
+          hasOrgId &&
+          !hasWarnedAuth401Ref.current
+        ) {
+          hasWarnedAuth401Ref.current = true;
+          toast.error(
+            isExpired === true
+              ? "Editor token appears expired; refresh the editor session token (it is short-lived) and retry."
+              : "Editor requests are still getting 401 even though Authorization + orgId are present. This almost always means the token is wrong (not the editor-session token) or expired."
+          );
+        }
         return;
       }
 
@@ -309,7 +654,15 @@ export default function CampaignEditorPage() {
     };
 
     window.addEventListener("message", handleMessage);
-  }, [allowedOrigins, nextWizardUrl, router]);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [
+    allowedOrigins,
+    editorSessionExpiresAt,
+    editorSessionQuery.isSuccess,
+    nextWizardUrl,
+    postIframeConfig,
+    router,
+  ]);
 
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
@@ -384,7 +737,6 @@ export default function CampaignEditorPage() {
               }}
               onError={() => setIframeFailed(true)}
               allow="fullscreen"
-              allowFullScreen
             />
           </div>
         )}

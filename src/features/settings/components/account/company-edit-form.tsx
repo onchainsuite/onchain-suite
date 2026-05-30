@@ -8,8 +8,6 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-import { isJsonObject } from "@/lib/utils";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,6 +28,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { apiClient } from "@/lib/api-client";
+import { isJsonObject } from "@/lib/utils";
 
 import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
@@ -123,11 +122,14 @@ export default function CompanyEditForm() {
     },
   });
 
-  const { fields: contractFields, append: appendContract, remove: removeContract } =
-    useFieldArray({
-      control: form.control,
-      name: "contractAddresses",
-    });
+  const {
+    fields: contractFields,
+    append: appendContract,
+    remove: removeContract,
+  } = useFieldArray({
+    control: form.control,
+    name: "contractAddresses",
+  });
 
   const {
     fields: treasuryFields,
@@ -138,11 +140,14 @@ export default function CompanyEditForm() {
     name: "treasuryWallets",
   });
 
-  const { fields: teamFields, append: appendTeam, remove: removeTeam } =
-    useFieldArray({
-      control: form.control,
-      name: "teamWallets",
-    });
+  const {
+    fields: teamFields,
+    append: appendTeam,
+    remove: removeTeam,
+  } = useFieldArray({
+    control: form.control,
+    name: "teamWallets",
+  });
 
   const { items: timezones, loading: tzLoading } = useTimezones();
 
@@ -161,7 +166,9 @@ export default function CompanyEditForm() {
         if (org) {
           const settings = org.settings ?? {};
           const metadata =
-            isJsonObject(org.metadata) && org.metadata !== null ? org.metadata : {};
+            isJsonObject(org.metadata) && org.metadata !== null
+              ? org.metadata
+              : {};
           const projectMeta =
             isJsonObject((metadata as Record<string, unknown>).project) &&
             (metadata as Record<string, unknown>).project !== null
@@ -178,14 +185,18 @@ export default function CompanyEditForm() {
                 : {};
 
           const tokenTicker =
-            typeof projectMeta.tokenTicker === "string" ? projectMeta.tokenTicker : "";
+            typeof projectMeta.tokenTicker === "string"
+              ? projectMeta.tokenTicker
+              : "";
           const primaryChainsRaw = projectMeta.primaryChains;
           const primaryChains =
-            Array.isArray(primaryChainsRaw) && primaryChainsRaw.every((c) => typeof c === "string")
+            Array.isArray(primaryChainsRaw) &&
+            primaryChainsRaw.every((c) => typeof c === "string")
               ? (primaryChainsRaw as string[])
               : [];
 
-          const contractAddressesRaw = projectMeta.contractAddresses ?? projectMeta.contracts;
+          const contractAddressesRaw =
+            projectMeta.contractAddresses ?? projectMeta.contracts;
           const contractAddresses = Array.isArray(contractAddressesRaw)
             ? (contractAddressesRaw as unknown[])
                 .map((row) => {
@@ -205,7 +216,8 @@ export default function CompanyEditForm() {
                 .filter(Boolean)
             : [];
 
-          const treasuryWalletsRaw = projectMeta.treasuryWallets ?? projectMeta.treasury;
+          const treasuryWalletsRaw =
+            projectMeta.treasuryWallets ?? projectMeta.treasury;
           const treasuryWallets = Array.isArray(treasuryWalletsRaw)
             ? (treasuryWalletsRaw as unknown[])
                 .map((row) => {
@@ -224,7 +236,8 @@ export default function CompanyEditForm() {
                 .filter(Boolean)
             : [];
 
-          const teamWalletsRaw = projectMeta.teamWallets ?? projectMeta.deployerWallets;
+          const teamWalletsRaw =
+            projectMeta.teamWallets ?? projectMeta.deployerWallets;
           const teamWallets = Array.isArray(teamWalletsRaw)
             ? (teamWalletsRaw as unknown[])
                 .map((row) => {
@@ -320,7 +333,9 @@ export default function CompanyEditForm() {
     <Card className="overflow-hidden border-border/60 bg-card/50 backdrop-blur-sm transition-all hover:bg-card/80">
       <CardHeader className="flex flex-row items-center justify-between border-b border-border/40 pb-6">
         <div className="space-y-1">
-          <CardTitle className="text-xl font-medium">Project Settings</CardTitle>
+          <CardTitle className="text-xl font-medium">
+            Project Settings
+          </CardTitle>
           <CardDescription>
             Manage protocol identity, chains, contracts, and wallets.
           </CardDescription>
@@ -351,7 +366,8 @@ export default function CompanyEditForm() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>
-                    Project / Protocol Name <span className="text-red-500">*</span>
+                    Project / Protocol Name{" "}
+                    <span className="text-red-500">*</span>
                   </Label>
                   <Input {...form.register("name")} placeholder="Acme Inc." />
                   {form.formState.errors.name && (
@@ -411,9 +427,13 @@ export default function CompanyEditForm() {
                       onClick={() => {
                         const current = form.getValues("primaryChains") ?? [];
                         if (!current.includes(chainToAdd)) {
-                          form.setValue("primaryChains", [...current, chainToAdd], {
-                            shouldDirty: true,
-                          });
+                          form.setValue(
+                            "primaryChains",
+                            [...current, chainToAdd],
+                            {
+                              shouldDirty: true,
+                            }
+                          );
                         }
                       }}
                     >
@@ -432,7 +452,8 @@ export default function CompanyEditForm() {
                           type="button"
                           className="text-muted-foreground hover:text-foreground"
                           onClick={() => {
-                            const current = form.getValues("primaryChains") ?? [];
+                            const current =
+                              form.getValues("primaryChains") ?? [];
                             form.setValue(
                               "primaryChains",
                               current.filter((c) => c !== chain),
@@ -529,7 +550,11 @@ export default function CompanyEditForm() {
                     variant="outline"
                     className="gap-2"
                     onClick={() =>
-                      appendContract({ chain: chainOptions[0], address: "", label: "" })
+                      appendContract({
+                        chain: chainOptions[0],
+                        address: "",
+                        label: "",
+                      })
                     }
                   >
                     <Plus className="h-4 w-4" />
@@ -558,7 +583,9 @@ export default function CompanyEditForm() {
                                 { shouldDirty: true }
                               )
                             }
-                            defaultValue={form.getValues(`contractAddresses.${idx}.chain`)}
+                            defaultValue={form.getValues(
+                              `contractAddresses.${idx}.chain`
+                            )}
                           >
                             <SelectTrigger className="h-11">
                               <SelectValue placeholder="Chain" />
@@ -575,7 +602,9 @@ export default function CompanyEditForm() {
                         <div className="md:col-span-5">
                           <Label className="sr-only">Address</Label>
                           <Input
-                            {...form.register(`contractAddresses.${idx}.address`)}
+                            {...form.register(
+                              `contractAddresses.${idx}.address`
+                            )}
                             placeholder="0x… or base58…"
                             className="h-11"
                           />
@@ -640,7 +669,9 @@ export default function CompanyEditForm() {
                           <div className="md:col-span-7">
                             <Label className="sr-only">Wallet address</Label>
                             <Input
-                              {...form.register(`treasuryWallets.${idx}.address`)}
+                              {...form.register(
+                                `treasuryWallets.${idx}.address`
+                              )}
                               placeholder="0x…"
                               className="h-11"
                             />

@@ -105,8 +105,16 @@ const resolveToken = (req: NextRequest) => {
     req.nextUrl.searchParams.get("token") ??
     req.nextUrl.searchParams.get("sessionToken") ??
     req.nextUrl.searchParams.get("editorToken");
-  const tokenFromCookie = extractTokenFromCookie(req.headers.get("cookie") ?? "");
-  return tokenFromAuth ?? tokenFromHeader ?? tokenFromQuery ?? tokenFromCookie ?? null;
+  const tokenFromCookie = extractTokenFromCookie(
+    req.headers.get("cookie") ?? ""
+  );
+  return (
+    tokenFromAuth ??
+    tokenFromHeader ??
+    tokenFromQuery ??
+    tokenFromCookie ??
+    null
+  );
 };
 
 const buildUpstreamHeaders = (req: NextRequest) => {
@@ -115,6 +123,15 @@ const buildUpstreamHeaders = (req: NextRequest) => {
   headers.delete("connection");
   headers.delete("content-length");
   headers.delete("accept-encoding");
+
+  if (!headers.has("x-org-id")) {
+    const orgIdFromQuery =
+      req.nextUrl.searchParams.get("orgId") ??
+      req.nextUrl.searchParams.get("xOrgId");
+    if (orgIdFromQuery && orgIdFromQuery.trim().length > 0) {
+      headers.set("x-org-id", orgIdFromQuery.trim());
+    }
+  }
 
   const token = resolveToken(req);
   if (token) {
@@ -128,10 +145,18 @@ const buildUpstreamHeaders = (req: NextRequest) => {
       /(^|;\s*)(__Host-)?better-auth\.session_token=/.test(existingCookie) ||
       /(^|;\s*)(__Secure-)?better-auth\.sessionToken=/.test(existingCookie) ||
       /(^|;\s*)(__Host-)?better-auth\.sessionToken=/.test(existingCookie);
+    const hasOnchainTokenCookie = /(^|;\s*)onchain\.token=/.test(
+      existingCookie
+    );
+
+    let nextCookie = existingCookie;
     if (!hasSessionCookie) {
-      const nextCookie = `${existingCookie}${existingCookie ? "; " : ""}better-auth.session_token=${encodeURIComponent(token)}`;
-      headers.set("cookie", nextCookie);
+      nextCookie = `${nextCookie}${nextCookie ? "; " : ""}better-auth.session_token=${encodeURIComponent(token)}`;
     }
+    if (!hasOnchainTokenCookie) {
+      nextCookie = `${nextCookie}${nextCookie ? "; " : ""}onchain.token=${encodeURIComponent(token)}`;
+    }
+    if (nextCookie !== existingCookie) headers.set("cookie", nextCookie);
   }
   const apiKey = getBackendApiKey();
   if (apiKey && !headers.has("x-api-key")) {
@@ -150,7 +175,9 @@ const toSavedPayload = (raw: unknown) => {
       : obj;
 
   const html =
-    typeof payloadCandidate.html === "string" ? payloadCandidate.html : undefined;
+    typeof payloadCandidate.html === "string"
+      ? payloadCandidate.html
+      : undefined;
   const textVersion =
     typeof payloadCandidate.textVersion === "string"
       ? payloadCandidate.textVersion
@@ -274,7 +301,8 @@ export async function PUT(
     method: "PUT",
     headers: (() => {
       const headers = buildUpstreamHeaders(req);
-      if (!headers.has("content-type")) headers.set("content-type", "application/json");
+      if (!headers.has("content-type"))
+        headers.set("content-type", "application/json");
       return headers;
     })(),
     body: JSON.stringify(payload),

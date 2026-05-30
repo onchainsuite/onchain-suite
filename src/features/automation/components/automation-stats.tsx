@@ -1,7 +1,12 @@
 import { Layers, TrendingUp, Zap } from "lucide-react";
 
 interface AutomationStatsProps {
-  stats: { active: number; entries: number; conversions: number; revenue: number };
+  stats: {
+    active: number;
+    entries: number;
+    conversions: number;
+    revenue: number;
+  };
 }
 
 export const AutomationStats = ({ stats }: AutomationStatsProps) => {

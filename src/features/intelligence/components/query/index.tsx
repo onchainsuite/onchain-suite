@@ -1,11 +1,9 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Code, Copy, Loader2, Mail, Play, Plus, X, Zap } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -437,7 +435,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
                           {typeof row[c] === "string" ||
                           typeof row[c] === "number"
                             ? String(row[c])
-                            : row[c] == null
+                            : row[c] === null || row[c] === undefined
                               ? ""
                               : isJsonObject(row[c])
                                 ? "[object]"

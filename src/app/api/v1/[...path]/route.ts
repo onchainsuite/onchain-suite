@@ -144,8 +144,21 @@ const extractTokenFromCookie = (cookieHeader: string): string | null => {
     });
 
   const cookieMap = new Map(pairs);
-  const raw = cookieMap.get("onchain.token") ?? null;
-  return raw ? decodeURIComponent(raw) : null;
+  const raw =
+    cookieMap.get("onchain.token") ??
+    cookieMap.get("better-auth.session_token") ??
+    cookieMap.get("__Secure-better-auth.session_token") ??
+    cookieMap.get("__Host-better-auth.session_token") ??
+    cookieMap.get("better-auth.sessionToken") ??
+    cookieMap.get("__Secure-better-auth.sessionToken") ??
+    cookieMap.get("__Host-better-auth.sessionToken") ??
+    null;
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 };
 
 const extractBearer = (authorizationHeader: string | null): string | null => {
@@ -585,7 +598,7 @@ const handleAudienceImportExport = async (
                 ) {
                   continue;
                 }
-                if (!next.attributes) next.attributes = {};
+                next.attributes ??= {};
                 if (isJsonObject(next.attributes))
                   (next.attributes as Record<string, unknown>)[k] = v;
               }
@@ -632,7 +645,7 @@ const handleAudienceImportExport = async (
 
     if (method === "GET" && jobId && !extra) {
       const job = audienceImportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -668,7 +681,7 @@ const handleAudienceImportExport = async (
 
     if (method === "GET" && jobId && extra === "errors") {
       const job = audienceImportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -728,7 +741,7 @@ const handleAudienceImportExport = async (
 
     if (method === "POST" && jobId && extra === "cancel") {
       const job = audienceImportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -947,7 +960,7 @@ const handleAudienceImportExport = async (
 
     if (method === "GET" && jobId && !extra) {
       const job = audienceExportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -990,7 +1003,7 @@ const handleAudienceImportExport = async (
 
     if (method === "GET" && jobId && extra === "download") {
       const job = audienceExportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -1037,7 +1050,7 @@ const handleAudienceImportExport = async (
 
     if (method === "POST" && jobId && extra === "cancel") {
       const job = audienceExportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -1396,7 +1409,7 @@ const handleInbox = async (
       unreadCount: computeUnread(),
     });
 
-    void sendEmailViaAcs({ fromEmail, to, subject, content });
+    sendEmailViaAcs({ fromEmail, to, subject, content }).catch(() => undefined);
 
     return okJson(
       req,
@@ -1586,12 +1599,12 @@ const handleInbox = async (
           unreadCount: computeUnread(),
         });
 
-        void sendEmailViaAcs({
+        sendEmailViaAcs({
           fromEmail,
           to: [to],
           subject: thread.subject,
           content,
-        });
+        }).catch(() => undefined);
 
         return okJson(req, { ok: true, messageId: next.message.id }, 202);
       }
@@ -1634,7 +1647,7 @@ const handleInbox = async (
           isJsonObject(body) && typeof body.starred === "boolean"
             ? body.starred
             : null;
-        thread.starred = provided === null ? !thread.starred : provided;
+        thread.starred = provided ?? !thread.starred;
         thread.updatedAt = nowIso();
         store.threads.set(threadId, thread);
         inboxEvents.emit("thread_updated", {

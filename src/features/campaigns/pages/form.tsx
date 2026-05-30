@@ -1,10 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ArrowRight, Clock, Send } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { ArrowLeft, ArrowRight, Clock, Loader2, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { UseFormReturn } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -31,7 +33,7 @@ import {
 } from "@/features/campaigns/constants";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 const campaignTypes = new Set<CampaignFormData["campaignType"]>([
   "email-blast",
   "drip-campaign",
@@ -63,6 +65,160 @@ const asSendOption = (
     ? (value as CampaignFormData["sendOption"])
     : undefined;
 };
+
+function CampaignPreviewStep({
+  form,
+  campaignId,
+}: {
+  form: UseFormReturn<CampaignFormData>;
+  campaignId?: string;
+}) {
+  const [tab, setTab] = useState<"html" | "text">("html");
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [previewText, setPreviewText] = useState("");
+
+  const normalizedCampaignId = useMemo(() => {
+    return campaignId && campaignId.trim().length > 0 ? campaignId.trim() : "";
+  }, [campaignId]);
+
+  const previewMutation = useMutation({
+    mutationFn: async () => {
+      if (!normalizedCampaignId) throw new Error("Missing campaign id.");
+      return campaignsService.preview(normalizedCampaignId);
+    },
+    onSuccess: (data) => {
+      setPreviewHtml(typeof data.html === "string" ? data.html : "");
+      setPreviewText(typeof data.text === "string" ? data.text : "");
+      setTab("html");
+    },
+    onError: (e: unknown) => {
+      const message =
+        e instanceof Error ? e.message : "Failed to generate preview";
+      toast.error(message);
+    },
+  });
+
+  const values = form.watch();
+  const isScheduled = values.sendOption === "schedule";
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 p-6 md:p-8 lg:p-10">
+      <div className="space-y-2">
+        <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
+          Preview campaign
+        </h2>
+        <p className="text-base text-muted-foreground text-pretty">
+          Review your details and preview the email before sending.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="text-sm font-medium text-foreground">Summary</div>
+          <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+            <div>
+              <span className="text-foreground">Campaign:</span>{" "}
+              {values.campaignName || "Untitled"}
+            </div>
+            <div>
+              <span className="text-foreground">Type:</span>{" "}
+              {values.campaignType}
+            </div>
+            <div>
+              <span className="text-foreground">Subject:</span>{" "}
+              {values.emailSubject || "—"}
+            </div>
+            <div>
+              <span className="text-foreground">From:</span>{" "}
+              {values.senderName ? `${values.senderName} ` : ""}
+              {values.senderEmail || "—"}
+            </div>
+            <div>
+              <span className="text-foreground">Send:</span>{" "}
+              {isScheduled
+                ? `Schedule (${values.scheduleDate ? values.scheduleDate.toLocaleDateString() : "—"} ${values.scheduleTime ?? ""} ${values.timezone ?? ""})`
+                : "Send now"}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="text-sm font-medium text-foreground">Template</div>
+          <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+            <div>
+              <span className="text-foreground">Selected template:</span>{" "}
+              {values.selectedTemplate && values.selectedTemplate.length > 0
+                ? values.selectedTemplate
+                : "—"}
+            </div>
+            <div>
+              <span className="text-foreground">Campaign id:</span>{" "}
+              {normalizedCampaignId || "—"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="text-sm font-medium text-foreground">
+            Email preview
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant={tab === "html" ? "default" : "outline"}
+              className="rounded-xl"
+              onClick={() => setTab("html")}
+            >
+              HTML
+            </Button>
+            <Button
+              type="button"
+              variant={tab === "text" ? "default" : "outline"}
+              className="rounded-xl"
+              onClick={() => setTab("text")}
+            >
+              Plain text
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              disabled={!normalizedCampaignId || previewMutation.isPending}
+              onClick={() => previewMutation.mutate()}
+            >
+              {previewMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Generate preview"
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          {tab === "html" ? (
+            <div className="h-[65vh] overflow-hidden rounded-xl border border-border">
+              <iframe
+                title="Email HTML preview"
+                srcDoc={previewHtml}
+                className="h-full w-full bg-white"
+                style={{ border: "none" }}
+              />
+            </div>
+          ) : (
+            <pre className="h-[65vh] overflow-auto rounded-xl border border-border bg-muted p-4 text-sm text-foreground whitespace-pre-wrap">
+              {previewText.length > 0
+                ? previewText
+                : "No text preview available."}
+            </pre>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function CreateCampaignPage() {
   const router = useRouter();
@@ -101,7 +257,6 @@ export function CreateCampaignPage() {
     defaultValues: {
       campaignName: "",
       campaignType: "email-blast",
-      template: "",
       selectedAudiences: [],
       smartSending: true,
       trackingParameters: true,
@@ -201,15 +356,12 @@ export function CreateCampaignPage() {
           const cObj: Record<string, unknown> = isJsonObject(campaignRes.value)
             ? campaignRes.value
             : {};
-          const { name: campaignName, type, template, templateId } = cObj;
+          const { name: campaignName, type, templateId } = cObj;
           if (typeof campaignName === "string" && campaignName.length > 0) {
             nextValues.campaignName = campaignName;
           }
           const campaignType = asCampaignType(type);
           if (campaignType) nextValues.campaignType = campaignType;
-          if (typeof template === "string") {
-            nextValues.template = template;
-          }
           if (typeof templateId === "string") {
             nextValues.selectedTemplate = templateId;
           }
@@ -369,7 +521,7 @@ export function CreateCampaignPage() {
     // Define which fields to validate for each step
     switch (currentStep) {
       case 1:
-        fieldsToValidate = ["campaignName", "campaignType", "template"];
+        fieldsToValidate = ["campaignName", "campaignType"];
         break;
       case 2:
         fieldsToValidate = ["selectedAudiences"];
@@ -379,6 +531,9 @@ export function CreateCampaignPage() {
         break;
       case 4:
         fieldsToValidate = ["sendOption"];
+        break;
+      case 5:
+        fieldsToValidate = [];
         break;
     }
 
@@ -439,6 +594,18 @@ export function CreateCampaignPage() {
             templateId: data.selectedTemplate,
           });
         }
+      }
+
+      if (currentStep === 4) {
+        const data = form.getValues();
+        await campaignsService.updateSchedule(campaignId, {
+          sendOption: data.sendOption,
+          scheduleDate: data.scheduleDate
+            ? data.scheduleDate.toISOString()
+            : undefined,
+          scheduleTime: data.scheduleTime,
+          timezone: data.timezone,
+        });
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to save step";
@@ -580,6 +747,9 @@ export function CreateCampaignPage() {
                     <TemplateStep form={form} campaignId={campaignId} />
                   )}
                   {currentStep === 4 && <ScheduleStep form={form} />}
+                  {currentStep === 5 && (
+                    <CampaignPreviewStep form={form} campaignId={campaignId} />
+                  )}
 
                   {/* Navigation Buttons */}
                   {currentStep !== 3 && (

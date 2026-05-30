@@ -6,13 +6,6 @@ import { Check, Copy, Eye, EyeOff, Globe, Send, Shield } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { authClient } from "@/lib/auth-client";
-import {
-  getCookieValue,
-  isJsonObject,
-  ORG_SELECTION_COOKIE,
-} from "@/lib/utils";
-
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+import { authClient } from "@/lib/auth-client";
+import {
+  getCookieValue,
+  isJsonObject,
+  ORG_SELECTION_COOKIE,
+} from "@/lib/utils";
 
 type InAppEnvironment = "production" | "staging" | "development";
 type SecretKeyEnvironment = "live" | "test";
@@ -371,7 +371,7 @@ const InAppIntegration = () => {
     if (status.publishableKeys.production || status.publishableKeys.test)
       return;
     hasRetriedStatusRef.current = true;
-    void statusQuery.refetch();
+    statusQuery.refetch().catch(() => undefined);
   }, [
     orgId,
     status.publishableKeys.production,
@@ -592,10 +592,10 @@ const InAppIntegration = () => {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          void copyToClipboard(
+                          copyToClipboard(
                             "pk",
                             status.publishableKeys.production ?? ""
-                          )
+                          ).catch(() => undefined)
                         }
                         className="h-9 w-9 border-border/80 bg-transparent"
                         aria-label="Copy production publishable key"
@@ -611,7 +611,7 @@ const InAppIntegration = () => {
                       {statusQuery.isLoading
                         ? "Loading…"
                         : showPublishable
-                          ? status.publishableKeys.production || "—"
+                          ? (status.publishableKeys.production ?? "—")
                           : status.publishableKeys.production
                             ? maskKey(status.publishableKeys.production)
                             : "—"}
@@ -623,10 +623,10 @@ const InAppIntegration = () => {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          void copyToClipboard(
+                          copyToClipboard(
                             "pk",
                             status.publishableKeys.test ?? ""
-                          )
+                          ).catch(() => undefined)
                         }
                         className="h-9 w-9 border-border/80 bg-transparent"
                         aria-label="Copy test publishable key"
@@ -642,7 +642,7 @@ const InAppIntegration = () => {
                       {statusQuery.isLoading
                         ? "Loading…"
                         : showPublishable
-                          ? status.publishableKeys.test || "—"
+                          ? (status.publishableKeys.test ?? "—")
                           : status.publishableKeys.test
                             ? maskKey(status.publishableKeys.test)
                             : "—"}
@@ -694,7 +694,7 @@ const InAppIntegration = () => {
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
                               <div className="truncate text-xs font-medium text-foreground">
-                                {k.name ? k.name : "Secret key"}
+                                {k.name ?? "Secret key"}
                               </div>
                               <div className="text-[11px] text-muted-foreground">
                                 {k.environment}
@@ -957,7 +957,9 @@ const InAppIntegration = () => {
                     variant="outline"
                     size="icon"
                     onClick={() =>
-                      void copyToClipboard("sk", createdSecretToken)
+                      copyToClipboard("sk", createdSecretToken).catch(
+                        () => undefined
+                      )
                     }
                     className="h-9 w-9 border-border/80 bg-transparent"
                     aria-label="Copy new secret token"

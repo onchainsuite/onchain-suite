@@ -12,7 +12,6 @@ export const campaignFormSchema = z.object({
     "announcement",
     "automation",
   ]),
-  template: z.string().min(1, "Please select a template"),
 
   // Step 2: Audience & Tracking
   selectedAudiences: z.array(z.string()).min(1, "Select at least one audience"),

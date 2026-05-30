@@ -1,13 +1,18 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 
+import { isJsonObject } from "@/lib/utils";
+
+import {
+  automationService,
+  type AutomationsStatus,
+} from "../automation.service";
 // Components
 import { ActiveAutomationsList } from "./active";
 import { DeleteModal } from "./delete-modal";
@@ -21,13 +26,6 @@ import {
   type Draft,
   type Template,
 } from "@/features/automation/types";
-
-import {
-  automationService,
-  type AutomationsStatus,
-} from "../automation.service";
-
-import { isJsonObject } from "@/lib/utils";
 
 export const AutomationList = () => {
   const [activeTab, setActiveTab] = useState("active");

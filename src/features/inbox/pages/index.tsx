@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import ConversationPanel from "../components/conversation";
 import EmailListPanel from "../components/email-list-panel";
 import FloatingBulk from "../components/floating-bulk";
 import { folders } from "../data";
-import { type InboxThreadListItem } from "../types";
-
 import { connectInboxSocket, inboxService } from "../inbox.service";
+import { type InboxThreadListItem } from "../types";
 
 export function InboxPages() {
   const [selectedFolder, setSelectedFolder] = useState("All");

@@ -18,7 +18,7 @@ export const DashboardHeader = ({
   hasActiveOrganization?: boolean;
 }) => {
   return (
-    <header className="bg-background sticky top-0 z-1 flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4">
+    <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4">
       <div className="flex items-center gap-2">
         <div className="hidden md:flex items-center gap-2 text-sm">
           {breadcrumbs?.map((crumb, index) => (

@@ -1,6 +1,4 @@
-import type { NextApiRequest } from "next";
-import type { NextApiResponse } from "next";
-
+import type { NextApiRequest, NextApiResponse } from "next";
 import { Server } from "socket.io";
 
 import { inboxEvents } from "@/server/inbox-state";

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle2,
@@ -25,9 +26,9 @@ import {
   type Connection,
   ConnectionLineType,
   Controls,
+  type Edge,
   MarkerType,
   MiniMap,
-  type Edge,
   type Node,
   ReactFlow,
   ReactFlowProvider,
@@ -47,8 +48,10 @@ import {
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { isJsonObject } from "@/lib/utils";
+
 import "reactflow/dist/style.css";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { automationService } from "../../automation.service";
 import { Confetti } from "../confetti";
 import {
   BranchNode,
@@ -74,10 +77,6 @@ import {
   getInitialNodes,
   isValidConnection,
 } from "@/features/automation/utils";
-
-import { isJsonObject } from "@/lib/utils";
-
-import { automationService } from "../../automation.service";
 
 // This is a known benign error with ReactFlow that can be safely ignored
 if (typeof window === "undefined") {
@@ -735,7 +734,7 @@ const CreateAutomationContent = () => {
           String(_e);
         }
       };
-      void loadSchema();
+      loadSchema().catch(() => undefined);
     }
   };
 

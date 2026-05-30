@@ -11,7 +11,6 @@ import {
   Copy,
   ExternalLink,
   Eye,
-  Gift,
   Mail,
   MousePointer,
   Send,
@@ -25,12 +24,12 @@ import { useMemo, useState } from "react";
 import { isJsonObject } from "@/lib/utils";
 
 import {
-  audienceService,
   type AudienceProfile,
   type AudienceProfileActivityEvent,
   type AudienceProfileContractActivity,
   type AudienceProfileEmailEvent,
   type AudienceProfileTransaction,
+  audienceService,
 } from "@/features/audience/audience.service";
 import {
   deriveDisplayName,
@@ -66,7 +65,7 @@ const activityIconForType = (type: string) => {
 
 export function ProfileDetailPage() {
   const params = useParams();
-  const id = params.id as string;
+  const id = typeof params?.id === "string" ? params.id : "";
 
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [activeTab, setActiveTab] = useState<
@@ -217,7 +216,7 @@ export function ProfileDetailPage() {
 
   const copyWallet = () => {
     if (!walletFull) return;
-    void navigator.clipboard.writeText(walletFull);
+    navigator.clipboard.writeText(walletFull).catch(() => undefined);
     setCopiedWallet(true);
     window.setTimeout(() => setCopiedWallet(false), 2000);
   };

@@ -23,12 +23,15 @@ describe("API v1 proxy (in-app integration)", () => {
       })
     );
 
-    const req = new NextRequest("http://localhost/api/v1/integrations/inapp/status", {
-      headers: {
-        "x-org-id": "org_123",
-        authorization: "Bearer token_123",
-      },
-    });
+    const req = new NextRequest(
+      "http://localhost/api/v1/integrations/inapp/status",
+      {
+        headers: {
+          "x-org-id": "org_123",
+          authorization: "Bearer token_123",
+        },
+      }
+    );
 
     const response = await GET(req, {
       params: Promise.resolve({
@@ -46,7 +49,8 @@ describe("API v1 proxy (in-app integration)", () => {
     );
 
     const [, init] = mockedFetch.mock.calls[0] ?? [];
-    const forwardedHeaders = (init as RequestInit | undefined)?.headers as Headers;
+    const forwardedHeaders = (init as RequestInit | undefined)
+      ?.headers as Headers;
     expect(forwardedHeaders.get("x-org-id")).toBe("org_123");
     expect(forwardedHeaders.get("authorization")).toBe("Bearer token_123");
   });
@@ -59,15 +63,18 @@ describe("API v1 proxy (in-app integration)", () => {
       })
     );
 
-    const req = new NextRequest("http://localhost/api/v1/integrations/inapp/test-push", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-org-id": "org_123",
-        authorization: "Bearer token_123",
-      },
-      body: JSON.stringify({ walletAddress: "0xabc", title: "t", body: "b" }),
-    });
+    const req = new NextRequest(
+      "http://localhost/api/v1/integrations/inapp/test-push",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-org-id": "org_123",
+          authorization: "Bearer token_123",
+        },
+        body: JSON.stringify({ walletAddress: "0xabc", title: "t", body: "b" }),
+      }
+    );
 
     const response = await POST(req, {
       params: Promise.resolve({
@@ -85,4 +92,3 @@ describe("API v1 proxy (in-app integration)", () => {
     );
   });
 });
-

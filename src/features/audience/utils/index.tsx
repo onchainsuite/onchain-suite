@@ -273,10 +273,7 @@ const EthereumIcon = () => (
       fill="currentColor"
       opacity="0.7"
     />
-    <path
-      d="M12 16.6l-5.8-3.3L12 22l5.8-8.7-5.8 3.3z"
-      fill="currentColor"
-    />
+    <path d="M12 16.6l-5.8-3.3L12 22l5.8-8.7-5.8 3.3z" fill="currentColor" />
   </Svg>
 );
 
@@ -376,10 +373,7 @@ const SolanaIcon = () => (
 
 const BnbIcon = () => (
   <Svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-amber-500">
-    <path
-      d="M12 3l3.8 3.8L12 10.6 8.2 6.8 12 3z"
-      fill="currentColor"
-    />
+    <path d="M12 3l3.8 3.8L12 10.6 8.2 6.8 12 3z" fill="currentColor" />
     <path
       d="M6.8 8.2L10.6 12 6.8 15.8 3 12l3.8-3.8z"
       fill="currentColor"
@@ -420,7 +414,12 @@ export function getChainMeta(raw: unknown): ChainMeta | null {
   if (key === "solana" || key === "sol") {
     return { key: "solana", name: "Solana", icon: <SolanaIcon /> };
   }
-  if (key === "bsc" || key === "bnb" || key === "binance" || key === "bnbchain") {
+  if (
+    key === "bsc" ||
+    key === "bnb" ||
+    key === "binance" ||
+    key === "bnbchain"
+  ) {
     return { key: "bnb", name: "BNB Chain", icon: <BnbIcon /> };
   }
   const fallbackName = raw && typeof raw === "string" ? raw.trim() : "Chain";

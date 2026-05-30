@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Calendar,
@@ -12,8 +13,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -102,7 +101,9 @@ export function ReportDetailPage() {
     asNumber(rec.recipientCount) ??
     asNumber(rec.audienceSize) ??
     0;
-  const openRate = normalizeRate(rec.openRate ?? rec.open_rate ?? rec.openRatio);
+  const openRate = normalizeRate(
+    rec.openRate ?? rec.open_rate ?? rec.openRatio
+  );
   const clickRate = normalizeRate(
     rec.clickRate ?? rec.click_rate ?? rec.clickRatio
   );
@@ -202,9 +203,7 @@ export function ReportDetailPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary">
-              {revenue}
-            </span>
+            <span className="text-2xl font-bold text-primary">{revenue}</span>
           </div>
         </div>
       </div>

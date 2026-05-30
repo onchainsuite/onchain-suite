@@ -1,20 +1,18 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, RefreshCw, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { isJsonObject } from "@/lib/utils";
 
+import { intelligenceService } from "../../intelligence.service";
 import {
   deriveDisplayName,
   extractWalletFields,
 } from "@/features/audience/utils";
-
-import { intelligenceService } from "../../intelligence.service";
 
 const asNumber = (v: unknown): number | null => {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -276,7 +274,7 @@ export function SegmentDetailPage() {
                 });
                 const email = asString(rec.email) || "—";
                 const wallet = extractWalletFields(rec).wallet || "—";
-                const walletFull = extractWalletFields(rec).walletFull;
+                const { walletFull } = extractWalletFields(rec);
                 return (
                   <tr
                     key={asString(rec.id) || `${idx}`}

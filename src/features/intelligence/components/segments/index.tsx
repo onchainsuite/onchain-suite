@@ -1,14 +1,13 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Brain, Plus, Search, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import {
-  intelligenceService,
   type IntelligenceSegment,
+  intelligenceService,
 } from "../../intelligence.service";
 import { type Segment } from "../../types";
 

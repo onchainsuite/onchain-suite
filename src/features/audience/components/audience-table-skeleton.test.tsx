@@ -16,4 +16,3 @@ describe("AudienceTableSkeleton", () => {
     expect(rows.length).toBe(8);
   });
 });
-

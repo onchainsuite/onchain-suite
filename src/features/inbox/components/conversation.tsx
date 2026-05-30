@@ -1,9 +1,8 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
 import { useState } from "react";
-
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { inboxService } from "../inbox.service";
 import { type InboxThreadDetail, type InboxThreadListItem } from "../types";

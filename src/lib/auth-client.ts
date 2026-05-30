@@ -18,6 +18,11 @@ const getBaseUrl = () => {
 
 export const authClient = createAuthClient({
   baseURL: getBaseUrl(),
+  sessionOptions: {
+    refetchInterval: 0,
+    refetchOnWindowFocus: false,
+    refetchWhenOffline: false,
+  },
   plugins: [organizationClient(), twoFactorClient()],
 });
 

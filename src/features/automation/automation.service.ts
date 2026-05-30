@@ -140,7 +140,11 @@ export const automationService = {
     );
   },
 
-  updateAutomation(automationId: string, body: Record<string, unknown>, orgId?: string) {
+  updateAutomation(
+    automationId: string,
+    body: Record<string, unknown>,
+    orgId?: string
+  ) {
     return request<Record<string, unknown>>(
       { method: "PUT", url: `/automations/${automationId}`, data: body },
       orgId
@@ -217,9 +221,17 @@ export const automationService = {
     );
   },
 
-  saveBuilder(automationId: string, body: Record<string, unknown>, orgId?: string) {
+  saveBuilder(
+    automationId: string,
+    body: Record<string, unknown>,
+    orgId?: string
+  ) {
     return request<Record<string, unknown>>(
-      { method: "PUT", url: `/automations/${automationId}/builder`, data: body },
+      {
+        method: "PUT",
+        url: `/automations/${automationId}/builder`,
+        data: body,
+      },
       orgId
     );
   },
@@ -239,8 +251,14 @@ export const automationService = {
     );
   },
 
-  validateBuilder(automationId: string, body: Record<string, unknown>, orgId?: string) {
-    return request<{ errors?: unknown[]; warnings?: unknown[] } & Record<string, unknown>>(
+  validateBuilder(
+    automationId: string,
+    body: Record<string, unknown>,
+    orgId?: string
+  ) {
+    return request<
+      { errors?: unknown[]; warnings?: unknown[] } & Record<string, unknown>
+    >(
       {
         method: "POST",
         url: `/automations/${automationId}/builder/validate`,
@@ -292,9 +310,17 @@ export const automationService = {
     );
   },
 
-  previewAutomation(automationId: string, body: Record<string, unknown>, orgId?: string) {
+  previewAutomation(
+    automationId: string,
+    body: Record<string, unknown>,
+    orgId?: string
+  ) {
     return request<Record<string, unknown>>(
-      { method: "POST", url: `/automations/${automationId}/preview`, data: body },
+      {
+        method: "POST",
+        url: `/automations/${automationId}/preview`,
+        data: body,
+      },
       orgId
     );
   },
@@ -319,7 +345,11 @@ export const automationService = {
     orgId?: string
   ) {
     return request<Record<string, unknown>>(
-      { method: "GET", url: `/automations/${automationId}/stats/time-series`, params },
+      {
+        method: "GET",
+        url: `/automations/${automationId}/stats/time-series`,
+        params,
+      },
       orgId
     );
   },
@@ -337,7 +367,11 @@ export const automationService = {
     orgId?: string
   ) {
     return request<Record<string, unknown>>(
-      { method: "GET", url: `/automations/${automationId}/stats/entries`, params },
+      {
+        method: "GET",
+        url: `/automations/${automationId}/stats/entries`,
+        params,
+      },
       orgId
     );
   },
@@ -366,4 +400,3 @@ export const automationService = {
     );
   },
 };
-
