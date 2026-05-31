@@ -56,7 +56,7 @@ vi.mock("@/components/ui/select", () => ({
     value?: string;
     onValueChange?: (value: string) => void;
   }) => (
-    <div data-select value={value} data-onchange={Boolean(onValueChange)}>
+    <div data-select data-value={value} data-onchange={Boolean(onValueChange)}>
       {children}
     </div>
   ),

@@ -74,22 +74,44 @@ Some protocol-facing endpoints accept **secret keys** (`sk_*`) for server-to-ser
 
 ### Identity & ZK (Binding)
 
-- `POST /identity/otp`: Issue OTP for channel binding.
+- `POST /identity/register`: Register a wallet into the protocol identity system (creates
+  commitment + adds to `members` group).
+  - **Auth**: `x-publishable-key: pk_*` (or cookie session)
+  - **Body**: `{ walletAddress, bindingSignature, commitment? }`
+- `GET /identity/protocol-salt`: Per-protocol salt used for commitment/value hashing.
+  - **Auth**: `x-publishable-key: pk_*` (or cookie session)
+  - **Returns**: `{ salt }`
+- `GET /identity/group/{kind}/state`: Group state (root + leaves) for proof generation / auditing.
+  - **Auth**: `x-publishable-key: pk_*` (or cookie session)
+  - `kind ∈ { members, verified_email, verified_x, verified_telegram, verified_discord, verified_farcaster, segment }`
+  - **Query**: `segmentId?` (required when `kind=segment`)
+  - **Returns**: `{ root, depth, leafCount, leaves[] }`
+- `GET /identity/status?walletAddress=0x...`: Current identity status for a wallet.
+  - **Auth**: `x-publishable-key: pk_*` (or cookie session)
+- `GET /identity/stats`: Identity overview stats (dashboard).
+  - **Auth**: cookie session (Org roles: Owner/Admin/Editor/Viewer)
+- `GET /identity/events`: Recent identity registrations + bindings (dashboard).
+  - **Auth**: cookie session (Org roles: Owner/Admin/Editor/Viewer)
+  - **Query**: `limit?` (default `50`, max `200`)
+- `POST /identity/otp`: Issue OTP for channel binding (email MVP).
+  - **Auth**: `x-publishable-key: pk_*` (or cookie session)
   - **Body**: `{ walletAddress, channelType, destination? }`
   - `channelType` accepts either enum-style (`"EMAIL"`) or lowercase (`"email"`).
-- `POST /identity/bind`: Persist encrypted channel binding.
-  - **Body**:
-    - Required: `{ walletAddress, channelType, valueHash, otp, encryptedValue }`
-    - Optional fields supported by the zk-v2 contract:
-      `{ proof, identityCommitment, walletSignature, source }`
+- `POST /identity/bind`: Bind a wallet to a channel value and store it encrypted (email MVP).
+  - **Auth**: `x-publishable-key: pk_*` (or cookie session)
+  - **Body (canonical)**: `{ walletAddress, channelType, value, otp?, source? }`
+  - **Body (advanced)**:
+    `{ walletAddress, channelType, valueHash, encryptedValue, otp?, identityCommitment?, proof?, walletSignature?, source? }`
+- `POST /identity/decrypt`: Decrypt stored channel value (send-worker only).
+  - **Auth**: `Authorization: Bearer sk_*` (or `x-secret-key: sk_*`)
+  - **Body**: `{ commitment, channelType }`
 
 Example (issue OTP):
 
 ```bash
 curl -X POST "$BASE_URL/identity/otp" \
   -H "Content-Type: application/json" \
-  -H "x-org-id: $ORG_ID" \
-  -b "$COOKIE_JAR" \
+  -H "x-publishable-key: $PUBLISHABLE_KEY" \
   -d '{"walletAddress":"0xabc...","channelType":"email","destination":"user@example.com"}'
 ```
 
@@ -98,9 +120,8 @@ Example (bind):
 ```bash
 curl -X POST "$BASE_URL/identity/bind" \
   -H "Content-Type: application/json" \
-  -H "x-org-id: $ORG_ID" \
-  -b "$COOKIE_JAR" \
-  -d '{"walletAddress":"0xabc...","channelType":"email","valueHash":"0x...","otp":"123456","encryptedValue":{"ciphertext":"...","iv":"...","authTag":"...","wrappedKey":"...","wrapIv":"...","wrapTag":"...","keyVersion":1}}'
+  -H "x-publishable-key: $PUBLISHABLE_KEY" \
+  -d '{"walletAddress":"0xabc...","channelType":"email","value":"user@example.com","otp":"123456"}'
 ```
 
 ### Segments (Reachable)
@@ -139,29 +160,18 @@ curl -X POST "$BASE_URL/identity/bind" \
 
 ### In-app Integrations (Org Admin)
 
-- `GET /integrations/inapp/status`: Keys + usage + session count for the active org.
-  - **Behavior (lazy publishable keys)**:
-    - Publishable keys (`pk_*`) are created automatically the first time an org hits this endpoint
-      (or any codepath calling `InappConfigService.getOrCreateKeys`).
-    - Storage:
-      `Organization.metadata.inapp.keys = { production: "pk_live_...", test: "pk_test_..." }`
-  - **Returns** (shape may evolve):
-    - `publishableKeys`: `{ production, test }` (preferred) or `publishableKey` (legacy)
-    - `secretKeys`: array of secret key metadata (no raw `sk_*` values)
-    - `sessionCount`, `usage`
+- `GET /integrations/inapp/status`: Keys + usage + session count for the active org (Owner/Admin).
+  - **Returns**:
+    - `publishableKey` / `publishableKeys`: `{ production, test }`
+    - `secretKeys`: array of masked secret key prefixes + metadata (full `sk_*` is only returned at
+      creation time)
+    - `secretKey`: convenience masked prefix for the first key (or `null`)
 - `GET /integrations/inapp/origins`: List allowed origins.
 - `POST /integrations/inapp/origins`: Add allowed origin (Body:
   `{ origin: "https://app.example.com", environment: "production"|"staging"|"development" }`).
 - `DELETE /integrations/inapp/origins/{originId}`: Remove allowed origin.
 - `POST /integrations/inapp/test-push`: Send a test push to a wallet (Body:
   `{ walletAddress, title, body, ctaLabel?, ctaUrl? }`).
-- `POST /integrations/keys/secret`: Create a new secret key token (`sk_*`) (Owner/Admin only).
-  - **Body**: `{ environment: "live"|"test", name? }`
-  - **Returns**: `{ token: "sk_live_..." }` (token is shown once at creation time; save it
-    immediately)
-  - **Storage**: only a verifier/hash is stored:
-    - `Organization.metadata.apiKeys.secretKeys[]` (stores `id`, `environment`, `verifierHash`,
-      timestamps, optional name)
 
 ### In-app Protocol Push (Secret Key)
 
@@ -671,6 +681,8 @@ All import/export endpoints are organization-scoped via `x-org-id`.
   - **Response**:
     `{ data: Campaign[], meta: { page, limit, totalItems, totalPages, hasMore, hasPreviousPage, hasNextPage } }`
 - `POST /campaigns`: Create a new campaign.
+  - **Body**:
+    `{ name: string, type?: "EMAIL_BLAST" | "DRIP_CAMPAIGN" | "SMART_SENDING", subject?: string, htmlContent?: string, recipients?: any }`
 - `GET /campaigns/{id}`: Get campaign details.
 - `GET /campaigns/{id}/email`: Get campaign email (headers + html + optional editor payload).
 - `PUT /campaigns/{id}/email`: Update campaign email (headers + html + optional editor payload).
@@ -698,16 +710,41 @@ All import/export endpoints are organization-scoped via `x-org-id`.
   `{ to: string, subjectOverride?: string }`).
 - `PUT /campaigns/{id}/schedule`: Save schedule settings (Body:
   `{ sendOption: "now" | "schedule", scheduleDate, scheduleTime, timezone }`).
+  - If `sendOption="schedule"` then `scheduleDate` is required and must be a future UTC instant
+    (`YYYY-MM-DDTHH:mm:ss.sssZ`).
+  - `scheduleTime` must be `HH:mm`.
+  - `timezone` must be a valid IANA timezone (e.g. `UTC`, `America/New_York`).
 - `GET /campaigns/{id}/schedule`: Get schedule settings.
 - `POST /campaigns/{id}/validate`: Validate campaign for launch (Response:
-  `{ valid: boolean, errors: [] }`).
+  `{ valid: boolean, errors: Array<{ code: string, message: string }> }`).
 - `POST /campaigns/{id}/duplicate`: Duplicate campaign (creates new DRAFT).
 - `POST /campaigns/{id}/cancel`: Cancel scheduled campaign (returns campaign to DRAFT).
 - `GET /campaigns/{id}/events`: Campaign timeline/status events.
-- `POST /campaigns/{id}/launch`: Launch a campaign.
+- `POST /campaigns/{id}/launch`: Launch a campaign (unified pipeline for all campaign types).
+  - **Response (200)**:
+    - Immediate: `{ message: "Campaign launch initiated" }`
+    - Scheduled: `{ queued: true, scheduleDate: "<UTC ISO string>" }`
+  - **Errors**:
+    - `409 CONFLICT` when already sent/sending
+    - `422 VALIDATION_FAILED` when required content/config is missing for the campaign type
 - `GET /campaigns/calendar`: Get campaign calendar view.
   - **Query**: `start?`, `end?` (ISO date strings). Returns only scheduled campaigns in range.
   - **Response**: `{ data: Campaign[] }`
+
+### Drip Campaign (Sequence)
+
+- `PUT /campaigns/{id}/drip`: Save drip-level configuration (Body: JSON object).
+- `GET /campaigns/{id}/drip/steps`: List drip steps.
+- `POST /campaigns/{id}/drip/steps`: Create drip step (Body:
+  `{ name?, subject?, delayMinutes?, content: { html?: string, ... } }`).
+- `PUT /campaigns/{id}/drip/steps/{stepId}`: Update drip step.
+- `DELETE /campaigns/{id}/drip/steps/{stepId}`: Delete drip step.
+
+### Smart Campaign (Multi-Channel)
+
+- `PUT /campaigns/{id}/channels`: Set enabled channels (Body: `{ channelsUsed: string[] }`)
+  - Allowed values: `inapp`, `telegram`, `discord`, `x` (case-insensitive).
+- `PUT /campaigns/{id}/channels/{channel}/content`: Set per-channel payload (Body: JSON object).
 
 ### Campaigns UI (Frontend)
 
@@ -778,17 +815,110 @@ await fetch(`${baseUrl}/campaigns/${campaignId}/email`, {
 
 ### Campaign Types
 
-- `GET /campaign-types`: List allowed campaign types.
+- `GET /campaign-types`: List allowed campaign types (UI discovery).
+  - **Response**:
+    - `id`: `"EMAIL_BLAST" | "DRIP_CAMPAIGN" | "SMART_SENDING"`
+    - `channels`: string[]
+    - `supportsSchedule`: boolean
+    - `supportsSequence`: boolean
+
+## AI / RAG
+
+All AI endpoints are under the same base prefix (`/api/v1`). Unless noted otherwise, endpoints:
+
+- Require auth (cookie session or `Authorization: Bearer <token>`)
+- Require `x-org-id: <orgId>` and must match the active org in the session
+
+### Query
+
+- `GET /query/search`: Semantic search over ingested site content (no LLM).
+  - **Query**: `query=<string>` (required), `topK=<number>` (optional, max 25)
+  - **Response (200)**: standard API response wrapper with `data`:
+    - `data`: `{ results: Array<{ sourceUri, title, snippet, score }>, variant, latencyMs }`
+- `POST /query/text`: RAG answer for a text query.
+  - **Body**: `{ query: string, mode?: "fast" | "best" }`
+  - **Response (200)**: standard API response wrapper with `data`:
+    - `data`: `{ answer, citations, variant, model, usage, redactions, latencyMs }`
+- `POST /query/voice`: Same as text, but accepts pre-transcribed voice input.
+  - **Body**: `{ text: string, mode?: "fast" | "best" }`
+  - **Response (200)**: standard API response wrapper with `data`:
+    - `data`: `{ answer, citations, variant, model, usage, redactions, latencyMs }`
+- `GET /query/text/stream`: Stream an answer over SSE (Server-Sent Events).
+  - **Query**: `query=<string>` (required), `mode=fast|best` (optional)
+  - **Headers**:
+    - `Accept: text/event-stream` (required)
+    - Auth: cookie session or `Authorization: Bearer <token>`
+    - `x-org-id: <orgId>`
+  - **SSE Events**:
+    - `{ type: "token", token: "<partial>" }` (repeated)
+    - `{ type: "done", data: { answer, citations, variant, queryLogId, redactions, latencyMs } }`
+
+### Health
+
+- `GET /ai/health`: AI health check (public).
+  - Checks vector store + embeddings + LLM connectivity.
+
+### Admin / Ingestion
+
+- `GET /ai/metrics`: Metrics snapshot (org admin).
+  - **Permissions**: Owner/Admin.
+- `POST /ai/feedback`: Feedback loop for response relevance.
+  - **Body**: `{ rating: 1..5, queryLogId?: string, comment?: string }`
+- `POST /ai/ingest/web`: Crawl + ingest website content into vector store (dashboard).
+  - **Permissions**: Owner/Admin/Editor.
+  - **Body**: `{ url, maxPages?, maxDepth?, rateLimitMs?, sourceLabel?, render? }`
+  - If `render=true` and `FIRECRAWL_API_KEY` is configured, pages are scraped via Firecrawl for
+    SPA/JS-rendered sites.
+  - If the starting `url` is under `/docs`, `/help`, or `/kb`, the crawler stays within that path
+    prefix and won’t ingest other app routes on the same origin.
+- `POST /ai/ingest/files`: Batch ingest uploaded files into vector store (dashboard).
+  - **Permissions**: Owner/Admin/Editor.
+  - **Content-Type**: `multipart/form-data`
+  - **Form field**: `files` (up to 20 files; max 25MB per file)
+- `POST /ai/reindex`: Trigger incremental re-index for stored web sources (dashboard).
+  - **Permissions**: Owner/Admin.
+
+### Protocol Server-to-Server (Secret Key)
+
+- `POST /ai/v2/ingest/web`: Ingest website content using secret-key auth (no `x-org-id` required).
+  - **Auth**: `Authorization: Bearer sk_*` (or `x-secret-key: sk_*`)
+  - **Body**: `{ url, maxPages?, maxDepth?, rateLimitMs?, sourceLabel?, render? }`
+  - If `render=true` and `FIRECRAWL_API_KEY` is configured, pages are scraped via Firecrawl for
+    SPA/JS-rendered sites.
+  - If the starting `url` is under `/docs`, `/help`, or `/kb`, the crawler stays within that path
+    prefix and won’t ingest other app routes on the same origin.
 
 ## Templates
 
-These endpoints are organization-scoped (send `x-org-id` header).
+Templates are organization-scoped (send `x-org-id` header) except for the public library endpoints
+below.
+
+### Public Template Library
+
+- `GET /templates/public`: List public templates (Query: `search?`, `sort?`, `page?`, `limit?`,
+  `category?`, `tags?`).
+- `GET /templates/public/{id}`: Get public template details.
+- `POST /templates/clone`: Clone a public template into org templates (requires `x-org-id` + org
+  role).
+  - **Body**: `{ publicTemplateId: string, name?: string, folder?: string }`
 
 - `GET /templates`: List templates (Query: `search?`, `sort?`, `page?`, `limit?`, `folder?`).
 - `POST /templates`: Create template (Body: `{ name, folder?, content? }`).
 - `GET /templates/{id}`: Get template details.
 - `PUT /templates/{id}`: Update template (Body: `{ name?, folder?, content? }`).
 - `DELETE /templates/{id}`: Delete template.
+
+## Email Templates (Library: Public + Private)
+
+These endpoints are user-scoped (public templates + your private templates). Auth required.
+
+- `GET /email-templates`: List accessible templates.
+  - **Query**: `search?`, `sort?` (`popular|recent|name`), `page?`, `limit?`, `category?`, `tags?`,
+    `access?` (`public|private`)
+- `POST /email-templates`: Create a private template (owned by you).
+- `GET /email-templates/{id}`: Get template (public or owned private).
+- `PUT /email-templates/{id}`: Update template (owned private; public is admin-only).
+- `DELETE /email-templates/{id}`: Delete template (owned private; public is admin-only).
 
 ## Notifications
 

@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 import { CalendarIcon, Clock, Info, Send } from "lucide-react";
+import { useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import { Button } from "@/ui/button";
@@ -11,18 +12,15 @@ import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/ui/select";
 
+import {
+  getZonedDateTimeParts,
+  parseTimeOfDay,
+  zonedWallTimeToUtcDate,
+} from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
 import type { CampaignFormData } from "../../validations";
-import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
 interface ScheduleStepProps {
   form: UseFormReturn<CampaignFormData>;
@@ -33,7 +31,35 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
   const scheduleDate = form.watch("scheduleDate");
   const scheduleTime = form.watch("scheduleTime");
   const timezone = form.watch("timezone");
-  const { items: tzItems, loading: tzLoading } = useTimezones();
+  const minSelectableDate = useMemo(() => {
+    if (!timezone) return new Date();
+    const today = getZonedDateTimeParts(new Date(), timezone);
+    return new Date(today.year, today.month - 1, today.day);
+  }, [timezone]);
+  const scheduleSummary = useMemo(() => {
+    if (sendOption !== "schedule") return null;
+    if (!scheduleDate || !scheduleTime || !timezone) return null;
+    const { hour, minute } = parseTimeOfDay(scheduleTime);
+    const utc = zonedWallTimeToUtcDate(
+      {
+        year: scheduleDate.getFullYear(),
+        month: scheduleDate.getMonth() + 1,
+        day: scheduleDate.getDate(),
+        hour,
+        minute,
+      },
+      timezone
+    );
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(utc);
+  }, [scheduleDate, scheduleTime, sendOption, timezone]);
 
   return (
     <div className="space-y-8 p-6 md:p-8 lg:p-10 animate-in fade-in duration-500">
@@ -176,7 +202,9 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                                         mode="single"
                                         selected={field.value}
                                         onSelect={field.onChange}
-                                        disabled={(date) => date < new Date()}
+                                        disabled={(date) =>
+                                          date < minSelectableDate
+                                        }
                                         captionLayout="dropdown"
                                         initialFocus
                                         className="rounded-xl"
@@ -215,41 +243,22 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                             render={({ field }) => (
                               <FormItem className="space-y-2">
                                 <FormLabel className="text-sm font-medium">
-                                  Timezone
+                                  Timezone (from Settings)
                                 </FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="h-11 rounded-xl border-border bg-background transition-all duration-300">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent className="rounded-xl border-border bg-card max-h-[300px]">
-                                    {tzLoading ? (
-                                      <div className="p-2 text-sm text-muted-foreground">
-                                        Loading…
-                                      </div>
-                                    ) : (
-                                      tzItems.map((tz) => (
-                                        <SelectItem
-                                          key={tz.id}
-                                          value={tz.id}
-                                          className="rounded-lg"
-                                        >
-                                          {tz.label}
-                                        </SelectItem>
-                                      ))
-                                    )}
-                                  </SelectContent>
-                                </Select>
+                                <FormControl>
+                                  <Input
+                                    value={field.value ?? ""}
+                                    disabled
+                                    readOnly
+                                    className="h-11 rounded-xl border-border bg-muted/40 text-foreground"
+                                  />
+                                </FormControl>
                               </FormItem>
                             )}
                           />
 
                           {/* Schedule Summary */}
-                          {scheduleDate && (
+                          {scheduleDate && scheduleSummary && (
                             <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border border-border animate-in fade-in duration-300">
                               <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                               <div className="flex-1 space-y-1">
@@ -257,8 +266,7 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                                   Your campaign will be sent on:
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  {format(scheduleDate, "EEEE, MMMM d, yyyy")}{" "}
-                                  at {scheduleTime} ({timezone})
+                                  {scheduleSummary} ({timezone})
                                 </p>
                               </div>
                             </div>

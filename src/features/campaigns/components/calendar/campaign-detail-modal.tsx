@@ -15,6 +15,7 @@ interface CampaignDetailModalProps {
   onOpenChange: (open: boolean) => void;
   selectedDate: Date | null;
   campaigns: Campaign[];
+  timezone: string;
 }
 
 export function CampaignDetailModal({
@@ -22,18 +23,34 @@ export function CampaignDetailModal({
   onOpenChange,
   selectedDate,
   campaigns,
+  timezone,
 }: CampaignDetailModalProps) {
+  const formatDateTime = (date: Date) => {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
+  const formatDateOnly = (date: Date) => {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">
-            Campaigns on{" "}
-            {selectedDate?.toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
+            Campaigns on {selectedDate ? formatDateOnly(selectedDate) : ""}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-4">
@@ -116,13 +133,7 @@ export function CampaignDetailModal({
                         Created
                       </p>
                       <p className="text-sm font-medium text-foreground">
-                        {campaign.createdAt.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatDateTime(campaign.createdAt)}
                       </p>
                     </div>
 
@@ -132,13 +143,7 @@ export function CampaignDetailModal({
                           Scheduled For
                         </p>
                         <p className="text-sm font-medium text-foreground">
-                          {campaign.scheduledFor.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatDateTime(campaign.scheduledFor)}
                         </p>
                       </div>
                     )}
@@ -149,13 +154,7 @@ export function CampaignDetailModal({
                           Sent At
                         </p>
                         <p className="text-sm font-medium text-foreground">
-                          {campaign.sentAt.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatDateTime(campaign.sentAt)}
                         </p>
                       </div>
                     )}

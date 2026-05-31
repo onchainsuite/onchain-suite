@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
+
+import { getZonedDateTimeParts, zonedWallTimeToUtcDate } from "@/lib/timezone";
 
 import type { Campaign } from "../../../campaigns/types";
 import {
@@ -17,58 +19,99 @@ import { CalendarDayCell } from "./calendar-day-cell";
 import { CalendarHeader } from "./calendar-header";
 import { CalendarLegend } from "./calendar-legend";
 import { CampaignDetailModal } from "./campaign-detail-modal";
+import { useActiveTimezone } from "@/shared/hooks/client/use-timezones";
 
 interface CampaignsCalendarProps {
   campaigns: Campaign[];
 }
 
 export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
-  const firstCampaignDate = campaigns.find((c) => c.scheduledFor)?.scheduledFor;
-  const [currentDate, setCurrentDate] = useState(
-    firstCampaignDate ? new Date(firstCampaignDate) : new Date()
-  );
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const { timezone } = useActiveTimezone();
+
+  const initialMonth = useMemo(() => {
+    const first = campaigns.find((c) => c.scheduledFor)?.scheduledFor;
+    const base = first ? new Date(first) : new Date();
+    const parts = getZonedDateTimeParts(base, timezone);
+    return { year: parts.year, month: parts.month - 1 };
+  }, [campaigns, timezone]);
+
+  const [currentMonth, setCurrentMonth] = useState<{
+    year: number;
+    month: number;
+  }>(initialMonth);
+
+  useEffect(() => {
+    setCurrentMonth(initialMonth);
+  }, [initialMonth]);
+
+  const [selectedDate, setSelectedDate] = useState<{
+    year: number;
+    month: number;
+    day: number;
+  } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth();
+  const currentYear = currentMonth.year;
+  const monthIndex = currentMonth.month;
 
   const previousMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+    setCurrentMonth((prev) => {
+      if (prev.month === 0) return { year: prev.year - 1, month: 11 };
+      return { year: prev.year, month: prev.month - 1 };
+    });
   };
 
   const nextMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+    setCurrentMonth((prev) => {
+      if (prev.month === 11) return { year: prev.year + 1, month: 0 };
+      return { year: prev.year, month: prev.month + 1 };
+    });
   };
 
   const handleDateClick = (day: number) => {
     const dayCampaigns = getCampaignsForDate(
       campaigns,
       currentYear,
-      currentMonth,
-      day
+      monthIndex,
+      day,
+      timezone
     );
     if (dayCampaigns.length > 0) {
-      setSelectedDate(new Date(currentYear, currentMonth, day));
+      setSelectedDate({ year: currentYear, month: monthIndex, day });
       setIsModalOpen(true);
     }
   };
 
-  const calendarDays = generateCalendarDays(currentYear, currentMonth);
+  const calendarDays = generateCalendarDays(currentYear, monthIndex, timezone);
   const selectedDateCampaigns = selectedDate
     ? getCampaignsForDate(
         campaigns,
-        selectedDate.getFullYear(),
-        selectedDate.getMonth(),
-        selectedDate.getDate()
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        timezone
       )
     : [];
+
+  const selectedDateUtc = useMemo(() => {
+    if (!selectedDate) return null;
+    return zonedWallTimeToUtcDate(
+      {
+        year: selectedDate.year,
+        month: selectedDate.month + 1,
+        day: selectedDate.day,
+        hour: 12,
+        minute: 0,
+      },
+      timezone
+    );
+  }, [selectedDate, timezone]);
 
   return (
     <>
       <Card className="border-border bg-card rounded-2xl shadow-sm">
         <CalendarHeader
-          monthName={MONTH_NAMES[currentMonth]}
+          monthName={MONTH_NAMES[monthIndex]}
           year={currentYear}
           onPreviousMonth={previousMonth}
           onNextMonth={nextMonth}
@@ -95,8 +138,9 @@ export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
                   ? getCampaignsForDate(
                       campaigns,
                       currentYear,
-                      currentMonth,
-                      day
+                      monthIndex,
+                      day,
+                      timezone
                     )
                   : [];
                 return (
@@ -105,7 +149,7 @@ export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
                     key={`day-${index}-${day}`}
                     day={day}
                     campaigns={dayCampaigns}
-                    isToday={isToday(day, currentMonth, currentYear)}
+                    isToday={isToday(day, monthIndex, currentYear, timezone)}
                     onClick={() => day && handleDateClick(day)}
                   />
                 );
@@ -120,8 +164,9 @@ export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
       <CampaignDetailModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        selectedDate={selectedDate}
+        selectedDate={selectedDateUtc}
         campaigns={selectedDateCampaigns}
+        timezone={timezone}
       />
     </>
   );

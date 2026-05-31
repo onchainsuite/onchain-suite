@@ -2,11 +2,8 @@
   homepage.
 - Display logo image on the select-orginaztion top-bar when it has been uploaded.
 - In the 'Schedule Campaign' section, the timezone should be the same as the Settings timezone.
-- An extra campaign type which is the in-app push should be created which has farcaster, X, discord,
-  etc. so users are sent notifications or messages.
 
 - I want to make the algolia search work throughout the website.
-- Let the Navbar be collapsed by default so I can have a bigger workspace.
 - Optimize the design of the website.
 - Add a loading screen when the website is loading, this should be a skeleton loading screen which
   has the same pattern for the page about to be displayed. Note that the Navbae should always be
@@ -21,8 +18,13 @@
 - We should have a public 'Email Library' recommended by the app and a private 'Email Saved' section for custom templates by the user.
 - We should add a last section which is to preview the campaign before it is sent.
 
-- The 'Schedule your campaign' section should be wired to the backend so we can either send emails immediately or schedule it, the timezone should be the same as the Settings timezone.
+- The 'Schedule your campaign', 'Templates' and all Campamign flow sections should be wired to the backend so we can either send emails immediately or schedule it, the timezone should also be the same as the Settings timezone. For other Campaign sections without API endpoints, let me know what endpoints are needed and the usage.
 - The 'Schedule your campaign' section should have a preview of the campaign before it is sent.
+
+
+- Map these endpoints exactly to the current frontend steps (“Schedule”, “Templates”, “Launch”) and point out which screens need which new calls for Drip + Smart.
+
+
 
 
 

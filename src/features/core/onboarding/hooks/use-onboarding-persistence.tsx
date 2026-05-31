@@ -15,7 +15,7 @@ export function useOnboardingPersistence<T>(): UseOnboardingPersistence<T> {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initialStep = parseInt(searchParams.get("step") ?? "1", 10);
+  const initialStep = parseInt(searchParams?.get("step") ?? "1", 10);
 
   const [step, setStepState] = useState<number>(initialStep);
   const [data, setDataState] = useState<Partial<T>>({});

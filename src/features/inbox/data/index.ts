@@ -1,6 +1,27 @@
 import { Archive, Inbox, Mail, Star } from "lucide-react";
 
-import { type Email } from "../types";
+type Email = {
+  id: number;
+  from: string;
+  email: string;
+  profileId: string;
+  avatar: string;
+  subject: string;
+  preview: string;
+  time: string;
+  date: string;
+  unread: boolean;
+  starred: boolean;
+  hasAttachment: boolean;
+  campaign: string;
+  thread: Array<{
+    id: number;
+    from: string;
+    to: string;
+    time: string;
+    content: string;
+  }>;
+};
 
 export const emails: Email[] = [
   {

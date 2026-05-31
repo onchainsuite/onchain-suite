@@ -213,7 +213,12 @@ export default function CompanyEditForm() {
                   if (!chain || !address) return null;
                   return { chain, address, label };
                 })
-                .filter(Boolean)
+                .filter(
+                  (
+                    row
+                  ): row is { chain: string; address: string; label: string } =>
+                    Boolean(row)
+                )
             : [];
 
           const treasuryWalletsRaw =
@@ -233,7 +238,9 @@ export default function CompanyEditForm() {
                   if (!address) return null;
                   return { address, label };
                 })
-                .filter(Boolean)
+                .filter((row): row is { address: string; label: string } =>
+                  Boolean(row)
+                )
             : [];
 
           const teamWalletsRaw =
@@ -253,7 +260,9 @@ export default function CompanyEditForm() {
                   if (!address) return null;
                   return { address, label };
                 })
-                .filter(Boolean)
+                .filter((row): row is { address: string; label: string } =>
+                  Boolean(row)
+                )
             : [];
 
           const initialData = {

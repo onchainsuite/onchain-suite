@@ -176,7 +176,6 @@ export function DashboardLayout({
               ? breadcrumbs[breadcrumbs.length - 1].label
               : undefined
           }
-          setOpen={() => {}}
           hasActiveOrganization={hasActiveOrganization}
         />
       </div>

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
 import { mutate as swrMutate } from "swr";
 
+import { CommandPaletteProvider } from "@/components/common/command-palette";
 import { BackToTop } from "@/ui/back-to-top";
 import { Toaster } from "@/ui/sonner";
 
@@ -30,7 +31,7 @@ export const RootProviders = ({ children }: { children: ReactNode }) => {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
+        <CommandPaletteProvider>{children}</CommandPaletteProvider>
         <BackToTop />
       </ThemeProvider>
       <Toaster

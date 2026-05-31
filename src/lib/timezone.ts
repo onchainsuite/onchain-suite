@@ -78,3 +78,127 @@ export function getAllTimezones(): TimezoneInfo[] {
 
   return timeZones.map(getTimezoneDisplay);
 }
+
+export type ZonedDateTimeParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+};
+
+const toNumber = (value: string | undefined): number => {
+  const n = value ? Number(value) : Number.NaN;
+  return Number.isFinite(n) ? n : 0;
+};
+
+export function getZonedDateTimeParts(
+  date: Date,
+  timeZone: string
+): ZonedDateTimeParts {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+
+  const map = new Map(parts.map((p) => [p.type, p.value]));
+
+  return {
+    year: toNumber(map.get("year")),
+    month: toNumber(map.get("month")),
+    day: toNumber(map.get("day")),
+    hour: toNumber(map.get("hour")),
+    minute: toNumber(map.get("minute")),
+    second: toNumber(map.get("second")),
+  };
+}
+
+export function getTimeZoneOffsetMs(timeZone: string, date: Date): number {
+  const z = getZonedDateTimeParts(date, timeZone);
+  const asUtc = Date.UTC(
+    z.year,
+    z.month - 1,
+    z.day,
+    z.hour,
+    z.minute,
+    z.second
+  );
+  return asUtc - date.getTime();
+}
+
+export function zonedWallTimeToUtcDate(
+  input: {
+    year: number;
+    month: number;
+    day: number;
+    hour: number;
+    minute: number;
+    second?: number;
+  },
+  timeZone: string
+): Date {
+  const utcGuess = new Date(
+    Date.UTC(
+      input.year,
+      input.month - 1,
+      input.day,
+      input.hour,
+      input.minute,
+      input.second ?? 0
+    )
+  );
+
+  const offset1 = getTimeZoneOffsetMs(timeZone, utcGuess);
+  let utcDate = new Date(utcGuess.getTime() - offset1);
+
+  const offset2 = getTimeZoneOffsetMs(timeZone, utcDate);
+  if (offset2 !== offset1) {
+    utcDate = new Date(utcGuess.getTime() - offset2);
+  }
+
+  return utcDate;
+}
+
+export function utcDateToZonedWallTime(
+  date: Date,
+  timeZone: string
+): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+} {
+  const parts = getZonedDateTimeParts(date, timeZone);
+  return {
+    year: parts.year,
+    month: parts.month,
+    day: parts.day,
+    hour: parts.hour,
+    minute: parts.minute,
+    second: parts.second,
+  };
+}
+
+export function parseTimeOfDay(value: string): {
+  hour: number;
+  minute: number;
+} {
+  const trimmed = value.trim();
+  const m = /^(\d{1,2}):(\d{2})$/.exec(trimmed);
+  if (!m) return { hour: 0, minute: 0 };
+  const hour = Number(m[1]);
+  const minute = Number(m[2]);
+  return {
+    hour: Number.isFinite(hour) ? Math.min(23, Math.max(0, hour)) : 0,
+    minute: Number.isFinite(minute) ? Math.min(59, Math.max(0, minute)) : 0,
+  };
+}

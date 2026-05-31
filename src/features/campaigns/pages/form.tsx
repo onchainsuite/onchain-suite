@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Clock, Loader2, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -13,6 +13,11 @@ import { toast } from "sonner";
 import { Button } from "@/ui/button";
 import { Form } from "@/ui/form";
 
+import {
+  getZonedDateTimeParts,
+  parseTimeOfDay,
+  zonedWallTimeToUtcDate,
+} from "@/lib/timezone";
 import { isJsonObject } from "@/lib/utils";
 
 import {
@@ -32,6 +37,7 @@ import {
   CAMPAIGN_SEGMENTS,
 } from "@/features/campaigns/constants";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { useActiveTimezone } from "@/shared/hooks/client/use-timezones";
 
 const TOTAL_STEPS = 5;
 const campaignTypes = new Set<CampaignFormData["campaignType"]>([
@@ -100,6 +106,36 @@ function CampaignPreviewStep({
 
   const values = form.watch();
   const isScheduled = values.sendOption === "schedule";
+  const timezone =
+    typeof values.timezone === "string" && values.timezone.length > 0
+      ? values.timezone
+      : "UTC";
+
+  const scheduleLabel = useMemo(() => {
+    if (!isScheduled) return "Send now";
+    if (!values.scheduleDate || !values.scheduleTime) return "Schedule (—)";
+    const { hour, minute } = parseTimeOfDay(values.scheduleTime);
+    const utc = zonedWallTimeToUtcDate(
+      {
+        year: values.scheduleDate.getFullYear(),
+        month: values.scheduleDate.getMonth() + 1,
+        day: values.scheduleDate.getDate(),
+        hour,
+        minute,
+      },
+      timezone
+    );
+    const dt = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(utc);
+    return `Schedule (${dt} ${timezone})`;
+  }, [isScheduled, timezone, values.scheduleDate, values.scheduleTime]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 p-6 md:p-8 lg:p-10">
@@ -134,10 +170,7 @@ function CampaignPreviewStep({
               {values.senderEmail || "—"}
             </div>
             <div>
-              <span className="text-foreground">Send:</span>{" "}
-              {isScheduled
-                ? `Schedule (${values.scheduleDate ? values.scheduleDate.toLocaleDateString() : "—"} ${values.scheduleTime ?? ""} ${values.timezone ?? ""})`
-                : "Send now"}
+              <span className="text-foreground">Send:</span> {scheduleLabel}
             </div>
           </div>
         </div>
@@ -223,17 +256,22 @@ function CampaignPreviewStep({
 export function CreateCampaignPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { timezone: activeTimezone } = useActiveTimezone();
+  const safeSearchParams = useMemo(
+    () => searchParams ?? new URLSearchParams(),
+    [searchParams]
+  );
 
   const initialStep = useMemo(() => {
-    const raw = Number(searchParams.get("step") ?? "1");
+    const raw = Number(safeSearchParams.get("step") ?? "1");
     if (!Number.isFinite(raw)) return 1;
     return Math.min(TOTAL_STEPS, Math.max(1, Math.trunc(raw)));
-  }, [searchParams]);
+  }, [safeSearchParams]);
 
   const initialCampaignFromUrl = useMemo(() => {
-    const raw = searchParams.get("campaign");
+    const raw = safeSearchParams.get("campaign");
     return raw && raw.trim().length > 0 ? raw.trim() : undefined;
-  }, [searchParams]);
+  }, [safeSearchParams]);
 
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -274,6 +312,45 @@ export function CreateCampaignPage() {
   });
 
   useEffect(() => {
+    const current = form.getValues("timezone");
+    if (current === activeTimezone) return;
+    form.setValue("timezone", activeTimezone, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [activeTimezone, form]);
+
+  const computeScheduleUtcIso = useCallback(
+    (data: CampaignFormData): string | undefined => {
+      if (data.sendOption !== "schedule") return undefined;
+      if (!(data.scheduleDate instanceof Date)) return undefined;
+      if (
+        typeof data.scheduleTime !== "string" ||
+        data.scheduleTime.length === 0
+      )
+        return undefined;
+      const tz =
+        typeof data.timezone === "string" && data.timezone.trim().length > 0
+          ? data.timezone.trim()
+          : activeTimezone;
+      const { hour, minute } = parseTimeOfDay(data.scheduleTime);
+      const utc = zonedWallTimeToUtcDate(
+        {
+          year: data.scheduleDate.getFullYear(),
+          month: data.scheduleDate.getMonth() + 1,
+          day: data.scheduleDate.getDate(),
+          hour,
+          minute,
+        },
+        tz
+      );
+      return utc.toISOString();
+    },
+    [activeTimezone]
+  );
+
+  useEffect(() => {
     setCurrentStep(initialStep);
   }, [initialStep]);
 
@@ -311,7 +388,7 @@ export function CreateCampaignPage() {
         if (!created?.id) throw new Error("Failed to create campaign draft");
         setCampaignId(created.id);
 
-        const next = new URLSearchParams(searchParams.toString());
+        const next = new URLSearchParams(safeSearchParams.toString());
         next.set("campaign", created.id);
         next.set("step", String(currentStepRef.current));
         router.replace(`/campaigns/new?${next.toString()}`);
@@ -327,7 +404,7 @@ export function CreateCampaignPage() {
     };
 
     ensureCampaign().catch(() => undefined);
-  }, [bootstrapError, form, router, searchParams]);
+  }, [bootstrapError, form, router, safeSearchParams]);
 
   useEffect(() => {
     const hydrate = async () => {
@@ -430,24 +507,25 @@ export function CreateCampaignPage() {
           const sObj: Record<string, unknown> = isJsonObject(scheduleRes.value)
             ? scheduleRes.value
             : {};
-          const {
-            sendOption: sendOptionRaw,
-            scheduleTime,
-            timezone,
-            scheduleDate,
-          } = sObj;
+          const { sendOption: sendOptionRaw, scheduleDate } = sObj;
           const sendOption = asSendOption(sendOptionRaw);
           if (sendOption) nextValues.sendOption = sendOption;
-          if (typeof scheduleTime === "string" || scheduleTime === null) {
-            nextValues.scheduleTime = String(scheduleTime ?? "");
-          }
-          if (typeof timezone === "string" || timezone === null) {
-            nextValues.timezone = String(timezone ?? "");
-          }
           if (typeof scheduleDate === "string") {
             const parsed = new Date(scheduleDate);
-            if (!Number.isNaN(parsed.getTime()))
-              nextValues.scheduleDate = parsed;
+            if (!Number.isNaN(parsed.getTime())) {
+              const tz = activeTimezone;
+              const parts = getZonedDateTimeParts(parsed, tz);
+              nextValues.timezone = tz;
+              nextValues.scheduleDate = new Date(
+                parts.year,
+                parts.month - 1,
+                parts.day
+              );
+              nextValues.scheduleTime = `${String(parts.hour).padStart(
+                2,
+                "0"
+              )}:${String(parts.minute).padStart(2, "0")}`;
+            }
           }
         }
 
@@ -465,7 +543,13 @@ export function CreateCampaignPage() {
     };
 
     hydrate().catch(() => undefined);
-  }, [campaignId, form, hasHydratedCampaign, initialCampaignFromUrl]);
+  }, [
+    activeTimezone,
+    campaignId,
+    form,
+    hasHydratedCampaign,
+    initialCampaignFromUrl,
+  ]);
 
   useEffect(() => {
     if (!campaignId) return;
@@ -477,10 +561,7 @@ export function CreateCampaignPage() {
       if (isBootstrappingRef.current) return;
 
       const values = form.getValues();
-      const scheduleDateIso =
-        values.scheduleDate instanceof Date
-          ? values.scheduleDate.toISOString()
-          : undefined;
+      const scheduleDateIso = computeScheduleUtcIso(values);
 
       const payload = {
         step: currentStepRef.current,
@@ -496,20 +577,20 @@ export function CreateCampaignPage() {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [campaignId, form]);
+  }, [campaignId, computeScheduleUtcIso, form]);
 
   useEffect(() => {
-    const subject = searchParams.get("subject");
-    const senderName = searchParams.get("senderName");
-    const senderEmail = searchParams.get("senderEmail");
+    const subject = safeSearchParams.get("subject");
+    const senderName = safeSearchParams.get("senderName");
+    const senderEmail = safeSearchParams.get("senderEmail");
 
     if (subject) form.setValue("emailSubject", subject);
     if (senderName) form.setValue("senderName", senderName);
     if (senderEmail) form.setValue("senderEmail", senderEmail);
-  }, [form, searchParams]);
+  }, [form, safeSearchParams]);
 
   const syncUrlStep = (nextStep: number) => {
-    const next = new URLSearchParams(searchParams.toString());
+    const next = new URLSearchParams(safeSearchParams.toString());
     next.set("step", String(nextStep));
     if (campaignId) next.set("campaign", campaignId);
     router.replace(`/campaigns/new?${next.toString()}`);
@@ -530,7 +611,7 @@ export function CreateCampaignPage() {
         fieldsToValidate = ["emailSubject", "senderName", "senderEmail"];
         break;
       case 4:
-        fieldsToValidate = ["sendOption"];
+        fieldsToValidate = ["sendOption", "scheduleDate", "scheduleTime"];
         break;
       case 5:
         fieldsToValidate = [];
@@ -598,13 +679,13 @@ export function CreateCampaignPage() {
 
       if (currentStep === 4) {
         const data = form.getValues();
+        const scheduleDateIso = computeScheduleUtcIso(data);
         await campaignsService.updateSchedule(campaignId, {
           sendOption: data.sendOption,
-          scheduleDate: data.scheduleDate
-            ? data.scheduleDate.toISOString()
-            : undefined,
-          scheduleTime: data.scheduleTime,
-          timezone: data.timezone,
+          scheduleDate: scheduleDateIso,
+          scheduleTime:
+            data.sendOption === "schedule" ? data.scheduleTime : undefined,
+          timezone: activeTimezone,
         });
       }
     } catch (e) {
@@ -636,13 +717,13 @@ export function CreateCampaignPage() {
 
     try {
       const data = form.getValues();
+      const scheduleDateIso = computeScheduleUtcIso(data);
       await campaignsService.updateSchedule(campaignId, {
         sendOption: data.sendOption,
-        scheduleDate: data.scheduleDate
-          ? data.scheduleDate.toISOString()
-          : undefined,
-        scheduleTime: data.scheduleTime,
-        timezone: data.timezone,
+        scheduleDate: scheduleDateIso,
+        scheduleTime:
+          data.sendOption === "schedule" ? data.scheduleTime : undefined,
+        timezone: activeTimezone,
       });
 
       const validation = await campaignsService.validateCampaign(campaignId);

@@ -55,7 +55,12 @@ const formatMoney = (v: unknown): string => {
 
 export function ReportDetailPage() {
   const params = useParams();
-  const reportId = params.id as string;
+  const reportId =
+    typeof params?.id === "string"
+      ? params.id
+      : Array.isArray(params?.id)
+        ? (params.id[0] ?? "")
+        : "";
   const queryClient = useQueryClient();
 
   const reportQuery = useQuery({

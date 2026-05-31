@@ -3,20 +3,20 @@ import {
   SearchTrigger,
   ThemeModeToggle,
 } from "@/components/common";
+import { useCommandPalette } from "@/components/common/command-palette";
 
 import { OrganizationSwitcher } from "./organization-switcher";
 
 export const DashboardHeader = ({
   breadcrumbs,
   currentPage,
-  setOpen,
   hasActiveOrganization = true,
 }: {
   breadcrumbs?: { href: string; label: string }[];
   currentPage?: string;
-  setOpen?: (open: boolean) => void;
   hasActiveOrganization?: boolean;
 }) => {
+  const palette = useCommandPalette();
   return (
     <header className="bg-background sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4">
       <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ export const DashboardHeader = ({
       <div className="flex items-center gap-2 px-4 md:ml-auto">
         <OrganizationSwitcher />
         {hasActiveOrganization ? (
-          <SearchTrigger onClick={() => setOpen?.(true)} />
+          <SearchTrigger onClick={() => palette.open()} />
         ) : null}
         {hasActiveOrganization ? <NotificationBell /> : null}
         <ThemeModeToggle />
