@@ -64,7 +64,15 @@ export async function AuthGuard({
     onboardingCompleteRaw && decodeURIComponent(onboardingCompleteRaw) === "1";
 
   if (requireOrganization && !onboardingComplete) {
+    const forwardedProto = headersList.get("x-forwarded-proto") ?? "http";
+    const forwardedHost =
+      headersList.get("x-forwarded-host") ?? headersList.get("host");
+    const inferredBase = forwardedHost
+      ? `${forwardedProto}://${forwardedHost}`
+      : null;
+
     const appBase =
+      inferredBase ??
       process.env.NEXT_PUBLIC_APP_URL ??
       process.env.APP_URL ??
       "http://localhost:3000";
