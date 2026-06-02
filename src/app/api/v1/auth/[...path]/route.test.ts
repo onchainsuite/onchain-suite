@@ -51,6 +51,35 @@ describe("Auth Proxy API", () => {
     expect(res.headers.get("location")).toBe("https://example.com/after");
   });
 
+  it("adds Domain=.onchainsuite.com for better-auth cookies on production hostnames", async () => {
+    mockedFetch.mockResolvedValueOnce(
+      createUpstreamResponse({
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+          "set-cookie":
+            "__Secure-better-auth.state=abc; Max-Age=300; Path=/; HttpOnly; Secure; SameSite=Lax",
+        },
+        body: JSON.stringify({ ok: true }),
+      })
+    );
+
+    const req = new NextRequest("https://www.onchainsuite.com/api/v1/auth/sign-in/social", {
+      method: "POST",
+      body: JSON.stringify({ provider: "google", callbackURL: "/dashboard" }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const res = await POST(req, {
+      params: Promise.resolve({ path: ["sign-in", "social"] }),
+    });
+
+    expect(res.status).toBe(200);
+    const setCookie = res.headers.get("set-cookie") ?? "";
+    expect(setCookie).toContain("__Secure-better-auth.state=abc");
+    expect(setCookie).toMatch(/;\s*Domain=\.onchainsuite\.com/i);
+  });
+
   it("returns 502 when upstream is unreachable", async () => {
     mockedFetch.mockRejectedValueOnce(new Error("network down"));
 

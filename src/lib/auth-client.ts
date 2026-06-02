@@ -61,11 +61,29 @@ export const signInWithGoogle = async (opts?: {
   newUserCallbackURL?: string;
 }) => {
   try {
+    const toAbsoluteInBrowser = (url: string): string => {
+      if (typeof window === "undefined") return url;
+      const trimmed = url.trim();
+      if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        return trimmed;
+      }
+      if (trimmed.startsWith("/")) {
+        return `${window.location.origin}${trimmed}`;
+      }
+      return trimmed;
+    };
+
     type SocialPayload = Parameters<typeof authClient.signIn.social>[0];
+    const callbackURL = toAbsoluteInBrowser(
+      opts?.callbackURL ?? PRIVATE_ROUTES.DASHBOARD
+    );
+    const newUserCallbackURL = toAbsoluteInBrowser(
+      opts?.newUserCallbackURL ?? AUTH_ROUTES.ONBOARDING
+    );
     const payload = {
       provider: "google",
-      callbackURL: opts?.callbackURL ?? PRIVATE_ROUTES.DASHBOARD,
-      newUserCallbackURL: opts?.newUserCallbackURL ?? AUTH_ROUTES.ONBOARDING,
+      callbackURL,
+      newUserCallbackURL,
       ...(opts?.idToken ? { idToken: { token: opts.idToken } } : {}),
     } satisfies SocialPayload;
 

@@ -185,20 +185,38 @@ const rewriteSetCookieForLocalDev = (cookie: string, reqUrl: URL): string => {
   const isLocalhost =
     hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 
-  if (!isLocalhost) return cookie;
+  const baseDomain = "onchainsuite.com";
+  const isOnchainSuiteDomain =
+    hostname === baseDomain || hostname.endsWith(`.${baseDomain}`);
 
   let updated = cookie;
 
-  updated = updated.replace(/;\s*Domain=[^;]+/i, "");
-  if (/;\s*Path=/i.test(updated)) {
-    updated = updated.replace(/;\s*Path=[^;]+/i, "; Path=/");
-  } else {
-    updated = `${updated}; Path=/`;
+  if (isLocalhost) {
+    updated = updated.replace(/;\s*Domain=[^;]+/i, "");
+    if (/;\s*Path=/i.test(updated)) {
+      updated = updated.replace(/;\s*Path=[^;]+/i, "; Path=/");
+    } else {
+      updated = `${updated}; Path=/`;
+    }
+
+    if (reqUrl.protocol === "http:") {
+      updated = updated.replace(/;\s*Secure/gi, "");
+      updated = updated.replace(/;\s*SameSite=None/gi, "; SameSite=Lax");
+    }
+
+    return updated;
   }
 
-  if (reqUrl.protocol === "http:") {
-    updated = updated.replace(/;\s*Secure/gi, "");
-    updated = updated.replace(/;\s*SameSite=None/gi, "; SameSite=Lax");
+  if (isOnchainSuiteDomain) {
+    const name = updated.split("=", 1)[0]?.trim() ?? "";
+    const isBetterAuthCookie =
+      /^(?:__Secure-|__Host-)?better-auth\./.test(name) ||
+      /^better-auth\./.test(name);
+    const isHostPrefixed = name.startsWith("__Host-");
+    if (isBetterAuthCookie && !isHostPrefixed) {
+      updated = updated.replace(/;\s*Domain=[^;]+/i, "");
+      updated = `${updated}; Domain=.${baseDomain}`;
+    }
   }
 
   return updated;

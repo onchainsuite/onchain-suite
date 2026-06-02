@@ -1,6 +1,5 @@
 "use client";
 
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
 import { mutate as swrMutate } from "swr";
@@ -13,7 +12,6 @@ import { ThemeProvider } from "./theme-provider";
 
 export const RootProviders = ({ children }: { children: ReactNode }) => {
   const [queryClient] = useState(() => new QueryClient());
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     const handler = (_event: Event) => {
@@ -33,13 +31,7 @@ export const RootProviders = ({ children }: { children: ReactNode }) => {
         enableSystem
         disableTransitionOnChange
       >
-        {googleClientId ? (
-          <GoogleOAuthProvider clientId={googleClientId}>
-            <CommandPaletteProvider>{children}</CommandPaletteProvider>
-          </GoogleOAuthProvider>
-        ) : (
-          <CommandPaletteProvider>{children}</CommandPaletteProvider>
-        )}
+        <CommandPaletteProvider>{children}</CommandPaletteProvider>
         <BackToTop />
       </ThemeProvider>
       <Toaster

@@ -143,9 +143,6 @@ export function SignInForm({
       setIsLoading(false);
     }
   };
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const isGoogleConfigured =
-    typeof googleClientId === "string" && googleClientId.trim().length > 0;
 
   return (
     <>
@@ -154,18 +151,7 @@ export function SignInForm({
         subtitle="Sign in to your R3tain account"
       />
 
-      {isGoogleConfigured ? (
-        <GoogleOAuthButtons isLoading={isLoading} setIsLoading={setIsLoading} />
-      ) : (
-        <OAuthButtons
-          onOAuthSignIn={async (_provider: string) => {
-            toast.error(
-              "Google sign-in is not configured for this environment"
-            );
-          }}
-          isLoading={isLoading}
-        />
-      )}
+      <GoogleOAuthButtons isLoading={isLoading} setIsLoading={setIsLoading} />
 
       <div className="my-6">
         <FormDivider />
