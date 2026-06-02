@@ -24,10 +24,11 @@ export function OnchainNavbar() {
   const { isMobileMenuOpen, setIsMobileMenuOpen, handleRouting } =
     useHandNavRouting();
   const { data: session, isPending } = useSession();
+  const authEntryEnabledRaw = process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED;
   const authEntryEnabled =
-    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "true" ||
-    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "1" ||
-    process.env.NODE_ENV === "development";
+    typeof authEntryEnabledRaw === "string"
+      ? ["true", "1", "yes", "on"].includes(authEntryEnabledRaw.toLowerCase())
+      : true;
 
   return (
     <Navbar>

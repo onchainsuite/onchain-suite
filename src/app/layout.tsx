@@ -1,4 +1,3 @@
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import type { Metadata } from "next";
 import { Instrument_Sans } from "next/font/google";
 
@@ -19,8 +18,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
@@ -30,13 +27,7 @@ export default function RootLayout({
         className={`${instrumentSans.variable} antialiased`}
         suppressHydrationWarning
       >
-        {googleClientId ? (
-          <GoogleOAuthProvider clientId={googleClientId}>
-            <RootProviders>{children}</RootProviders>
-          </GoogleOAuthProvider>
-        ) : (
-          <RootProviders>{children}</RootProviders>
-        )}
+        <RootProviders>{children}</RootProviders>
       </body>
     </html>
   );

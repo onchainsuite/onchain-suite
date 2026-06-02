@@ -9,10 +9,12 @@ import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 export function HeroSection() {
   const { push } = useRouter();
+  const calendlyUrl = "https://calendly.com/onchainsuite/30min";
+  const authEntryEnabledRaw = process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED;
   const authEntryEnabled =
-    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "true" ||
-    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "1" ||
-    process.env.NODE_ENV === "development";
+    typeof authEntryEnabledRaw === "string"
+      ? ["true", "1", "yes", "on"].includes(authEntryEnabledRaw.toLowerCase())
+      : true;
   // Web3-relevant words for Onchain Suite
   const fromWords = [
     "Wallet Analytics",
@@ -78,8 +80,11 @@ export function HeroSection() {
               size="lg"
               variant="outline"
               className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+              asChild
             >
-              Book a Demo
+              <a href={calendlyUrl} target="_blank" rel="noreferrer">
+                Book a Demo
+              </a>
             </Button>
           </div>
         </div>

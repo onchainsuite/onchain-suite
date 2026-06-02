@@ -16,10 +16,12 @@ export function CTASection() {
     offset: ["start start", "end start"],
   });
   const { push } = useRouter();
+  const calendlyUrl = "https://calendly.com/onchainsuite/30min";
+  const authEntryEnabledRaw = process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED;
   const authEntryEnabled =
-    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "true" ||
-    process.env.NEXT_PUBLIC_AUTH_ENTRY_ENABLED === "1" ||
-    process.env.NODE_ENV === "development";
+    typeof authEntryEnabledRaw === "string"
+      ? ["true", "1", "yes", "on"].includes(authEntryEnabledRaw.toLowerCase())
+      : true;
 
   const pathLengthFirst = useTransform(scrollYProgress, [0, 0.8], [0.2, 1.2]);
   const pathLengthSecond = useTransform(scrollYProgress, [0, 0.8], [0.15, 1.2]);
@@ -56,8 +58,11 @@ export function CTASection() {
           <Button
             variant="outline"
             className="min-w-[160px] md:text-base text-xs md:px-4 md:py-2 px-2 py-1"
+            asChild
           >
-            Book a Demo
+            <a href={calendlyUrl} target="_blank" rel="noreferrer">
+              Book a Demo
+            </a>
           </Button>
         </div>
       </GoogleGeminiEffect>
