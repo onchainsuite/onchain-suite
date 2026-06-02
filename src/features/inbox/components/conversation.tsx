@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { inboxService } from "../inbox.service";
 import { type InboxThreadDetail, type InboxThreadListItem } from "../types";
@@ -52,7 +53,7 @@ const Conversation = ({
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to send reply";
-      window.alert(message);
+      toast.error(message);
     },
   });
 

@@ -28,17 +28,52 @@ export const authClient = createAuthClient({
 
 export const { useSession } = authClient;
 
-export const signInWithGoogle = async (idToken?: string) => {
+const findRedirectUrl = (payload: unknown): string | null => {
+  if (typeof payload !== "object" || payload === null) return null;
+  const obj = payload as Record<string, unknown>;
+  const redirectObj =
+    typeof obj.redirect === "object" && obj.redirect !== null
+      ? (obj.redirect as Record<string, unknown>)
+      : null;
+  const dataObj =
+    typeof obj.data === "object" && obj.data !== null
+      ? (obj.data as Record<string, unknown>)
+      : null;
+  const candidates: Array<unknown> = [
+    obj.url,
+    obj.redirectUrl,
+    obj.redirectURL,
+    redirectObj?.url,
+    redirectObj?.to,
+    redirectObj?.href,
+    redirectObj?.location,
+    dataObj?.url,
+  ];
+  const url = candidates.find(
+    (v) => typeof v === "string" && v.trim().length > 0
+  ) as string | undefined;
+  return url ?? null;
+};
+
+export const signInWithGoogle = async (opts?: {
+  idToken?: string;
+  callbackURL?: string;
+  newUserCallbackURL?: string;
+}) => {
   try {
     type SocialPayload = Parameters<typeof authClient.signIn.social>[0];
     const payload = {
       provider: "google",
-      callbackURL: PRIVATE_ROUTES.DASHBOARD,
-      newUserCallbackURL: AUTH_ROUTES.ONBOARDING,
-      ...(idToken ? { idToken: { token: idToken } } : {}),
+      callbackURL: opts?.callbackURL ?? PRIVATE_ROUTES.DASHBOARD,
+      newUserCallbackURL: opts?.newUserCallbackURL ?? AUTH_ROUTES.ONBOARDING,
+      ...(opts?.idToken ? { idToken: { token: opts.idToken } } : {}),
     } satisfies SocialPayload;
 
     const data = await authClient.signIn.social(payload);
+    const redirectUrl = findRedirectUrl(data);
+    if (redirectUrl && typeof window !== "undefined") {
+      window.location.href = redirectUrl;
+    }
     return data;
   } catch (error) {
     console.error("Google sign-in error:", error);

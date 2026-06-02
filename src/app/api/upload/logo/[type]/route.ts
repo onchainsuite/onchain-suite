@@ -75,7 +75,7 @@ export async function POST(
     const backendUrl = pickNonEmpty(
       process.env.BACKEND_URL,
       process.env.NEXT_PUBLIC_BACKEND_URL,
-      "https://onchain-backend-dvxw.onrender.com/api/v1"
+      "https://api.onchainsuite.com/api/v1"
     );
 
     const cleanBase = backendUrl.replace(/\/$/, "");

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { toast } from "sonner";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -82,7 +83,7 @@ export function ReportDetailPage() {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to refresh report";
-      window.alert(message);
+      toast.error(message);
     },
   });
 

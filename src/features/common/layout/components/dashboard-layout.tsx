@@ -1,6 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import {
   Brain,
   LayoutDashboard,
@@ -37,7 +41,7 @@ interface DashboardLayoutProps {
 
 export const dynamic = "force-dynamic";
 
-export function DashboardLayout({
+function DashboardLayoutInner({
   children,
   breadcrumbs,
   userFullName,
@@ -215,5 +219,15 @@ export function DashboardLayout({
         </main>
       </div>
     </div>
+  );
+}
+
+export function DashboardLayout(props: DashboardLayoutProps) {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DashboardLayoutInner {...props} />
+    </QueryClientProvider>
   );
 }

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
@@ -151,10 +151,14 @@ export default function CompanyEditForm() {
 
   const { items: timezones, loading: tzLoading } = useTimezones();
 
-  const primaryChains = form.watch("primaryChains") ?? [];
+  const primaryChains = useWatch({
+    control: form.control,
+    name: "primaryChains",
+  });
   const primaryChainsLabel = useMemo(() => {
-    if (!Array.isArray(primaryChains) || primaryChains.length === 0) return "";
-    return primaryChains.join(", ");
+    const list = Array.isArray(primaryChains) ? primaryChains : [];
+    if (list.length === 0) return "";
+    return list.join(", ");
   }, [primaryChains]);
 
   useEffect(() => {

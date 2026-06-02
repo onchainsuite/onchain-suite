@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { cn, getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import { campaignsService } from "@/features/campaigns/campaigns.service";
+import { templatesService } from "@/features/templates/templates.service";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
@@ -23,8 +24,7 @@ const breadcrumbs = [
 
 const DEFAULT_EDITOR_ORIGIN_PROD = "https://editor.onchainsuite.com";
 const DEFAULT_EDITOR_ORIGIN_DEV = DEFAULT_EDITOR_ORIGIN_PROD;
-const DEFAULT_BACKEND_API_BASE_PROD =
-  "https://onchain-backend-dvxw.onrender.com/api/v1";
+const DEFAULT_BACKEND_API_BASE_PROD = "https://api.onchainsuite.com/api/v1";
 
 const isPlaceholderEditorHost = (hostname: string) =>
   hostname === "example.com" || hostname.endsWith(".example.com");
@@ -85,21 +85,66 @@ const toEditorOrigin = (value: string | undefined | null): string | null => {
   return null;
 };
 
+const decodeBase64Url = (value: string) => {
+  let input = value.trim().replace(/-/g, "+").replace(/_/g, "/");
+  const pad = input.length % 4;
+  if (pad === 2) input += "==";
+  if (pad === 3) input += "=";
+  if (pad === 1) return null;
+  try {
+    return typeof atob === "function" ? atob(input) : null;
+  } catch {
+    return null;
+  }
+};
+
+const parseMaybeJson = (raw: string) => {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  if (trimmed.length > 200_000) return null;
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return null;
+  }
+};
+
 export default function CampaignEditorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hasRedirectedRef = useRef(false);
   const hasWarnedAuth401Ref = useRef(false);
+  const isConfirmingSaveRef = useRef(false);
+  const hasPostedInitRef = useRef(false);
+  const lastAuthRefreshAtRef = useRef(0);
   const [iframeFailed, setIframeFailed] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
-  const [fullscreenMode, setFullscreenMode] = useState<
-    "none" | "native" | "pseudo"
-  >("none");
+  const [isConfirmingSave, setIsConfirmingSave] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [lastConfirmedSaveAt, setLastConfirmedSaveAt] = useState<string | null>(
+    null
+  );
+  const [lastTemplateId, setLastTemplateId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const campaignId = (searchParams?.get("campaign") ?? "").trim();
   const returnTo = (searchParams?.get("returnTo") ?? "").trim();
+  const initialDocument = useMemo(() => {
+    const b64 = (searchParams?.get("initialJsonB64") ??
+      searchParams?.get("initB64") ??
+      "") as string;
+    if (b64.trim().length > 0) {
+      const decoded = decodeBase64Url(b64);
+      const parsed = decoded ? parseMaybeJson(decoded) : null;
+      return parsed;
+    }
+    const raw = (searchParams?.get("initialJson") ??
+      searchParams?.get("init") ??
+      searchParams?.get("document") ??
+      "") as string;
+    return raw.trim().length > 0 ? parseMaybeJson(raw) : null;
+  }, [searchParams]);
 
   const editorSessionQuery = useQuery({
     queryKey: ["campaigns", "editor-session", campaignId],
@@ -371,67 +416,8 @@ export default function CampaignEditorPage() {
   useEffect(() => {
     setIframeFailed(false);
     setIframeLoaded(false);
+    hasPostedInitRef.current = false;
   }, [iframeSrc]);
-
-  useEffect(() => {
-    const onFullscreenChange = () => {
-      const active = document.fullscreenElement === containerRef.current;
-      setFullscreenMode((prev) => {
-        if (active) return "native";
-        if (prev === "native") return "none";
-        return prev;
-      });
-    };
-    document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", onFullscreenChange);
-  }, []);
-
-  useEffect(() => {
-    if (fullscreenMode !== "pseudo") return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [fullscreenMode]);
-
-  useEffect(() => {
-    if (fullscreenMode !== "pseudo") return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFullscreenMode("none");
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [fullscreenMode]);
-
-  const toggleFullscreen = async () => {
-    if (fullscreenMode === "native") {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      return;
-    }
-
-    if (fullscreenMode === "pseudo") {
-      setFullscreenMode("none");
-      return;
-    }
-
-    const el = containerRef.current;
-    const canNative =
-      typeof document !== "undefined" &&
-      typeof el?.requestFullscreen === "function";
-    if (canNative) {
-      try {
-        if (!el) return;
-        await el.requestFullscreen();
-        return;
-      } catch (e) {
-        String(e);
-      }
-    }
-
-    setFullscreenMode("pseudo");
-  };
 
   const iframeDiagnostics = useMemo(() => {
     if (!iframeSrc) return null;
@@ -448,11 +434,13 @@ export default function CampaignEditorPage() {
       targetWindow?: Window | null;
       targetOrigin?: string | null;
       requestId?: string | null;
+      tokenOverride?: string | null;
     }) => {
-      const token =
+      const tokenFromSession =
         editorSessionQuery.isSuccess && editorSessionToken
           ? String(editorSessionToken)
           : null;
+      const token = opts?.tokenOverride ?? tokenFromSession;
       const apiBaseUrl =
         typeof apiBaseUrlForEditor === "string"
           ? normalizeEnvString(apiBaseUrlForEditor)
@@ -498,12 +486,28 @@ export default function CampaignEditorPage() {
     [
       apiBaseUrlForEditor,
       campaignId,
-      editorOrigin,
-      editorSessionExpiresAt,
       editorSessionQuery.isSuccess,
       editorSessionToken,
-      iframeDiagnostics?.origin,
     ]
+  );
+
+  const postInitEmailBuilder = useCallback(
+    (opts?: { targetWindow?: Window | null; targetOrigin?: string | null }) => {
+      if (!initialDocument) return;
+      if (hasPostedInitRef.current) return;
+      const win = opts?.targetWindow ?? iframeRef.current?.contentWindow;
+      if (!win) return;
+      try {
+        win.postMessage(
+          { type: "INIT_EMAIL_BUILDER", data: initialDocument },
+          "*"
+        );
+        hasPostedInitRef.current = true;
+      } catch (e) {
+        String(e);
+      }
+    },
+    [initialDocument]
   );
 
   useEffect(() => {
@@ -511,9 +515,13 @@ export default function CampaignEditorPage() {
     if (!campaignId) return;
 
     postIframeConfig();
+    postInitEmailBuilder();
 
     const timeouts = [150, 500, 1200].map((ms) =>
-      window.setTimeout(() => postIframeConfig(), ms)
+      window.setTimeout(() => {
+        postIframeConfig();
+        postInitEmailBuilder();
+      }, ms)
     );
     return () => {
       for (const id of timeouts) window.clearTimeout(id);
@@ -526,15 +534,122 @@ export default function CampaignEditorPage() {
     iframeDiagnostics?.origin,
     iframeLoaded,
     postIframeConfig,
+    postInitEmailBuilder,
   ]);
 
   const nextWizardUrl = useMemo(() => {
-    const base = returnTo.length > 0 ? returnTo : "/campaigns/new";
-    const url = new URL(base, "http://localhost");
+    if (returnTo.length > 0) {
+      const url = new URL(returnTo, "http://localhost");
+      if (campaignId) url.searchParams.set("campaign", campaignId);
+      return `${url.pathname}?${url.searchParams.toString()}`;
+    }
+    const url = new URL("/campaigns/new", "http://localhost");
     url.searchParams.set("step", "4");
     if (campaignId) url.searchParams.set("campaign", campaignId);
     return `${url.pathname}?${url.searchParams.toString()}`;
   }, [campaignId, returnTo]);
+
+  const prevWizardUrl = useMemo(() => {
+    const base = returnTo.length > 0 ? returnTo : "/campaigns/new";
+    const url = new URL(base, "http://localhost");
+    url.searchParams.set("step", "3");
+    if (campaignId) url.searchParams.set("campaign", campaignId);
+    return `${url.pathname}?${url.searchParams.toString()}`;
+  }, [campaignId, returnTo]);
+
+  const backUrl = useMemo(() => {
+    if (returnTo.length > 0) return returnTo;
+    return prevWizardUrl;
+  }, [prevWizardUrl, returnTo]);
+
+  const createTemplateFromCampaign = useCallback(
+    async (payload?: {
+      html?: string;
+      textVersion?: string;
+      json?: unknown;
+      assets?: unknown;
+    }) => {
+      if (!campaignId) throw new Error("Missing campaign id.");
+
+      const html =
+        typeof payload?.html === "string"
+          ? payload.html
+          : (() => {
+              return "";
+            })();
+      const textVersion =
+        typeof payload?.textVersion === "string" ? payload.textVersion : "";
+      const json = payload?.json ?? null;
+      const assets = payload?.assets ?? null;
+
+      const shouldFetchFromCampaign =
+        html.trim().length === 0 && textVersion.trim().length === 0 && !json;
+
+      const resolved = shouldFetchFromCampaign
+        ? await campaignsService.getEditorContent(campaignId)
+        : null;
+
+      const finalHtml =
+        typeof resolved?.html === "string" && shouldFetchFromCampaign
+          ? resolved.html
+          : html;
+      const finalTextVersion =
+        typeof resolved?.textVersion === "string" && shouldFetchFromCampaign
+          ? resolved.textVersion
+          : textVersion;
+      const finalJson = shouldFetchFromCampaign
+        ? (resolved?.json ?? json)
+        : json;
+      const finalAssets = shouldFetchFromCampaign
+        ? (resolved?.assets ?? assets)
+        : assets;
+
+      const hasAnyContent =
+        finalHtml.trim().length > 0 ||
+        finalTextVersion.trim().length > 0 ||
+        (finalJson !== null && finalJson !== undefined);
+      if (!hasAnyContent) {
+        throw new Error("No email content found. Save the email first.");
+      }
+
+      let name = "";
+      try {
+        const content = await campaignsService.getContent(campaignId);
+        if (typeof content.subject === "string") name = content.subject.trim();
+      } catch (_e) {
+        String(_e);
+      }
+
+      if (!name) {
+        name = `Template ${new Date().toLocaleString()}`;
+      }
+
+      const created = await templatesService.create({
+        name,
+        folder: "saved",
+        content: {
+          html: finalHtml,
+          textVersion: finalTextVersion,
+          json: finalJson,
+          assets: finalAssets,
+        },
+      });
+
+      const createdId =
+        created && typeof created.id === "string" ? created.id.trim() : "";
+      if (!createdId) {
+        throw new Error(
+          "Template save did not return a template id. Check backend response."
+        );
+      }
+
+      await templatesService.get(createdId);
+      setLastTemplateId(createdId);
+      window.dispatchEvent(new CustomEvent("onchain:templates-updated"));
+      return createdId;
+    },
+    [campaignId]
+  );
 
   useEffect(() => {
     const sanitizeAuthDebug = (value: Record<string, unknown>) => {
@@ -595,6 +710,10 @@ export default function CampaignEditorPage() {
           targetOrigin: originClean,
           requestId,
         });
+        postInitEmailBuilder({
+          targetWindow: sourceWindow,
+          targetOrigin: originClean,
+        });
         if (requestId) {
           try {
             sourceWindow?.postMessage(
@@ -605,6 +724,79 @@ export default function CampaignEditorPage() {
             String(e);
           }
         }
+        return;
+      }
+
+      const isAuthRequired =
+        messageType === "EMAIL_AUTH_REQUIRED" ||
+        messageType === "EMAIL_EDITOR_AUTH_REQUIRED" ||
+        messageType.endsWith("EMAIL_AUTH_REQUIRED") ||
+        messageType.endsWith("AUTH_REQUIRED");
+      if (isAuthRequired) {
+        const now = Date.now();
+        if (now - lastAuthRefreshAtRef.current < 1500) return;
+        lastAuthRefreshAtRef.current = now;
+
+        const sourceWindow =
+          event.source &&
+          typeof (event.source as Window).postMessage === "function"
+            ? (event.source as Window)
+            : null;
+
+        (async () => {
+          try {
+            if (!campaignId) throw new Error("Missing campaign id.");
+            const result = await editorSessionQuery.refetch();
+            const raw = result.data as unknown;
+            const unwrap = (v: unknown) => {
+              if (!isJsonObject(v)) return null;
+              const level1 = isJsonObject(v.data) ? v.data : v;
+              const level2 = isJsonObject(level1.data) ? level1.data : level1;
+              return isJsonObject(level2) ? level2 : null;
+            };
+            const data = unwrap(raw);
+            const pick = (
+              obj: Record<string, unknown> | null,
+              keys: string[]
+            ) => {
+              if (!obj) return null;
+              for (const key of keys) {
+                const val = obj[key];
+                if (typeof val !== "string") continue;
+                const cleaned = normalizeEnvString(val);
+                if (cleaned.length > 0) return cleaned;
+              }
+              return null;
+            };
+            const nextToken = pick(data, [
+              "token",
+              "sessionToken",
+              "editorToken",
+              "accessToken",
+              "jwt",
+            ]);
+            if (!nextToken) {
+              throw new Error("Failed to refresh editor session token.");
+            }
+            postIframeConfig({
+              targetWindow: sourceWindow,
+              targetOrigin: originClean,
+              requestId,
+              tokenOverride: nextToken,
+            });
+            postInitEmailBuilder({
+              targetWindow: sourceWindow,
+              targetOrigin: originClean,
+            });
+            toast.message("Editor session refreshed");
+          } catch (e) {
+            const message =
+              e instanceof Error
+                ? e.message
+                : "Failed to refresh editor session";
+            toast.error(message);
+          }
+        })();
         return;
       }
 
@@ -647,9 +839,127 @@ export default function CampaignEditorPage() {
       }
 
       if (messageData.type === "EMAIL_SAVED" && !hasRedirectedRef.current) {
-        hasRedirectedRef.current = true;
-        toast.success("Email saved");
-        router.push(nextWizardUrl);
+        if (isConfirmingSaveRef.current) return;
+        isConfirmingSaveRef.current = true;
+        setIsConfirmingSave(true);
+
+        (async () => {
+          try {
+            if (!campaignId) throw new Error("Missing campaign id.");
+            const sleep = (ms: number) =>
+              new Promise<void>((resolve) => {
+                window.setTimeout(resolve, ms);
+              });
+
+            const unwrapPayload = (raw: unknown) => {
+              const obj = isJsonObject(raw) ? raw : {};
+              const nested =
+                isJsonObject(obj.data) && Object.keys(obj).length <= 3
+                  ? (obj.data as Record<string, unknown>)
+                  : obj;
+              const payload =
+                isJsonObject(nested.payload) && Object.keys(nested).length <= 4
+                  ? (nested.payload as Record<string, unknown>)
+                  : nested;
+              return payload;
+            };
+
+            const payload = unwrapPayload(messageData);
+            let resolvedHtml =
+              typeof payload.html === "string" ? payload.html.trim() : "";
+            let resolvedText =
+              typeof payload.textVersion === "string"
+                ? payload.textVersion.trim()
+                : typeof payload.text === "string"
+                  ? payload.text.trim()
+                  : "";
+            let resolvedJson =
+              payload.json ?? payload.design ?? payload.template ?? null;
+            let resolvedAssets = payload.assets ?? null;
+
+            const retryDelays = [0, 250, 700, 1500, 3000];
+            for (const delayMs of retryDelays) {
+              if (
+                resolvedHtml.length > 0 ||
+                resolvedText.length > 0 ||
+                (resolvedJson !== null && resolvedJson !== undefined)
+              ) {
+                break;
+              }
+
+              if (delayMs > 0) await sleep(delayMs);
+
+              try {
+                const preview = await campaignsService.preview(campaignId);
+                const nextHtml =
+                  typeof preview.html === "string" ? preview.html.trim() : "";
+                const nextText =
+                  typeof preview.text === "string" ? preview.text.trim() : "";
+                if (nextHtml.length > 0) resolvedHtml = nextHtml;
+                if (nextText.length > 0) resolvedText = nextText;
+              } catch (_e) {
+                String(_e);
+              }
+
+              if (resolvedHtml.length > 0 || resolvedText.length > 0) break;
+
+              try {
+                const editor = await campaignsService.getEditorContent(
+                  campaignId
+                );
+                const nextHtml =
+                  typeof editor.html === "string" ? editor.html.trim() : "";
+                const nextText =
+                  typeof editor.textVersion === "string"
+                    ? editor.textVersion.trim()
+                    : "";
+                if (nextHtml.length > 0) resolvedHtml = nextHtml;
+                if (nextText.length > 0) resolvedText = nextText;
+                if (editor.json !== undefined) resolvedJson = editor.json;
+                if (editor.assets !== undefined) resolvedAssets = editor.assets;
+              } catch (_e) {
+                String(_e);
+              }
+            }
+
+            const hasAnyContent =
+              resolvedHtml.length > 0 ||
+              resolvedText.length > 0 ||
+              (resolvedJson !== null && resolvedJson !== undefined);
+            if (!hasAnyContent) {
+              throw new Error(
+                "Email save was reported, but content is not available yet. Retry saving and ensure the editor save endpoint is persisting content."
+              );
+            }
+
+            setLastConfirmedSaveAt(new Date().toISOString());
+            setIsSavingTemplate(true);
+            try {
+              await createTemplateFromCampaign({
+                html: resolvedHtml,
+                textVersion: resolvedText,
+                json: resolvedJson,
+                assets: resolvedAssets,
+              });
+            } finally {
+              setIsSavingTemplate(false);
+            }
+
+            toast.success("Saved");
+
+            hasRedirectedRef.current = true;
+            router.push(nextWizardUrl);
+          } catch (e) {
+            const message =
+              e instanceof Error
+                ? e.message
+                : "Failed to confirm that the email was saved";
+            toast.error(message);
+          } finally {
+            isConfirmingSaveRef.current = false;
+            setIsConfirmingSave(false);
+          }
+        })();
       }
     };
 
@@ -661,83 +971,93 @@ export default function CampaignEditorPage() {
     editorSessionQuery.isSuccess,
     nextWizardUrl,
     postIframeConfig,
+    postInitEmailBuilder,
     router,
+    campaignId,
+    initialDocument,
   ]);
 
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
-      <div className="mx-auto w-full max-w-[1440px] px-4 py-4">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-1">
         {!campaignId ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
             Missing campaign id.
           </div>
         ) : (
-          <div
-            ref={containerRef}
-            className={cn(
-              "relative overflow-hidden border border-border bg-background shadow-sm",
-              fullscreenMode === "none"
-                ? "h-[calc(100vh-120px)] rounded-2xl"
-                : "fixed inset-0 z-50 h-screen w-screen rounded-none border-0"
-            )}
-          >
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              className="absolute right-3 top-3 z-20 h-9 w-9 rounded-full shadow-sm"
-              onClick={toggleFullscreen}
-              aria-label={
-                fullscreenMode === "none"
-                  ? "Enter fullscreen"
-                  : "Exit fullscreen"
-              }
-            >
-              {fullscreenMode === "none" ? (
-                <Maximize2 className="h-4 w-4" />
-              ) : (
-                <Minimize2 className="h-4 w-4" />
-              )}
-            </Button>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
+                onClick={() => router.push(backUrl)}
+                disabled={isConfirmingSave || isSavingTemplate}
+              >
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                Back
+              </Button>
 
-            {iframeFailed ? (
-              <div className="absolute inset-0 z-10 flex h-full w-full flex-col items-center justify-center gap-3 bg-background px-6 text-center">
-                <div className="text-sm font-medium">
-                  Editor failed to load.
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {iframeDiagnostics?.origin
-                    ? `Tried: ${iframeDiagnostics.origin}`
-                    : "The editor URL is invalid."}
-                </div>
-                {iframeSrc ? (
-                  <a
-                    className="text-xs text-primary underline underline-offset-2"
-                    href={iframeSrc}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open editor URL
-                  </a>
+              <div className="flex items-center gap-2">
+                {lastConfirmedSaveAt ? (
+                  <div className="hidden rounded-full border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground sm:block">
+                    Saved {new Date(lastConfirmedSaveAt).toLocaleTimeString()}
+                  </div>
+                ) : null}
+                {lastTemplateId ? (
+                  <div className="hidden rounded-full border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground sm:block">
+                    Template {lastTemplateId}
+                  </div>
                 ) : null}
               </div>
-            ) : null}
-            <iframe
-              key={iframeSrc}
-              src={iframeSrc}
-              title="Email editor"
-              className="h-full w-full"
-              style={{ border: "none" }}
-              referrerPolicy="strict-origin-when-cross-origin"
-              ref={iframeRef}
-              onLoad={() => {
-                setIframeFailed(false);
-                setIframeLoaded(true);
-                postIframeConfig();
-              }}
-              onError={() => setIframeFailed(true)}
-              allow="fullscreen"
-            />
+            </div>
+
+            <div
+              ref={containerRef}
+              className={cn(
+                "relative h-[calc(100vh-156px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+              )}
+            >
+              {iframeFailed ? (
+                <div className="absolute inset-0 z-10 flex h-full w-full flex-col items-center justify-center gap-3 bg-background px-6 text-center">
+                  <div className="text-sm font-medium">
+                    Editor failed to load.
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {iframeDiagnostics?.origin
+                      ? `Tried: ${iframeDiagnostics.origin}`
+                      : "The editor URL is invalid."}
+                  </div>
+                  {iframeSrc ? (
+                    <a
+                      className="text-xs text-primary underline underline-offset-2"
+                      href={iframeSrc}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open editor URL
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
+              <iframe
+                key={iframeSrc}
+                src={iframeSrc}
+                title="Email editor"
+                className="h-full w-full"
+                style={{ border: "none" }}
+                referrerPolicy="strict-origin-when-cross-origin"
+                ref={iframeRef}
+                onLoad={() => {
+                  setIframeFailed(false);
+                  setIframeLoaded(true);
+                  postIframeConfig();
+                }}
+                onError={() => setIframeFailed(true)}
+                allow="fullscreen"
+              />
+            </div>
           </div>
         )}
       </div>

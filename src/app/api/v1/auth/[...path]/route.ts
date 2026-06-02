@@ -25,7 +25,7 @@ const asString = (value: unknown): string | undefined =>
 
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
-  const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
+  const prodDefault = "https://api.onchainsuite.com/api/v1";
   const backendUrl = pickNonEmpty(
     process.env.BACKEND_URL,
     process.env.NEXT_PUBLIC_BACKEND_URL,
@@ -281,20 +281,36 @@ const forward = async (
     }
 
     const backendBase = getBackendBaseUrl();
-    const upstream = await fetch(`${backendBase}/auth/get-session`, {
-      method: "GET",
-      headers: upstreamHeaders,
-      cache: "no-store",
-    });
-
-    if (!upstream.ok) {
-      const profileTry = await fetch(`${backendBase}/user/profile`, {
+    let upstream: Response;
+    try {
+      upstream = await fetch(`${backendBase}/auth/get-session`, {
         method: "GET",
-        headers: withAuthHeaders(new Headers(), onchainToken, cookieHeader),
+        headers: upstreamHeaders,
         cache: "no-store",
       });
+    } catch {
+      return NextResponse.json(
+        {
+          error: "upstream_unreachable",
+          message: "Authentication service is unavailable",
+        },
+        { status: 502 }
+      );
+    }
 
-      if (profileTry.ok) {
+    if (!upstream.ok) {
+      let profileTry: Response | null = null;
+      try {
+        profileTry = await fetch(`${backendBase}/user/profile`, {
+          method: "GET",
+          headers: withAuthHeaders(new Headers(), onchainToken, cookieHeader),
+          cache: "no-store",
+        });
+      } catch {
+        profileTry = null;
+      }
+
+      if (profileTry?.ok) {
         const profileJson = await profileTry.json().catch(() => null);
         const user = normalizeUserFromResponse(profileJson);
         if (user) {
@@ -314,6 +330,7 @@ const forward = async (
     responseHeaders.delete("transfer-encoding");
     responseHeaders.delete("content-length");
     responseHeaders.delete("content-encoding");
+    responseHeaders.delete("set-cookie");
 
     const contentType = responseHeaders.get("content-type") ?? "";
     const canJson = contentType.includes("application/json");
@@ -354,12 +371,23 @@ const forward = async (
   const hasBody = !["GET", "HEAD"].includes(method);
   const body = hasBody ? await req.arrayBuffer() : undefined;
 
-  const upstream = await fetch(targetUrl, {
-    method,
-    headers: upstreamHeaders,
-    body,
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(targetUrl, {
+      method,
+      headers: upstreamHeaders,
+      body,
+      cache: "no-store",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        error: "upstream_unreachable",
+        message: "Authentication service is unavailable",
+      },
+      { status: 502 }
+    );
+  }
 
   const isSignInEmail =
     method === "POST" &&
@@ -372,6 +400,7 @@ const forward = async (
   responseHeaders.delete("transfer-encoding");
   responseHeaders.delete("content-length");
   responseHeaders.delete("content-encoding");
+  responseHeaders.delete("set-cookie");
 
   const responseBody =
     upstream.status === 204 ? null : await upstream.arrayBuffer();

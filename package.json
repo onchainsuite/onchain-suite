@@ -23,6 +23,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml,css,scss,html}\"",
     "lint:fix": "eslint . --fix",
     "test": "vitest",
+    "test:e2e:google-oauth": "vitest run src/test/google-oauth.e2e.test.ts",
     "check-all": "npm run lint && npm run format",
     "email:dev": "bunx react-email dev --root src/shared/emails"
   },

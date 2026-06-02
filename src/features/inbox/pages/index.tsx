@@ -59,7 +59,10 @@ export function InboxPages() {
     refetchOnWindowFocus: false,
   });
 
-  const threads: InboxThreadListItem[] = threadsQuery.data?.items ?? [];
+  const threads = useMemo<InboxThreadListItem[]>(
+    () => threadsQuery.data?.items ?? [],
+    [threadsQuery.data?.items]
+  );
 
   const selectedThread = useMemo(() => {
     if (!selectedThreadId) return null;
@@ -68,7 +71,10 @@ export function InboxPages() {
 
   const threadDetailQuery = useQuery({
     queryKey: ["inbox", "thread", selectedThreadId],
-    queryFn: () => inboxService.getThread(selectedThreadId!),
+    queryFn: () =>
+      selectedThreadId
+        ? inboxService.getThread(selectedThreadId)
+        : Promise.resolve(null),
     enabled: !!selectedThreadId,
     retry: false,
     refetchOnWindowFocus: false,
@@ -95,7 +101,12 @@ export function InboxPages() {
     if (unreadCount > 0) {
       markReadMutation.mutate(selectedThreadId);
     }
-  }, [selectedThread?.unreadCount, selectedThreadId, threadDetailQuery.data]);
+  }, [
+    markReadMutation,
+    selectedThread?.unreadCount,
+    selectedThreadId,
+    threadDetailQuery.data,
+  ]);
 
   const toggleThreadSelection = (threadId: string) => {
     setSelectedThreadIds((prev) =>

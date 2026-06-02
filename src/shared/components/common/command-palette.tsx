@@ -24,7 +24,8 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
+import { ScrollArea } from "@/ui/scroll-area";
 
 import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { authClient } from "@/lib/auth-client";
@@ -46,6 +47,7 @@ type PaletteOption = {
   label: string;
   keywords?: string[];
   icon?: "mail" | "settings" | "sparkles" | "search";
+  shortcut?: string[];
   data: PaletteOptionData;
 };
 
@@ -66,14 +68,29 @@ export function useCommandPalette() {
 function iconFor(option: PaletteOption) {
   switch (option.icon) {
     case "mail":
-      return <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />;
+      return <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />;
     case "settings":
-      return <Settings className="h-4 w-4 shrink-0" aria-hidden="true" />;
+      return <Settings className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />;
     case "sparkles":
-      return <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />;
+      return <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />;
     default:
-      return <Search className="h-4 w-4 shrink-0" aria-hidden="true" />;
+      return <Search className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />;
   }
+}
+
+function Kbd({ keys }: { keys: string[] }) {
+  return (
+    <div className="flex items-center gap-1">
+      {keys.map((k) => (
+        <kbd
+          key={k}
+          className="pointer-events-none inline-flex h-4 items-center justify-center rounded border border-border/60 bg-muted/30 px-1 font-mono text-[10px] font-medium text-muted-foreground"
+        >
+          {k}
+        </kbd>
+      ))}
+    </div>
+  );
 }
 
 type StreamDonePayload = {
@@ -181,6 +198,8 @@ export function CommandPaletteProvider({
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const lastShortcutAtRef = useRef<number>(0);
+  const openRef = useRef<boolean>(false);
 
   const api = useMemo<CommandPaletteApi>(
     () => ({
@@ -199,17 +218,62 @@ export function CommandPaletteProvider({
   );
 
   useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      const isK =
+        e.code === "KeyK" ||
+        (typeof e.key === "string" && e.key.toLowerCase() === "k");
+      const hasPrimaryModifier = e.metaKey || e.ctrlKey;
+      const hasExtraModifier = e.altKey || e.shiftKey;
+
+      if (isK && hasPrimaryModifier && !hasExtraModifier) {
+        const target = e.target as
+          | HTMLElement
+          | null
+          | (EventTarget & { tagName?: string; isContentEditable?: boolean });
+        const tag =
+          typeof target?.tagName === "string"
+            ? target.tagName.toLowerCase()
+            : "";
+        const isEditable =
+          tag === "input" ||
+          tag === "textarea" ||
+          tag === "select" ||
+          Boolean(
+            target && "isContentEditable" in target && target.isContentEditable
+          );
+        if (isEditable) return;
+
+        const now = Date.now();
+        if (now - lastShortcutAtRef.current < 450) return;
+        lastShortcutAtRef.current = now;
+
         e.preventDefault();
-        setOpen((v) => !v);
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") {
+          e.stopImmediatePropagation();
+        }
+
+        if (openRef.current) {
+          const input = document.querySelector<HTMLInputElement>(
+            "[data-slot='dialog-content'] input"
+          );
+          input?.focus();
+          return;
+        }
+
+        setOpen(true);
       }
       if (e.key === "Escape") {
         setOpen(false);
       }
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, []);
 
   useEffect(() => {
@@ -217,7 +281,15 @@ export function CommandPaletteProvider({
       abortRef.current?.abort();
       abortRef.current = null;
       setAiLoading(false);
+      return;
     }
+    const t = window.setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>(
+        "[data-slot='dialog-content'] input"
+      );
+      input?.focus();
+    }, 0);
+    return () => window.clearTimeout(t);
   }, [open]);
 
   const options = useMemo<PaletteOption[]>(() => {
@@ -227,6 +299,7 @@ export function CommandPaletteProvider({
         label: "Connect email",
         keywords: ["email", "inbox", "connect"],
         icon: "mail",
+        shortcut: ["⌘", "E"],
         data: { kind: "action", href: PRIVATE_ROUTES.INBOX },
       },
       {
@@ -234,6 +307,7 @@ export function CommandPaletteProvider({
         label: "Open settings",
         keywords: ["settings", "preferences"],
         icon: "settings",
+        shortcut: ["⌘", ","],
         data: { kind: "action", href: PRIVATE_ROUTES.SETTINGS },
       },
       {
@@ -241,6 +315,7 @@ export function CommandPaletteProvider({
         label: "Personalize workspace",
         keywords: ["onboarding", "personalize"],
         icon: "sparkles",
+        shortcut: ["⌘", "P"],
         data: { kind: "action", href: "/onboarding" },
       },
     ];
@@ -252,6 +327,7 @@ export function CommandPaletteProvider({
         label: `Ask AI: ${q}`,
         keywords: ["ai", "ask", "help", "search"],
         icon: "search",
+        shortcut: ["↵"],
         data: { kind: "ai", query: q },
       });
     }
@@ -310,109 +386,135 @@ export function CommandPaletteProvider({
       {children}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl p-0">
+        <DialogContent className="max-w-[520px] overflow-hidden rounded-xl border border-border/60 bg-background/90 p-0 shadow-2xl ring-1 ring-black/10 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:max-w-[520px]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Command palette</DialogTitle>
+          </DialogHeader>
           <Command
-            open={open}
-            onOpenChange={setOpen}
             options={options}
             filter={fuzzyFilter}
             value={query}
             onValueChange={setQuery}
             onSelect={(selected) => handleSelect(selected as PaletteOption)}
           >
-            <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <CommandInput
-                placeholder="Type a command or ask AI..."
-                className="h-9 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
-              <div className="hidden text-xs text-muted-foreground sm:block">
-                Ctrl K
+            <div className="border-b border-border/60 bg-muted/10 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Search
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <CommandInput
+                  placeholder="Type a command or ask AI…"
+                  aria-label="Command palette input"
+                  className="h-9 flex-1 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/60"
+                />
+                <Kbd keys={["Esc"]} />
               </div>
             </div>
 
-            <CommandList className="max-h-[420px] overflow-auto p-2">
-              <CommandEmpty>
-                <div className="px-3 py-6 text-sm text-muted-foreground">
-                  No results found.
-                </div>
-              </CommandEmpty>
-
-              <CommandGroup heading="Actions">
-                {options
-                  .filter((o) => o.id !== "ask-ai")
-                  .map((o) => (
-                    <CommandOption
-                      key={o.id}
-                      value={o}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-accent/20 data-[active=true]:bg-accent/30"
-                    >
-                      {iconFor(o)}
-                      <span className="flex-1">{o.label}</span>
-                    </CommandOption>
-                  ))}
-              </CommandGroup>
-
-              {options.some((o) => o.id === "ask-ai") ? (
-                <>
-                  <CommandSeparator className="my-2" />
-                  <CommandGroup heading="AI">
-                    {options
-                      .filter((o) => o.id === "ask-ai")
-                      .map((o) => (
-                        <CommandOption
-                          key={o.id}
-                          value={o}
-                          className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground hover:bg-accent/20 data-[active=true]:bg-accent/30"
-                        >
-                          {iconFor(o)}
-                          <span className="flex-1">{o.label}</span>
-                        </CommandOption>
-                      ))}
-                  </CommandGroup>
-                </>
-              ) : null}
-
-              {aiVisible ? (
-                <>
-                  <CommandSeparator className="my-2" />
-                  <div className="space-y-2 px-3 py-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-medium text-muted-foreground">
-                        AI response
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2"
-                        onClick={() => {
-                          abortRef.current?.abort();
-                          abortRef.current = null;
-                          setAiLoading(false);
-                        }}
-                        disabled={!aiLoading}
-                      >
-                        Stop
-                      </Button>
-                    </div>
-                    <div className="min-h-[96px] whitespace-pre-wrap rounded-lg border border-border bg-muted/40 p-3 text-sm text-foreground">
-                      {aiError ?? (aiAnswer.length > 0 ? aiAnswer : "…")}
-                    </div>
-                    {aiDone?.queryLogId ? (
-                      <div className="text-xs text-muted-foreground">
-                        <span>queryLogId:</span> {aiDone.queryLogId}
-                      </div>
-                    ) : null}
-                    <div className="text-xs text-muted-foreground">
-                      <Link href="/settings" className="hover:underline">
-                        Change organization or permissions in Settings
-                      </Link>
-                    </div>
+            <ScrollArea className="max-h-fit">
+              <CommandList className="px-1 py-1">
+                <CommandEmpty>
+                  <div className="px-2 py-6 text-sm text-muted-foreground">
+                    No results found.
                   </div>
-                </>
-              ) : null}
-            </CommandList>
+                </CommandEmpty>
+
+                <CommandGroup heading="General">
+                  {options
+                    .filter((o) => o.id !== "ask-ai")
+                    .map((o) => (
+                      <CommandOption
+                        key={o.id}
+                        value={o}
+                        className="group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-foreground hover:bg-muted/30 data-[active=true]:bg-muted/40"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted/30 text-muted-foreground group-data-[active=true]:bg-muted/40">
+                          {iconFor(o)}
+                        </div>
+                        <span className="flex-1 font-medium leading-snug">
+                          {o.label}
+                        </span>
+                        {o.shortcut && o.shortcut.length > 0 ? (
+                          <Kbd keys={o.shortcut} />
+                        ) : null}
+                      </CommandOption>
+                    ))}
+                </CommandGroup>
+
+                {options.some((o) => o.id === "ask-ai") ? (
+                  <>
+                    <CommandSeparator className="my-1.5" />
+                    <CommandGroup heading="AI">
+                      {options
+                        .filter((o) => o.id === "ask-ai")
+                        .map((o) => (
+                          <CommandOption
+                            key={o.id}
+                            value={o}
+                            className="group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-foreground hover:bg-muted/30 data-[active=true]:bg-muted/40"
+                          >
+                            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted/30 text-muted-foreground group-data-[active=true]:bg-muted/40">
+                              {iconFor(o)}
+                            </div>
+                            <span className="flex-1 font-medium leading-snug">
+                              {o.label}
+                            </span>
+                            {o.shortcut && o.shortcut.length > 0 ? (
+                              <Kbd keys={o.shortcut} />
+                            ) : null}
+                          </CommandOption>
+                        ))}
+                    </CommandGroup>
+                  </>
+                ) : null}
+              </CommandList>
+            </ScrollArea>
+
+            {aiVisible ? (
+              <div className="border-t border-border/60 bg-muted/10 px-3 py-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-medium text-muted-foreground">
+                      AI response
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => {
+                        abortRef.current?.abort();
+                        abortRef.current = null;
+                        setAiLoading(false);
+                      }}
+                      disabled={!aiLoading}
+                    >
+                      Stop
+                    </Button>
+                  </div>
+
+                  <ScrollArea className="max-h-[180px] rounded-lg border border-border/60 bg-muted/20">
+                    <div className="p-2 text-[13px] leading-relaxed text-foreground">
+                      <div className="whitespace-pre-wrap">
+                        {aiError ?? (aiAnswer.length > 0 ? aiAnswer : "…")}
+                      </div>
+                    </div>
+                  </ScrollArea>
+
+                  {aiDone?.queryLogId ? (
+                    <div className="text-xs text-muted-foreground">
+                      <span>queryLogId:</span> {aiDone.queryLogId}
+                    </div>
+                  ) : null}
+                  <div className="text-xs text-muted-foreground">
+                    <Link href="/settings" className="hover:underline">
+                      Change organization or permissions in Settings
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </Command>
         </DialogContent>
       </Dialog>

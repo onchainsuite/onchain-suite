@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import React, { type ReactElement, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import {
   Tooltip,
@@ -30,6 +31,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -494,16 +506,12 @@ export function AudiencePages(): ReactElement {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to delete profiles";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) return;
-    const ok = window.confirm(
-      `Delete ${selectedIds.length} profile${selectedIds.length === 1 ? "" : "s"}? This cannot be undone.`
-    );
-    if (!ok) return;
     deleteProfilesMutation.mutate(selectedIds);
   };
 
@@ -1471,16 +1479,38 @@ export function AudiencePages(): ReactElement {
                               <Download className="h-4 w-4" />
                               Export
                             </button>
-                            <button
-                              onClick={handleBulkDelete}
-                              disabled={deleteProfilesMutation.isPending}
-                              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              {deleteProfilesMutation.isPending
-                                ? "Deleting..."
-                                : "Delete"}
-                            </button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button
+                                  onClick={(e) => e.stopPropagation()}
+                                  disabled={deleteProfilesMutation.isPending}
+                                  className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  {deleteProfilesMutation.isPending
+                                    ? "Deleting..."
+                                    : "Delete"}
+                                </button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete selected profiles
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Delete {selectedIds.length} profile
+                                    {selectedIds.length === 1 ? "" : "s"}? This
+                                    cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={handleBulkDelete}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                             <div className="h-4 w-px bg-border" />
                             <button
                               onClick={() => setSelectedIds([])}

@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, RefreshCw, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -69,7 +70,7 @@ export function SegmentDetailPage() {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to refresh segment";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -87,7 +88,7 @@ export function SegmentDetailPage() {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to update segment";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -99,13 +100,13 @@ export function SegmentDetailPage() {
   useEffect(() => {
     if (!segmentId) return;
     markUsedMutation.mutate();
-  }, [segmentId]);
+  }, [markUsedMutation, segmentId]);
 
   const segment = segmentQuery.data ?? null;
   useEffect(() => {
     if (!segment) return;
     setNameDraft(segment.name ?? "");
-  }, [segment?.name]);
+  }, [segment]);
 
   const size =
     typeof segment?.size === "number"

@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { intelligenceService } from "../../intelligence.service";
 
@@ -83,7 +84,7 @@ export function CreateSegmentPage() {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to save segment";
-      window.alert(message);
+      toast.error(message);
     },
   });
 

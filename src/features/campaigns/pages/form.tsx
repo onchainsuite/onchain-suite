@@ -90,7 +90,27 @@ function CampaignPreviewStep({
   const previewMutation = useMutation({
     mutationFn: async () => {
       if (!normalizedCampaignId) throw new Error("Missing campaign id.");
-      return campaignsService.preview(normalizedCampaignId);
+      try {
+        const preview = await campaignsService.preview(normalizedCampaignId);
+        const html =
+          typeof preview.html === "string" ? preview.html.trim() : "";
+        const text =
+          typeof preview.text === "string" ? preview.text.trim() : "";
+        if (html.length > 0 || text.length > 0) return preview;
+      } catch (_e) {
+        String(_e);
+      }
+
+      const editor = await campaignsService.getEditorContent(
+        normalizedCampaignId
+      );
+      const html = typeof editor.html === "string" ? editor.html : "";
+      const text =
+        typeof editor.textVersion === "string" ? editor.textVersion : "";
+      if (html.trim().length === 0 && text.trim().length === 0) {
+        throw new Error("No email content is available to preview.");
+      }
+      return { html, text };
     },
     onSuccess: (data) => {
       setPreviewHtml(typeof data.html === "string" ? data.html : "");

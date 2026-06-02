@@ -2,7 +2,36 @@
 
 This document lists the available API endpoints for connecting your frontend.
 
-**Base URL**: `https://onchain-backend-dvxw.onrender.com/api/v1`
+**Backend Base URL**: `https://onchain-backend-dvxw.onrender.com/api/v1`
+
+**App Proxy Base URL (recommended for this repo’s frontend)**: `/api/v1`
+
+The frontend in this repo calls a same-origin Next.js proxy (`/api/v1/*`) which forwards to the
+Backend Base URL. This avoids CORS issues and lets the app support embedded email-editor auth.
+
+Proxy environment variables:
+
+- `BACKEND_URL` / `NEXT_PUBLIC_BACKEND_URL`: upstream backend base (`.../api/v1`)
+- `BACKEND_API_KEY` / `NEXT_PUBLIC_BACKEND_API_KEY`: optional API key forwarded as `x-api-key`
+- `NEXT_PUBLIC_EMAIL_EDITOR_ORIGIN`: optional additional allowed editor origin for CORS
+
+## Repo Implementation Notes (Next.js)
+
+This repo’s API surface is `/api/v1/*`. Most routes forward to the Backend Base URL, but some
+endpoints are implemented (or normalized) inside the Next.js app:
+
+- **Email editor normalization**
+  - `PUT /campaigns/{id}/email`: accepts editor payload variants and forwards a normalized body
+  - `POST /campaigns/{id}/editor/saved`: accepts editor payload variants and forwards a normalized
+    body
+- **AI streaming proxy**
+  - `GET /query/text/stream`: SSE proxy with query validation and basic rate limiting
+- **Campaign types (dev-friendly)**
+  - `GET/POST/PUT/DELETE /campaign-types...`: in-memory store (non-durable; replace with DB-backed
+    backend implementation for production)
+- **Dev-only modules**
+  - `POST/GET /audience/imports...` and `/audience/exports...`: job emulation for the UI
+  - Inbox state endpoints under `/inbox...`: local mock store used by the inbox UI
 
 ## Authentication (BetterAuth & Custom)
 
@@ -694,7 +723,7 @@ All import/export endpoints are organization-scoped via `x-org-id`.
 - `GET /campaigns/{id}/audience`: Get currently attached audience selection.
 - `POST /campaigns/{id}/audience/estimate`: Estimate recipient count for attached audience.
 - `PUT /campaigns/{id}/tracking`: Update tracking settings (Body:
-  `{ smartSending: boolean, trackingParameters: boolean, utm?: object }`).
+  `{ smartSending: boolean, trackingParameters: boolean, openTracking?: boolean, clickTracking?: boolean, utm?: object }`).
 - `GET /campaigns/{id}/tracking`: Get tracking settings.
 - `PUT /campaigns/{id}/content`: Update email content metadata (Body:
   `{ subject, previewText, senderName, senderEmail, replyToEmail }`).
@@ -730,6 +759,25 @@ All import/export endpoints are organization-scoped via `x-org-id`.
 - `GET /campaigns/calendar`: Get campaign calendar view.
   - **Query**: `start?`, `end?` (ISO date strings). Returns only scheduled campaigns in range.
   - **Response**: `{ data: Campaign[] }`
+
+### Email Tracking (Public)
+
+- `GET /t/open`: Open tracking pixel (records `email.open` for the delivery when first loaded).
+  - **Query**: `campaignId` (campaign id), `deliveryId` (per-recipient delivery id).
+  - **Response**: `200 image/gif` (1x1 pixel).
+- `GET /t/click`: Click tracking redirect (records `email.click` then redirects).
+  - **Query**: `campaignId`, `deliveryId`, `url` (URL-encoded absolute http/https URL).
+  - **Response**: `302` redirect to the decoded `url`.
+- `GET /t/unsubscribe`: One-click unsubscribe (records `email.unsubscribe` and marks contact opted
+  out).
+  - **Query**: `campaignId`, `deliveryId`, `redirect?` (optional absolute http/https URL).
+  - **Response**: `302` redirect to `redirect` if provided, otherwise `200 text/plain`.
+
+When rendering outbound emails, you can point tracking URLs at either:
+
+- Backend directly: `https://onchain-backend-dvxw.onrender.com/api/v1/t/open?...`
+- This repo’s app proxy: `https://<app-host>/api/v1/t/open?...` (recommended when you want tracking
+  to share the same domain as the app)
 
 ### Drip Campaign (Sequence)
 
@@ -768,7 +816,8 @@ There are two supported auth patterns:
 Example (fetch):
 
 ```ts
-const baseUrl = "https://onchain-backend-dvxw.onrender.com/api/v1";
+const baseUrl = "/api/v1"; // recommended in this repo (Next.js proxy)
+// const baseUrl = "https://onchain-backend-dvxw.onrender.com/api/v1"; // direct backend
 const orgId = "<org-id>";
 const campaignId = "<campaign-id>";
 
@@ -796,10 +845,21 @@ Endpoints that accept editor token auth:
 - `GET /campaigns/{id}/editor/content`
 - `POST /campaigns/{id}/editor/saved`
 
+Notes for this repo’s Next.js proxy:
+
+- The embedded editor should call the host app’s proxy (`https://<app-host>/api/v1/...`), not the
+  backend directly, so CORS and cookie-less auth work reliably.
+- The proxy resolves auth from `Authorization`, `x-editor-token`, query (`token` / `sessionToken` /
+  `editorToken`), or cookies.
+- The proxy normalizes embedded-editor save payloads for:
+  - `PUT /campaigns/{id}/email`
+  - `POST /campaigns/{id}/editor/saved` It accepts either `{ html, textVersion, json, assets }` or
+    `{ payload: { html, textVersion|text, json|design|template, assets } }`.
+
 Example (builder fetch without cookies):
 
 ```ts
-const baseUrl = "https://onchain-backend-dvxw.onrender.com/api/v1";
+const baseUrl = "https://app.onchainsuite.com/api/v1"; // host app origin + /api/v1
 const orgId = "<org-id>";
 const campaignId = "<campaign-id>";
 const editorToken = "<editor-token>";
@@ -918,6 +978,8 @@ These endpoints are user-scoped (public templates + your private templates). Aut
 - `POST /email-templates`: Create a private template (owned by you).
 - `GET /email-templates/{id}`: Get template (public or owned private).
 - `PUT /email-templates/{id}`: Update template (owned private; public is admin-only).
+  - Admin-only fields: `accessLevel?: "PUBLIC" | "PRIVATE"`, `isRecommended?: boolean`
+- `POST /email-templates/{id}/clone`: Clone a public template into your private workspace.
 - `DELETE /email-templates/{id}`: Delete template (owned private; public is admin-only).
 
 ## Notifications

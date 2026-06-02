@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
 
-import { cn } from "@/lib/utils";
+import { cn, getSelectedOrganizationId } from "@/lib/utils";
 
 import type { CampaignFormData } from "../../validations";
 import { templatesService } from "@/features/templates/templates.service";
@@ -119,10 +119,11 @@ export function TemplateSelector({
   const [sortMode, setSortMode] = useState<SortMode>("used");
   const [templateSearch, setTemplateSearch] = useState("");
   const [recents, setRecents] = useState<Record<string, number>>({});
+  const orgId = getSelectedOrganizationId();
 
   const selectedTemplate = form.watch("selectedTemplate");
   const templatesQuery = useQuery({
-    queryKey: ["templates", "list", tab, templateSearch, sortMode],
+    queryKey: ["templates", "list", orgId, tab, templateSearch, sortMode],
     queryFn: () =>
       templatesService.list(
         templateSearch.trim().length > 0
@@ -136,12 +137,20 @@ export function TemplateSelector({
               sort: sortMode,
               folder: tab === "saved" ? "saved" : undefined,
               limit: 50,
-            }
+            },
+        orgId ?? undefined
       ),
     retry: false,
     refetchOnWindowFocus: true,
     refetchInterval: 15000,
   });
+
+  useEffect(() => {
+    const onUpdate = () => templatesQuery.refetch();
+    window.addEventListener("onchain:templates-updated", onUpdate);
+    return () =>
+      window.removeEventListener("onchain:templates-updated", onUpdate);
+  }, [templatesQuery]);
 
   useEffect(() => {
     setRecents(readRecents());

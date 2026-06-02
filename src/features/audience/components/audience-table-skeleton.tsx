@@ -1,5 +1,7 @@
 "use client";
 
+const SKELETON_ROW_KEYS = Array.from({ length: 8 }).map((_, i) => `row-${i}`);
+
 export function AudienceTableSkeleton() {
   return (
     <div
@@ -74,8 +76,8 @@ export function AudienceTableSkeleton() {
               </tr>
             </thead>
             <tbody className="animate-pulse">
-              {Array.from({ length: 8 }).map((_, idx) => (
-                <tr key={idx} className="border-b border-border last:border-0">
+              {SKELETON_ROW_KEYS.map((key) => (
+                <tr key={key} className="border-b border-border last:border-0">
                   <td className="w-12 px-4 py-4">
                     <div className="h-4 w-4 rounded skeleton-wave" />
                   </td>
