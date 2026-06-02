@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   Check,
@@ -8,8 +9,6 @@ import {
   Star,
 } from "lucide-react";
 import React, { type RefObject } from "react";
-
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { inboxService } from "../inbox.service";
 import { type InboxThreadListItem } from "../types";
@@ -59,10 +58,13 @@ const EmailListPanel = ({
 }: EmailListPanelProps) => {
   const queryClient = useQueryClient();
   const toggleStarMutation = useMutation({
-    mutationFn: async (threadId: string) => inboxService.toggleThreadStar(threadId),
+    mutationFn: async (threadId: string) =>
+      inboxService.toggleThreadStar(threadId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["inbox", "threads"] });
-      await queryClient.invalidateQueries({ queryKey: ["inbox", "unread-count"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["inbox", "unread-count"],
+      });
     },
   });
 
@@ -205,7 +207,9 @@ const EmailListPanel = ({
                   }}
                   className="h-3.5 w-3.5 rounded border-border opacity-0 accent-primary transition-opacity group-hover:opacity-100"
                   style={{
-                    opacity: selectedThreadIds.includes(thread.id) ? 1 : undefined,
+                    opacity: selectedThreadIds.includes(thread.id)
+                      ? 1
+                      : undefined,
                   }}
                 />
               </div>
@@ -230,7 +234,10 @@ const EmailListPanel = ({
                           : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {(thread.from ?? thread.subject ?? "?").trim().slice(0, 1).toUpperCase()}
+                      {(thread.from ?? thread.subject ?? "?")
+                        .trim()
+                        .slice(0, 1)
+                        .toUpperCase()}
                     </span>
                     <span
                       className={`text-sm ${
@@ -239,7 +246,9 @@ const EmailListPanel = ({
                           : "text-muted-foreground"
                       }`}
                     >
-                      {thread.from && thread.from.length > 0 ? thread.from : "Unknown"}
+                      {thread.from && thread.from.length > 0
+                        ? thread.from
+                        : "Unknown"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -250,7 +259,9 @@ const EmailListPanel = ({
                       <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {thread.updatedAt ? new Date(thread.updatedAt).toLocaleString() : "—"}
+                      {thread.updatedAt
+                        ? new Date(thread.updatedAt).toLocaleString()
+                        : "—"}
                     </span>
                   </div>
                 </div>

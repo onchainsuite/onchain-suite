@@ -48,7 +48,7 @@ export class VerificationService {
     // we call the backend API which handles the actual database operations.
     // We'll try the custom verify-token endpoint first, then fallback to BetterAuth if needed.
     const devDefault = "http://127.0.0.1:3333";
-    const prodDefault = "https://onchain-backend-dvxw.onrender.com";
+    const prodDefault = "https://api.onchainsuite.com";
     const pickNonEmpty = (...values: Array<string | undefined | null>) => {
       for (const value of values) {
         if (typeof value === "string" && value.trim().length > 0) return value;

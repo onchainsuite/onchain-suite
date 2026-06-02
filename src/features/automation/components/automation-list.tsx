@@ -1,13 +1,18 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 
+import { isJsonObject } from "@/lib/utils";
+
+import {
+  automationService,
+  type AutomationsStatus,
+} from "../automation.service";
 // Components
 import { ActiveAutomationsList } from "./active";
 import { DeleteModal } from "./delete-modal";
@@ -22,12 +27,91 @@ import {
   type Template,
 } from "@/features/automation/types";
 
-import {
-  automationService,
-  type AutomationsStatus,
-} from "../automation.service";
+const asString = (v: unknown): string => (typeof v === "string" ? v : "");
+const asNumber = (v: unknown): number => {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim().length > 0) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
 
-import { isJsonObject } from "@/lib/utils";
+const toAutomation = (input: unknown): Automation | null => {
+  if (!isJsonObject(input)) return null;
+  const a = input as Record<string, unknown>;
+  const id =
+    asString(a.id) || asString(a.automationId) || asString(a.automation_id);
+  if (id.length === 0) return null;
+  const status = (asString(a.status) as AutomationsStatus) || "draft";
+  const name = asString(a.name) || "Untitled automation";
+  const description = asString(a.description);
+  const triggerObj = isJsonObject(a.trigger)
+    ? (a.trigger as Record<string, unknown>)
+    : null;
+  const triggerType =
+    asString(triggerObj?.type) || asString(a.triggerType) || "onchain";
+  const triggerEvent =
+    asString(triggerObj?.event) || asString(a.triggerEvent) || "—";
+  const triggerContract =
+    asString(triggerObj?.contract) || asString(a.triggerContract) || undefined;
+  const entries = asNumber(a.entries ?? a.entryCount);
+  const conversions = asNumber(a.conversions ?? a.conversionCount);
+  const conversionRate =
+    asNumber(a.conversionRate ?? a.conversion_rate) ||
+    (entries > 0 ? Math.round((conversions / entries) * 1000) / 10 : 0);
+  const revenue = asNumber(a.revenue ?? a.revenueUsd ?? a.revenue_usd);
+  const lastTriggered =
+    asString(a.lastTriggered ?? a.last_triggered ?? a.updatedAt) || "—";
+  const createdAt = asString(a.createdAt ?? a.created_at) || "—";
+
+  return {
+    id,
+    name,
+    description,
+    trigger: {
+      type: triggerType,
+      contract: triggerContract,
+      event: triggerEvent,
+    },
+    status:
+      status === "paused" ? "paused" : status === "active" ? "active" : "draft",
+    entries,
+    conversions,
+    conversionRate,
+    revenue,
+    lastTriggered,
+    createdAt,
+  };
+};
+
+const toDraft = (input: unknown): Draft | null => {
+  const a = toAutomation(input);
+  if (!a) return null;
+  if (a.status !== "draft") return null;
+  return {
+    id: a.id,
+    name: a.name,
+    description: a.description,
+    trigger: a.trigger,
+    lastEdited: a.createdAt,
+  };
+};
+
+const toTemplate = (input: unknown): Template | null => {
+  if (!isJsonObject(input)) return null;
+  const t = input as Record<string, unknown>;
+  const id =
+    asString(t.id) || asString(t.templateId) || asString(t.template_id);
+  if (id.length === 0) return null;
+  return {
+    id,
+    name: asString(t.name) || asString(t.title) || "Template",
+    description: asString(t.description),
+    category: asString(t.category) || "template",
+    uses: asNumber(t.uses ?? t.useCount ?? t.appliedCount),
+  };
+};
 
 export const AutomationList = () => {
   const [activeTab, setActiveTab] = useState("active");
@@ -51,97 +135,6 @@ export const AutomationList = () => {
   useEffect(() => {
     setPage(1);
   }, [activeTab, normalizedSearch]);
-
-  const asString = (v: unknown): string => (typeof v === "string" ? v : "");
-  const asNumber = (v: unknown): number => {
-    if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string" && v.trim().length > 0) {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : 0;
-    }
-    return 0;
-  };
-
-  const toAutomation = (input: unknown): Automation | null => {
-    if (!isJsonObject(input)) return null;
-    const a = input as Record<string, unknown>;
-    const id =
-      asString(a.id) || asString(a.automationId) || asString(a.automation_id);
-    if (id.length === 0) return null;
-    const status = (asString(a.status) as AutomationsStatus) || "draft";
-    const name = asString(a.name) || "Untitled automation";
-    const description = asString(a.description);
-    const triggerObj = isJsonObject(a.trigger)
-      ? (a.trigger as Record<string, unknown>)
-      : null;
-    const triggerType =
-      asString(triggerObj?.type) || asString(a.triggerType) || "onchain";
-    const triggerEvent =
-      asString(triggerObj?.event) || asString(a.triggerEvent) || "—";
-    const triggerContract =
-      asString(triggerObj?.contract) ||
-      asString(a.triggerContract) ||
-      undefined;
-    const entries = asNumber(a.entries ?? a.entryCount);
-    const conversions = asNumber(a.conversions ?? a.conversionCount);
-    const conversionRate =
-      asNumber(a.conversionRate ?? a.conversion_rate) ||
-      (entries > 0 ? Math.round((conversions / entries) * 1000) / 10 : 0);
-    const revenue = asNumber(a.revenue ?? a.revenueUsd ?? a.revenue_usd);
-    const lastTriggered =
-      asString(a.lastTriggered ?? a.last_triggered ?? a.updatedAt) || "—";
-    const createdAt = asString(a.createdAt ?? a.created_at) || "—";
-    return {
-      id,
-      name,
-      description,
-      trigger: {
-        type: triggerType,
-        contract: triggerContract,
-        event: triggerEvent,
-      },
-      status:
-        status === "paused"
-          ? "paused"
-          : status === "active"
-            ? "active"
-            : "draft",
-      entries,
-      conversions,
-      conversionRate,
-      revenue,
-      lastTriggered,
-      createdAt,
-    };
-  };
-
-  const toDraft = (input: unknown): Draft | null => {
-    const a = toAutomation(input);
-    if (!a) return null;
-    if (a.status !== "draft") return null;
-    return {
-      id: a.id,
-      name: a.name,
-      description: a.description,
-      trigger: a.trigger,
-      lastEdited: a.createdAt,
-    };
-  };
-
-  const toTemplate = (input: unknown): Template | null => {
-    if (!isJsonObject(input)) return null;
-    const t = input as Record<string, unknown>;
-    const id =
-      asString(t.id) || asString(t.templateId) || asString(t.template_id);
-    if (id.length === 0) return null;
-    return {
-      id,
-      name: asString(t.name) || asString(t.title) || "Template",
-      description: asString(t.description),
-      category: asString(t.category) || "template",
-      uses: asNumber(t.uses ?? t.useCount ?? t.appliedCount),
-    };
-  };
 
   const countsQuery = useQuery({
     queryKey: ["automations", "counts"],

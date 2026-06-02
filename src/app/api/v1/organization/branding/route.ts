@@ -11,7 +11,7 @@ const pickNonEmpty = (...values: Array<string | undefined | null>) => {
 
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
-  const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
+  const prodDefault = "https://api.onchainsuite.com/api/v1";
   const backendUrl = pickNonEmpty(
     process.env.BACKEND_URL,
     process.env.NEXT_PUBLIC_BACKEND_URL,
@@ -44,11 +44,57 @@ const extractTokenFromCookie = (cookieHeader: string): string | null => {
   return raw ? decodeURIComponent(raw) : null;
 };
 
+const extractBearer = (authorizationHeader: string | null): string | null => {
+  if (!authorizationHeader) return null;
+  const trimmed = authorizationHeader.trim();
+  if (trimmed.length === 0) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(trimmed);
+  if (!match) return null;
+  const token = match[1]?.trim() ?? "";
+  return token.length > 0 ? token : null;
+};
+
+const extractBetterAuthSession = (cookieHeader: string): string | null => {
+  const match =
+    /(^|;\s*)(__Secure-)?better-auth\.session_token=([^;]+)/.exec(
+      cookieHeader
+    ) ??
+    /(^|;\s*)(__Host-)?better-auth\.session_token=([^;]+)/.exec(cookieHeader) ??
+    /(^|;\s*)(__Secure-)?better-auth\.sessionToken=([^;]+)/.exec(
+      cookieHeader
+    ) ??
+    /(^|;\s*)(__Host-)?better-auth\.sessionToken=([^;]+)/.exec(cookieHeader);
+  const value = match?.[3] ?? "";
+  return value ? decodeURIComponent(value) : null;
+};
+
+const resolveToken = (req: NextRequest) => {
+  const tokenFromAuth = extractBearer(req.headers.get("authorization"));
+  const tokenFromHeader =
+    req.headers.get("x-editor-token") ?? req.headers.get("x-session-token");
+  const tokenFromQuery =
+    req.nextUrl.searchParams.get("token") ??
+    req.nextUrl.searchParams.get("sessionToken") ??
+    req.nextUrl.searchParams.get("editorToken");
+  const cookieHeader = req.headers.get("cookie") ?? "";
+  const tokenFromCookie = extractTokenFromCookie(cookieHeader);
+  const tokenFromSessionCookie = extractBetterAuthSession(cookieHeader);
+
+  return (
+    tokenFromAuth ??
+    tokenFromHeader ??
+    tokenFromQuery ??
+    tokenFromCookie ??
+    tokenFromSessionCookie ??
+    null
+  );
+};
+
 export async function GET(req: NextRequest) {
   try {
     const cleanBase = getBackendBaseUrl();
     const cookieHeader = req.headers.get("cookie") ?? "";
-    const token = extractTokenFromCookie(cookieHeader);
+    const token = resolveToken(req);
 
     if (!token) {
       return NextResponse.json(
@@ -75,7 +121,26 @@ export async function GET(req: NextRequest) {
 
     let response = await doFetch();
 
-    if (response.status === 401 || response.status === 409) {
+    if (
+      response.status === 401 ||
+      response.status === 403 ||
+      response.status === 409
+    ) {
+      const reqOrgId =
+        (req.headers.get("x-org-id") ?? "").trim() ||
+        (req.nextUrl.searchParams.get("orgId") ?? "").trim() ||
+        (req.nextUrl.searchParams.get("xOrgId") ?? "").trim() ||
+        "";
+      if (reqOrgId.length > 0) {
+        response = await doFetch(reqOrgId);
+      }
+    }
+
+    if (
+      response.status === 401 ||
+      response.status === 403 ||
+      response.status === 409
+    ) {
       const apiKey = getBackendApiKey();
       const listRes = await fetch(`${cleanBase}/organization/list`, {
         method: "GET",

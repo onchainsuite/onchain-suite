@@ -39,7 +39,7 @@
   --font-sans: "Instrument_Sans", sans-serif;
   --font-serif: "Lora", serif;
   --font-mono: "Fira Code", monospace;
-  --radius: 0.5rem;
+  --radius: 0.625rem;
   --shadow-x: 0rem;
   --shadow-y: 0.25rem;
   --shadow-blur: 0.5rem;
@@ -114,7 +114,7 @@
   --font-sans: "Instrument_Sans", sans-serif;
   --font-serif: "Lora", serif;
   --font-mono: "Fira Code", monospace;
-  --radius: 0.5rem;
+  --radius: 0.625rem;
   --shadow-x: 0rem;
   --shadow-y: 0.25rem;
   --shadow-blur: 0.5rem;

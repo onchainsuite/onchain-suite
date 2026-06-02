@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Mail, TrendingUp, Users } from "lucide-react";
+import { Mail, MessageSquare, Send, TrendingUp, Users } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import {
@@ -15,22 +15,14 @@ import {
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/ui/select";
 
-import { campaignsService } from "../../campaigns.service";
 import type { CampaignFormData } from "../../validations";
 
 interface CampaignDetailsStepProps {
   form: UseFormReturn<CampaignFormData>;
 }
 
-const TEMPLATE_OPTIONS = [
+const CAMPAIGN_TYPE_OPTIONS = [
   {
     id: "email-blast",
     title: "Email Blast",
@@ -45,37 +37,23 @@ const TEMPLATE_OPTIONS = [
   },
   {
     id: "smart-sending",
-    title: "Smart sending",
-    description: "Send messages at specific intervals in a specific audience",
+    title: "Smart campaign",
+    description: "Reach users across channels (in-app and social messaging)",
     icon: Users,
   },
 ];
 
 export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
-  const campaignTypesQuery = useQuery({
-    queryKey: ["campaign-types"],
-    queryFn: () => campaignsService.listCampaignTypes(),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const [smartChannel, setSmartChannel] = useState<
+    "in-app-push" | "telegram" | "discord" | "x"
+  >("in-app-push");
 
-  const campaignTypeOptions =
-    campaignTypesQuery.data && campaignTypesQuery.data.length > 0
-      ? campaignTypesQuery.data
-          .map((t) => ({
-            value: String(t.id ?? ""),
-            label: t.label ? String(t.label) : String(t.id ?? ""),
-          }))
-          .filter((t) => t.value.length > 0)
-      : [
-          { value: "email-blast", label: "Email Blast" },
-          { value: "drip-campaign", label: "Drip Campaign" },
-          { value: "smart-sending", label: "Smart Sending" },
-          { value: "newsletter", label: "Newsletter" },
-          { value: "promotional", label: "Promotional" },
-          { value: "announcement", label: "Announcement" },
-          { value: "automation", label: "Automation" },
-        ];
+  const smartChannelDescription = useMemo(() => {
+    if (smartChannel === "in-app-push") return "In-app Push";
+    if (smartChannel === "telegram") return "Telegram";
+    if (smartChannel === "discord") return "Discord";
+    return "X";
+  }, [smartChannel]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 p-6 md:p-8 lg:p-10">
@@ -112,43 +90,9 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
         control={form.control}
         name="campaignType"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-base font-medium">
-              Campaign type
-            </FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger className="h-12 rounded-xl border-border bg-background transition-all duration-300">
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent className="rounded-xl border-border bg-card">
-                {campaignTypeOptions.map((opt) => (
-                  <SelectItem
-                    key={opt.value}
-                    value={opt.value}
-                    className="rounded-lg"
-                  >
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormDescription>
-              Send one-off campaigns or manage a batch of emails
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name="template"
-        render={({ field }) => (
           <FormItem className="space-y-3">
             <FormLabel className="text-base font-medium">
-              Select a template
+              Campaign type
             </FormLabel>
             <FormControl>
               <RadioGroup
@@ -156,7 +100,7 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                 value={field.value}
                 className="space-y-3"
               >
-                {TEMPLATE_OPTIONS.map((item) => (
+                {CAMPAIGN_TYPE_OPTIONS.map((item) => (
                   <div
                     key={item.id}
                     className={`relative flex items-start space-x-3 rounded-xl border-2 p-4 cursor-pointer transition-all duration-300 ease-in-out hover:bg-muted/50 ${
@@ -196,6 +140,70 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                 ))}
               </RadioGroup>
             </FormControl>
+
+            {field.value === "smart-sending" ? (
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="text-sm font-medium text-foreground">
+                  Smart campaign channel
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setSmartChannel("in-app-push")}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-sm transition-colors ${
+                      smartChannel === "in-app-push"
+                        ? "border-primary bg-primary/5 text-foreground"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    <Send className="h-4 w-4" />
+                    In-app Push
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSmartChannel("telegram")}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-sm transition-colors ${
+                      smartChannel === "telegram"
+                        ? "border-primary bg-primary/5 text-foreground"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Telegram
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSmartChannel("discord")}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-sm transition-colors ${
+                      smartChannel === "discord"
+                        ? "border-primary bg-primary/5 text-foreground"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Discord
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSmartChannel("x")}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-sm transition-colors ${
+                      smartChannel === "x"
+                        ? "border-primary bg-primary/5 text-foreground"
+                        : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    <MessageSquare className="h-4 w-4" />X
+                  </button>
+                </div>
+                <FormDescription className="mt-3">
+                  Selected channel: {smartChannelDescription}
+                </FormDescription>
+              </div>
+            ) : (
+              <FormDescription>
+                Choose how you want to deliver this campaign.
+              </FormDescription>
+            )}
             <FormMessage />
           </FormItem>
         )}

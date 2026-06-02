@@ -3,7 +3,11 @@ import type { AxiosError, AxiosRequestConfig } from "axios";
 import { apiClient } from "@/lib/api-client";
 import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
-export type IntelligenceQueryStatus = "running" | "completed" | "failed" | string;
+export type IntelligenceQueryStatus =
+  | "running"
+  | "completed"
+  | "failed"
+  | string;
 
 export interface IntelligenceQueryRunResponse {
   queryId: string;
@@ -170,10 +174,10 @@ export const intelligenceService = {
   },
 
   getQueryHistory(orgId?: string) {
-    return request<{ items?: IntelligenceQueryHistoryItem[] } | IntelligenceQueryHistoryItem[]>(
-      { method: "GET", url: "/intelligence/query/history" },
-      orgId
-    );
+    return request<
+      | { items?: IntelligenceQueryHistoryItem[] }
+      | IntelligenceQueryHistoryItem[]
+    >({ method: "GET", url: "/intelligence/query/history" }, orgId);
   },
 
   getQueryStatus(queryId: string, orgId?: string) {
@@ -263,7 +267,9 @@ export const intelligenceService = {
     orgId?: string
   ) {
     return request<
-      IntelligenceSegmentsListResponse | { items?: IntelligenceSegment[] } | IntelligenceSegment[]
+      | IntelligenceSegmentsListResponse
+      | { items?: IntelligenceSegment[] }
+      | IntelligenceSegment[]
     >({ method: "GET", url: "/intelligence/segments", params }, orgId);
   },
 
@@ -295,7 +301,12 @@ export const intelligenceService = {
     body: { queryId: string; name: string },
     orgId?: string
   ) {
-    return request<{ segmentId: string; size?: number; emailMatch?: number; revenue?: number }>(
+    return request<{
+      segmentId: string;
+      size?: number;
+      emailMatch?: number;
+      revenue?: number;
+    }>(
       {
         method: "POST",
         url: "/intelligence/segments/import-from-query",
@@ -360,10 +371,9 @@ export const intelligenceService = {
     params?: { search?: string; page?: number; limit?: number },
     orgId?: string
   ) {
-    return request<IntelligenceReportsListResponse | { items?: unknown[] } | unknown[]>(
-      { method: "GET", url: "/intelligence/reports", params },
-      orgId
-    );
+    return request<
+      IntelligenceReportsListResponse | { items?: unknown[] } | unknown[]
+    >({ method: "GET", url: "/intelligence/reports", params }, orgId);
   },
 
   getReport(reportId: string, orgId?: string) {
@@ -401,4 +411,3 @@ export const intelligenceService = {
     );
   },
 };
-

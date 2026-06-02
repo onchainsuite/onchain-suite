@@ -47,6 +47,7 @@ const request = async <T>(
     return extractData<T>(res.data);
   } catch (e) {
     const err = e as AxiosError<unknown>;
+    const status = err.response?.status;
     const data = err.response?.data;
     const dataObj = isJsonObject(data) ? data : undefined;
     const nestedError = isJsonObject(dataObj?.error)
@@ -57,8 +58,15 @@ const request = async <T>(
       (isJsonObject(dataObj) ? dataObj.message : undefined) ??
       err.message ??
       "Templates request failed";
-    throw new Error(String(message));
+    throw new Error(
+      status ? `[HTTP ${status}] ${String(message)}` : String(message)
+    );
   }
+};
+
+const isHttpStatus = (err: unknown, code: number) => {
+  if (!(err instanceof Error)) return false;
+  return err.message.startsWith(`[HTTP ${code}]`);
 };
 
 const extractList = (payload: unknown): unknown[] => {
@@ -90,12 +98,27 @@ const normalizeTemplate = (raw: unknown): TemplateItem => {
 
 export const templatesService = {
   list(params?: ListTemplatesParams, orgId?: string) {
-    return request<unknown>(
-      { method: "GET", url: "/templates", params },
-      orgId
-    ).then((d) => {
-      return extractList(d).map(normalizeTemplate);
-    });
+    return request<unknown>({ method: "GET", url: "/templates", params }, orgId)
+      .then((d) => extractList(d).map(normalizeTemplate))
+      .catch((e) => {
+        if (!isHttpStatus(e, 404)) throw e;
+
+        if (params?.folder && params.folder.trim().length > 0) {
+          const folder = params.folder.trim();
+          const nextParams: Record<string, unknown> = { ...params };
+          delete nextParams.folder;
+          if (folder === "saved") nextParams.access = "private";
+          return request<unknown>(
+            { method: "GET", url: "/email-templates", params: nextParams },
+            orgId
+          ).then((d) => extractList(d).map(normalizeTemplate));
+        }
+
+        return request<unknown>(
+          { method: "GET", url: "/templates/public", params },
+          orgId
+        ).then((d) => extractList(d).map(normalizeTemplate));
+      });
   },
 
   create(
@@ -105,14 +128,35 @@ export const templatesService = {
     return request<unknown>(
       { method: "POST", url: "/templates", data: body },
       orgId
-    ).then(normalizeTemplate);
+    )
+      .then(normalizeTemplate)
+      .catch((e) => {
+        if (!isHttpStatus(e, 404)) throw e;
+        return request<unknown>(
+          { method: "POST", url: "/email-templates", data: body },
+          orgId
+        ).then(normalizeTemplate);
+      });
   },
 
   get(id: string, orgId?: string) {
-    return request<unknown>(
-      { method: "GET", url: `/templates/${id}` },
-      orgId
-    ).then(normalizeTemplate);
+    return request<unknown>({ method: "GET", url: `/templates/${id}` }, orgId)
+      .then(normalizeTemplate)
+      .catch((e) => {
+        if (!isHttpStatus(e, 404)) throw e;
+        return request<unknown>(
+          { method: "GET", url: `/email-templates/${id}` },
+          orgId
+        )
+          .then(normalizeTemplate)
+          .catch((e2) => {
+            if (!isHttpStatus(e2, 404)) throw e2;
+            return request<unknown>(
+              { method: "GET", url: `/templates/public/${id}` },
+              orgId
+            ).then(normalizeTemplate);
+          });
+      });
   },
 
   update(
@@ -123,13 +167,27 @@ export const templatesService = {
     return request<unknown>(
       { method: "PUT", url: `/templates/${id}`, data: body },
       orgId
-    ).then(normalizeTemplate);
+    )
+      .then(normalizeTemplate)
+      .catch((e) => {
+        if (!isHttpStatus(e, 404)) throw e;
+        return request<unknown>(
+          { method: "PUT", url: `/email-templates/${id}`, data: body },
+          orgId
+        ).then(normalizeTemplate);
+      });
   },
 
   remove(id: string, orgId?: string) {
     return request<{ success?: boolean }>(
       { method: "DELETE", url: `/templates/${id}` },
       orgId
-    );
+    ).catch((e) => {
+      if (!isHttpStatus(e, 404)) throw e;
+      return request<{ success?: boolean }>(
+        { method: "DELETE", url: `/email-templates/${id}` },
+        orgId
+      );
+    });
   },
 };

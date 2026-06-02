@@ -58,6 +58,12 @@ export function OrganizationSwitcher() {
     return undefined;
   }, []);
 
+  const setSelectedOrgCookieValue = React.useCallback((orgId: string) => {
+    if (typeof document === "undefined") return;
+    document.cookie = `${ORG_SELECTION_COOKIE}=${encodeURIComponent(orgId)}; path=/; samesite=lax`;
+    setSelectedOrgCookie(orgId);
+  }, []);
+
   const toOrganization = React.useCallback(
     (raw: unknown): Organization | null => {
       if (!isJsonObject(raw)) return null;
@@ -105,9 +111,13 @@ export function OrganizationSwitcher() {
   }, [activeOrgId, isMounted]);
 
   React.useEffect(() => {
-    if (session?.session?.activeOrganizationId) {
-      setActiveOrgId(session.session.activeOrganizationId);
-    }
+    const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
+    if (cookieOrgId && cookieOrgId.trim().length > 0) return;
+    const sessionOrgId =
+      typeof session?.session?.activeOrganizationId === "string"
+        ? session.session.activeOrganizationId.trim()
+        : "";
+    if (sessionOrgId.length > 0) setActiveOrgId(sessionOrgId);
   }, [session?.session?.activeOrganizationId]);
 
   React.useEffect(() => {
@@ -123,6 +133,35 @@ export function OrganizationSwitcher() {
             setOrganizations(orgs);
             hasLoadedOrganizationsRef.current = true;
             if (orgs.length === 0) console.warn("Organization list is empty.");
+
+            const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
+            const sessionOrgId =
+              typeof session?.session?.activeOrganizationId === "string"
+                ? session.session.activeOrganizationId.trim()
+                : "";
+            const cookieIsValid =
+              typeof cookieOrgId === "string" &&
+              cookieOrgId.trim().length > 0 &&
+              orgs.some((o) => o.id === cookieOrgId.trim());
+
+            if (!cookieIsValid) {
+              const nextOrgId =
+                (sessionOrgId.length > 0 &&
+                orgs.some((o) => o.id === sessionOrgId)
+                  ? sessionOrgId
+                  : orgs[0]?.id) ?? null;
+
+              if (nextOrgId) {
+                setSelectedOrgCookieValue(nextOrgId);
+                setActiveOrgId(nextOrgId);
+                window.dispatchEvent(
+                  new CustomEvent("onchain:org-changed", {
+                    detail: { orgId: nextOrgId, previousOrgId: activeOrgId },
+                  })
+                );
+                router.refresh();
+              }
+            }
           } else {
             console.error("Expected array of organizations but got:", payload);
             setOrganizations([]);
@@ -154,7 +193,14 @@ export function OrganizationSwitcher() {
     if (session?.user?.id) {
       fetchOrganizations();
     }
-  }, [extractOrganizations, session?.user?.id]);
+  }, [
+    activeOrgId,
+    extractOrganizations,
+    router,
+    session?.session?.activeOrganizationId,
+    session?.user?.id,
+    setSelectedOrgCookieValue,
+  ]);
 
   React.useEffect(() => {
     const handler = () => {
@@ -234,11 +280,17 @@ export function OrganizationSwitcher() {
     }
   }, [activeOrgId, organizations, activeOrg, confirmedActiveOrgId]);
 
-  const setSelectedOrgCookieValue = React.useCallback((orgId: string) => {
-    if (typeof document === "undefined") return;
-    document.cookie = `${ORG_SELECTION_COOKIE}=${encodeURIComponent(orgId)}; path=/; samesite=lax`;
-    setSelectedOrgCookie(orgId);
-  }, []);
+  React.useEffect(() => {
+    if (!isMounted || !session) return;
+    const sessionOrgId =
+      typeof session.session?.activeOrganizationId === "string"
+        ? session.session.activeOrganizationId.trim()
+        : "";
+    if (sessionOrgId.length === 0) return;
+    const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
+    if (cookieOrgId && cookieOrgId.trim().length > 0) return;
+    setSelectedOrgCookieValue(sessionOrgId);
+  }, [isMounted, session, setSelectedOrgCookieValue]);
 
   const handleSwitchOrg = React.useCallback(
     async (orgId: string, silent = false) => {
@@ -332,7 +384,7 @@ export function OrganizationSwitcher() {
             },
           })
         );
-        toast.error(String(message));
+        if (!silent) toast.error(String(message));
       } finally {
         setIsLoading(false);
       }
@@ -351,7 +403,11 @@ export function OrganizationSwitcher() {
     if (!cookieOrgId) return;
     if (lastAutoSyncOrgIdRef.current === cookieOrgId) return;
     if (sessionOrgId === cookieOrgId && activeOrgId === cookieOrgId) return;
-    if (!activeOrgId || activeOrgId !== cookieOrgId || sessionOrgId !== cookieOrgId) {
+    if (
+      !activeOrgId ||
+      activeOrgId !== cookieOrgId ||
+      sessionOrgId !== cookieOrgId
+    ) {
       lastAutoSyncOrgIdRef.current = cookieOrgId;
       handleSwitchOrg(cookieOrgId, true);
     }

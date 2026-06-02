@@ -4,6 +4,15 @@ import { isJsonObject } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+type CachedSessionResponse = {
+  at: number;
+  status: number;
+  json: unknown;
+};
+
+const getSessionCache = new Map<string, CachedSessionResponse>();
+const GET_SESSION_CACHE_TTL_MS = 10_000;
+
 const pickNonEmpty = (...values: Array<string | undefined | null>) => {
   for (const value of values) {
     if (typeof value === "string" && value.trim().length > 0) return value;
@@ -16,7 +25,7 @@ const asString = (value: unknown): string | undefined =>
 
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
-  const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
+  const prodDefault = "https://api.onchainsuite.com/api/v1";
   const backendUrl = pickNonEmpty(
     process.env.BACKEND_URL,
     process.env.NEXT_PUBLIC_BACKEND_URL,
@@ -72,6 +81,27 @@ const extractOnchainUser = (cookieHeader: string): unknown | null => {
   } catch {
     return null;
   }
+};
+
+const extractBetterAuthSession = (cookieHeader: string): string | null => {
+  const match =
+    /(^|;\s*)(__Secure-)?better-auth\.session_token=([^;]+)/.exec(
+      cookieHeader
+    ) ??
+    /(^|;\s*)(__Host-)?better-auth\.session_token=([^;]+)/.exec(cookieHeader) ??
+    /(^|;\s*)(__Secure-)?better-auth\.sessionToken=([^;]+)/.exec(
+      cookieHeader
+    ) ??
+    /(^|;\s*)(__Host-)?better-auth\.sessionToken=([^;]+)/.exec(cookieHeader);
+  const value = match?.[3] ?? "";
+  return value ? decodeURIComponent(value) : null;
+};
+
+const getSessionCacheKey = (cookieHeader: string, token: string | null) => {
+  if (token) return `t:${token.slice(0, 32)}`;
+  const session = extractBetterAuthSession(cookieHeader);
+  if (session) return `s:${session.slice(0, 32)}`;
+  return `c:${cookieHeader.length}`;
 };
 
 const normalizeUserFromResponse = (payload: unknown) => {
@@ -226,31 +256,61 @@ const forward = async (
   const isGetSession =
     method === "GET" && path.length === 1 && path[0] === "get-session";
   if (isGetSession) {
+    const cacheKey = getSessionCacheKey(cookieHeader, onchainToken);
+    const cached = getSessionCache.get(cacheKey);
+    if (cached && Date.now() - cached.at <= GET_SESSION_CACHE_TTL_MS) {
+      const res = NextResponse.json(cached.json, { status: cached.status });
+      res.headers.set("cache-control", "private, max-age=10");
+      return res;
+    }
+
     if (onchainUser) {
-      return NextResponse.json(
+      const json = {
+        session: onchainToken ? { token: onchainToken } : {},
+        user: onchainUser,
+      };
+      const res = NextResponse.json(
         {
-          session: onchainToken ? { token: onchainToken } : {},
-          user: onchainUser,
+          ...json,
         },
         { status: 200 }
       );
+      res.headers.set("cache-control", "private, max-age=10");
+      getSessionCache.set(cacheKey, { at: Date.now(), status: 200, json });
+      return res;
     }
 
     const backendBase = getBackendBaseUrl();
-    const upstream = await fetch(`${backendBase}/auth/get-session`, {
-      method: "GET",
-      headers: upstreamHeaders,
-      cache: "no-store",
-    });
-
-    if (!upstream.ok) {
-      const profileTry = await fetch(`${backendBase}/user/profile`, {
+    let upstream: Response;
+    try {
+      upstream = await fetch(`${backendBase}/auth/get-session`, {
         method: "GET",
-        headers: withAuthHeaders(new Headers(), onchainToken, cookieHeader),
+        headers: upstreamHeaders,
         cache: "no-store",
       });
+    } catch {
+      return NextResponse.json(
+        {
+          error: "upstream_unreachable",
+          message: "Authentication service is unavailable",
+        },
+        { status: 502 }
+      );
+    }
 
-      if (profileTry.ok) {
+    if (!upstream.ok) {
+      let profileTry: Response | null = null;
+      try {
+        profileTry = await fetch(`${backendBase}/user/profile`, {
+          method: "GET",
+          headers: withAuthHeaders(new Headers(), onchainToken, cookieHeader),
+          cache: "no-store",
+        });
+      } catch {
+        profileTry = null;
+      }
+
+      if (profileTry?.ok) {
         const profileJson = await profileTry.json().catch(() => null);
         const user = normalizeUserFromResponse(profileJson);
         if (user) {
@@ -270,6 +330,27 @@ const forward = async (
     responseHeaders.delete("transfer-encoding");
     responseHeaders.delete("content-length");
     responseHeaders.delete("content-encoding");
+    responseHeaders.delete("set-cookie");
+
+    const contentType = responseHeaders.get("content-type") ?? "";
+    const canJson = contentType.includes("application/json");
+    if (canJson) {
+      const json = await upstream.json().catch(() => null);
+      const res = NextResponse.json(json, { status: upstream.status });
+      for (const cookie of getSetCookieHeaders(upstream.headers)) {
+        res.headers.append(
+          "set-cookie",
+          rewriteSetCookieForLocalDev(cookie, url)
+        );
+      }
+      res.headers.set("cache-control", "private, max-age=10");
+      getSessionCache.set(cacheKey, {
+        at: Date.now(),
+        status: upstream.status,
+        json,
+      });
+      return res;
+    }
 
     const body = upstream.status === 204 ? null : await upstream.arrayBuffer();
     const nextResponse = new NextResponse(body, {
@@ -290,12 +371,23 @@ const forward = async (
   const hasBody = !["GET", "HEAD"].includes(method);
   const body = hasBody ? await req.arrayBuffer() : undefined;
 
-  const upstream = await fetch(targetUrl, {
-    method,
-    headers: upstreamHeaders,
-    body,
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(targetUrl, {
+      method,
+      headers: upstreamHeaders,
+      body,
+      cache: "no-store",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        error: "upstream_unreachable",
+        message: "Authentication service is unavailable",
+      },
+      { status: 502 }
+    );
+  }
 
   const isSignInEmail =
     method === "POST" &&
@@ -308,6 +400,7 @@ const forward = async (
   responseHeaders.delete("transfer-encoding");
   responseHeaders.delete("content-length");
   responseHeaders.delete("content-encoding");
+  responseHeaders.delete("set-cookie");
 
   const responseBody =
     upstream.status === 204 ? null : await upstream.arrayBuffer();

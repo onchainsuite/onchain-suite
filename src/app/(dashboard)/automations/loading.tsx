@@ -1,59 +1,62 @@
+"use client";
+
+import { Skeleton } from "@/components/ui/skeleton";
+
+import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
+
+const breadcrumbs = [
+  { href: publicRoutes.HOME, label: "Home" },
+  { href: PRIVATE_ROUTES.AUTOMATIONS, label: "Automations" },
+];
+
 export default function AutomationsLoading() {
   return (
-    <div className="flex min-h-screen bg-background">
-      <main className="flex-1 p-6">
-        <div className="mx-auto max-w-7xl space-y-6">
-          {/* Header skeleton */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <div className="h-8 w-40 animate-pulse rounded-lg bg-muted" />
-              <div className="h-4 w-64 animate-pulse rounded-lg bg-muted" />
-            </div>
-            <div className="h-10 w-40 animate-pulse rounded-lg bg-muted" />
+    <DashboardLayout breadcrumbs={breadcrumbs}>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-4 w-64" />
           </div>
+          <Skeleton className="h-10 w-40" />
+        </div>
 
-          {/* Stats skeleton */}
-          <div className="grid gap-4 sm:grid-cols-4">
-            {[...Array(4)].map((_, i) => {
-              return (
-                <div
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={i}
-                  className="rounded-xl border border-border/50 bg-card p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 animate-pulse rounded-lg bg-muted" />
-                    <div className="space-y-2">
-                      <div className="h-6 w-16 animate-pulse rounded bg-muted" />
-                      <div className="h-3 w-24 animate-pulse rounded bg-muted" />
-                    </div>
-                  </div>
+        <div className="grid gap-4 sm:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div
+              // eslint-disable-next-line react/no-array-index-key
+              key={i}
+              className="rounded-xl border border-border/50 bg-card p-4"
+            >
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-16" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Table skeleton */}
-          <div className="rounded-xl border border-border/50 bg-card p-4">
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => {
-                return (
-                  <div
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={`row-${i}`}
-                    className="flex items-center gap-4"
-                  >
-                    <div className="h-4 w-48 animate-pulse rounded bg-muted" />
-                    <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-                    <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-                    <div className="ml-auto h-4 w-16 animate-pulse rounded bg-muted" />
-                  </div>
-                );
-              })}
+              </div>
             </div>
+          ))}
+        </div>
+
+        <div className="rounded-xl border border-border/50 bg-card p-4">
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div
+                // eslint-disable-next-line react/no-array-index-key
+                key={`row-${i}`}
+                className="flex items-center gap-4"
+              >
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="ml-auto h-4 w-16" />
+              </div>
+            ))}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

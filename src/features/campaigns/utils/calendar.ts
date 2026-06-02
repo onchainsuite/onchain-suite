@@ -1,3 +1,5 @@
+import { getZonedDateTimeParts, zonedWallTimeToUtcDate } from "@/lib/timezone";
+
 import type { Campaign } from "../../campaigns/types";
 
 export const MONTH_NAMES = [
@@ -22,47 +24,53 @@ export function getCampaignsForDate(
   campaigns: Campaign[],
   year: number,
   month: number,
-  day: number
+  day: number,
+  timeZone: string
 ): Campaign[] {
-  const dateToCheck = new Date(year, month, day);
   return campaigns.filter((campaign) => {
     if (!campaign.scheduledFor) return false;
-    const campaignDate = new Date(campaign.scheduledFor);
-    return (
-      campaignDate.getDate() === dateToCheck.getDate() &&
-      campaignDate.getMonth() === dateToCheck.getMonth() &&
-      campaignDate.getFullYear() === dateToCheck.getFullYear()
-    );
+    const z = getZonedDateTimeParts(new Date(campaign.scheduledFor), timeZone);
+    return z.day === day && z.month - 1 === month && z.year === year;
   });
 }
 
 export function isToday(
   day: number | null,
   currentMonth: number,
-  currentYear: number
+  currentYear: number,
+  timeZone: string
 ): boolean {
   if (!day) return false;
-  const today = new Date();
+  const today = getZonedDateTimeParts(new Date(), timeZone);
   return (
-    day === today.getDate() &&
-    currentMonth === today.getMonth() &&
-    currentYear === today.getFullYear()
+    day === today.day &&
+    currentMonth === today.month - 1 &&
+    currentYear === today.year
   );
 }
 
 export function generateCalendarDays(
   year: number,
-  month: number
+  month: number,
+  timeZone: string
 ): (number | null)[] {
-  const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
-  const startingDayOfWeek = firstDayOfMonth.getDay();
   const daysInMonth = lastDayOfMonth.getDate();
+  const firstDayUtc = zonedWallTimeToUtcDate(
+    { year, month: month + 1, day: 1, hour: 12, minute: 0 },
+    timeZone
+  );
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+  }).format(firstDayUtc);
+  const startingDayOfWeek = WEEK_DAYS.indexOf(weekday);
+  const start = startingDayOfWeek >= 0 ? startingDayOfWeek : 0;
 
   const calendarDays: (number | null)[] = [];
 
   // Add empty cells for days before the first day of the month
-  for (let i = 0; i < startingDayOfWeek; i++) {
+  for (let i = 0; i < start; i++) {
     calendarDays.push(null);
   }
 

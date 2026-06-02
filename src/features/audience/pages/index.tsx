@@ -23,7 +23,25 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import React, { type ReactElement, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,20 +52,108 @@ import {
 
 import { isJsonObject } from "@/lib/utils";
 
-import { AudienceTableSkeleton } from "@/features/audience/components";
 import {
   type AudienceProfile,
   audienceService,
 } from "@/features/audience/audience.service";
+import { AudienceTableSkeleton } from "@/features/audience/components";
 import {
+  deriveDisplayName,
+  extractSocialHandles,
+  extractWalletFields,
+  getChainMeta,
   getHealthBarColor,
   getHealthColor,
   getStatusIcon,
-  deriveDisplayName,
-  extractWalletFields,
   hashHue,
   normalizeTags,
 } from "@/features/audience/utils";
+
+type SocialIconLinkProps = {
+  href: string;
+  label: string;
+  children: ReactElement;
+};
+
+const SvgIcon = ({
+  children,
+  viewBox,
+  className,
+}: {
+  children: React.ReactNode;
+  viewBox: string;
+  className?: string;
+}) => {
+  return (
+    <svg
+      viewBox={viewBox}
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+      className={className ?? "h-4 w-4"}
+      fill="currentColor"
+    >
+      {children}
+    </svg>
+  );
+};
+
+const EnsLogo = () => (
+  <SvgIcon viewBox="0 0 24 24" className="h-4 w-4 text-sky-500">
+    <path d="M12 2l8 4.6v10.8L12 22l-8-4.6V6.6L12 2z" opacity="0.9" />
+    <path
+      d="M8.2 8.6h7.6v6.8H8.2V8.6zm1.6 1.6v3.6h4.4v-3.6H9.8z"
+      fill="white"
+    />
+  </SvgIcon>
+);
+
+const XLogo = () => (
+  <SvgIcon viewBox="0 0 24 24" className="h-4 w-4 text-foreground">
+    <path d="M18.6 2H21l-6.6 7.6L22 22h-6.6l-5.1-6.6L4.7 22H2.3l7.1-8.2L2 2h6.7l4.6 6L18.6 2zm-1.2 18h1.3L7.3 3.9H6L17.4 20z" />
+  </SvgIcon>
+);
+
+const DiscordLogo = () => (
+  <SvgIcon viewBox="0 0 24 24" className="h-4 w-4 text-indigo-500">
+    <path d="M19.5 5.4A15 15 0 0 0 16 4.2l-.3.6a13.4 13.4 0 0 1 3.1 1.2c-1.7-2.5-3.5-3.6-3.5-3.6A15.4 15.4 0 0 0 12 2a15.4 15.4 0 0 0-3.3.4S6.9 3.5 5.2 6a13.4 13.4 0 0 1 3.1-1.2L8 4.2A15 15 0 0 0 4.5 5.4C2.3 8.8 2 12.1 2 12.1c1.4 2.1 3.5 3.3 3.5 3.3l.8-1.1c-1.3-.4-1.9-1-1.9-1a9.8 9.8 0 0 0 17.2 0s-.6.6-1.9 1l.8 1.1s2.1-1.2 3.5-3.3c0 0-.3-3.3-2.5-6.7z" />
+    <path
+      d="M9.3 13.2c-.8 0-1.5-.7-1.5-1.6 0-.9.7-1.6 1.5-1.6s1.5.7 1.5 1.6c0 .9-.7 1.6-1.5 1.6zm5.4 0c-.8 0-1.5-.7-1.5-1.6 0-.9.7-1.6 1.5-1.6s1.5.7 1.5 1.6c0 .9-.7 1.6-1.5 1.6z"
+      fill="white"
+    />
+  </SvgIcon>
+);
+
+const TelegramLogo = () => (
+  <SvgIcon viewBox="0 0 24 24" className="h-4 w-4 text-sky-500">
+    <path d="M21.6 4.6c.3-1.2-1-2.2-2.1-1.7L3.4 9.4c-1.3.5-1.2 2.4.2 2.8l4.1 1.2 1.6 5c.4 1.2 2 1.4 2.8.4l2.3-2.8 4.5 3.3c1 .7 2.4.2 2.7-1L21.6 4.6z" />
+    <path
+      d="M8.3 13.1l9.6-6c.2-.1.5.2.3.4l-7.9 7.2-.3 3.3-1.7-4.9z"
+      fill="white"
+      opacity="0.75"
+    />
+  </SvgIcon>
+);
+
+const SocialIconLink = ({ href, label, children }: SocialIconLinkProps) => {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label={label}
+        >
+          {children}
+        </a>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  );
+};
 
 export function AudiencePages(): ReactElement {
   const filterTriggerClassName =
@@ -400,16 +506,12 @@ export function AudiencePages(): ReactElement {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to delete profiles";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) return;
-    const ok = window.confirm(
-      `Delete ${selectedIds.length} profile${selectedIds.length === 1 ? "" : "s"}? This cannot be undone.`
-    );
-    if (!ok) return;
     deleteProfilesMutation.mutate(selectedIds);
   };
 
@@ -439,862 +541,994 @@ export function AudiencePages(): ReactElement {
   };
 
   return (
-    <motion.div
-      variants={{
-        initial: { opacity: 0 },
-        animate: { opacity: 1, transition: { duration: 0.4, ease: "easeOut" } },
-      }}
-      initial="initial"
-      animate="animate"
-      className="flex min-h-screen bg-background"
-    >
-      <main className="flex-1 overflow-auto" aria-busy={showPureLoading}>
-        <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                Audience
-              </h1>
-              {!showPureLoading && (
-                <p className="mt-1 text-muted-foreground">
-                  {(typeof overviewQuery.data?.total === "number"
-                    ? overviewQuery.data.total
-                    : profiles.length) || 0}{" "}
-                  profiles in your audience
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setShowCerebra(!showCerebra);
-                  if (!showCerebra) setAnimatedScore(0);
-                }}
-                className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${showCerebra ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}
-              >
-                <Sparkles className="h-4 w-4" />
-                <span>Cerebra</span>
-              </button>
-              <Link
-                href="/audience/import-export"
-                className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-all hover:bg-accent/90 hover:shadow-lg hover:shadow-accent/20"
-              >
-                <UserPlus className="h-4 w-4" />
-                Add Profile
-              </Link>
-            </div>
-          </div>
-
-          {/* Cerebra Panel */}
-          <AnimatePresence>
-            {showCerebra && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="mx-2 mb-10 overflow-hidden md:mx-0"
-              >
-                <div
-                  className="group relative rounded-3xl border border-border/30 bg-card py-6 px-8 shadow-sm transition-all duration-500 hover:border-emerald-500/20 hover:shadow-lg"
-                  style={{
-                    background:
-                      "radial-gradient(ellipse at 50% 0%, hsl(var(--accent) / 0.04) 0%, transparent 50%)",
+    <TooltipProvider delayDuration={150}>
+      <motion.div
+        variants={{
+          initial: { opacity: 0 },
+          animate: {
+            opacity: 1,
+            transition: { duration: 0.4, ease: "easeOut" },
+          },
+        }}
+        initial="initial"
+        animate="animate"
+        className="flex min-h-screen bg-background"
+      >
+        <main className="flex-1 overflow-auto" aria-busy={showPureLoading}>
+          <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8">
+            {/* Header */}
+            <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                  Audience
+                </h1>
+                {!showPureLoading && (
+                  <p className="mt-1 text-muted-foreground">
+                    {(typeof overviewQuery.data?.total === "number"
+                      ? overviewQuery.data.total
+                      : profiles.length) || 0}{" "}
+                    profiles in your audience
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setShowCerebra(!showCerebra);
+                    if (!showCerebra) setAnimatedScore(0);
                   }}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${showCerebra ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}
                 >
-                  <button
-                    onClick={handleRefreshCerebra}
-                    className="absolute right-6 top-6 p-2 text-muted-foreground transition-colors hover:text-foreground"
+                  <Sparkles className="h-4 w-4" />
+                  <span>Cerebra</span>
+                </button>
+                <Link
+                  href="/audience/import-export"
+                  className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-all hover:bg-accent/90 hover:shadow-lg hover:shadow-accent/20"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Add Profile
+                </Link>
+              </div>
+            </div>
+
+            {/* Cerebra Panel */}
+            <AnimatePresence>
+              {showCerebra && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="mx-2 mb-10 overflow-hidden md:mx-0"
+                >
+                  <div
+                    className="group relative rounded-3xl border border-border/30 bg-card py-6 px-8 shadow-sm transition-all duration-500 hover:border-emerald-500/20 hover:shadow-lg"
+                    style={{
+                      background:
+                        "radial-gradient(ellipse at 50% 0%, hsl(var(--accent) / 0.04) 0%, transparent 50%)",
+                    }}
                   >
-                    <RefreshCw
-                      className={`h-4 w-4 ${isRefreshSpinning ? "animate-spin" : ""}`}
-                    />
-                  </button>
-                  {isGeneratingSummary ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-                    </div>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-4"
+                    <button
+                      onClick={handleRefreshCerebra}
+                      className="absolute right-6 top-6 p-2 text-muted-foreground transition-colors hover:text-foreground"
                     >
-                      <p className="text-lg font-light text-foreground leading-relaxed">
-                        <span className="text-5xl font-extralight tracking-tighter text-foreground/90">
-                          {animatedScore}
-                        </span>
-                        <span className="text-2xl font-extralight text-muted-foreground">
-                          /100
-                        </span>
-                        <span className="ml-4 text-base font-light text-foreground/80">
-                          : Engagement is{" "}
-                          <span
-                            className={
-                              aggregatedStats.engagementTrend >= 0
-                                ? "text-emerald-600/70"
-                                : "text-red-600/70"
-                            }
-                          >
-                            {aggregatedStats.engagementTrend >= 0 ? "+" : ""}
-                            {aggregatedStats.engagementTrend}%
-                          </span>
-                          , On-chain is{" "}
-                          <span
-                            className={
-                              aggregatedStats.onchainTrend >= 0
-                                ? "text-emerald-600/70"
-                                : "text-red-600/70"
-                            }
-                          >
-                            {aggregatedStats.onchainTrend >= 0 ? "+" : ""}
-                            {aggregatedStats.onchainTrend}%
-                          </span>{" "}
-                          and Opens is{" "}
-                          <span
-                            className={
-                              aggregatedStats.opensTrend >= 0
-                                ? "text-emerald-600/70"
-                                : "text-red-600/70"
-                            }
-                          >
-                            {aggregatedStats.opensTrend >= 0 ? "+" : ""}
-                            {aggregatedStats.opensTrend}%
-                          </span>
-                          . About {aggregatedStats.activeCount} of{" "}
-                          {aggregatedStats.total} subscribers are actively
-                          engaged · {aggregatedStats.coolingCount} showing
-                          declining engagement · {aggregatedStats.coldCount}{" "}
-                          require re-engagement
-                        </span>
-                      </p>
-                      <div className="flex items-center gap-4 pt-2">
-                        <span className="text-sm font-medium text-emerald-600">
-                          → Target cooling users before they go inactive
-                        </span>
-                        <button className="group/btn inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 px-4 py-2 text-sm font-medium text-emerald-600 transition-all hover:bg-emerald-500/10">
-                          Create Automation
-                          <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence mode="wait" initial={false}>
-            {showPureLoading ? (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.18 }}
-              >
-                <AudienceTableSkeleton />
-              </motion.div>
-            ) : profilesQuery.isError ? (
-              <motion.div
-                key="error"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.18 }}
-                className="mx-2 rounded-2xl border border-border bg-card px-6 py-16 text-center md:mx-0"
-              >
-                <div className="text-sm text-muted-foreground">
-                  Failed to load audience.
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="content"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.22 }}
-              >
-                <>
-                  <div className="mx-2 mb-6 flex items-center justify-between rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 md:mx-0">
-                    <div className="flex items-center gap-3">
-                      <Brain className="h-5 w-5 text-indigo-500" />
-                      <p className="text-sm text-foreground">
-                        <span className="font-medium">
-                          Advanced segmentation
-                        </span>
-                        <span className="text-muted-foreground">
-                          {" "}
-                          has moved to Intelligence
-                        </span>
-                      </p>
-                    </div>
-                    <Link
-                      href="/intelligence"
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-500 hover:text-indigo-600 transition-colors"
-                    >
-                      Go to Intelligence
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                  </div>
-
-                  {/* Search and Filters */}
-                  <div className="mx-2 mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mx-0">
-                    <div className="relative w-full sm:w-64">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Search profiles..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                      <RefreshCw
+                        className={`h-4 w-4 ${isRefreshSpinning ? "animate-spin" : ""}`}
                       />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className={filterTriggerClassName}
-                          >
-                            <span>
-                              {profileScopeFilter === "all"
-                                ? "All Profiles"
-                                : profileScopeFilter === "verified"
-                                  ? "Verified"
-                                  : profileScopeFilter === "pending"
-                                    ? "Pending"
-                                    : "Unverified"}
-                            </span>
-                            <ChevronDown
-                              className="h-4 w-4 text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-                        >
-                          <DropdownMenuRadioGroup
-                            value={profileScopeFilter}
-                            onValueChange={(value) =>
-                              setProfileScopeFilter(
-                                value as
-                                  | "all"
-                                  | "verified"
-                                  | "pending"
-                                  | "unverified"
-                              )
-                            }
-                          >
-                            <DropdownMenuRadioItem value="all">
-                              All Profiles
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="verified">
-                              Verified
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="pending">
-                              Pending
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="unverified">
-                              Unverified
-                            </DropdownMenuRadioItem>
-                          </DropdownMenuRadioGroup>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className={filterTriggerClassName}
-                          >
-                            <span>
-                              {engagementFilter === "all"
-                                ? "All engagement"
-                                : engagementFilter === "active"
-                                  ? "Active"
-                                  : engagementFilter === "cooling"
-                                    ? "Cooling"
-                                    : "Cold"}
-                            </span>
-                            <ChevronDown
-                              className="h-4 w-4 text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-                        >
-                          <DropdownMenuRadioGroup
-                            value={engagementFilter}
-                            onValueChange={(value) =>
-                              setEngagementFilter(
-                                value as "all" | "active" | "cooling" | "cold"
-                              )
-                            }
-                          >
-                            <DropdownMenuRadioItem value="all">
-                              All
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="active">
-                              Active
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="cooling">
-                              Cooling
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="cold">
-                              Cold
-                            </DropdownMenuRadioItem>
-                          </DropdownMenuRadioGroup>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className={filterTriggerClassName}
-                          >
-                            <span>
-                              {tagFilter === "all"
-                                ? "All tags"
-                                : tagFilter === "whale"
-                                  ? "Whale"
-                                  : tagFilter === "active-trader"
-                                    ? "Active Trader"
-                                    : "NFT Collector"}
-                            </span>
-                            <ChevronDown
-                              className="h-4 w-4 text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="end"
-                          className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-                        >
-                          <DropdownMenuRadioGroup
-                            value={tagFilter}
-                            onValueChange={(value) =>
-                              setTagFilter(
-                                value as
-                                  | "all"
-                                  | "whale"
-                                  | "active-trader"
-                                  | "nft-collector"
-                              )
-                            }
-                          >
-                            <DropdownMenuRadioItem value="all">
-                              All tags
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="whale">
-                              Whale
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="active-trader">
-                              Active Trader
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="nft-collector">
-                              NFT Collector
-                            </DropdownMenuRadioItem>
-                          </DropdownMenuRadioGroup>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-
-                  {totalItems === 0 ? (
-                    <div className="mx-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center md:mx-0">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-                        <UserPlus className="h-5 w-5" aria-hidden="true" />
+                    </button>
+                    {isGeneratingSummary ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
                       </div>
-                      <h2 className="mt-4 text-lg font-semibold text-foreground">
-                        No profiles yet
-                      </h2>
-                      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                        Import your audience or add your first profile to start
-                        segmenting and sending campaigns.
-                      </p>
-                      <Link
-                        href="/audience/import-export"
-                        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
-                      >
-                        <UserPlus className="h-4 w-4" aria-hidden="true" />
-                        Add Profile
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="mx-2 rounded-xl border border-border bg-card shadow-md md:mx-0">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b border-border bg-muted/30">
-                              <th className="w-12 px-4 py-3">
-                                <input
-                                  type="checkbox"
-                                  checked={
-                                    selectedIds.length ===
-                                      paginatedProfiles.length &&
-                                    paginatedProfiles.length > 0
-                                  }
-                                  onChange={handleSelectAll}
-                                  className="h-4 w-4 rounded border-border"
-                                />
-                              </th>
-                              <th className="px-4 py-3 text-left">
-                                <button
-                                  onClick={() => handleSort("name")}
-                                  className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-                                >
-                                  Profile
-                                  {sortField === "name" ? (
-                                    sortDirection === "asc" ? (
-                                      <ArrowUp className="h-3 w-3" />
-                                    ) : (
-                                      <ArrowDown className="h-3 w-3" />
-                                    )
-                                  ) : (
-                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                  )}
-                                </button>
-                              </th>
-                              <th className="hidden px-4 py-3 text-left sm:table-cell">
-                                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                  Wallet
-                                </span>
-                              </th>
-                              <th className="px-4 py-3 text-left">
-                                <button
-                                  onClick={() => handleSort("healthScore")}
-                                  className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-                                >
-                                  Health
-                                  {sortField === "healthScore" ? (
-                                    sortDirection === "asc" ? (
-                                      <ArrowUp className="h-3 w-3" />
-                                    ) : (
-                                      <ArrowDown className="h-3 w-3" />
-                                    )
-                                  ) : (
-                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                  )}
-                                </button>
-                              </th>
-                              <th className="hidden px-4 py-3 text-left md:table-cell">
-                                <button
-                                  onClick={() => handleSort("lastAction")}
-                                  className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
-                                >
-                                  Last Action
-                                  {sortField === "lastAction" ? (
-                                    sortDirection === "asc" ? (
-                                      <ArrowUp className="h-3 w-3" />
-                                    ) : (
-                                      <ArrowDown className="h-3 w-3" />
-                                    )
-                                  ) : (
-                                    <ArrowUpDown className="h-3 w-3 opacity-50" />
-                                  )}
-                                </button>
-                              </th>
-                            </tr>
-                          </thead>
-                          <motion.tbody
-                            variants={{
-                              initial: { opacity: 0 },
-                              animate: {
-                                opacity: 1,
-                                transition: {
-                                  staggerChildren: 0.04,
-                                },
-                              },
-                            }}
-                            initial="initial"
-                            animate="animate"
-                          >
-                            {paginatedProfiles.map((profile) => (
-                              <React.Fragment key={profile.id}>
-                                <motion.tr
-                                  variants={{
-                                    initial: { opacity: 0, y: 20 },
-                                    animate: {
-                                      opacity: 1,
-                                      y: 0,
-                                      transition: {
-                                        duration: 0.3,
-                                        ease: [0.25, 0.46, 0.45, 0.94],
-                                      },
-                                    },
-                                  }}
-                                  onClick={() => handleRowClick(profile.id)}
-                                  className="cursor-pointer border-b border-border transition-colors hover:bg-emerald-500/5"
-                                >
-                                  <td
-                                    className="px-4 py-4"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedIds.includes(profile.id)}
-                                      onChange={() =>
-                                        handleSelectOne(profile.id)
-                                      }
-                                      className="h-4 w-4 rounded border-border"
-                                    />
-                                  </td>
-                                  <td className="px-4 py-4">
-                                    <div className="flex items-center gap-3">
-                                      <div
-                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white"
-                                        style={{
-                                          backgroundColor: `hsl(${hashHue(profile.id)}, 70%, 50%)`,
-                                        }}
-                                      >
-                                        {profile.name.startsWith("0x")
-                                          ? "W"
-                                          : profile.name
-                                              .split(" ")
-                                              .filter((n) => n.length > 0)
-                                              .slice(0, 2)
-                                              .map((n) => n[0])
-                                              .join("")
-                                              .toUpperCase()}
-                                      </div>
-                                      <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              window.location.href = `/audience/${profile.id}`;
-                                            }}
-                                            className="font-medium text-foreground transition-colors hover:text-accent hover:underline"
-                                          >
-                                            {profile.name}
-                                          </button>
-                                          {getStatusIcon(profile.status)}
-                                        </div>
-                                        <p className="truncate text-sm text-muted-foreground">
-                                          {profile.email.length > 0
-                                            ? profile.email
-                                            : "No email"}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="hidden px-4 py-4 sm:table-cell">
-                                    <div className="flex items-center gap-2">
-                                      {profile.wallet.length > 0 ? (
-                                        <code
-                                          className="w-24 text-sm text-muted-foreground"
-                                          title={profile.walletFull}
-                                        >
-                                          {profile.wallet}
-                                        </code>
-                                      ) : (
-                                        <span className="text-sm text-muted-foreground">
-                                          No wallet
-                                        </span>
-                                      )}
-                                      {profile.walletFull?.length > 0 && (
-                                        <button
-                                          type="button"
-                                          className="rounded border border-border bg-card p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            void navigator.clipboard.writeText(
-                                              String(profile.walletFull)
-                                            );
-                                          }}
-                                          aria-label="Copy wallet address"
-                                        >
-                                          <Copy className="h-3.5 w-3.5" />
-                                        </button>
-                                      )}
-                                      {profile.chain.length > 0 && (
-                                        <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                          {profile.chain}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-4">
-                                    <div className="flex items-center gap-2">
-                                      {typeof profile.healthScore ===
-                                      "number" ? (
-                                        <span
-                                          className={`font-medium ${getHealthColor(profile.healthScore)}`}
-                                        >
-                                          {profile.healthScore}
-                                        </span>
-                                      ) : (
-                                        <span className="text-sm text-muted-foreground">
-                                          Not scored
-                                        </span>
-                                      )}
-                                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
-                                        <div
-                                          className={`h-full rounded-full ${getHealthBarColor(typeof profile.healthScore === "number" ? profile.healthScore : 0)}`}
-                                          style={{
-                                            width: `${typeof profile.healthScore === "number" ? profile.healthScore : 0}%`,
-                                          }}
-                                        />
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="hidden px-4 py-4 md:table-cell">
-                                    <div>
-                                      <p className="text-sm text-foreground">
-                                        {profile.lastAction.label.length > 0
-                                          ? profile.lastAction.label
-                                          : "No recent activity"}
-                                      </p>
-                                      {profile.lastAction.time.length > 0 && (
-                                        <p className="text-xs text-muted-foreground">
-                                          {profile.lastAction.time}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </td>
-                                </motion.tr>
-                                <AnimatePresence>
-                                  {expandedRow === profile.id && (
-                                    <motion.tr
-                                      variants={{
-                                        initial: { opacity: 0, height: 0 },
-                                        animate: {
-                                          opacity: 1,
-                                          height: "auto",
-                                          transition: {
-                                            duration: 0.3,
-                                            ease: [0.25, 0.46, 0.45, 0.94],
-                                          },
-                                        },
-                                        exit: {
-                                          opacity: 0,
-                                          height: 0,
-                                          transition: {
-                                            duration: 0.3,
-                                            ease: [0.25, 0.46, 0.45, 0.94],
-                                          },
-                                        },
-                                      }}
-                                      initial="initial"
-                                      animate="animate"
-                                      exit="exit"
-                                    >
-                                      <td
-                                        colSpan={5}
-                                        className="bg-muted/30 px-4 py-4"
-                                      >
-                                        <div className="grid gap-4 sm:grid-cols-3">
-                                          <div className="rounded-lg border border-border bg-card p-4">
-                                            <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                              Activity
-                                            </h4>
-                                            <div className="space-y-2 text-sm">
-                                              <div className="flex items-center gap-2">
-                                                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                                                <span className="text-foreground">
-                                                  {profile.lastAction.label
-                                                    .length > 0
-                                                    ? profile.lastAction.label
-                                                    : "No recent activity"}
-                                                </span>
-                                              </div>
-                                              {profile.lastAction.time.length >
-                                                0 && (
-                                                <div className="text-xs text-muted-foreground">
-                                                  {profile.lastAction.time}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div className="rounded-lg border border-border bg-card p-4">
-                                            <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                              Attributes
-                                            </h4>
-                                            {Object.keys(profile.attributes)
-                                              .length > 0 ? (
-                                              <div className="space-y-2">
-                                                {Object.entries(
-                                                  profile.attributes
-                                                )
-                                                  .slice(0, 6)
-                                                  .map(([k, v]) => (
-                                                    <div
-                                                      key={k}
-                                                      className="flex items-center justify-between gap-3 text-sm"
-                                                    >
-                                                      <span className="truncate text-muted-foreground">
-                                                        {k}
-                                                      </span>
-                                                      <span className="truncate font-medium text-foreground">
-                                                        {typeof v ===
-                                                          "string" ||
-                                                        typeof v === "number"
-                                                          ? String(v)
-                                                          : ""}
-                                                      </span>
-                                                    </div>
-                                                  ))}
-                                              </div>
-                                            ) : (
-                                              <div className="text-sm text-muted-foreground">
-                                                No attributes
-                                              </div>
-                                            )}
-                                          </div>
-                                          <div className="rounded-lg border border-border bg-card p-4">
-                                            <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                                              Tags
-                                            </h4>
-                                            <div className="flex flex-wrap gap-2">
-                                              {profile.tags.map(
-                                                (tag: string) => (
-                                                  <span
-                                                    key={tag}
-                                                    className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent"
-                                                  >
-                                                    {tag}
-                                                  </span>
-                                                )
-                                              )}
-                                              {profile.engagement.length >
-                                                0 && (
-                                                <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                                                  {profile.engagement}{" "}
-                                                  Engagement
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </td>
-                                    </motion.tr>
-                                  )}
-                                </AnimatePresence>
-                              </React.Fragment>
-                            ))}
-                          </motion.tbody>
-                        </table>
-                      </div>
-
-                      {/* Pagination */}
-                      <div className="flex items-center justify-between border-t border-border px-4 py-3">
-                        <p className="text-sm text-muted-foreground">
-                          Showing{" "}
-                          {totalItems === 0
-                            ? 0
-                            : (currentPage - 1) * itemsPerPage + 1}
-                          - {Math.min(currentPage * itemsPerPage, totalItems)}{" "}
-                          of {totalItems}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() =>
-                              setCurrentPage((p) => Math.max(1, p - 1))
-                            }
-                            disabled={currentPage === 1}
-                            className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
-                          <div className="flex items-center gap-1">
-                            {Array.from(
-                              { length: Math.min(5, totalPages) },
-                              (_, i) => {
-                                let pageNum;
-                                if (totalPages <= 5) {
-                                  pageNum = i + 1;
-                                } else if (currentPage <= 3) {
-                                  pageNum = i + 1;
-                                } else if (currentPage >= totalPages - 2) {
-                                  pageNum = totalPages - 4 + i;
-                                } else {
-                                  pageNum = currentPage - 2 + i;
-                                }
-                                return (
-                                  <button
-                                    key={pageNum}
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
-                                  >
-                                    {pageNum}
-                                  </button>
-                                );
-                              }
-                            )}
-                          </div>
-                          <button
-                            onClick={() =>
-                              setCurrentPage((p) => Math.min(totalPages, p + 1))
-                            }
-                            disabled={currentPage === totalPages}
-                            className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bulk Actions Bar */}
-                  <AnimatePresence>
-                    {selectedIds.length > 0 && (
+                    ) : (
                       <motion.div
-                        initial={{ y: 100, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 100, opacity: 0 }}
-                        className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="space-y-4"
                       >
-                        <div className="flex items-center gap-4 rounded-2xl border border-border bg-card px-6 py-3 shadow-xl">
-                          <span className="text-sm font-medium text-foreground">
-                            {selectedIds.length} selected
+                        <p className="text-lg font-light text-foreground leading-relaxed">
+                          <span className="text-5xl font-extralight tracking-tighter text-foreground/90">
+                            {animatedScore}
                           </span>
-                          <div className="h-4 w-px bg-border" />
-                          <button
-                            onClick={handleBulkExport}
-                            className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                          >
-                            <Download className="h-4 w-4" />
-                            Export
-                          </button>
-                          <button
-                            onClick={handleBulkDelete}
-                            disabled={deleteProfilesMutation.isPending}
-                            className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            {deleteProfilesMutation.isPending
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
-                          <div className="h-4 w-px bg-border" />
-                          <button
-                            onClick={() => setSelectedIds([])}
-                            className="p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-                          >
-                            <X className="h-4 w-4" />
+                          <span className="text-2xl font-extralight text-muted-foreground">
+                            /100
+                          </span>
+                          <span className="ml-4 text-base font-light text-foreground/80">
+                            : Engagement is{" "}
+                            <span
+                              className={
+                                aggregatedStats.engagementTrend >= 0
+                                  ? "text-emerald-600/70"
+                                  : "text-red-600/70"
+                              }
+                            >
+                              {aggregatedStats.engagementTrend >= 0 ? "+" : ""}
+                              {aggregatedStats.engagementTrend}%
+                            </span>
+                            , On-chain is{" "}
+                            <span
+                              className={
+                                aggregatedStats.onchainTrend >= 0
+                                  ? "text-emerald-600/70"
+                                  : "text-red-600/70"
+                              }
+                            >
+                              {aggregatedStats.onchainTrend >= 0 ? "+" : ""}
+                              {aggregatedStats.onchainTrend}%
+                            </span>{" "}
+                            and Opens is{" "}
+                            <span
+                              className={
+                                aggregatedStats.opensTrend >= 0
+                                  ? "text-emerald-600/70"
+                                  : "text-red-600/70"
+                              }
+                            >
+                              {aggregatedStats.opensTrend >= 0 ? "+" : ""}
+                              {aggregatedStats.opensTrend}%
+                            </span>
+                            . About {aggregatedStats.activeCount} of{" "}
+                            {aggregatedStats.total} subscribers are actively
+                            engaged · {aggregatedStats.coolingCount} showing
+                            declining engagement · {aggregatedStats.coldCount}{" "}
+                            require re-engagement
+                          </span>
+                        </p>
+                        <div className="flex items-center gap-4 pt-2">
+                          <span className="text-sm font-medium text-emerald-600">
+                            → Target cooling users before they go inactive
+                          </span>
+                          <button className="group/btn inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 px-4 py-2 text-sm font-medium text-emerald-600 transition-all hover:bg-emerald-500/10">
+                            Create Automation
+                            <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
                           </button>
                         </div>
                       </motion.div>
                     )}
-                  </AnimatePresence>
-                </>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
-    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence mode="wait" initial={false}>
+              {showPureLoading ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  <AudienceTableSkeleton />
+                </motion.div>
+              ) : profilesQuery.isError ? (
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="mx-2 rounded-2xl border border-border bg-card px-6 py-16 text-center md:mx-0"
+                >
+                  <div className="text-sm text-muted-foreground">
+                    Failed to load audience.
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="content"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  <>
+                    <div className="mx-2 mb-6 flex items-center justify-between rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 md:mx-0">
+                      <div className="flex items-center gap-3">
+                        <Brain className="h-5 w-5 text-indigo-500" />
+                        <p className="text-sm text-foreground">
+                          <span className="font-medium">
+                            Advanced segmentation
+                          </span>
+                          <span className="text-muted-foreground">
+                            {" "}
+                            has moved to Intelligence
+                          </span>
+                        </p>
+                      </div>
+                      <Link
+                        href="/intelligence"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-500 hover:text-indigo-600 transition-colors"
+                      >
+                        Go to Intelligence
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+
+                    {/* Search and Filters */}
+                    <div className="mx-2 mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mx-0">
+                      <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="Search profiles..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className={filterTriggerClassName}
+                            >
+                              <span>
+                                {profileScopeFilter === "all"
+                                  ? "All Profiles"
+                                  : profileScopeFilter === "verified"
+                                    ? "Verified"
+                                    : profileScopeFilter === "pending"
+                                      ? "Pending"
+                                      : "Unverified"}
+                              </span>
+                              <ChevronDown
+                                className="h-4 w-4 text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                          >
+                            <DropdownMenuRadioGroup
+                              value={profileScopeFilter}
+                              onValueChange={(value) =>
+                                setProfileScopeFilter(
+                                  value as
+                                    | "all"
+                                    | "verified"
+                                    | "pending"
+                                    | "unverified"
+                                )
+                              }
+                            >
+                              <DropdownMenuRadioItem value="all">
+                                All Profiles
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="verified">
+                                Verified
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="pending">
+                                Pending
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="unverified">
+                                Unverified
+                              </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className={filterTriggerClassName}
+                            >
+                              <span>
+                                {engagementFilter === "all"
+                                  ? "All engagement"
+                                  : engagementFilter === "active"
+                                    ? "Active"
+                                    : engagementFilter === "cooling"
+                                      ? "Cooling"
+                                      : "Cold"}
+                              </span>
+                              <ChevronDown
+                                className="h-4 w-4 text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                          >
+                            <DropdownMenuRadioGroup
+                              value={engagementFilter}
+                              onValueChange={(value) =>
+                                setEngagementFilter(
+                                  value as "all" | "active" | "cooling" | "cold"
+                                )
+                              }
+                            >
+                              <DropdownMenuRadioItem value="all">
+                                All
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="active">
+                                Active
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="cooling">
+                                Cooling
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="cold">
+                                Cold
+                              </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className={filterTriggerClassName}
+                            >
+                              <span>
+                                {tagFilter === "all"
+                                  ? "All tags"
+                                  : tagFilter === "whale"
+                                    ? "Whale"
+                                    : tagFilter === "active-trader"
+                                      ? "Active Trader"
+                                      : "NFT Collector"}
+                              </span>
+                              <ChevronDown
+                                className="h-4 w-4 text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                          >
+                            <DropdownMenuRadioGroup
+                              value={tagFilter}
+                              onValueChange={(value) =>
+                                setTagFilter(
+                                  value as
+                                    | "all"
+                                    | "whale"
+                                    | "active-trader"
+                                    | "nft-collector"
+                                )
+                              }
+                            >
+                              <DropdownMenuRadioItem value="all">
+                                All tags
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="whale">
+                                Whale
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="active-trader">
+                                Active Trader
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="nft-collector">
+                                NFT Collector
+                              </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+
+                    {totalItems === 0 ? (
+                      <div className="mx-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center md:mx-0">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+                          <UserPlus className="h-5 w-5" aria-hidden="true" />
+                        </div>
+                        <h2 className="mt-4 text-lg font-semibold text-foreground">
+                          No profiles yet
+                        </h2>
+                        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                          Import your audience or add your first profile to
+                          start segmenting and sending campaigns.
+                        </p>
+                        <Link
+                          href="/audience/import-export"
+                          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
+                        >
+                          <UserPlus className="h-4 w-4" aria-hidden="true" />
+                          Add Profile
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="mx-2 rounded-xl border border-border bg-card shadow-md md:mx-0">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-border bg-muted/30">
+                                <th className="w-12 px-4 py-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      selectedIds.length ===
+                                        paginatedProfiles.length &&
+                                      paginatedProfiles.length > 0
+                                    }
+                                    onChange={handleSelectAll}
+                                    className="h-4 w-4 rounded border-border"
+                                  />
+                                </th>
+                                <th className="px-4 py-3 text-left">
+                                  <button
+                                    onClick={() => handleSort("name")}
+                                    className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                                  >
+                                    Profile
+                                    {sortField === "name" ? (
+                                      sortDirection === "asc" ? (
+                                        <ArrowUp className="h-3 w-3" />
+                                      ) : (
+                                        <ArrowDown className="h-3 w-3" />
+                                      )
+                                    ) : (
+                                      <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                    )}
+                                  </button>
+                                </th>
+                                <th className="hidden px-4 py-3 text-left sm:table-cell">
+                                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                    Wallet
+                                  </span>
+                                </th>
+                                <th className="hidden px-4 py-3 text-left md:table-cell">
+                                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                    Socials
+                                  </span>
+                                </th>
+                                <th className="px-4 py-3 text-left">
+                                  <button
+                                    onClick={() => handleSort("healthScore")}
+                                    className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                                  >
+                                    Health
+                                    {sortField === "healthScore" ? (
+                                      sortDirection === "asc" ? (
+                                        <ArrowUp className="h-3 w-3" />
+                                      ) : (
+                                        <ArrowDown className="h-3 w-3" />
+                                      )
+                                    ) : (
+                                      <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                    )}
+                                  </button>
+                                </th>
+                                <th className="hidden px-4 py-3 text-left md:table-cell">
+                                  <button
+                                    onClick={() => handleSort("lastAction")}
+                                    className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                                  >
+                                    Last Action
+                                    {sortField === "lastAction" ? (
+                                      sortDirection === "asc" ? (
+                                        <ArrowUp className="h-3 w-3" />
+                                      ) : (
+                                        <ArrowDown className="h-3 w-3" />
+                                      )
+                                    ) : (
+                                      <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                    )}
+                                  </button>
+                                </th>
+                              </tr>
+                            </thead>
+                            <motion.tbody
+                              variants={{
+                                initial: { opacity: 0 },
+                                animate: {
+                                  opacity: 1,
+                                  transition: {
+                                    staggerChildren: 0.04,
+                                  },
+                                },
+                              }}
+                              initial="initial"
+                              animate="animate"
+                            >
+                              {paginatedProfiles.map((profile) => (
+                                <React.Fragment key={profile.id}>
+                                  <motion.tr
+                                    variants={{
+                                      initial: { opacity: 0, y: 20 },
+                                      animate: {
+                                        opacity: 1,
+                                        y: 0,
+                                        transition: {
+                                          duration: 0.3,
+                                          ease: [0.25, 0.46, 0.45, 0.94],
+                                        },
+                                      },
+                                    }}
+                                    onClick={() => handleRowClick(profile.id)}
+                                    className="cursor-pointer border-b border-border transition-colors hover:bg-emerald-500/5"
+                                  >
+                                    <td
+                                      className="px-4 py-4"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedIds.includes(
+                                          profile.id
+                                        )}
+                                        onChange={() =>
+                                          handleSelectOne(profile.id)
+                                        }
+                                        className="h-4 w-4 rounded border-border"
+                                      />
+                                    </td>
+                                    <td className="px-4 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div
+                                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white"
+                                          style={{
+                                            backgroundColor: `hsl(${hashHue(profile.id)}, 70%, 50%)`,
+                                          }}
+                                        >
+                                          {profile.name.startsWith("0x")
+                                            ? "W"
+                                            : profile.name
+                                                .split(" ")
+                                                .filter((n) => n.length > 0)
+                                                .slice(0, 2)
+                                                .map((n) => n[0])
+                                                .join("")
+                                                .toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0">
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.location.href = `/audience/${profile.id}`;
+                                              }}
+                                              className="font-medium text-foreground transition-colors hover:text-accent hover:underline"
+                                            >
+                                              {profile.name}
+                                            </button>
+                                            {getStatusIcon(profile.status)}
+                                          </div>
+                                          <p className="truncate text-sm text-muted-foreground">
+                                            {profile.email.length > 0
+                                              ? profile.email
+                                              : "No email"}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="hidden px-4 py-4 sm:table-cell">
+                                      <div className="flex min-w-0 items-center gap-2">
+                                        {profile.wallet.length > 0 ? (
+                                          <>
+                                            {(() => {
+                                              const chainMeta = getChainMeta(
+                                                profile.chain
+                                              );
+                                              if (!chainMeta) return null;
+                                              return (
+                                                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-secondary/40 px-2 py-1 text-xs font-medium text-muted-foreground">
+                                                  <span className="shrink-0">
+                                                    {chainMeta.icon}
+                                                  </span>
+                                                  <span className="max-w-24 truncate">
+                                                    {chainMeta.name}
+                                                  </span>
+                                                </span>
+                                              );
+                                            })()}
+                                            <code
+                                              className="w-24 shrink-0 text-sm text-muted-foreground"
+                                              title={profile.walletFull}
+                                            >
+                                              {profile.wallet}
+                                            </code>
+                                          </>
+                                        ) : (
+                                          <span className="text-sm text-muted-foreground">
+                                            No wallet
+                                          </span>
+                                        )}
+                                        {profile.walletFull?.length > 0 && (
+                                          <button
+                                            type="button"
+                                            className="rounded border border-border bg-card p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              navigator.clipboard
+                                                .writeText(
+                                                  String(profile.walletFull)
+                                                )
+                                                .catch(() => undefined);
+                                            }}
+                                            aria-label="Copy wallet address"
+                                          >
+                                            <Copy className="h-3.5 w-3.5" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="hidden px-4 py-4 md:table-cell">
+                                      {(() => {
+                                        const socials = extractSocialHandles(
+                                          profile.attributes
+                                        );
+                                        const items: ReactElement[] = [];
+
+                                        if (socials.ens) {
+                                          const { ens } = socials;
+                                          items.push(
+                                            <SocialIconLink
+                                              key={`ens:${ens}`}
+                                              href={`https://app.ens.domains/name/${encodeURIComponent(ens)}`}
+                                              label={`ENS: ${ens}`}
+                                            >
+                                              <EnsLogo />
+                                            </SocialIconLink>
+                                          );
+                                        }
+
+                                        if (socials.twitter) {
+                                          const handle = socials.twitter;
+                                          items.push(
+                                            <SocialIconLink
+                                              key={`x:${handle}`}
+                                              href={`https://x.com/${encodeURIComponent(handle)}`}
+                                              label={`X: @${handle}`}
+                                            >
+                                              <XLogo />
+                                            </SocialIconLink>
+                                          );
+                                        }
+
+                                        if (socials.discord) {
+                                          const { discord } = socials;
+                                          const trimmed = discord.trim();
+                                          const isId = /^[0-9]{16,20}$/.test(
+                                            trimmed
+                                          );
+                                          const href = isId
+                                            ? `https://discord.com/users/${trimmed}`
+                                            : `https://discord.com/users/${encodeURIComponent(trimmed)}`;
+                                          items.push(
+                                            <SocialIconLink
+                                              key={`discord:${trimmed}`}
+                                              href={href}
+                                              label={`Discord: ${discord}`}
+                                            >
+                                              <DiscordLogo />
+                                            </SocialIconLink>
+                                          );
+                                        }
+
+                                        if (socials.telegram) {
+                                          const handle = socials.telegram;
+                                          items.push(
+                                            <SocialIconLink
+                                              key={`tg:${handle}`}
+                                              href={`https://t.me/${encodeURIComponent(handle)}`}
+                                              label={`Telegram: @${handle}`}
+                                            >
+                                              <TelegramLogo />
+                                            </SocialIconLink>
+                                          );
+                                        }
+
+                                        if (items.length === 0) {
+                                          return (
+                                            <span className="text-sm text-muted-foreground">
+                                              —
+                                            </span>
+                                          );
+                                        }
+
+                                        return (
+                                          <div className="flex items-center gap-1.5">
+                                            {items}
+                                          </div>
+                                        );
+                                      })()}
+                                    </td>
+                                    <td className="px-4 py-4">
+                                      <div className="flex items-center gap-2">
+                                        {typeof profile.healthScore ===
+                                        "number" ? (
+                                          <span
+                                            className={`font-medium ${getHealthColor(profile.healthScore)}`}
+                                          >
+                                            {profile.healthScore}
+                                          </span>
+                                        ) : (
+                                          <span className="text-sm text-muted-foreground">
+                                            Not scored
+                                          </span>
+                                        )}
+                                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
+                                          <div
+                                            className={`h-full rounded-full ${getHealthBarColor(typeof profile.healthScore === "number" ? profile.healthScore : 0)}`}
+                                            style={{
+                                              width: `${typeof profile.healthScore === "number" ? profile.healthScore : 0}%`,
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="hidden px-4 py-4 md:table-cell">
+                                      <div>
+                                        <p className="text-sm text-foreground">
+                                          {profile.lastAction.label.length > 0
+                                            ? profile.lastAction.label
+                                            : "No recent activity"}
+                                        </p>
+                                        {profile.lastAction.time.length > 0 && (
+                                          <p className="text-xs text-muted-foreground">
+                                            {profile.lastAction.time}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </motion.tr>
+                                  <AnimatePresence>
+                                    {expandedRow === profile.id && (
+                                      <motion.tr
+                                        variants={{
+                                          initial: { opacity: 0, height: 0 },
+                                          animate: {
+                                            opacity: 1,
+                                            height: "auto",
+                                            transition: {
+                                              duration: 0.3,
+                                              ease: [0.25, 0.46, 0.45, 0.94],
+                                            },
+                                          },
+                                          exit: {
+                                            opacity: 0,
+                                            height: 0,
+                                            transition: {
+                                              duration: 0.3,
+                                              ease: [0.25, 0.46, 0.45, 0.94],
+                                            },
+                                          },
+                                        }}
+                                        initial="initial"
+                                        animate="animate"
+                                        exit="exit"
+                                      >
+                                        <td
+                                          colSpan={6}
+                                          className="bg-muted/30 px-4 py-4"
+                                        >
+                                          <div className="grid gap-4 sm:grid-cols-3">
+                                            <div className="rounded-lg border border-border bg-card p-4">
+                                              <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                                Activity
+                                              </h4>
+                                              <div className="space-y-2 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                                                  <span className="text-foreground">
+                                                    {profile.lastAction.label
+                                                      .length > 0
+                                                      ? profile.lastAction.label
+                                                      : "No recent activity"}
+                                                  </span>
+                                                </div>
+                                                {profile.lastAction.time
+                                                  .length > 0 && (
+                                                  <div className="text-xs text-muted-foreground">
+                                                    {profile.lastAction.time}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                            <div className="rounded-lg border border-border bg-card p-4">
+                                              <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                                Attributes
+                                              </h4>
+                                              {Object.keys(profile.attributes)
+                                                .length > 0 ? (
+                                                <div className="space-y-2">
+                                                  {Object.entries(
+                                                    profile.attributes
+                                                  )
+                                                    .slice(0, 6)
+                                                    .map(([k, v]) => (
+                                                      <div
+                                                        key={k}
+                                                        className="flex items-center justify-between gap-3 text-sm"
+                                                      >
+                                                        <span className="truncate text-muted-foreground">
+                                                          {k}
+                                                        </span>
+                                                        <span className="truncate font-medium text-foreground">
+                                                          {typeof v ===
+                                                            "string" ||
+                                                          typeof v === "number"
+                                                            ? String(v)
+                                                            : ""}
+                                                        </span>
+                                                      </div>
+                                                    ))}
+                                                </div>
+                                              ) : (
+                                                <div className="text-sm text-muted-foreground">
+                                                  No attributes
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="rounded-lg border border-border bg-card p-4">
+                                              <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                                Tags
+                                              </h4>
+                                              <div className="flex flex-wrap gap-2">
+                                                {profile.tags.map(
+                                                  (tag: string) => (
+                                                    <span
+                                                      key={tag}
+                                                      className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent"
+                                                    >
+                                                      {tag}
+                                                    </span>
+                                                  )
+                                                )}
+                                                {profile.engagement.length >
+                                                  0 && (
+                                                  <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                                                    {profile.engagement}{" "}
+                                                    Engagement
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </motion.tr>
+                                    )}
+                                  </AnimatePresence>
+                                </React.Fragment>
+                              ))}
+                            </motion.tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination */}
+                        <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                          <p className="text-sm text-muted-foreground">
+                            Showing{" "}
+                            {totalItems === 0
+                              ? 0
+                              : (currentPage - 1) * itemsPerPage + 1}
+                            - {Math.min(currentPage * itemsPerPage, totalItems)}{" "}
+                            of {totalItems}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() =>
+                                setCurrentPage((p) => Math.max(1, p - 1))
+                              }
+                              disabled={currentPage === 1}
+                              className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <div className="flex items-center gap-1">
+                              {Array.from(
+                                { length: Math.min(5, totalPages) },
+                                (_, i) => {
+                                  let pageNum;
+                                  if (totalPages <= 5) {
+                                    pageNum = i + 1;
+                                  } else if (currentPage <= 3) {
+                                    pageNum = i + 1;
+                                  } else if (currentPage >= totalPages - 2) {
+                                    pageNum = totalPages - 4 + i;
+                                  } else {
+                                    pageNum = currentPage - 2 + i;
+                                  }
+                                  return (
+                                    <button
+                                      key={pageNum}
+                                      onClick={() => setCurrentPage(pageNum)}
+                                      className={`h-8 w-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
+                                    >
+                                      {pageNum}
+                                    </button>
+                                  );
+                                }
+                              )}
+                            </div>
+                            <button
+                              onClick={() =>
+                                setCurrentPage((p) =>
+                                  Math.min(totalPages, p + 1)
+                                )
+                              }
+                              disabled={currentPage === totalPages}
+                              className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bulk Actions Bar */}
+                    <AnimatePresence>
+                      {selectedIds.length > 0 && (
+                        <motion.div
+                          initial={{ y: 100, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: 100, opacity: 0 }}
+                          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2"
+                        >
+                          <div className="flex items-center gap-4 rounded-2xl border border-border bg-card px-6 py-3 shadow-xl">
+                            <span className="text-sm font-medium text-foreground">
+                              {selectedIds.length} selected
+                            </span>
+                            <div className="h-4 w-px bg-border" />
+                            <button
+                              onClick={handleBulkExport}
+                              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                            >
+                              <Download className="h-4 w-4" />
+                              Export
+                            </button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button
+                                  onClick={(e) => e.stopPropagation()}
+                                  disabled={deleteProfilesMutation.isPending}
+                                  className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  {deleteProfilesMutation.isPending
+                                    ? "Deleting..."
+                                    : "Delete"}
+                                </button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete selected profiles
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Delete {selectedIds.length} profile
+                                    {selectedIds.length === 1 ? "" : "s"}? This
+                                    cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={handleBulkDelete}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <div className="h-4 w-px bg-border" />
+                            <button
+                              onClick={() => setSelectedIds([])}
+                              className="p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </main>
+      </motion.div>
+    </TooltipProvider>
   );
 }

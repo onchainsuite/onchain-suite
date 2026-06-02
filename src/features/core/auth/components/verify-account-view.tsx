@@ -23,7 +23,7 @@ import { AUTH_ROUTES } from "@/shared/config/app-routes";
 function VerifyAccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const token = searchParams?.get("token") ?? null;
   const [status, setStatus] = useState<
     "verifying" | "success" | "error" | "pending"
   >(token ? "verifying" : "pending");
@@ -86,7 +86,7 @@ function VerifyAccountContent() {
     try {
       // We need the email to resend, but if we don't have it (e.g. from session)
       // we might need to ask the user or get it from a query param if provided
-      const email = searchParams.get("email");
+      const email = searchParams?.get("email") ?? null;
 
       if (!email) {
         toast.error("Please log in to resend verification email");

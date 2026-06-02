@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
 
-import { cn } from "@/lib/utils";
+import { cn, getSelectedOrganizationId } from "@/lib/utils";
 
 import type { CampaignFormData } from "../../validations";
 import { templatesService } from "@/features/templates/templates.service";
@@ -38,6 +38,14 @@ interface TemplateSelectorProps {
 
 type SortMode = "used" | "recent" | "oldest" | "name";
 type TabMode = "library" | "saved";
+
+type TemplateCard = {
+  id: string;
+  title: string;
+  updatedAtMs: number;
+  date: string;
+  preview: string;
+};
 
 const RECENTS_KEY = "onchain.templates.recents.v1";
 
@@ -111,10 +119,11 @@ export function TemplateSelector({
   const [sortMode, setSortMode] = useState<SortMode>("used");
   const [templateSearch, setTemplateSearch] = useState("");
   const [recents, setRecents] = useState<Record<string, number>>({});
+  const orgId = getSelectedOrganizationId();
 
   const selectedTemplate = form.watch("selectedTemplate");
   const templatesQuery = useQuery({
-    queryKey: ["templates", "list", tab, templateSearch, sortMode],
+    queryKey: ["templates", "list", orgId, tab, templateSearch, sortMode],
     queryFn: () =>
       templatesService.list(
         templateSearch.trim().length > 0
@@ -128,12 +137,20 @@ export function TemplateSelector({
               sort: sortMode,
               folder: tab === "saved" ? "saved" : undefined,
               limit: 50,
-            }
+            },
+        orgId ?? undefined
       ),
     retry: false,
     refetchOnWindowFocus: true,
     refetchInterval: 15000,
   });
+
+  useEffect(() => {
+    const onUpdate = () => templatesQuery.refetch();
+    window.addEventListener("onchain:templates-updated", onUpdate);
+    return () =>
+      window.removeEventListener("onchain:templates-updated", onUpdate);
+  }, [templatesQuery]);
 
   useEffect(() => {
     setRecents(readRecents());
@@ -146,7 +163,7 @@ export function TemplateSelector({
     };
   }, []);
 
-  const templates = useMemo(() => {
+  const templates = useMemo<TemplateCard[]>(() => {
     if (!templatesQuery.isSuccess) return [];
     if (!Array.isArray(templatesQuery.data)) return [];
 
@@ -164,7 +181,7 @@ export function TemplateSelector({
       const usedSorted = Object.entries(recents)
         .sort((a, b) => b[1] - a[1])
         .map(([id]) => byId.get(id))
-        .filter(Boolean);
+        .filter((t): t is TemplateCard => Boolean(t));
       const remaining = mapped
         .filter((t) => !recents[t.id])
         .sort((a, b) => b.updatedAtMs - a.updatedAtMs);
@@ -182,13 +199,13 @@ export function TemplateSelector({
     return mapped.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
   }, [recents, sortMode, templatesQuery.data, templatesQuery.isSuccess]);
 
-  const recentTemplates = useMemo(() => {
+  const recentTemplates = useMemo<TemplateCard[]>(() => {
     if (templates.length === 0) return [];
     const byId = new Map(templates.map((t) => [t.id, t]));
     return Object.entries(recents)
       .sort((a, b) => b[1] - a[1])
       .map(([id]) => byId.get(id))
-      .filter(Boolean)
+      .filter((t): t is TemplateCard => Boolean(t))
       .slice(0, 6);
   }, [recents, templates]);
 
@@ -201,9 +218,16 @@ export function TemplateSelector({
   return (
     <div className="space-y-6 p-4 sm:p-6 md:p-8 lg:p-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-          Templates
-        </h2>
+        <div className="space-y-1">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+            Templates
+          </h2>
+          <div className="text-sm text-muted-foreground">
+            {tab === "library"
+              ? "Browse recommended templates from the public Email Library."
+              : "Manage templates you’ve created and saved."}
+          </div>
+        </div>
         <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
           <Button
             type="button"
@@ -211,7 +235,7 @@ export function TemplateSelector({
             className="w-full rounded-xl bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary/90 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Create
+            Create template
           </Button>
           <Button variant="ghost" size="icon" className="shrink-0 rounded-xl">
             <MoreVertical className="h-4 w-4" />
@@ -229,13 +253,13 @@ export function TemplateSelector({
             value="library"
             className="rounded-lg data-[state=active]:bg-background"
           >
-            Email library
+            Email Library
           </TabsTrigger>
           <TabsTrigger
             value="saved"
             className="rounded-lg data-[state=active]:bg-background"
           >
-            Email: saved
+            Email Saved
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -320,17 +344,25 @@ export function TemplateSelector({
           />
         ) : (
           <TemplatesEmptyState
-            title="No templates yet"
-            description="Create your first template to reuse it across campaigns."
-            onCreate={onCreateEditor}
+            title={
+              tab === "library"
+                ? "No library templates"
+                : "No saved templates yet"
+            }
+            description={
+              tab === "library"
+                ? "There are no public templates available right now."
+                : "Create your first template to reuse it across campaigns."
+            }
+            onCreate={tab === "saved" ? onCreateEditor : undefined}
           />
         )
       ) : (
         <>
-          {recentTemplates.length > 0 ? (
+          {tab === "saved" && recentTemplates.length > 0 ? (
             <div className="space-y-3">
               <div className="text-sm font-medium text-foreground">
-                Recent templates
+                Used most recently
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2">
                 {recentTemplates.map((temp) => (
@@ -375,6 +407,16 @@ export function TemplateSelector({
               </div>
             </div>
           ) : null}
+
+          {tab === "library" ? (
+            <div className="text-sm font-medium text-foreground">
+              Public Email Library
+            </div>
+          ) : (
+            <div className="text-sm font-medium text-foreground">
+              Email Saved
+            </div>
+          )}
 
           <div
             className={cn(

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 
 import { getSession } from "@/lib/auth-session";
+
 import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 // Types

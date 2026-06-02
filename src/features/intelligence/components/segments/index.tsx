@@ -1,14 +1,26 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Brain, Plus, Search, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import {
-  intelligenceService,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/ui/alert-dialog";
+
+import {
   type IntelligenceSegment,
+  intelligenceService,
 } from "../../intelligence.service";
 import { type Segment } from "../../types";
 
@@ -87,7 +99,7 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to delete segment";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -244,20 +256,34 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const ok = window.confirm(
-                            `Delete segment "${segment.name}"? This cannot be undone.`
-                          );
-                          if (!ok) return;
-                          deleteMutation.mutate(segment.id);
-                        }}
-                        disabled={deleteMutation.isPending}
-                        className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            disabled={deleteMutation.isPending}
+                            className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete segment</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Delete segment &quot;{segment.name}&quot;? This
+                              cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteMutation.mutate(segment.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </td>
                   </tr>
                 ))}

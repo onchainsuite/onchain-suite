@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Bot,
@@ -16,8 +17,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-
-import { useQuery } from "@tanstack/react-query";
 
 import {
   DropdownMenu,
@@ -146,7 +145,8 @@ const toUiReport = (input: unknown): UiReport | null => {
 
   const conversions = asNumber(r.conversions ?? r.conversionCount) ?? undefined;
   const exitRate = normalizeRate(r.exitRate ?? r.exit_rate);
-  const topTrigger = asString(r.topTrigger ?? r.trigger ?? r.top_trigger) || undefined;
+  const topTrigger =
+    asString(r.topTrigger ?? r.trigger ?? r.top_trigger) || undefined;
 
   return {
     id,
@@ -242,8 +242,8 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
           <span className="text-muted-foreground">Reports</span>{" "}
           <span className="font-medium text-foreground">
-            {typeof (metricsQuery.data as Record<string, unknown> | undefined)?.reportsCount ===
-            "number"
+            {typeof (metricsQuery.data as Record<string, unknown> | undefined)
+              ?.reportsCount === "number"
               ? String(
                   (metricsQuery.data as { reportsCount: number }).reportsCount
                 )
@@ -253,8 +253,8 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
           <span className="text-muted-foreground">Summary</span>{" "}
           <span className="font-medium text-foreground">
-            {typeof (summaryQuery.data as Record<string, unknown> | undefined)?.summary ===
-            "string"
+            {typeof (summaryQuery.data as Record<string, unknown> | undefined)
+              ?.summary === "string"
               ? String((summaryQuery.data as { summary: string }).summary)
               : "—"}
           </span>

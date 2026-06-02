@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Calendar,
@@ -12,8 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -56,7 +56,12 @@ const formatMoney = (v: unknown): string => {
 
 export function ReportDetailPage() {
   const params = useParams();
-  const reportId = params.id as string;
+  const reportId =
+    typeof params?.id === "string"
+      ? params.id
+      : Array.isArray(params?.id)
+        ? (params.id[0] ?? "")
+        : "";
   const queryClient = useQueryClient();
 
   const reportQuery = useQuery({
@@ -78,7 +83,7 @@ export function ReportDetailPage() {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to refresh report";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -102,7 +107,9 @@ export function ReportDetailPage() {
     asNumber(rec.recipientCount) ??
     asNumber(rec.audienceSize) ??
     0;
-  const openRate = normalizeRate(rec.openRate ?? rec.open_rate ?? rec.openRatio);
+  const openRate = normalizeRate(
+    rec.openRate ?? rec.open_rate ?? rec.openRatio
+  );
   const clickRate = normalizeRate(
     rec.clickRate ?? rec.click_rate ?? rec.clickRatio
   );
@@ -202,9 +209,7 @@ export function ReportDetailPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary">
-              {revenue}
-            </span>
+            <span className="text-2xl font-bold text-primary">{revenue}</span>
           </div>
         </div>
       </div>

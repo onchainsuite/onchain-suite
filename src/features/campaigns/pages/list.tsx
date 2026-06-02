@@ -38,6 +38,7 @@ export function CampaignsListsView() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams?.toString() ?? "";
 
   const filterTriggerClassName =
     "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
@@ -73,15 +74,15 @@ export function CampaignsListsView() {
   );
 
   useEffect(() => {
-    const viewRaw = searchParams.get("view");
+    const viewRaw = new URLSearchParams(searchParamsString).get("view");
     if (viewRaw === "list" || viewRaw === "calendar" || viewRaw === "library") {
       setViewMode(viewRaw);
     }
-  }, [searchParams]);
+  }, [searchParamsString]);
 
   const updateViewMode = (next: ViewMode) => {
     setViewMode(next);
-    const nextParams = new URLSearchParams(searchParams.toString());
+    const nextParams = new URLSearchParams(searchParamsString);
     nextParams.set("view", next);
     router.replace(`${pathname}?${nextParams.toString()}`);
   };

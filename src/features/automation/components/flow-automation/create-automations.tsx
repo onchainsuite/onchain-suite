@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle2,
@@ -25,9 +26,9 @@ import {
   type Connection,
   ConnectionLineType,
   Controls,
+  type Edge,
   MarkerType,
   MiniMap,
-  type Edge,
   type Node,
   ReactFlow,
   ReactFlowProvider,
@@ -44,11 +45,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { toast } from "sonner";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { isJsonObject } from "@/lib/utils";
+
 import "reactflow/dist/style.css";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { automationService } from "../../automation.service";
 import { Confetti } from "../confetti";
 import {
   BranchNode,
@@ -74,10 +78,6 @@ import {
   getInitialNodes,
   isValidConnection,
 } from "@/features/automation/utils";
-
-import { isJsonObject } from "@/lib/utils";
-
-import { automationService } from "../../automation.service";
 
 // This is a known benign error with ReactFlow that can be safely ignored
 if (typeof window === "undefined") {
@@ -279,7 +279,7 @@ const CreateAutomationContent = () => {
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : "Failed to publish";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -294,11 +294,11 @@ const CreateAutomationContent = () => {
     onSuccess: (res) => {
       const raw = (res as Record<string, unknown>).matches;
       const matches = typeof raw === "number" ? raw : asNumber(raw);
-      window.alert(`Preview matches: ${matches.toLocaleString()}`);
+      toast.info(`Preview matches: ${matches.toLocaleString()}`);
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : "Failed to preview";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -553,7 +553,7 @@ const CreateAutomationContent = () => {
     onError: (err) => {
       setIsSaving(false);
       const message = err instanceof Error ? err.message : "Failed to save";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -620,14 +620,14 @@ const CreateAutomationContent = () => {
       );
       if (errors.length > 0) {
         setIsSaving(false);
-        window.alert("Builder has validation errors");
+        toast.error("Builder has validation errors");
         return;
       }
       saveMutation.mutate();
     } catch (err) {
       setIsSaving(false);
       const message = err instanceof Error ? err.message : "Failed to save";
-      window.alert(message);
+      toast.error(message);
     }
   };
 
@@ -735,7 +735,7 @@ const CreateAutomationContent = () => {
           String(_e);
         }
       };
-      void loadSchema();
+      loadSchema().catch(() => undefined);
     }
   };
 
@@ -1399,7 +1399,11 @@ const CreateAutomationContent = () => {
                             automationService
                               .getStatsEntryDetails(automationId, entry.id)
                               .then((data) => {
-                                window.alert(JSON.stringify(data, null, 2));
+                                const text = JSON.stringify(data, null, 2);
+                                navigator.clipboard
+                                  .writeText(text)
+                                  .then(() => toast.success("Copied details"))
+                                  .catch(() => toast.error("Failed to copy"));
                               })
                               .catch((_e) => String(_e));
                           }}

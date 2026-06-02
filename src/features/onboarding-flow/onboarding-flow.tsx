@@ -25,7 +25,7 @@ export function OnboardingFlow() {
   }, [session, isPending, push]);
 
   React.useEffect(() => {
-    const reason = searchParams.get("reason");
+    const reason = searchParams?.get("reason") ?? null;
     if (reason === "missing_org") {
       toast.error("Please complete onboarding to continue.");
     }

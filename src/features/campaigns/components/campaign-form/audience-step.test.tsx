@@ -31,11 +31,10 @@ vi.mock("./audience-selector", () => ({
 }));
 
 function Wrapper() {
-  const form = useForm<CampaignFormData>({
+  const form = useForm<CampaignFormData, unknown, CampaignFormData>({
     defaultValues: {
       campaignName: "Test",
       campaignType: "email-blast",
-      template: "email-blast",
       selectedAudiences: [],
       smartSending: true,
       trackingParameters: true,

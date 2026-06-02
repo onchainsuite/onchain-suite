@@ -1,11 +1,11 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { intelligenceService } from "../../intelligence.service";
 
@@ -55,7 +55,8 @@ export function CreateSegmentPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (normalizedName.length === 0) throw new Error("Segment name is required");
+      if (normalizedName.length === 0)
+        throw new Error("Segment name is required");
       if (isImportingFromQuery) {
         return intelligenceService.importSegmentFromQuery({
           queryId: normalizedImportQueryId,
@@ -73,7 +74,7 @@ export function CreateSegmentPage() {
       return intelligenceService.createSegment({ name: normalizedName, rules });
     },
     onSuccess: (res) => {
-      const segmentId = (res as { segmentId?: string }).segmentId;
+      const { segmentId } = res as { segmentId?: string };
       if (segmentId) {
         router.push(`/intelligence/segments/detail/${segmentId}`);
         return;
@@ -81,8 +82,9 @@ export function CreateSegmentPage() {
       router.push("/intelligence");
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : "Failed to save segment";
-      window.alert(message);
+      const message =
+        err instanceof Error ? err.message : "Failed to save segment";
+      toast.error(message);
     },
   });
 
@@ -239,7 +241,9 @@ export function CreateSegmentPage() {
                 <button
                   type="button"
                   onClick={() => saveMutation.mutate()}
-                  disabled={normalizedName.length === 0 || saveMutation.isPending}
+                  disabled={
+                    normalizedName.length === 0 || saveMutation.isPending
+                  }
                   className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {saveMutation.isPending ? (

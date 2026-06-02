@@ -115,7 +115,7 @@ const getCorsHeaders = (req: NextRequest) => {
 
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
-  const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
+  const prodDefault = "https://api.onchainsuite.com/api/v1";
   const backendUrl = pickNonEmpty(
     process.env.BACKEND_URL,
     process.env.NEXT_PUBLIC_BACKEND_URL,
@@ -144,8 +144,21 @@ const extractTokenFromCookie = (cookieHeader: string): string | null => {
     });
 
   const cookieMap = new Map(pairs);
-  const raw = cookieMap.get("onchain.token") ?? null;
-  return raw ? decodeURIComponent(raw) : null;
+  const raw =
+    cookieMap.get("onchain.token") ??
+    cookieMap.get("better-auth.session_token") ??
+    cookieMap.get("__Secure-better-auth.session_token") ??
+    cookieMap.get("__Host-better-auth.session_token") ??
+    cookieMap.get("better-auth.sessionToken") ??
+    cookieMap.get("__Secure-better-auth.sessionToken") ??
+    cookieMap.get("__Host-better-auth.sessionToken") ??
+    null;
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 };
 
 const extractBearer = (authorizationHeader: string | null): string | null => {
@@ -585,7 +598,7 @@ const handleAudienceImportExport = async (
                 ) {
                   continue;
                 }
-                if (!next.attributes) next.attributes = {};
+                next.attributes ??= {};
                 if (isJsonObject(next.attributes))
                   (next.attributes as Record<string, unknown>)[k] = v;
               }
@@ -632,7 +645,7 @@ const handleAudienceImportExport = async (
 
     if (method === "GET" && jobId && !extra) {
       const job = audienceImportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -668,7 +681,7 @@ const handleAudienceImportExport = async (
 
     if (method === "GET" && jobId && extra === "errors") {
       const job = audienceImportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -728,7 +741,7 @@ const handleAudienceImportExport = async (
 
     if (method === "POST" && jobId && extra === "cancel") {
       const job = audienceImportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -947,7 +960,7 @@ const handleAudienceImportExport = async (
 
     if (method === "GET" && jobId && !extra) {
       const job = audienceExportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -990,7 +1003,7 @@ const handleAudienceImportExport = async (
 
     if (method === "GET" && jobId && extra === "download") {
       const job = audienceExportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -1037,7 +1050,7 @@ const handleAudienceImportExport = async (
 
     if (method === "POST" && jobId && extra === "cancel") {
       const job = audienceExportJobs.get(jobId);
-      if (!job || job.orgId !== orgId) {
+      if (job?.orgId !== orgId) {
         return okJson(
           req,
           {
@@ -1396,7 +1409,7 @@ const handleInbox = async (
       unreadCount: computeUnread(),
     });
 
-    void sendEmailViaAcs({ fromEmail, to, subject, content });
+    sendEmailViaAcs({ fromEmail, to, subject, content }).catch(() => undefined);
 
     return okJson(
       req,
@@ -1586,12 +1599,12 @@ const handleInbox = async (
           unreadCount: computeUnread(),
         });
 
-        void sendEmailViaAcs({
+        sendEmailViaAcs({
           fromEmail,
           to: [to],
           subject: thread.subject,
           content,
-        });
+        }).catch(() => undefined);
 
         return okJson(req, { ok: true, messageId: next.message.id }, 202);
       }
@@ -1634,7 +1647,7 @@ const handleInbox = async (
           isJsonObject(body) && typeof body.starred === "boolean"
             ? body.starred
             : null;
-        thread.starred = provided === null ? !thread.starred : provided;
+        thread.starred = provided ?? !thread.starred;
         thread.updatedAt = nowIso();
         store.threads.set(threadId, thread);
         inboxEvents.emit("thread_updated", {
@@ -1722,6 +1735,50 @@ const ensureBackendAuthHeaders = (req: NextRequest, headers: Headers) => {
   }
 };
 
+const ensureOrgIdHeader = (req: NextRequest, headers: Headers) => {
+  if (headers.has("x-org-id")) return;
+  const params = req.nextUrl.searchParams;
+  const candidate =
+    params.get("x-org-id") ??
+    params.get("orgId") ??
+    params.get("xOrgId") ??
+    params.get("organizationId") ??
+    params.get("activeOrganizationId") ??
+    params.get("org.id") ??
+    params.get("organization.id") ??
+    null;
+  const cleaned = typeof candidate === "string" ? candidate.trim() : "";
+  if (cleaned.length > 0) headers.set("x-org-id", cleaned);
+};
+
+const toSavedPayload = (raw: unknown) => {
+  const obj =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const payloadCandidate =
+    obj.payload && typeof obj.payload === "object"
+      ? (obj.payload as Record<string, unknown>)
+      : obj;
+
+  const html =
+    typeof payloadCandidate.html === "string"
+      ? payloadCandidate.html
+      : undefined;
+  const textVersion =
+    typeof payloadCandidate.textVersion === "string"
+      ? payloadCandidate.textVersion
+      : typeof payloadCandidate.text === "string"
+        ? payloadCandidate.text
+        : undefined;
+  const json =
+    payloadCandidate.json ??
+    payloadCandidate.design ??
+    payloadCandidate.template ??
+    undefined;
+  const assets = payloadCandidate.assets ?? undefined;
+
+  return { html, textVersion, json, assets };
+};
+
 const forward = async (
   req: NextRequest,
   path: string[],
@@ -1759,6 +1816,7 @@ const forward = async (
   headers.delete("content-length");
   headers.delete("accept-encoding");
   ensureBackendAuthHeaders(req, headers);
+  ensureOrgIdHeader(req, headers);
   const apiKey = getBackendApiKey();
   if (apiKey && !headers.has("x-api-key")) {
     headers.set("x-api-key", apiKey);
@@ -1786,6 +1844,27 @@ const forward = async (
         for (const [k, v] of Object.entries(cors)) res.headers.set(k, v);
       }
       return res;
+    }
+  }
+
+  const isCampaignEditorSaved =
+    method === "POST" &&
+    path.length === 4 &&
+    path[0] === "campaigns" &&
+    path[2] === "editor" &&
+    path[3] === "saved";
+  if (isCampaignEditorSaved && body) {
+    try {
+      const rawText = new TextDecoder().decode(body);
+      const parsed = rawText.trim().length > 0 ? JSON.parse(rawText) : null;
+      const payload = toSavedPayload(parsed);
+      const nextBody = JSON.stringify(payload);
+      body = new TextEncoder().encode(nextBody).buffer;
+      if (!headers.has("content-type")) {
+        headers.set("content-type", "application/json");
+      }
+    } catch (_e) {
+      String(_e);
     }
   }
 
@@ -1818,6 +1897,12 @@ const forward = async (
     }
     return res;
   }
+
+  const isOrganizationSetActive =
+    method === "POST" &&
+    path.length === 2 &&
+    path[0] === "organization" &&
+    path[1] === "set-active";
 
   const isOrganizationCreate =
     method === "POST" &&
@@ -1921,6 +2006,90 @@ const forward = async (
       return NextResponse.json(json, { status: 200 });
     } catch {
       return NextResponse.json({ data: [] }, { status: 200 });
+    }
+  }
+
+  if (isOrganizationSetActive && upstream.status === 400) {
+    const base = getBackendBaseUrl();
+    const upstreamJson = await upstream
+      .clone()
+      .json()
+      .catch(() => null);
+    const upstreamErrorMessage = (() => {
+      if (!isJsonObject(upstreamJson)) return "";
+      const err = isJsonObject(upstreamJson.error)
+        ? upstreamJson.error
+        : undefined;
+      const nested = isJsonObject(err?.details) ? err.details : undefined;
+      const msg =
+        (typeof err?.message === "string" ? err.message : "") ||
+        (typeof upstreamJson.message === "string"
+          ? upstreamJson.message
+          : "") ||
+        (typeof nested?.message === "string" ? nested.message : "");
+      return msg;
+    })();
+
+    if (/not a member of organization/i.test(upstreamErrorMessage)) {
+      const requestedOrgId = (() => {
+        if (!body) return null;
+        try {
+          const text = new TextDecoder().decode(body);
+          const json = text.trim().length > 0 ? JSON.parse(text) : null;
+          const raw = isJsonObject(json)
+            ? (json.organizationId ??
+              json.organization_id ??
+              json.orgId ??
+              json.org_id ??
+              null)
+            : null;
+          return typeof raw === "string" && raw.trim().length > 0
+            ? raw.trim()
+            : null;
+        } catch {
+          return null;
+        }
+      })();
+
+      if (requestedOrgId) {
+        try {
+          const listRes = await fetch(`${base}/organization/list`, {
+            method: "GET",
+            headers,
+            cache: "no-store",
+          });
+          const listJson = await listRes.json().catch(() => null);
+          const list = Array.isArray(listJson)
+            ? listJson
+            : Array.isArray(listJson?.data)
+              ? listJson.data
+              : Array.isArray(listJson?.data?.data)
+                ? listJson.data.data
+                : [];
+
+          const found = Array.isArray(list)
+            ? list.some(
+                (org) =>
+                  isJsonObject(org) &&
+                  (org.id === requestedOrgId ||
+                    org.organizationId === requestedOrgId)
+              )
+            : false;
+
+          if (found) {
+            return NextResponse.json(
+              {
+                success: true,
+                fallback: true,
+                data: { organizationId: requestedOrgId },
+              },
+              { status: 200 }
+            );
+          }
+        } catch (_e) {
+          String(_e);
+        }
+      }
     }
   }
 

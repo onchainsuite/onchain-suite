@@ -46,18 +46,18 @@ export function OnchainNavbar() {
             </>
           ) : authEntryEnabled ? (
             <>
-              {/* <NavbarButton
-                  variant="secondary"
-                  onClick={() => handleRouting("login")}
-                >
-                  Login
-                </NavbarButton>
-                <NavbarButton
-                  variant="primary"
-                  onClick={() => handleRouting("signup")}
-                >
-                  Get Started
-                </NavbarButton> */}
+              <NavbarButton
+                variant="secondary"
+                onClick={() => handleRouting("login")}
+              >
+                Login
+              </NavbarButton>
+              <NavbarButton
+                variant="primary"
+                onClick={() => handleRouting("signup")}
+              >
+                Get Started
+              </NavbarButton>
             </>
           ) : null}
         </div>

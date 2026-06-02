@@ -1,6 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import {
   Brain,
   LayoutDashboard,
@@ -37,12 +41,12 @@ interface DashboardLayoutProps {
 
 export const dynamic = "force-dynamic";
 
-export function DashboardLayout({
+function DashboardLayoutInner({
   children,
   breadcrumbs,
   userFullName,
 }: DashboardLayoutProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const pathname = usePathname();
   const { data: session } = authClient.useSession();
@@ -147,15 +151,13 @@ export function DashboardLayout({
     },
   ];
 
-  const hasBreadcrumbs = !!breadcrumbs && breadcrumbs.length > 0;
-
   return (
     <div className="relative min-h-screen">
       <DashboardNavbar
         isCollapsed={isCollapsed}
         setCollapsed={setIsCollapsed}
         navItems={navItems}
-        activePath={pathname}
+        activePath={pathname ?? "/"}
         unreadCount={unreadCount}
         isLocked={isLocked}
         onToggleLock={() => setIsLocked((l) => !l)}
@@ -165,7 +167,12 @@ export function DashboardLayout({
         hasActiveOrganization={hasActiveOrganization}
       />
 
-      <div className={cn(isCollapsed ? "pl-20" : "pl-64")}>
+      <div
+        className={cn(
+          "transition-all duration-300",
+          isCollapsed ? "lg:pl-20" : "lg:pl-64"
+        )}
+      >
         <DashboardHeader
           breadcrumbs={breadcrumbs}
           currentPage={
@@ -173,20 +180,18 @@ export function DashboardLayout({
               ? breadcrumbs[breadcrumbs.length - 1].label
               : undefined
           }
-          setOpen={() => {}}
           hasActiveOrganization={hasActiveOrganization}
         />
       </div>
 
       <div
         className={cn(
-          "transition-all duration-300",
-          hasBreadcrumbs ? "pt-0" : "pt-0",
+          "transition-all duration-300 pt-0",
           isCollapsed ? "lg:pl-20" : "lg:pl-64"
         )}
       >
         {hasActiveOrganization ? <OrganizationStatusBanner /> : null}
-        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-4 md:p-4 md:px-15">
+        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8">
           {hasActiveOrganization ? (
             children
           ) : (
@@ -214,5 +219,15 @@ export function DashboardLayout({
         </main>
       </div>
     </div>
+  );
+}
+
+export function DashboardLayout(props: DashboardLayoutProps) {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DashboardLayoutInner {...props} />
+    </QueryClientProvider>
   );
 }

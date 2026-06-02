@@ -19,10 +19,10 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
-  audienceService,
   type AudienceExportJobStatus,
   type AudienceImportExportFormat,
   type AudienceImportJobStatus,
+  audienceService,
 } from "@/features/audience/audience.service";
 
 const fieldOptions = [
@@ -286,7 +286,7 @@ export default function ImportExportPage() {
     };
     reader.readAsText(file.slice(0, 200_000));
 
-    void (async () => {
+    (async () => {
       try {
         const snippet = await readFileSnippetText(file, 50_000);
         if (file.name.toLowerCase().endsWith(".json")) {
@@ -312,7 +312,7 @@ export default function ImportExportPage() {
           e instanceof Error ? e.message : "Preview unavailable"
         );
       }
-    })();
+    })().catch(() => undefined);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -599,7 +599,7 @@ export default function ImportExportPage() {
   });
 
   const handleImport = () => {
-    void importMutation.mutateAsync();
+    importMutation.mutateAsync().catch(() => undefined);
   };
 
   const resetImport = () => {

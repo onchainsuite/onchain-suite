@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { getSession } from "@/lib/auth-session";
+import { getSelectedOrganizationId } from "@/lib/utils";
 
 const pickNonEmpty = (...values: Array<string | undefined | null>) => {
   for (const value of values) {
@@ -20,14 +21,24 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
 
-    if (!session?.session?.activeOrganizationId) {
+    if (!session?.session) {
       return NextResponse.json(
         { isActive: false, status: "unknown" },
         { status: 401 }
       );
     }
 
-    const orgId = session.session.activeOrganizationId;
+    const orgId =
+      session.session.activeOrganizationId ??
+      getSelectedOrganizationId(req.headers.get("cookie") ?? "") ??
+      null;
+
+    if (!orgId) {
+      return NextResponse.json(
+        { isActive: false, status: "unknown" },
+        { status: 401 }
+      );
+    }
 
     const rawBase = pickNonEmpty(
       process.env.BACKEND_URL,

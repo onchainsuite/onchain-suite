@@ -1,8 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useGoogleLogin } from "@react-oauth/google";
-import axios from "axios";
 import { motion } from "framer-motion";
 import { Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,7 +12,7 @@ import { InputFormField } from "@/components/form-fields";
 import { Form } from "@/ui/form";
 import { LoadingButton } from "@/ui/loading-button";
 
-import { authClient } from "@/lib/auth-client";
+import { authClient, signInWithGoogle } from "@/lib/auth-client";
 
 import {
   AuthHeader,
@@ -38,7 +36,6 @@ function GoogleOAuthButtons({
   isLoading: boolean;
   setIsLoading: (next: boolean) => void;
 }) {
-  const { push } = useRouter();
   const searchParams = useSearchParams();
 
   const safeRedirectPath = (raw: string | null): string | null => {
@@ -49,42 +46,30 @@ function GoogleOAuthButtons({
     return trimmed;
   };
 
-  const handleOAuthSignIn = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setIsLoading(true);
-      try {
-        const userInfo = await axios.get(
-          "https://www.googleapis.com/oauth2/v3/userinfo",
-          {
-            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-          }
-        );
+  const handleOAuthSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const redirectToRaw = searchParams?.get("redirectTo") ?? null;
+      const redirectTo = safeRedirectPath(redirectToRaw);
+      const callbackURL = redirectTo ?? PRIVATE_ROUTES.DASHBOARD;
 
-        await authClient.signIn.social({
-          provider: "google",
-          idToken: userInfo.data.sub,
-        });
-
-        const redirectToRaw = searchParams?.get("redirectTo") ?? null;
-        const redirectTo = safeRedirectPath(redirectToRaw);
-        push(redirectTo ?? PRIVATE_ROUTES.DASHBOARD);
-      } catch (error) {
-        console.error("OAuth error:", error);
-        toast.error("Failed to sign in with Google");
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onError: (error) => {
-      console.error("Google login error:", error);
-      toast.error("Google login failed");
-    },
-  });
+      await signInWithGoogle({ callbackURL });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : "Failed to sign in with Google";
+      console.error("Google OAuth start error:", error);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <OAuthButtons
       onOAuthSignIn={async (_provider: string) => {
-        handleOAuthSignIn();
+        await handleOAuthSignIn();
       }}
       isLoading={isLoading}
     />

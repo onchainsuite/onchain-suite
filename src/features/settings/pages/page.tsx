@@ -14,7 +14,8 @@ import { tabs } from "../utils";
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tabFromUrl = searchParams.get("tab");
+  const tabFromUrl = searchParams?.get("tab") ?? null;
+  const searchParamsString = searchParams?.toString() ?? "";
 
   const tabIds = useMemo(() => new Set(tabs.map((t) => t.id)), []);
   const [activeTab, setActiveTab] = useState("profile");
@@ -48,7 +49,7 @@ export default function SettingsPage() {
                   key={tab.id}
                   onClick={() => {
                     setActiveTab(tab.id);
-                    const next = new URLSearchParams(searchParams.toString());
+                    const next = new URLSearchParams(searchParamsString);
                     next.set("tab", tab.id);
                     router.replace(`/settings?${next.toString()}`);
                   }}

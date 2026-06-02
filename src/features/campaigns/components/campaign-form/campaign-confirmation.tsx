@@ -9,9 +9,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+
+import { parseTimeOfDay, zonedWallTimeToUtcDate } from "@/lib/timezone";
 
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
@@ -38,6 +40,46 @@ export function ConfirmationPage({
   }, []);
 
   const isScheduled = sendOption === "schedule";
+  const tz =
+    typeof timezone === "string" && timezone.length > 0 ? timezone : "UTC";
+
+  const scheduledDateTimeLabel = useMemo(() => {
+    if (!isScheduled) return "";
+    if (!scheduleDate || !scheduleTime) return "";
+    const { hour, minute } = parseTimeOfDay(scheduleTime);
+    const utc = zonedWallTimeToUtcDate(
+      {
+        year: scheduleDate.getFullYear(),
+        month: scheduleDate.getMonth() + 1,
+        day: scheduleDate.getDate(),
+        hour,
+        minute,
+      },
+      tz
+    );
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(utc);
+  }, [isScheduled, scheduleDate, scheduleTime, tz]);
+
+  const sentTimeLabel = useMemo(() => {
+    if (isScheduled) return "";
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date());
+  }, [isScheduled, tz]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-2 relative overflow-hidden">
@@ -107,20 +149,9 @@ export function ConfirmationPage({
                         Scheduled Date & Time
                       </div>
                       <div className="text-muted-foreground">
-                        {scheduleDate && scheduleTime ? (
-                          <>
-                            {scheduleDate.toLocaleDateString("en-US", {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                            {" at "}
-                            {scheduleTime}
-                          </>
-                        ) : (
-                          "Friday, December 19, 2025 at 09:00 AM"
-                        )}
+                        {scheduleDate && scheduleTime
+                          ? scheduledDateTimeLabel
+                          : "Friday, December 19, 2025 at 09:00 AM"}
                       </div>
                     </div>
                   </div>
@@ -147,16 +178,7 @@ export function ConfirmationPage({
                     <div className="font-semibold text-foreground mb-1">
                       Sent Time
                     </div>
-                    <div className="text-muted-foreground">
-                      {new Date().toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "numeric",
-                      })}
-                    </div>
+                    <div className="text-muted-foreground">{sentTimeLabel}</div>
                   </div>
                 </div>
               )}

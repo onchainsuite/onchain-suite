@@ -1,6 +1,4 @@
-import type { NextApiRequest } from "next";
-import type { NextApiResponse } from "next";
-
+import type { NextApiRequest, NextApiResponse } from "next";
 import { Server } from "socket.io";
 
 import { inboxEvents } from "@/server/inbox-state";
@@ -46,7 +44,11 @@ export default function handler(_req: NextApiRequest, res: NextSocketResponse) {
 
   if (!res.socket.server.__inboxWired) {
     res.socket.server.__inboxWired = true;
-    const io = res.socket.server.io!;
+    const { io } = res.socket.server;
+    if (!io) {
+      res.status(500).end();
+      return;
+    }
     const nsp = io.of("/inbox");
 
     inboxEvents.on("new_message", ({ orgId, threadId, message }) => {

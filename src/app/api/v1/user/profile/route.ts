@@ -11,7 +11,7 @@ const pickNonEmpty = (...values: Array<string | undefined | null>) => {
 
 const getBackendBaseUrl = () => {
   const devDefault = "http://127.0.0.1:3333/api/v1";
-  const prodDefault = "https://onchain-backend-dvxw.onrender.com/api/v1";
+  const prodDefault = "https://api.onchainsuite.com/api/v1";
   const backendUrl = pickNonEmpty(
     process.env.BACKEND_URL,
     process.env.NEXT_PUBLIC_BACKEND_URL,

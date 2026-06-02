@@ -1,11 +1,14 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Code, Copy, Loader2, Mail, Play, Plus, X, Zap } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
+import { Input } from "@/ui/input";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -47,6 +50,11 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
   const [page, setPage] = useState(1);
   const limit = 50;
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [nameDialogOpen, setNameDialogOpen] = useState(false);
+  const [nameDialogKind, setNameDialogKind] = useState<
+    "report" | "segment" | "campaign"
+  >("report");
+  const [nameDialogValue, setNameDialogValue] = useState("");
 
   const schemaQuery = useQuery({
     queryKey: ["intelligence", "schema"],
@@ -74,7 +82,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to validate query";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -89,7 +97,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to run query";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -141,13 +149,13 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
       await queryClient.invalidateQueries({
         queryKey: ["intelligence", "reports", "summary"],
       });
-      window.alert("Report saved");
+      toast.success("Report saved");
       setActiveTab("reports");
     },
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to save report";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -169,7 +177,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to create segment";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -186,7 +194,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
     onError: (err) => {
       const message =
         err instanceof Error ? err.message : "Failed to create campaign";
-      window.alert(message);
+      toast.error(message);
     },
   });
 
@@ -239,6 +247,40 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
       setSelectedRows(rows.map((_r, i) => String(i)));
     }
   }, [rows, selectedRows.length]);
+
+  const openNameDialog = useCallback(
+    (kind: "report" | "segment" | "campaign") => {
+      setNameDialogKind(kind);
+      setNameDialogValue("");
+      setNameDialogOpen(true);
+    },
+    []
+  );
+
+  const submitNameDialog = useCallback(() => {
+    if (nameDialogKind === "campaign") {
+      setNameDialogOpen(false);
+      createCampaignMutation.mutate(nameDialogValue.trim());
+      return;
+    }
+    const trimmed = nameDialogValue.trim();
+    if (trimmed.length === 0) {
+      toast.error("Name is required");
+      return;
+    }
+    setNameDialogOpen(false);
+    if (nameDialogKind === "report") {
+      saveReportMutation.mutate(trimmed);
+      return;
+    }
+    createSegmentMutation.mutate(trimmed);
+  }, [
+    createCampaignMutation,
+    createSegmentMutation,
+    nameDialogKind,
+    nameDialogValue,
+    saveReportMutation,
+  ]);
 
   return (
     <div className="space-y-4">
@@ -354,9 +396,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
                 <>
                   <button
                     onClick={() => {
-                      const name = window.prompt("Report name");
-                      if (!name) return;
-                      saveReportMutation.mutate(name);
+                      openNameDialog("report");
                     }}
                     disabled={saveReportMutation.isPending}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50"
@@ -365,9 +405,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
                   </button>
                   <button
                     onClick={() => {
-                      const name = window.prompt("Segment name");
-                      if (!name) return;
-                      createSegmentMutation.mutate(name);
+                      openNameDialog("segment");
                     }}
                     disabled={createSegmentMutation.isPending}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:shadow-[0_0_16px_rgba(var(--primary),0.4)] disabled:opacity-50"
@@ -377,9 +415,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
                   </button>
                   <button
                     onClick={() => {
-                      const subject =
-                        window.prompt("Campaign subject (optional)") ?? "";
-                      createCampaignMutation.mutate(subject);
+                      openNameDialog("campaign");
                     }}
                     disabled={createCampaignMutation.isPending}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50"
@@ -437,7 +473,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
                           {typeof row[c] === "string" ||
                           typeof row[c] === "number"
                             ? String(row[c])
-                            : row[c] == null
+                            : row[c] === null || row[c] === undefined
                               ? ""
                               : isJsonObject(row[c])
                                 ? "[object]"
@@ -509,7 +545,7 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
             Recent queries
           </div>
           <div className="space-y-2">
-            {historyQuery.data!.slice(0, 5).map((h) => {
+            {(historyQuery.data ?? []).slice(0, 5).map((h) => {
               const item = isJsonObject(h)
                 ? (h as Record<string, unknown>)
                 : {};
@@ -545,6 +581,56 @@ export function QueryTab({ openEmailComposer, setActiveTab }: QueryTabProps) {
           </div>
         </div>
       ) : null}
+
+      <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
+        <DialogContent className="max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>
+              {nameDialogKind === "report"
+                ? "Save report"
+                : nameDialogKind === "segment"
+                  ? "Create segment"
+                  : "Create campaign"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Input
+              value={nameDialogValue}
+              onChange={(e) => setNameDialogValue(e.target.value)}
+              placeholder={
+                nameDialogKind === "campaign"
+                  ? "Campaign subject (optional)"
+                  : "Name"
+              }
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitNameDialog();
+              }}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setNameDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={submitNameDialog}
+                disabled={
+                  nameDialogKind !== "campaign" &&
+                  nameDialogValue.trim().length === 0
+                }
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
