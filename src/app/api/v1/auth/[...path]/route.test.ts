@@ -23,6 +23,35 @@ const createUpstreamResponse = (opts: {
 };
 
 describe("Auth Proxy API", () => {
+  it("rewrites Origin to backend origin when proxying auth requests", async () => {
+    mockedFetch.mockResolvedValueOnce(
+      createUpstreamResponse({
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ok: true }),
+      })
+    );
+
+    const req = new NextRequest("https://www.onchainsuite.com/api/v1/auth/sign-in/email", {
+      method: "POST",
+      body: JSON.stringify({ email: "a@b.com", password: "x" }),
+      headers: {
+        "content-type": "application/json",
+        origin: "https://www.onchainsuite.com",
+        referer: "https://www.onchainsuite.com/auth/signin",
+      },
+    });
+
+    const res = await POST(req, {
+      params: Promise.resolve({ path: ["sign-in", "email"] }),
+    });
+
+    expect(res.status).toBe(200);
+    const [, init] = mockedFetch.mock.calls[0] ?? [];
+    const headers = (init?.headers as Headers) ?? new Headers();
+    expect(headers.get("origin")).toBe("http://127.0.0.1:3333");
+  });
+
   it("rewrites Secure/Domain cookies for localhost http callback", async () => {
     mockedFetch.mockResolvedValueOnce(
       createUpstreamResponse({

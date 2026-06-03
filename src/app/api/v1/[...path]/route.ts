@@ -269,6 +269,19 @@ const buildBackendHeaders = (req: NextRequest) => {
   headers.delete("connection");
   headers.delete("content-length");
   headers.delete("accept-encoding");
+  const backendOrigin = new URL(getBackendBaseUrl()).origin;
+  const requestOrigin = req.nextUrl.origin;
+  const baseDomain = "onchainsuite.com";
+  const isOnchainSuiteDomain =
+    req.nextUrl.hostname === baseDomain ||
+    req.nextUrl.hostname.endsWith(`.${baseDomain}`);
+  const isLocalhost =
+    req.nextUrl.hostname === "localhost" ||
+    req.nextUrl.hostname === "127.0.0.1" ||
+    req.nextUrl.hostname === "::1";
+  const upstreamOrigin = isOnchainSuiteDomain ? backendOrigin : requestOrigin;
+  headers.set("origin", isLocalhost ? requestOrigin : upstreamOrigin);
+  headers.set("referer", `${isLocalhost ? requestOrigin : upstreamOrigin}/`);
   ensureBackendAuthHeaders(req, headers);
   const apiKey = getBackendApiKey();
   if (apiKey && !headers.has("x-api-key")) headers.set("x-api-key", apiKey);

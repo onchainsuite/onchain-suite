@@ -264,6 +264,18 @@ const forward = async (
   headers.delete("connection");
   headers.delete("content-length");
   headers.delete("accept-encoding");
+  const backendOrigin = new URL(getBackendBaseUrl()).origin;
+  const requestOrigin = url.origin;
+  const baseDomain = "onchainsuite.com";
+  const isOnchainSuiteDomain =
+    url.hostname === baseDomain || url.hostname.endsWith(`.${baseDomain}`);
+  const isLocalhost =
+    url.hostname === "localhost" ||
+    url.hostname === "127.0.0.1" ||
+    url.hostname === "::1";
+  const upstreamOrigin = isOnchainSuiteDomain ? backendOrigin : requestOrigin;
+  headers.set("origin", isLocalhost ? requestOrigin : upstreamOrigin);
+  headers.set("referer", `${isLocalhost ? requestOrigin : upstreamOrigin}/`);
 
   const cookieHeader = req.headers.get("cookie") ?? "";
   const onchainToken = extractOnchainToken(cookieHeader);
