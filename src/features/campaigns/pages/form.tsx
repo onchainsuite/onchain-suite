@@ -253,12 +253,31 @@ function CampaignPreviewStep({
         <div className="mt-4">
           {tab === "html" ? (
             <div className="h-[65vh] overflow-hidden rounded-xl border border-border">
-              <iframe
-                title="Email HTML preview"
-                srcDoc={previewHtml}
-                className="h-full w-full bg-white"
-                style={{ border: "none" }}
-              />
+              {previewHtml.trim().length > 0 ? (
+                <iframe
+                  title="Email HTML preview"
+                  srcDoc={previewHtml}
+                  className="h-full w-full bg-white"
+                  style={{ border: "none" }}
+                />
+              ) : previewMutation.isPending ? (
+                <div className="flex h-full items-center justify-center gap-2 bg-card text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating preview…
+                </div>
+              ) : (
+                <div className="flex h-full items-center justify-center bg-card p-6 text-center">
+                  <div className="max-w-md space-y-2">
+                    <div className="text-sm font-medium text-foreground">
+                      No preview yet
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Select a template (or save content in the editor), then
+                      click Generate preview.
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <pre className="h-[65vh] overflow-auto rounded-xl border border-border bg-muted p-4 text-sm text-foreground whitespace-pre-wrap">

@@ -19,10 +19,6 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    environmentMatchGlobs: [
-      ['src/app/api/**/route.test.ts', 'node'],
-      ['src/test/**/*.e2e.test.ts', 'node'],
-    ],
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     pool: 'threads',

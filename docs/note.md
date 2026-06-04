@@ -6,12 +6,6 @@
 - Make the dashboard fully functional, from the AI search voice/text input to full answer with
   hyperlinks to questions about the app.
 
-- The 'Templates' section should show the templates that have been created by the user. It should
-  also show with the filters of 'Edited Most Recently', 'Used Most Recently', 'Oldest First' and
-  'A-Z'.
-- We should have a public 'Email Library' recommended by the app and a private 'Email Saved' section
-  for custom templates by the user.
-- We should add a last section which is to preview the campaign before it is sent.
 
 - The 'Schedule your campaign', 'Templates' and all Campamign flow sections should be wired to the
   backend so we can either send emails immediately or schedule it, the timezone should also be the
@@ -19,8 +13,6 @@
   endpoints are needed and the usage.
 - The 'Schedule your campaign' section should have a preview of the campaign before it is sent.
 
-- Map these endpoints exactly to the current frontend steps (“Schedule”, “Templates”, “Launch”) and
-  point out which screens need which new calls for Drip + Smart.
 - For Smart Sending, this campaign will not be sent to profiles who received a message from you in
   the last 10 hours. Smart Sending (thresholds) can be updated in account settings.
 - For tracking, links in this campaign will include audience tracking information, called UTM

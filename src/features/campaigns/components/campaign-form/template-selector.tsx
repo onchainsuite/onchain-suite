@@ -1,14 +1,17 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Check,
   FileText,
   Grid3x3,
   LayoutList,
+  Loader2,
   MoreVertical,
+  Pencil,
   Plus,
   Search,
+  Trash2,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -23,23 +26,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
 
-import { cn, getSelectedOrganizationId } from "@/lib/utils";
+import { cn, getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import type { CampaignFormData } from "../../validations";
-import { templatesService } from "@/features/templates/templates.service";
+import {
+  templatesService,
+  type TemplateItem,
+} from "@/features/templates/templates.service";
 
 interface TemplateSelectorProps {
   form: UseFormReturn<CampaignFormData>;
-  onCreateEditor?: () => void;
+  onCreateEditor?: (opts?: { templateName?: string }) => void;
   onSelectTemplate?: (templateId: string) => void;
 }
 
 type SortMode = "used" | "recent" | "oldest" | "name";
 type TabMode = "library" | "saved";
 
-type TemplateCard = {
+type TemplateRow = {
+  raw: TemplateItem;
   id: string;
   title: string;
   updatedAtMs: number;
@@ -119,6 +139,16 @@ export function TemplateSelector({
   const [sortMode, setSortMode] = useState<SortMode>("used");
   const [templateSearch, setTemplateSearch] = useState("");
   const [recents, setRecents] = useState<Record<string, number>>({});
+  const [htmlCache, setHtmlCache] = useState<Record<string, string>>({});
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const orgId = getSelectedOrganizationId();
 
   const selectedTemplate = form.watch("selectedTemplate");
@@ -163,17 +193,75 @@ export function TemplateSelector({
     };
   }, []);
 
-  const templates = useMemo<TemplateCard[]>(() => {
+  const extractTemplateName = (raw: unknown): string => {
+    const obj = isJsonObject(raw) ? raw : {};
+    const name = obj.name ?? obj.title ?? "Untitled";
+    return typeof name === "string" && name.trim().length > 0
+      ? name.trim()
+      : "Untitled";
+  };
+
+  const extractUpdatedAtMs = (raw: unknown): number => {
+    const obj = isJsonObject(raw) ? raw : {};
+    const updatedAt = obj.updatedAt ?? obj.createdAt ?? null;
+    if (typeof updatedAt !== "string" || updatedAt.trim().length === 0)
+      return 0;
+    const ms = new Date(updatedAt).getTime();
+    return Number.isFinite(ms) ? ms : 0;
+  };
+
+  const extractPreviewUrl = (raw: unknown): string => {
+    const obj = isJsonObject(raw) ? raw : {};
+    const previewCandidate =
+      obj.previewUrl ?? obj.previewURL ?? obj.thumbnailUrl ?? obj.thumbnailURL;
+    return typeof previewCandidate === "string" ? previewCandidate : "";
+  };
+
+  const formatTemplateDate = (raw: unknown): string => {
+    const obj = isJsonObject(raw) ? raw : {};
+    const updatedAt = obj.updatedAt ?? obj.createdAt ?? null;
+    if (typeof updatedAt !== "string" || updatedAt.trim().length === 0) {
+      return "Saved";
+    }
+    const dt = new Date(updatedAt);
+    if (Number.isNaN(dt.getTime())) return "Saved";
+    return dt.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const extractHtmlFromTemplate = (raw: unknown): string => {
+    const obj = isJsonObject(raw) ? raw : {};
+    const direct = obj.html ?? obj.body ?? null;
+    if (typeof direct === "string" && direct.trim().length > 0) return direct;
+    const content = isJsonObject(obj.content) ? obj.content : null;
+    const html = content?.html ?? null;
+    if (typeof html === "string" && html.trim().length > 0) return html;
+    const nested = isJsonObject(content?.content) ? content?.content : null;
+    const nestedHtml = nested?.html ?? null;
+    if (typeof nestedHtml === "string" && nestedHtml.trim().length > 0) {
+      return nestedHtml;
+    }
+    return "";
+  };
+
+  const templates = useMemo<TemplateRow[]>(() => {
     if (!templatesQuery.isSuccess) return [];
     if (!Array.isArray(templatesQuery.data)) return [];
 
-    const mapped = templatesQuery.data.map((t) => ({
-      id: t.id,
-      title: t.name,
-      updatedAtMs: t.updatedAt ? new Date(t.updatedAt).getTime() : 0,
-      date: t.updatedAt ? new Date(t.updatedAt).toLocaleString() : "Saved",
-      preview: t.previewUrl ?? "",
-    }));
+    const mapped: TemplateRow[] = templatesQuery.data
+      .filter((t): t is TemplateItem => Boolean(t && typeof t.id === "string"))
+      .map((t) => ({
+        raw: t,
+        id: t.id,
+        title: extractTemplateName(t),
+        updatedAtMs: extractUpdatedAtMs(t),
+        date: formatTemplateDate(t),
+        preview: extractPreviewUrl(t),
+      }))
+      .filter((t) => t.id.trim().length > 0);
 
     const byId = new Map(mapped.map((t) => [t.id, t]));
 
@@ -181,7 +269,7 @@ export function TemplateSelector({
       const usedSorted = Object.entries(recents)
         .sort((a, b) => b[1] - a[1])
         .map(([id]) => byId.get(id))
-        .filter((t): t is TemplateCard => Boolean(t));
+        .filter((t): t is TemplateRow => Boolean(t));
       const remaining = mapped
         .filter((t) => !recents[t.id])
         .sort((a, b) => b.updatedAtMs - a.updatedAtMs);
@@ -199,13 +287,13 @@ export function TemplateSelector({
     return mapped.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
   }, [recents, sortMode, templatesQuery.data, templatesQuery.isSuccess]);
 
-  const recentTemplates = useMemo<TemplateCard[]>(() => {
+  const recentTemplates = useMemo<TemplateRow[]>(() => {
     if (templates.length === 0) return [];
     const byId = new Map(templates.map((t) => [t.id, t]));
     return Object.entries(recents)
       .sort((a, b) => b[1] - a[1])
       .map(([id]) => byId.get(id))
-      .filter((t): t is TemplateCard => Boolean(t))
+      .filter((t): t is TemplateRow => Boolean(t))
       .slice(0, 6);
   }, [recents, templates]);
 
@@ -215,30 +303,86 @@ export function TemplateSelector({
     setRecents(next);
   };
 
+  const renameMutation = useMutation({
+    mutationFn: async (payload: { id: string; name: string }) => {
+      return templatesService.update(
+        payload.id,
+        { name: payload.name },
+        orgId ?? undefined
+      );
+    },
+    onSuccess: () => {
+      window.dispatchEvent(new Event("onchain:templates-updated"));
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await templatesService.remove(id, orgId ?? undefined);
+      return id;
+    },
+    onSuccess: () => {
+      window.dispatchEvent(new Event("onchain:templates-updated"));
+    },
+  });
+
+  const openPreview = async (template: { id: string; title: string }) => {
+    setPreviewTitle(template.title);
+    setPreviewHtml("");
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    try {
+      const full = await templatesService.get(template.id, orgId ?? undefined);
+      const html = extractHtmlFromTemplate(full);
+      setPreviewHtml(html);
+      setHtmlCache((prev) =>
+        html.length > 0 ? { ...prev, [template.id]: html } : prev
+      );
+    } catch {
+      setPreviewHtml("");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const ensureHtmlCached = async (template: { id: string; raw: unknown }) => {
+    if (htmlCache[template.id]) return;
+    const fromRaw = extractHtmlFromTemplate(template.raw);
+    if (fromRaw.trim().length > 0) {
+      setHtmlCache((prev) => ({ ...prev, [template.id]: fromRaw }));
+      return;
+    }
+    try {
+      const full = await templatesService.get(template.id, orgId ?? undefined);
+      const html = extractHtmlFromTemplate(full);
+      if (html.trim().length > 0) {
+        setHtmlCache((prev) => ({ ...prev, [template.id]: html }));
+      }
+    } catch {
+      String("");
+    }
+  };
+
   return (
-    <div className="space-y-6 p-4 sm:p-6 md:p-8 lg:p-10">
+    <div className="space-y-6 p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Templates
-          </h2>
-          <div className="text-sm text-muted-foreground">
-            {tab === "library"
-              ? "Browse recommended templates from the public Email Library."
-              : "Manage templates you’ve created and saved."}
-          </div>
+          <h2 className="text-xl font-semibold text-foreground">Templates</h2>
         </div>
         <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
           <Button
             type="button"
-            onClick={onCreateEditor}
+            onClick={() => {
+              const suggested = String(
+                form.getValues("emailSubject") ?? ""
+              ).trim();
+              setCreateName(suggested);
+              setCreateOpen(true);
+            }}
             className="w-full rounded-xl bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary/90 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Create template
-          </Button>
-          <Button variant="ghost" size="icon" className="shrink-0 rounded-xl">
-            <MoreVertical className="h-4 w-4" />
+            Create
           </Button>
         </div>
       </div>
@@ -374,33 +518,78 @@ export function TemplateSelector({
                       form.setValue("selectedTemplate", temp.id);
                       onSelectTemplate?.(temp.id);
                     }}
+                    onMouseEnter={() => {
+                      if (!temp.preview) ensureHtmlCached(temp);
+                    }}
                     className={cn(
-                      "group relative w-[220px] shrink-0 overflow-hidden rounded-2xl border-2 bg-card text-left transition-all duration-300 hover:shadow-lg",
+                      "group relative w-[220px] shrink-0 overflow-hidden rounded-2xl border bg-card text-left transition-all duration-300 hover:shadow-lg",
                       selectedTemplate === temp.id
                         ? "border-primary shadow-lg ring-2 ring-primary/20"
                         : "border-border hover:border-muted-foreground/30"
                     )}
                   >
-                    <div className="aspect-3/2 bg-muted relative overflow-hidden">
-                      <Image
-                        src={temp.preview || "/placeholder.svg"}
-                        alt={temp.title}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
+                    <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+                      {temp.preview ? (
+                        <Image
+                          src={temp.preview || "/placeholder.svg"}
+                          alt={temp.title}
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : htmlCache[temp.id] ? (
+                        <div className="absolute inset-0 bg-white">
+                          <iframe
+                            title={`Template preview ${temp.title}`}
+                            sandbox=""
+                            srcDoc={htmlCache[temp.id]}
+                            className="h-[820px] w-[600px] origin-top-left"
+                            style={{
+                              transform: "scale(0.32)",
+                              border: "none",
+                              pointerEvents: "none",
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+                          Preview
+                        </div>
+                      )}
                       {selectedTemplate === temp.id ? (
                         <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
                           <Check className="h-4 w-4 text-primary-foreground" />
                         </div>
                       ) : null}
                     </div>
-                    <div className="p-3">
-                      <div className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-300">
-                        {temp.title}
+                    <div className="flex items-center gap-2 border-t border-border px-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-foreground">
+                          {temp.title}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {temp.date}
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPreview({ id: temp.id, title: temp.title });
+                            }}
+                          >
+                            Preview
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </button>
                 ))}
@@ -408,21 +597,11 @@ export function TemplateSelector({
             </div>
           ) : null}
 
-          {tab === "library" ? (
-            <div className="text-sm font-medium text-foreground">
-              Public Email Library
-            </div>
-          ) : (
-            <div className="text-sm font-medium text-foreground">
-              Email Saved
-            </div>
-          )}
-
           <div
             className={cn(
               "gap-4 transition-all duration-300",
               viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
                 : "flex flex-col"
             )}
           >
@@ -433,6 +612,9 @@ export function TemplateSelector({
                   markTemplateUsed(temp.id);
                   form.setValue("selectedTemplate", temp.id);
                   onSelectTemplate?.(temp.id);
+                }}
+                onMouseEnter={() => {
+                  if (!temp.preview) ensureHtmlCached(temp);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -445,36 +627,231 @@ export function TemplateSelector({
                 role="button"
                 tabIndex={0}
                 className={cn(
-                  "group cursor-pointer rounded-2xl border-2 bg-card overflow-hidden transition-all duration-300 hover:shadow-lg",
+                  "group cursor-pointer overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:shadow-lg",
                   selectedTemplate === temp.id
                     ? "border-primary shadow-lg ring-2 ring-primary/20"
                     : "border-border hover:border-muted-foreground/30"
                 )}
               >
-                <div className="aspect-3/2 bg-muted relative overflow-hidden">
-                  <Image
-                    src={temp.preview || "/placeholder.svg"}
-                    alt={temp.title}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
+                <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+                  {temp.preview ? (
+                    <Image
+                      src={temp.preview || "/placeholder.svg"}
+                      alt={temp.title}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : htmlCache[temp.id] ? (
+                    <div className="absolute inset-0 bg-white">
+                      <iframe
+                        title={`Template preview ${temp.title}`}
+                        sandbox=""
+                        srcDoc={htmlCache[temp.id]}
+                        className="h-[820px] w-[600px] origin-top-left"
+                        style={{
+                          transform: "scale(0.32)",
+                          border: "none",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+                      Preview
+                    </div>
+                  )}
                   {selectedTemplate === temp.id ? (
                     <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
                       <Check className="h-4 w-4 text-primary-foreground" />
                     </div>
                   ) : null}
                 </div>
-                <div className="p-4 space-y-1">
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-300">
-                    {temp.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{temp.date}</p>
+                <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-semibold text-foreground">
+                      {temp.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">{temp.date}</p>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openPreview({ id: temp.id, title: temp.title });
+                        }}
+                      >
+                        Preview
+                      </DropdownMenuItem>
+                      {tab === "saved" ? (
+                        <>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRenameId(temp.id);
+                              setRenameValue(temp.title);
+                              setRenameOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteMutation.mutate(temp.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      ) : null}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
           </div>
         </>
       )}
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{previewTitle || "Template preview"}</DialogTitle>
+          </DialogHeader>
+          <div className="h-[70vh] overflow-hidden rounded-xl border border-border bg-white">
+            {previewLoading ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading preview…
+              </div>
+            ) : previewHtml.trim().length > 0 ? (
+              <iframe
+                title="Template HTML preview"
+                sandbox=""
+                srcDoc={previewHtml}
+                className="h-full w-full"
+                style={{ border: "none" }}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No preview available.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Name your template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-foreground">
+              Template name
+            </div>
+            <Input
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder="e.g. Welcome series – Email 1"
+              className="h-10 rounded-xl bg-background"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setCreateOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={!onCreateEditor || createName.trim().length === 0}
+              onClick={() => {
+                const name = createName.trim();
+                setCreateOpen(false);
+                onCreateEditor?.({ templateName: name });
+              }}
+            >
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-foreground">
+              Template name
+            </div>
+            <Input
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              className="h-10 rounded-xl bg-background"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setRenameOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={
+                !renameId ||
+                renameValue.trim().length === 0 ||
+                renameMutation.isPending
+              }
+              onClick={() => {
+                if (!renameId) return;
+                const nextName = renameValue.trim();
+                renameMutation.mutate(
+                  { id: renameId, name: nextName },
+                  {
+                    onSuccess: () => {
+                      setRenameOpen(false);
+                      setRenameId(null);
+                    },
+                  }
+                );
+              }}
+            >
+              {renameMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Save"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

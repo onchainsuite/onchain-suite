@@ -130,6 +130,7 @@ export default function CampaignEditorPage() {
 
   const campaignId = (searchParams?.get("campaign") ?? "").trim();
   const returnTo = (searchParams?.get("returnTo") ?? "").trim();
+  const templateNameParam = (searchParams?.get("templateName") ?? "").trim();
   const initialDocument = useMemo(() => {
     const b64 = (searchParams?.get("initialJsonB64") ??
       searchParams?.get("initB64") ??
@@ -613,9 +614,14 @@ export default function CampaignEditorPage() {
       }
 
       let name = "";
+      if (templateNameParam.length > 0) {
+        name = templateNameParam;
+      }
       try {
         const content = await campaignsService.getContent(campaignId);
-        if (typeof content.subject === "string") name = content.subject.trim();
+        if (!name && typeof content.subject === "string") {
+          name = content.subject.trim();
+        }
       } catch (_e) {
         String(_e);
       }
@@ -904,9 +910,8 @@ export default function CampaignEditorPage() {
               if (resolvedHtml.length > 0 || resolvedText.length > 0) break;
 
               try {
-                const editor = await campaignsService.getEditorContent(
-                  campaignId
-                );
+                const editor =
+                  await campaignsService.getEditorContent(campaignId);
                 const nextHtml =
                   typeof editor.html === "string" ? editor.html.trim() : "";
                 const nextText =

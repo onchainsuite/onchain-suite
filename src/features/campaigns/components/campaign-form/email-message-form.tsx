@@ -25,7 +25,7 @@ export function EmailMessageForm({ form }: EmailMessageFormProps) {
   const useReplyTo = form.watch("useReplyTo");
 
   return (
-    <div className="p-6 md:p-8 bg-muted/20 space-y-6 lg:max-h-[800px] lg:overflow-y-auto">
+    <div className="space-y-6 p-6 md:p-8">
       <div className="flex items-center gap-2 pb-4 border-b border-border">
         <Mail className="h-5 w-5 text-muted-foreground" />
         <h3 className="text-xl font-semibold text-foreground">Email message</h3>

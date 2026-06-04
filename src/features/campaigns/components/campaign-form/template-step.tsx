@@ -98,35 +98,8 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
 
   return (
     <div className="animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 gap-0 divide-y divide-border lg:grid-cols-[1fr_420px] lg:divide-y-0 lg:divide-x">
-        <TemplateSelector
-          form={form}
-          onCreateEditor={() => {
-            const params = new URLSearchParams();
-            const normalizedCampaignId =
-              campaignId && campaignId.trim().length > 0
-                ? campaignId
-                : undefined;
-            if (campaignId && campaignId.trim().length > 0) {
-              params.set("campaign", campaignId);
-            }
-            const returnTo = normalizedCampaignId
-              ? `/campaigns/new?campaign=${encodeURIComponent(normalizedCampaignId)}&step=3`
-              : "/campaigns/new?step=3";
-            params.set("returnTo", returnTo);
-
-            const subject = form.getValues("emailSubject");
-            const senderName = form.getValues("senderName");
-            const senderEmail = form.getValues("senderEmail");
-
-            if (subject) params.set("subject", subject);
-            if (senderName) params.set("senderName", senderName);
-            if (senderEmail) params.set("senderEmail", senderEmail);
-
-            router.push(`/campaigns/editor?${params.toString()}`);
-          }}
-        />
-        <div className="flex flex-col">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
           <EmailMessageForm form={form} />
           <div className="border-t border-border bg-card p-4">
             <div className="flex flex-col gap-3">
@@ -182,6 +155,51 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <TemplateSelector
+            form={form}
+            onSelectTemplate={(templateId) => {
+              if (!normalizedCampaignId) return;
+              const clean = templateId.trim();
+              if (!clean) return;
+              campaignsService
+                .setTemplate(normalizedCampaignId, { templateId: clean })
+                .catch((e: unknown) => {
+                  const message =
+                    e instanceof Error
+                      ? e.message
+                      : "Failed to apply template";
+                  toast.error(message);
+                });
+            }}
+            onCreateEditor={(opts) => {
+              const params = new URLSearchParams();
+              const normalizedCampaignId =
+                campaignId && campaignId.trim().length > 0
+                  ? campaignId
+                  : undefined;
+              if (campaignId && campaignId.trim().length > 0) {
+                params.set("campaign", campaignId);
+              }
+              const returnTo = normalizedCampaignId
+                ? `/campaigns/new?campaign=${encodeURIComponent(normalizedCampaignId)}&step=3`
+                : "/campaigns/new?step=3";
+              params.set("returnTo", returnTo);
+
+              const subject = form.getValues("emailSubject");
+              const senderName = form.getValues("senderName");
+              const senderEmail = form.getValues("senderEmail");
+
+              if (subject) params.set("subject", subject);
+              if (senderName) params.set("senderName", senderName);
+              if (senderEmail) params.set("senderEmail", senderEmail);
+              if (opts?.templateName) params.set("templateName", opts.templateName);
+
+              router.push(`/campaigns/editor?${params.toString()}`);
+            }}
+          />
         </div>
       </div>
 

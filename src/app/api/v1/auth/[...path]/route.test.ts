@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment node
+ */
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -32,15 +35,18 @@ describe("Auth Proxy API", () => {
       })
     );
 
-    const req = new NextRequest("https://www.onchainsuite.com/api/v1/auth/sign-in/email", {
-      method: "POST",
-      body: JSON.stringify({ email: "a@b.com", password: "x" }),
-      headers: {
-        "content-type": "application/json",
-        origin: "https://www.onchainsuite.com",
-        referer: "https://www.onchainsuite.com/auth/signin",
-      },
-    });
+    const req = new NextRequest(
+      "https://www.onchainsuite.com/api/v1/auth/sign-in/email",
+      {
+        method: "POST",
+        body: JSON.stringify({ email: "a@b.com", password: "x" }),
+        headers: {
+          "content-type": "application/json",
+          origin: "https://www.onchainsuite.com",
+          referer: "https://www.onchainsuite.com/auth/signin",
+        },
+      }
+    );
 
     const res = await POST(req, {
       params: Promise.resolve({ path: ["sign-in", "email"] }),
@@ -93,11 +99,14 @@ describe("Auth Proxy API", () => {
       })
     );
 
-    const req = new NextRequest("https://www.onchainsuite.com/api/v1/auth/sign-in/social", {
-      method: "POST",
-      body: JSON.stringify({ provider: "google", callbackURL: "/dashboard" }),
-      headers: { "content-type": "application/json" },
-    });
+    const req = new NextRequest(
+      "https://www.onchainsuite.com/api/v1/auth/sign-in/social",
+      {
+        method: "POST",
+        body: JSON.stringify({ provider: "google", callbackURL: "/dashboard" }),
+        headers: { "content-type": "application/json" },
+      }
+    );
 
     const res = await POST(req, {
       params: Promise.resolve({ path: ["sign-in", "social"] }),

@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment node
+ */
 import { describe, expect, it } from "vitest";
 
 const originRaw = process.env.E2E_ORIGIN ?? "";
