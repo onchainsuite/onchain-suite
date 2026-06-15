@@ -102,6 +102,95 @@ export function isJsonObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+export interface ExtractedEmailContent {
+  html?: string;
+  textVersion?: string;
+  json?: unknown;
+  assets?: unknown;
+  previewUrl?: string;
+}
+
+const EMAIL_CONTENT_CONTAINER_KEYS = [
+  "payload",
+  "data",
+  "content",
+  "email",
+  "message",
+  "document",
+  "result",
+];
+
+const EMAIL_CONTENT_HTML_KEYS = ["html", "body", "markup"];
+const EMAIL_CONTENT_TEXT_KEYS = [
+  "textVersion",
+  "text",
+  "plainText",
+  "plain_text",
+];
+const EMAIL_CONTENT_JSON_KEYS = ["json", "design", "template", "document"];
+const EMAIL_CONTENT_ASSET_KEYS = ["assets"];
+const EMAIL_CONTENT_PREVIEW_KEYS = [
+  "previewUrl",
+  "previewURL",
+  "thumbnailUrl",
+  "thumbnailURL",
+];
+
+const readNonEmptyString = (
+  obj: Record<string, unknown>,
+  keys: string[]
+): string | undefined => {
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value !== "string") continue;
+    if (value.trim().length === 0) continue;
+    return value;
+  }
+  return undefined;
+};
+
+const readStructuredValue = (
+  obj: Record<string, unknown>,
+  keys: string[]
+): unknown => {
+  for (const key of keys) {
+    const value = obj[key];
+    if (value === undefined || value === null) continue;
+    if (isJsonObject(value) || Array.isArray(value)) return value;
+  }
+  return undefined;
+};
+
+export function extractEmailContent(raw: unknown): ExtractedEmailContent {
+  const queue: unknown[] = [raw];
+  const visited = new WeakSet<object>();
+  let html: string | undefined;
+  let textVersion: string | undefined;
+  let json: unknown;
+  let assets: unknown;
+  let previewUrl: string | undefined;
+
+  for (let depth = 0; depth < 24 && queue.length > 0; depth += 1) {
+    const current = queue.shift();
+    if (!isJsonObject(current)) continue;
+    if (visited.has(current)) continue;
+    visited.add(current);
+
+    html ??= readNonEmptyString(current, EMAIL_CONTENT_HTML_KEYS);
+    textVersion ??= readNonEmptyString(current, EMAIL_CONTENT_TEXT_KEYS);
+    previewUrl ??= readNonEmptyString(current, EMAIL_CONTENT_PREVIEW_KEYS);
+    json ??= readStructuredValue(current, EMAIL_CONTENT_JSON_KEYS);
+    assets ??= readStructuredValue(current, EMAIL_CONTENT_ASSET_KEYS);
+
+    for (const key of EMAIL_CONTENT_CONTAINER_KEYS) {
+      const nested = current[key];
+      if (isJsonObject(nested)) queue.push(nested);
+    }
+  }
+
+  return { html, textVersion, json, assets, previewUrl };
+}
+
 export const ORG_SELECTION_COOKIE = "onchain.selectedOrgId";
 
 export function getCookieValue(

@@ -1,7 +1,11 @@
 import type { AxiosError, AxiosRequestConfig } from "axios";
 
 import { apiClient } from "@/lib/api-client";
-import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
+import {
+  extractEmailContent,
+  getSelectedOrganizationId,
+  isJsonObject,
+} from "@/lib/utils";
 
 export interface TemplateItem {
   id: string;
@@ -82,8 +86,7 @@ const extractList = (payload: unknown): unknown[] => {
 
 const normalizeTemplate = (raw: unknown): TemplateItem => {
   const obj = isJsonObject(raw) ? raw : {};
-  const previewCandidate =
-    obj.previewUrl ?? obj.previewURL ?? obj.thumbnailUrl ?? obj.thumbnailURL;
+  const extracted = extractEmailContent(obj);
 
   return {
     id: String(obj.id ?? ""),
@@ -91,7 +94,7 @@ const normalizeTemplate = (raw: unknown): TemplateItem => {
     folder: obj.folder ? String(obj.folder) : undefined,
     updatedAt: obj.updatedAt ? String(obj.updatedAt) : undefined,
     createdAt: obj.createdAt ? String(obj.createdAt) : undefined,
-    previewUrl: previewCandidate ? String(previewCandidate) : undefined,
+    previewUrl: extracted.previewUrl,
     ...obj,
   };
 };

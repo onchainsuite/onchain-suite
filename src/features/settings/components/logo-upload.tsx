@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 
 import { authClient } from "@/lib/auth-client";
-import { isJsonObject } from "@/lib/utils";
+import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -23,12 +23,14 @@ interface LogoUploadProps {
   showLogoUploadModal: boolean;
   setShowLogoUploadModal: (show: boolean) => void;
   logoUploadType: "primary" | "dark" | "favicon";
+  onUploaded?: (payload?: unknown) => void | Promise<void>;
 }
 
 const LogoUpload = ({
   showLogoUploadModal,
   setShowLogoUploadModal,
   logoUploadType,
+  onUploaded,
 }: LogoUploadProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -39,6 +41,48 @@ const LogoUpload = ({
   const { mutate } = useSWRConfig();
 
   const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
+  const mergeBrandingPreview = (payload: unknown) => {
+    const root = isJsonObject(payload) ? payload : undefined;
+    const preview = isJsonObject(root?.logoPreview)
+      ? root.logoPreview
+      : undefined;
+    const variants = isJsonObject(root?.logoVariants)
+      ? root.logoVariants
+      : undefined;
+    const url =
+      (typeof root?.url === "string" && root.url) ||
+      (typeof preview?.primaryUrl === "string" && preview.primaryUrl) ||
+      (typeof preview?.darkUrl === "string" && preview.darkUrl) ||
+      (typeof preview?.faviconUrl === "string" && preview.faviconUrl) ||
+      undefined;
+    const next = {
+      ...(preview ? { logoPreview: preview } : {}),
+      ...(variants ? { logoVariants: variants } : {}),
+    };
+    if (url) {
+      if (logoUploadType === "primary") {
+        Object.assign(next, { primaryLogoUrl: url });
+      } else if (logoUploadType === "dark") {
+        Object.assign(next, { darkLogoUrl: url });
+      } else {
+        Object.assign(next, { faviconUrl: url });
+      }
+    }
+    if (Object.keys(next).length === 0) return;
+
+    void mutate(
+      "/api/v1/organization/branding",
+      (current: unknown) => {
+        const currentRoot = isJsonObject(current) ? current : {};
+        return {
+          ...currentRoot,
+          ...next,
+        };
+      },
+      false
+    );
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const [selectedFile] = e.target.files ?? [];
@@ -74,7 +118,8 @@ const LogoUpload = ({
       // Do NOT set it manually, otherwise the boundary will be missing
       const headers: Record<string, string> = {};
 
-      const activeOrgId = session?.session?.activeOrganizationId;
+      const activeOrgId =
+        getSelectedOrganizationId() ?? session?.session?.activeOrganizationId;
       if (!activeOrgId) {
         toast.error(
           "No active organization found. Please select an organization."
@@ -86,20 +131,26 @@ const LogoUpload = ({
       headers["x-org-id"] = activeOrgId;
 
       // Use the custom proxy route to avoid rewrite issues
-      await axios.post(`/api/upload/logo/${logoUploadType}`, formData, {
-        headers,
-        onUploadProgress: (progressEvent) => {
-          const total = progressEvent.total ?? file.size;
-          const current = progressEvent.loaded;
-          const percentCompleted = Math.round((current * 100) / total);
-          setUploadProgress(percentCompleted);
-        },
-      });
+      const response = await axios.post(
+        `/api/upload/logo/${logoUploadType}`,
+        formData,
+        {
+          headers,
+          onUploadProgress: (progressEvent) => {
+            const total = progressEvent.total ?? file.size;
+            const current = progressEvent.loaded;
+            const percentCompleted = Math.round((current * 100) / total);
+            setUploadProgress(percentCompleted);
+          },
+        }
+      );
 
       toast.success("Logo uploaded successfully");
 
       // Update the logo across the app without reload
-      mutate("/api/v1/organization/branding");
+      mergeBrandingPreview(response.data);
+      void mutate("/api/v1/organization/branding");
+      await onUploaded?.(response.data);
 
       // Close modal and reset state
       setTimeout(() => {

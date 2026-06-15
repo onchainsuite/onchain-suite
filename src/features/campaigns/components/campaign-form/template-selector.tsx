@@ -41,7 +41,12 @@ import {
 } from "@/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/ui/tabs";
 
-import { cn, getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
+import {
+  cn,
+  extractEmailContent,
+  getSelectedOrganizationId,
+  isJsonObject,
+} from "@/lib/utils";
 
 import type { CampaignFormData } from "../../validations";
 import {
@@ -211,10 +216,7 @@ export function TemplateSelector({
   };
 
   const extractPreviewUrl = (raw: unknown): string => {
-    const obj = isJsonObject(raw) ? raw : {};
-    const previewCandidate =
-      obj.previewUrl ?? obj.previewURL ?? obj.thumbnailUrl ?? obj.thumbnailURL;
-    return typeof previewCandidate === "string" ? previewCandidate : "";
+    return extractEmailContent(raw).previewUrl ?? "";
   };
 
   const formatTemplateDate = (raw: unknown): string => {
@@ -233,18 +235,7 @@ export function TemplateSelector({
   };
 
   const extractHtmlFromTemplate = (raw: unknown): string => {
-    const obj = isJsonObject(raw) ? raw : {};
-    const direct = obj.html ?? obj.body ?? null;
-    if (typeof direct === "string" && direct.trim().length > 0) return direct;
-    const content = isJsonObject(obj.content) ? obj.content : null;
-    const html = content?.html ?? null;
-    if (typeof html === "string" && html.trim().length > 0) return html;
-    const nested = isJsonObject(content?.content) ? content?.content : null;
-    const nestedHtml = nested?.html ?? null;
-    if (typeof nestedHtml === "string" && nestedHtml.trim().length > 0) {
-      return nestedHtml;
-    }
-    return "";
+    return extractEmailContent(raw).html ?? "";
   };
 
   const templates = useMemo<TemplateRow[]>(() => {
@@ -510,9 +501,10 @@ export function TemplateSelector({
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2">
                 {recentTemplates.map((temp) => (
-                  <button
+                  <div
                     key={temp.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       markTemplateUsed(temp.id);
                       form.setValue("selectedTemplate", temp.id);
@@ -520,6 +512,14 @@ export function TemplateSelector({
                     }}
                     onMouseEnter={() => {
                       if (!temp.preview) ensureHtmlCached(temp);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        markTemplateUsed(temp.id);
+                        form.setValue("selectedTemplate", temp.id);
+                        onSelectTemplate?.(temp.id);
+                      }
                     }}
                     className={cn(
                       "group relative w-[220px] shrink-0 overflow-hidden rounded-2xl border bg-card text-left transition-all duration-300 hover:shadow-lg",
@@ -535,19 +535,27 @@ export function TemplateSelector({
                           alt={temp.title}
                           fill
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                          }}
                         />
                       ) : htmlCache[temp.id] ? (
-                        <div className="absolute inset-0 bg-white">
+                        <div className="absolute inset-0 bg-white overflow-hidden">
                           <iframe
                             title={`Template preview ${temp.title}`}
-                            sandbox=""
+                            sandbox="allow-same-origin"
                             srcDoc={htmlCache[temp.id]}
-                            className="h-[820px] w-[600px] origin-top-left"
+                            className="absolute top-0 left-0 origin-top-left"
                             style={{
+                              width: "600px",
+                              height: "820px",
                               transform: "scale(0.32)",
+                              transformOrigin: "top left",
                               border: "none",
                               pointerEvents: "none",
                             }}
+                            loading="lazy"
                           />
                         </div>
                       ) : (
@@ -591,7 +599,7 @@ export function TemplateSelector({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -640,19 +648,27 @@ export function TemplateSelector({
                       alt={temp.title}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                      }}
                     />
                   ) : htmlCache[temp.id] ? (
-                    <div className="absolute inset-0 bg-white">
+                    <div className="absolute inset-0 bg-white overflow-hidden">
                       <iframe
                         title={`Template preview ${temp.title}`}
-                        sandbox=""
+                        sandbox="allow-same-origin"
                         srcDoc={htmlCache[temp.id]}
-                        className="h-[820px] w-[600px] origin-top-left"
+                        className="absolute top-0 left-0 origin-top-left"
                         style={{
+                          width: "600px",
+                          height: "820px",
                           transform: "scale(0.32)",
+                          transformOrigin: "top left",
                           border: "none",
                           pointerEvents: "none",
                         }}
+                        loading="lazy"
                       />
                     </div>
                   ) : (
@@ -742,7 +758,7 @@ export function TemplateSelector({
             ) : previewHtml.trim().length > 0 ? (
               <iframe
                 title="Template HTML preview"
-                sandbox=""
+                sandbox="allow-same-origin allow-scripts"
                 srcDoc={previewHtml}
                 className="h-full w-full"
                 style={{ border: "none" }}

@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { extractEmailContent, isJsonObject } from "@/lib/utils";
+
 export const dynamic = "force-dynamic";
 
 const DEFAULT_EDITOR_ORIGIN_PROD = "https://editor.onchainsuite.com";
@@ -66,6 +68,30 @@ const getAllowedCorsOrigins = () => {
   }
 
   return allowed;
+};
+
+const DEBUG_SERVER_URL =
+  process.env.DEBUG_SERVER_URL ?? "http://127.0.0.1:7777/event";
+const DEBUG_SESSION_ID = process.env.DEBUG_SESSION_ID ?? "email-empty-preview";
+const reportEmailDebug = (
+  hypothesisId: "A" | "B" | "C" | "D" | "E",
+  location: string,
+  msg: string,
+  data: Record<string, unknown>
+) => {
+  fetch(DEBUG_SERVER_URL, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      sessionId: DEBUG_SESSION_ID,
+      runId: "pre-fix",
+      hypothesisId,
+      location,
+      msg,
+      data,
+      ts: Date.now(),
+    }),
+  }).catch(() => undefined);
 };
 
 const getCorsHeaders = (req: NextRequest) => {
@@ -167,31 +193,41 @@ const buildUpstreamHeaders = (req: NextRequest) => {
 };
 
 const toSavedPayload = (raw: unknown) => {
-  const obj =
-    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const payloadCandidate =
-    obj.payload && typeof obj.payload === "object"
-      ? (obj.payload as Record<string, unknown>)
-      : obj;
-
-  const html =
-    typeof payloadCandidate.html === "string"
-      ? payloadCandidate.html
-      : undefined;
-  const textVersion =
-    typeof payloadCandidate.textVersion === "string"
-      ? payloadCandidate.textVersion
-      : typeof payloadCandidate.text === "string"
-        ? payloadCandidate.text
-        : undefined;
-  const json =
-    payloadCandidate.json ??
-    payloadCandidate.design ??
-    payloadCandidate.template ??
-    undefined;
-  const assets = payloadCandidate.assets ?? undefined;
-
-  return { html, textVersion, json, assets };
+  const extracted = extractEmailContent(raw);
+  const obj = isJsonObject(raw) ? raw : {};
+  return {
+    subject:
+      typeof obj.subject === "string" && obj.subject.trim().length > 0
+        ? obj.subject
+        : undefined,
+    previewText:
+      typeof obj.previewText === "string" && obj.previewText.trim().length > 0
+        ? obj.previewText
+        : undefined,
+    senderName:
+      typeof obj.senderName === "string" && obj.senderName.trim().length > 0
+        ? obj.senderName
+        : undefined,
+    senderEmail:
+      typeof obj.senderEmail === "string" && obj.senderEmail.trim().length > 0
+        ? obj.senderEmail
+        : undefined,
+    replyToEmail:
+      typeof obj.replyToEmail === "string" && obj.replyToEmail.trim().length > 0
+        ? obj.replyToEmail
+        : undefined,
+    html: extracted.html,
+    textVersion: extracted.textVersion,
+    json: extracted.json,
+    assets: extracted.assets,
+    to:
+      typeof obj.to === "string" && obj.to.trim().length > 0
+        ? obj.to
+        : undefined,
+    recipient: obj.recipient,
+    contact: obj.contact,
+    audience: obj.audience,
+  };
 };
 
 export async function OPTIONS(req: NextRequest) {
@@ -235,11 +271,56 @@ export async function GET(
     }
     return res;
   }
+  // #region debug-point C:campaign-email-get-request
+  reportEmailDebug(
+    "C",
+    "src/app/api/v1/campaigns/[id]/email/route.ts:260",
+    "[DEBUG] campaign email GET requested",
+    { campaignId: id, path: req.nextUrl.pathname }
+  );
+  // #endregion
   const upstream = await fetch(`${getBackendBaseUrl()}/campaigns/${id}/email`, {
     method: "GET",
     headers: buildUpstreamHeaders(req),
     cache: "no-store",
   });
+  {
+    const text = await upstream
+      .clone()
+      .text()
+      .catch(() => "");
+    let json: unknown = null;
+    try {
+      json = text.length > 0 ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+    const extracted = extractEmailContent(json);
+    // #region debug-point C:campaign-email-get-response
+    reportEmailDebug(
+      "C",
+      "src/app/api/v1/campaigns/[id]/email/route.ts:283",
+      "[DEBUG] campaign email GET response",
+      {
+        campaignId: id,
+        status: upstream.status,
+        textLength: text.length,
+        hasHtml:
+          typeof extracted.html === "string" && extracted.html.length > 0,
+        htmlLength:
+          typeof extracted.html === "string" ? extracted.html.length : 0,
+        hasText:
+          typeof extracted.textVersion === "string" &&
+          extracted.textVersion.length > 0,
+        textLengthValue:
+          typeof extracted.textVersion === "string"
+            ? extracted.textVersion.length
+            : 0,
+        hasJson: extracted.json !== undefined && extracted.json !== null,
+      }
+    );
+    // #endregion
+  }
 
   const headers = new Headers(upstream.headers);
   headers.delete("connection");
@@ -297,6 +378,37 @@ export async function PUT(
   }
 
   const payload = toSavedPayload(bodyJson);
+  // #region debug-point A:campaign-email-put-normalized
+  reportEmailDebug(
+    "A",
+    "src/app/api/v1/campaigns/[id]/email/route.ts:349",
+    "[DEBUG] campaign email PUT normalized payload",
+    {
+      campaignId: id,
+      hasSubject:
+        typeof payload.subject === "string" && payload.subject.length > 0,
+      hasPreviewText:
+        typeof payload.previewText === "string" &&
+        payload.previewText.length > 0,
+      hasSenderName:
+        typeof payload.senderName === "string" && payload.senderName.length > 0,
+      hasSenderEmail:
+        typeof payload.senderEmail === "string" &&
+        payload.senderEmail.length > 0,
+      hasHtml: typeof payload.html === "string" && payload.html.length > 0,
+      htmlLength: typeof payload.html === "string" ? payload.html.length : 0,
+      hasText:
+        typeof payload.textVersion === "string" &&
+        payload.textVersion.length > 0,
+      textLength:
+        typeof payload.textVersion === "string"
+          ? payload.textVersion.length
+          : 0,
+      hasJson: payload.json !== undefined && payload.json !== null,
+      hasAssets: payload.assets !== undefined && payload.assets !== null,
+    }
+  );
+  // #endregion
   const upstream = await fetch(`${getBackendBaseUrl()}/campaigns/${id}/email`, {
     method: "PUT",
     headers: (() => {
@@ -308,6 +420,25 @@ export async function PUT(
     body: JSON.stringify(payload),
     cache: "no-store",
   });
+  {
+    const text = await upstream
+      .clone()
+      .text()
+      .catch(() => "");
+    // #region debug-point A:campaign-email-put-response
+    reportEmailDebug(
+      "A",
+      "src/app/api/v1/campaigns/[id]/email/route.ts:381",
+      "[DEBUG] campaign email PUT response",
+      {
+        campaignId: id,
+        status: upstream.status,
+        textLength: text.length,
+        bodyPreview: text.slice(0, 300),
+      }
+    );
+    // #endregion
+  }
 
   const headers = new Headers(upstream.headers);
   headers.delete("connection");

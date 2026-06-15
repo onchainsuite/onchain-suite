@@ -2,8 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Check, Copy, Eye, EyeOff, Globe, Send, Shield } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Copy, Eye, EyeOff, Shield } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 
 import { authClient } from "@/lib/auth-client";
 import {
@@ -312,6 +319,9 @@ const InAppIntegration = () => {
   const queryClient = useQueryClient();
   const [showPublishable, setShowPublishable] = useState(false);
   const [copiedKey, setCopiedKey] = useState<"pk" | "sk" | null>(null);
+  const [activePanel, setActivePanel] = useState<
+    "keys" | "origins" | "test" | null
+  >(null);
 
   const [originInput, setOriginInput] = useState("");
   const [originEnv, setOriginEnv] = useState<InAppEnvironment>("production");
@@ -527,53 +537,141 @@ const InAppIntegration = () => {
   };
 
   return (
-    <motion.div
-      whileHover={{
-        y: -4,
-        boxShadow: "0 25px 50px -12px hsl(var(--primary) / 0.1)",
-      }}
-      className="group rounded-2xl border border-border/60 bg-card p-6 transition-all duration-300 lg:p-8"
-    >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 lg:h-12 lg:w-12">
-          <Shield className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <motion.div className="space-y-6">
+      <Card className="overflow-hidden rounded-3xl border-border/60 bg-card/70 shadow-sm">
+        <CardHeader className="border-b border-border/50 pb-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h3 className="font-medium text-foreground">In-app push</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Configure SDK keys, allowed origins, and test delivery.
-              </p>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Shield className="h-5 w-5 text-primary" />
+                In-app push
+              </CardTitle>
+              <CardDescription className="mt-1 max-w-2xl">
+                Configure SDK keys, approved origins, and test delivery from one
+                place.
+              </CardDescription>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {status.sessionCount !== null ? (
-                <span>{status.sessionCount} active sessions</span>
-              ) : (
-                <span />
-              )}
-            </div>
+            {orgId ? (
+              <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm">
+                <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  Active sessions
+                </div>
+                <div className="mt-1 text-lg font-semibold text-foreground">
+                  {statusQuery.isLoading
+                    ? "Loading…"
+                    : (status.sessionCount ?? "—")}
+                </div>
+              </div>
+            ) : null}
           </div>
-
+        </CardHeader>
+        <CardContent className="space-y-5 p-6">
           {!orgId ? (
-            <div className="mt-5 rounded-xl border border-border/80 bg-muted/50 p-4 text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-border/80 bg-muted/50 p-4 text-sm text-muted-foreground">
               Select an organization to manage in-app integration.
             </div>
           ) : (
-            <div className="mt-6 space-y-6">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="rounded-2xl border border-border/80 bg-muted/40 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-foreground">
-                      Publishable keys
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                  <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    Publishable keys
+                  </div>
+                  <div className="mt-2 text-sm text-foreground">
+                    {statusQuery.isLoading
+                      ? "Loading…"
+                      : status.publishableKeys.production ||
+                          status.publishableKeys.test
+                        ? "Configured"
+                        : "Not available yet"}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                  <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    Secret keys
+                  </div>
+                  <div className="mt-2 text-sm text-foreground">
+                    {statusQuery.isLoading
+                      ? "Loading…"
+                      : `${status.secretKeys.length} created`}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                  <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                    Allowed origins
+                  </div>
+                  <div className="mt-2 text-sm text-foreground">
+                    {originsQuery.isLoading
+                      ? "Loading…"
+                      : `${origins.length} added`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-border/50 pt-5">
+                <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/60 p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Keys
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      View publishable keys and create server-side secret keys
+                      only when needed.
+                    </p>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {statusQuery.isLoading
+                        ? "Loading key status…"
+                        : `${status.publishableKeys.production || status.publishableKeys.test ? "Publishable keys configured" : "Publishable keys unavailable"} • ${status.secretKeys.length} secret key${status.secretKeys.length === 1 ? "" : "s"}`}
                     </div>
-                    <div className="flex items-center gap-2">
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      className="rounded-xl"
+                      type="button"
+                      onClick={() =>
+                        setActivePanel((current) =>
+                          current === "keys" ? null : "keys"
+                        )
+                      }
+                    >
+                      {activePanel === "keys" ? "Hide keys" : "Manage keys"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="rounded-xl"
+                      onClick={() => {
+                        setCreatedSecretToken("");
+                        setSecretName("");
+                        setSecretEnv("live");
+                        setCreateSecretOpen(true);
+                      }}
+                      type="button"
+                    >
+                      Create secret key
+                    </Button>
+                  </div>
+                </div>
+
+                {activePanel === "keys" ? (
+                  <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/20 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">
+                          Publishable keys
+                        </h4>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Use these in client environments that only need public
+                          access.
+                        </p>
+                      </div>
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => setShowPublishable((v) => !v)}
-                        className="h-9 w-9 border-border/80"
+                        className="h-9 w-9 rounded-xl border-border/80"
                         aria-label="Toggle publishable key visibility"
+                        type="button"
                       >
                         {showPublishable ? (
                           <EyeOff className="h-4 w-4" />
@@ -582,150 +680,393 @@ const InAppIntegration = () => {
                         )}
                       </Button>
                     </div>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs text-muted-foreground">
-                        Production
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() =>
-                          copyToClipboard(
-                            "pk",
-                            status.publishableKeys.production ?? ""
-                          ).catch(() => undefined)
-                        }
-                        className="h-9 w-9 border-border/80 bg-transparent"
-                        aria-label="Copy production publishable key"
-                      >
-                        {copiedKey === "pk" ? (
-                          <Check className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <code className="block w-full rounded-xl border border-border/80 bg-card px-3 py-2 font-mono text-xs text-foreground">
-                      {statusQuery.isLoading
-                        ? "Loading…"
-                        : showPublishable
-                          ? (status.publishableKeys.production ?? "—")
-                          : status.publishableKeys.production
-                            ? maskKey(status.publishableKeys.production)
-                            : "—"}
-                    </code>
 
-                    <div className="flex items-center justify-between gap-3 pt-1">
-                      <div className="text-xs text-muted-foreground">Test</div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() =>
-                          copyToClipboard(
-                            "pk",
-                            status.publishableKeys.test ?? ""
-                          ).catch(() => undefined)
-                        }
-                        className="h-9 w-9 border-border/80 bg-transparent"
-                        aria-label="Copy test publishable key"
-                      >
-                        {copiedKey === "pk" ? (
-                          <Check className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <code className="block w-full rounded-xl border border-border/80 bg-card px-3 py-2 font-mono text-xs text-foreground">
-                      {statusQuery.isLoading
-                        ? "Loading…"
-                        : showPublishable
-                          ? (status.publishableKeys.test ?? "—")
-                          : status.publishableKeys.test
-                            ? maskKey(status.publishableKeys.test)
-                            : "—"}
-                    </code>
-                  </div>
-                  {statusQuery.isError && (
-                    <div className="mt-2 text-xs text-destructive">
-                      Failed to load status
-                    </div>
-                  )}
-                </div>
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <Label className="text-sm font-medium text-foreground">
+                              Production
+                            </Label>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Recommended for live traffic.
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              copyToClipboard(
+                                "pk",
+                                status.publishableKeys.production ?? ""
+                              ).catch(() => undefined)
+                            }
+                            className="h-9 w-9 rounded-xl border-border/80 bg-transparent"
+                            aria-label="Copy production publishable key"
+                            type="button"
+                          >
+                            {copiedKey === "pk" ? (
+                              <Check className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <code className="mt-3 block w-full rounded-xl border border-border/80 bg-card px-3 py-3 font-mono text-xs text-foreground">
+                          {statusQuery.isLoading
+                            ? "Loading…"
+                            : showPublishable
+                              ? (status.publishableKeys.production ?? "—")
+                              : status.publishableKeys.production
+                                ? maskKey(status.publishableKeys.production)
+                                : "—"}
+                        </code>
+                      </div>
 
-                <div className="rounded-2xl border border-border/80 bg-muted/40 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-foreground">
-                      Secret keys
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        className="h-9 border-border/80"
-                        onClick={() => {
-                          setCreatedSecretToken("");
-                          setSecretName("");
-                          setSecretEnv("live");
-                          setCreateSecretOpen(true);
-                        }}
-                        type="button"
-                      >
-                        Create
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    {statusQuery.isLoading ? (
-                      <div className="text-sm text-muted-foreground">
-                        Loading…
+                      <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <Label className="text-sm font-medium text-foreground">
+                              Test
+                            </Label>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Use this while validating non-production flows.
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() =>
+                              copyToClipboard(
+                                "pk",
+                                status.publishableKeys.test ?? ""
+                              ).catch(() => undefined)
+                            }
+                            className="h-9 w-9 rounded-xl border-border/80 bg-transparent"
+                            aria-label="Copy test publishable key"
+                            type="button"
+                          >
+                            {copiedKey === "pk" ? (
+                              <Check className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <code className="mt-3 block w-full rounded-xl border border-border/80 bg-card px-3 py-3 font-mono text-xs text-foreground">
+                          {statusQuery.isLoading
+                            ? "Loading…"
+                            : showPublishable
+                              ? (status.publishableKeys.test ?? "—")
+                              : status.publishableKeys.test
+                                ? maskKey(status.publishableKeys.test)
+                                : "—"}
+                        </code>
                       </div>
-                    ) : status.secretKeys.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">
-                        No secret keys created yet
-                      </div>
-                    ) : (
-                      status.secretKeys.slice(0, 3).map((k) => (
-                        <div
-                          key={k.id}
-                          className="rounded-xl border border-border/80 bg-card px-3 py-2"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-xs font-medium text-foreground">
-                                {k.name ?? "Secret key"}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                {k.environment}
-                                {k.createdAt ? ` • ${k.createdAt}` : ""}
+                    </div>
+
+                    <div className="border-t border-border/50 pt-4">
+                      <h4 className="text-sm font-semibold text-foreground">
+                        Secret keys
+                      </h4>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Create `sk_*` tokens for secure server actions. Tokens
+                        are only shown once when created.
+                      </p>
+
+                      <div className="mt-4 space-y-3">
+                        {statusQuery.isLoading ? (
+                          <div className="text-sm text-muted-foreground">
+                            Loading…
+                          </div>
+                        ) : status.secretKeys.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-border/70 bg-background/60 p-4 text-sm text-muted-foreground">
+                            No secret keys created yet.
+                          </div>
+                        ) : (
+                          status.secretKeys.slice(0, 3).map((k) => (
+                            <div
+                              key={k.id}
+                              className="rounded-2xl border border-border/60 bg-background/60 p-4"
+                            >
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-medium text-foreground">
+                                    {k.name ?? "Secret key"}
+                                  </div>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    {k.environment}
+                                    {k.createdAt ? ` • ${k.createdAt}` : ""}
+                                  </div>
+                                </div>
+                                <code className="shrink-0 font-mono text-xs text-muted-foreground">
+                                  {k.id}
+                                </code>
                               </div>
                             </div>
-                            <code className="shrink-0 font-mono text-[11px] text-muted-foreground">
-                              {k.id}
-                            </code>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                    {status.secretKeys.length > 3 && (
-                      <div className="text-xs text-muted-foreground">
-                        {status.secretKeys.length - 3} more…
+                          ))
+                        )}
                       </div>
-                    )}
-                    <div className="text-xs text-muted-foreground">
-                      The `sk_*` token is shown only once at creation time.
+
+                      {status.secretKeys.length > 3 ? (
+                        <div className="mt-3 text-xs text-muted-foreground">
+                          {status.secretKeys.length - 3} more…
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {statusQuery.isError ? (
+                      <div className="text-sm text-destructive">
+                        Failed to load status
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/60 p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Allowed origins
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Approve the frontends that can initialize in-app sessions
+                      and request delivery.
+                    </p>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {originsQuery.isLoading
+                        ? "Loading origins…"
+                        : `${origins.length} origin${origins.length === 1 ? "" : "s"} configured`}
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    className="rounded-xl"
+                    type="button"
+                    onClick={() =>
+                      setActivePanel((current) =>
+                        current === "origins" ? null : "origins"
+                      )
+                    }
+                  >
+                    {activePanel === "origins"
+                      ? "Hide origin manager"
+                      : "Manage origins"}
+                  </Button>
                 </div>
+
+                {activePanel === "origins" ? (
+                  <div className="space-y-6 rounded-2xl border border-border/60 bg-muted/20 p-4">
+                    <form
+                      className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_auto]"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        addOriginMutation.mutate();
+                      }}
+                    >
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">
+                          Origin
+                        </Label>
+                        <Input
+                          value={originInput}
+                          onChange={(e) => setOriginInput(e.target.value)}
+                          placeholder="https://app.example.com"
+                          className="h-11 border-border/80"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">
+                          Environment
+                        </Label>
+                        <Select
+                          value={originEnv}
+                          onValueChange={(v) =>
+                            setOriginEnv(v as InAppEnvironment)
+                          }
+                        >
+                          <SelectTrigger className="h-11 border-border/80">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="production">
+                              Production
+                            </SelectItem>
+                            <SelectItem value="staging">Staging</SelectItem>
+                            <SelectItem value="development">
+                              Development
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2 lg:self-end">
+                        <Button
+                          type="submit"
+                          className="h-11 w-full rounded-xl px-6"
+                          disabled={addOriginMutation.isPending}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </form>
+
+                    <div className="space-y-3">
+                      {originsQuery.isLoading ? (
+                        <div className="text-sm text-muted-foreground">
+                          Loading…
+                        </div>
+                      ) : originsQuery.isError ? (
+                        <div className="text-sm text-destructive">
+                          Failed to load origins
+                        </div>
+                      ) : origins.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-border/70 bg-background/60 p-4 text-sm text-muted-foreground">
+                          No origins configured.
+                        </div>
+                      ) : (
+                        origins.map((o) => (
+                          <div
+                            key={o.id}
+                            className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-background/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate font-mono text-sm text-foreground">
+                                {o.origin}
+                              </div>
+                              <div className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                                {o.environment}
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              className="rounded-xl border-border/80"
+                              disabled={removeOriginMutation.isPending}
+                              onClick={() => removeOriginMutation.mutate(o.id)}
+                              type="button"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </div>
+
+              <div className="space-y-3">
+                <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/60 p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Test push
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Send a single in-app message to a wallet to validate
+                      delivery, content, and CTA behavior.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="rounded-xl"
+                    type="button"
+                    onClick={() =>
+                      setActivePanel((current) =>
+                        current === "test" ? null : "test"
+                      )
+                    }
+                  >
+                    {activePanel === "test"
+                      ? "Hide test composer"
+                      : "Compose test push"}
+                  </Button>
+                </div>
+
+                {activePanel === "test" ? (
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+                    <form
+                      className="grid gap-4 lg:grid-cols-2"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        testPushMutation.mutate();
+                      }}
+                    >
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">
+                          Wallet address
+                        </Label>
+                        <Input
+                          value={testWalletAddress}
+                          onChange={(e) => setTestWalletAddress(e.target.value)}
+                          placeholder="0x…"
+                          className="h-11 border-border/80"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">
+                          Title
+                        </Label>
+                        <Input
+                          value={testTitle}
+                          onChange={(e) => setTestTitle(e.target.value)}
+                          placeholder="New notification"
+                          className="h-11 border-border/80"
+                        />
+                      </div>
+                      <div className="space-y-2 lg:col-span-2">
+                        <Label className="text-sm font-medium text-foreground">
+                          Body
+                        </Label>
+                        <Input
+                          value={testBody}
+                          onChange={(e) => setTestBody(e.target.value)}
+                          placeholder="Hello from OnchainSuite"
+                          className="h-11 border-border/80"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">
+                          CTA label (optional)
+                        </Label>
+                        <Input
+                          value={testCtaLabel}
+                          onChange={(e) => setTestCtaLabel(e.target.value)}
+                          placeholder="View"
+                          className="h-11 border-border/80"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">
+                          CTA URL (optional)
+                        </Label>
+                        <Input
+                          value={testCtaUrl}
+                          onChange={(e) => setTestCtaUrl(e.target.value)}
+                          placeholder="https://…"
+                          className="h-11 border-border/80"
+                        />
+                      </div>
+                      <div className="lg:col-span-2">
+                        <Button
+                          type="submit"
+                          className="h-11 w-full rounded-xl sm:w-fit sm:px-6"
+                          disabled={testPushMutation.isPending}
+                        >
+                          Send test push
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                ) : null}
+              </div>
+
               {statusQuery.isSuccess &&
                 !statusQuery.isLoading &&
                 !statusQuery.isError &&
                 !status.publishableKeys.production &&
                 !status.publishableKeys.test &&
                 status.secretKeys.length === 0 && (
-                  <div className="text-xs text-muted-foreground">
+                  <div className="rounded-2xl border border-dashed border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
                     Keys are not available for this org yet. Confirm you are an
                     org admin and that `GET /integrations/inapp/status` returns
                     publishable keys. To mint a usable `sk_*`, create one via
@@ -733,180 +1074,10 @@ const InAppIntegration = () => {
                     immediately.
                   </div>
                 )}
-
-              <div className="rounded-2xl border border-border/80 bg-muted/40 p-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Globe className="h-4 w-4 text-primary" />
-                  Allowed origins
-                </div>
-
-                <form
-                  className="mt-4 grid gap-3 lg:grid-cols-5"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    addOriginMutation.mutate();
-                  }}
-                >
-                  <div className="lg:col-span-3">
-                    <Label className="sr-only">Origin</Label>
-                    <Input
-                      value={originInput}
-                      onChange={(e) => setOriginInput(e.target.value)}
-                      placeholder="https://app.example.com"
-                      className="h-11 border-border/80"
-                    />
-                  </div>
-                  <div className="lg:col-span-1">
-                    <Label className="sr-only">Environment</Label>
-                    <Select
-                      value={originEnv}
-                      onValueChange={(v) => setOriginEnv(v as InAppEnvironment)}
-                    >
-                      <SelectTrigger className="h-11 border-border/80">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="production">Production</SelectItem>
-                        <SelectItem value="staging">Staging</SelectItem>
-                        <SelectItem value="development">Development</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="lg:col-span-1">
-                    <Button
-                      type="submit"
-                      className="h-11 w-full"
-                      disabled={addOriginMutation.isPending}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                </form>
-
-                <div className="mt-4 space-y-2">
-                  {originsQuery.isLoading ? (
-                    <div className="text-sm text-muted-foreground">
-                      Loading…
-                    </div>
-                  ) : origins.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">
-                      No origins configured
-                    </div>
-                  ) : (
-                    origins.map((o) => (
-                      <div
-                        key={o.id}
-                        className="flex flex-col gap-2 rounded-xl border border-border/80 bg-card p-3 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate font-mono text-sm text-foreground">
-                            {o.origin}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {o.environment}
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          className="h-9 border-border/80"
-                          disabled={removeOriginMutation.isPending}
-                          onClick={() => removeOriginMutation.mutate(o.id)}
-                          type="button"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border/80 bg-muted/40 p-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <Send className="h-4 w-4 text-primary" />
-                  Test push
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Sends a single in-app message to a wallet for validation.
-                </p>
-
-                <form
-                  className="mt-4 grid gap-4 lg:grid-cols-2"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    testPushMutation.mutate();
-                  }}
-                >
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Wallet address
-                    </Label>
-                    <Input
-                      value={testWalletAddress}
-                      onChange={(e) => setTestWalletAddress(e.target.value)}
-                      placeholder="0x…"
-                      className="h-11 border-border/80"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Title
-                    </Label>
-                    <Input
-                      value={testTitle}
-                      onChange={(e) => setTestTitle(e.target.value)}
-                      placeholder="New notification"
-                      className="h-11 border-border/80"
-                    />
-                  </div>
-                  <div className="space-y-2 lg:col-span-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      Body
-                    </Label>
-                    <Input
-                      value={testBody}
-                      onChange={(e) => setTestBody(e.target.value)}
-                      placeholder="Hello from OnchainSuite"
-                      className="h-11 border-border/80"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      CTA label (optional)
-                    </Label>
-                    <Input
-                      value={testCtaLabel}
-                      onChange={(e) => setTestCtaLabel(e.target.value)}
-                      placeholder="View"
-                      className="h-11 border-border/80"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">
-                      CTA URL (optional)
-                    </Label>
-                    <Input
-                      value={testCtaUrl}
-                      onChange={(e) => setTestCtaUrl(e.target.value)}
-                      placeholder="https://…"
-                      className="h-11 border-border/80"
-                    />
-                  </div>
-                  <div className="lg:col-span-2">
-                    <Button
-                      type="submit"
-                      className="h-11 w-full"
-                      disabled={testPushMutation.isPending}
-                    >
-                      Send test push
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            </div>
+            </>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
       <Dialog open={createSecretOpen} onOpenChange={setCreateSecretOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>

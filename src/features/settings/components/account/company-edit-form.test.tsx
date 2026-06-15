@@ -15,6 +15,24 @@ vi.mock("@/lib/api-client", () => ({
   apiClient: mocks.apiClient,
 }));
 
+vi.mock("@/lib/auth-client", () => ({
+  authClient: {
+    useSession: () => ({
+      data: {
+        session: { activeOrganizationId: "org_test_123" },
+      },
+    }),
+  },
+}));
+
+vi.mock("@/lib/utils", async () => {
+  const actual = await vi.importActual("@/lib/utils");
+  return {
+    ...actual,
+    getSelectedOrganizationId: () => "org_test_123",
+  };
+});
+
 vi.mock("sonner", () => ({
   toast: {
     success: vi.fn(),
@@ -55,25 +73,20 @@ vi.mock("@/components/ui/select", () => ({
 }));
 
 describe("CompanyEditForm", () => {
-  it("loads and saves project metadata while preserving existing metadata", async () => {
+  it("loads and saves project settings through the dedicated project settings endpoint", async () => {
     mocks.apiClient.get.mockResolvedValue({
       data: {
         data: {
-          name: "Goldgard",
-          settings: { billingEmail: "billing@goldgard.xyz", timezone: "UTC" },
-          metadata: {
-            inapp: { keys: { production: "pk_live_123", test: "pk_test_123" } },
-            apiKeys: { secretKeys: [{ id: "k1", environment: "live" }] },
-            project: {
-              tokenTicker: "$GG",
-              primaryChains: ["Ethereum"],
-              contractAddresses: [
-                { chain: "Ethereum", address: "0xabc", label: "Main Token" },
-              ],
-              treasuryWallets: [{ address: "0xtreasury", label: "Treasury" }],
-              teamWallets: [{ address: "0xteam", label: "Deployer" }],
-            },
-          },
+          projectName: "Goldgard",
+          billingEmail: "billing@goldgard.xyz",
+          timezone: "UTC",
+          tokenTicker: "$GG",
+          primaryChains: ["Ethereum"],
+          contractAddresses: [
+            { chain: "Ethereum", address: "0xabc", label: "Main Token" },
+          ],
+          treasuryWallets: [{ address: "0xtreasury", label: "Treasury" }],
+          teamWallets: [{ address: "0xteam", label: "Deployer" }],
         },
       },
     });
@@ -94,29 +107,14 @@ describe("CompanyEditForm", () => {
 
     await waitFor(() => {
       expect(mocks.apiClient.put).toHaveBeenCalledWith(
-        "/organization",
+        "/organization/project-settings",
         expect.objectContaining({
-          name: "Goldgard",
-          metadata: expect.objectContaining({
-            inapp: expect.anything(),
-            apiKeys: expect.anything(),
-            project: expect.objectContaining({
-              tokenTicker: "$GG2",
-              primaryChains: ["Ethereum"],
-            }),
-          }),
-        })
+          projectName: "Goldgard",
+          tokenTicker: "$GG2",
+          primaryChains: ["Ethereum"],
+        }),
+        expect.anything()
       );
-    });
-
-    const payload = mocks.apiClient.put.mock.calls[0]?.[1] as Record<
-      string,
-      unknown
-    >;
-    const metadata = payload.metadata as Record<string, unknown>;
-    expect((metadata.inapp as Record<string, unknown>)?.keys).toEqual({
-      production: "pk_live_123",
-      test: "pk_test_123",
     });
   });
 });

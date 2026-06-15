@@ -27,8 +27,12 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { apiClient } from "@/lib/api-client";
-import { isJsonObject } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
+import { getSelectedOrganizationId } from "@/lib/utils";
+import {
+  projectSettingsService,
+  type ProjectSettingsFormData,
+} from "@/features/settings/project-settings.service";
 
 import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
@@ -95,12 +99,39 @@ const companySchema = z.object({
 
 type CompanyFormValues = z.infer<typeof companySchema>;
 
+const toProjectSettingsFormData = (
+  values: Partial<CompanyFormValues> | ProjectSettingsFormData
+): ProjectSettingsFormData => ({
+  name: values.name ?? "",
+  email: values.email ?? "",
+  phone: values.phone ?? "",
+  taxId: values.taxId ?? "",
+  address: values.address ?? "",
+  timezone: values.timezone ?? "UTC",
+  tokenTicker: values.tokenTicker ?? "",
+  primaryChains: values.primaryChains ?? [],
+  contractAddresses: (values.contractAddresses ?? []).map((row) => ({
+    chain: row.chain ?? "",
+    address: row.address,
+    label: row.label ?? "",
+  })),
+  treasuryWallets: (values.treasuryWallets ?? []).map((row) => ({
+    address: row.address,
+    label: row.label ?? "",
+  })),
+  teamWallets: (values.teamWallets ?? []).map((row) => ({
+    address: row.address,
+    label: row.label ?? "",
+  })),
+});
+
 export default function CompanyEditForm() {
+  const { data: session } = authClient.useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<CompanyFormValues | null>(null);
-  const [orgMetadata, setOrgMetadata] = useState<Record<string, unknown>>({});
+  const [data, setData] = useState<ProjectSettingsFormData | null>(null);
   const [chainToAdd, setChainToAdd] = useState<ChainOption>("Ethereum");
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
   const isNonEmptyString = (value: unknown): value is string =>
     typeof value === "string" && value.trim().length > 0;
@@ -161,181 +192,83 @@ export default function CompanyEditForm() {
     return list.join(", ");
   }, [primaryChains]);
 
+  const organizationId = useMemo(() => {
+    const selected = selectedOrgId?.trim();
+    if (selected) return selected;
+    const active = session?.session?.activeOrganizationId;
+    return typeof active === "string" && active.trim().length > 0
+      ? active.trim()
+      : null;
+  }, [selectedOrgId, session?.session?.activeOrganizationId]);
+
+  useEffect(() => {
+    const syncSelectedOrgId = () => {
+      setSelectedOrgId(getSelectedOrganizationId());
+    };
+
+    syncSelectedOrgId();
+    window.addEventListener("onchain:org-changed", syncSelectedOrgId);
+    return () =>
+      window.removeEventListener("onchain:org-changed", syncSelectedOrgId);
+  }, []);
+
   useEffect(() => {
     async function fetchOrg() {
+      if (!organizationId) {
+        setLoading(false);
+        return;
+      }
       try {
-        const res = await apiClient.get("/organization");
-        // Handle both direct object and { data: ... } wrapper
-        const org = res.data?.data ?? res.data;
-        if (org) {
-          const settings = org.settings ?? {};
-          const metadata =
-            isJsonObject(org.metadata) && org.metadata !== null
-              ? org.metadata
-              : {};
-          const projectMeta =
-            isJsonObject((metadata as Record<string, unknown>).project) &&
-            (metadata as Record<string, unknown>).project !== null
-              ? ((metadata as Record<string, unknown>).project as Record<
-                  string,
-                  unknown
-                >)
-              : isJsonObject((metadata as Record<string, unknown>).protocol) &&
-                  (metadata as Record<string, unknown>).protocol !== null
-                ? ((metadata as Record<string, unknown>).protocol as Record<
-                    string,
-                    unknown
-                  >)
-                : {};
-
-          const tokenTicker =
-            typeof projectMeta.tokenTicker === "string"
-              ? projectMeta.tokenTicker
-              : "";
-          const primaryChainsRaw = projectMeta.primaryChains;
-          const primaryChains =
-            Array.isArray(primaryChainsRaw) &&
-            primaryChainsRaw.every((c) => typeof c === "string")
-              ? (primaryChainsRaw as string[])
-              : [];
-
-          const contractAddressesRaw =
-            projectMeta.contractAddresses ?? projectMeta.contracts;
-          const contractAddresses = Array.isArray(contractAddressesRaw)
-            ? (contractAddressesRaw as unknown[])
-                .map((row) => {
-                  if (!isJsonObject(row)) return null;
-                  const r = row as Record<string, unknown>;
-                  const chain = typeof r.chain === "string" ? r.chain : "";
-                  const address =
-                    typeof r.address === "string"
-                      ? r.address
-                      : typeof r.contractAddress === "string"
-                        ? r.contractAddress
-                        : "";
-                  const label = typeof r.label === "string" ? r.label : "";
-                  if (!chain || !address) return null;
-                  return { chain, address, label };
-                })
-                .filter(
-                  (
-                    row
-                  ): row is { chain: string; address: string; label: string } =>
-                    Boolean(row)
-                )
-            : [];
-
-          const treasuryWalletsRaw =
-            projectMeta.treasuryWallets ?? projectMeta.treasury;
-          const treasuryWallets = Array.isArray(treasuryWalletsRaw)
-            ? (treasuryWalletsRaw as unknown[])
-                .map((row) => {
-                  if (!isJsonObject(row)) return null;
-                  const r = row as Record<string, unknown>;
-                  const address =
-                    typeof r.address === "string"
-                      ? r.address
-                      : typeof r.walletAddress === "string"
-                        ? r.walletAddress
-                        : "";
-                  const label = typeof r.label === "string" ? r.label : "";
-                  if (!address) return null;
-                  return { address, label };
-                })
-                .filter((row): row is { address: string; label: string } =>
-                  Boolean(row)
-                )
-            : [];
-
-          const teamWalletsRaw =
-            projectMeta.teamWallets ?? projectMeta.deployerWallets;
-          const teamWallets = Array.isArray(teamWalletsRaw)
-            ? (teamWalletsRaw as unknown[])
-                .map((row) => {
-                  if (!isJsonObject(row)) return null;
-                  const r = row as Record<string, unknown>;
-                  const address =
-                    typeof r.address === "string"
-                      ? r.address
-                      : typeof r.walletAddress === "string"
-                        ? r.walletAddress
-                        : "";
-                  const label = typeof r.label === "string" ? r.label : "";
-                  if (!address) return null;
-                  return { address, label };
-                })
-                .filter((row): row is { address: string; label: string } =>
-                  Boolean(row)
-                )
-            : [];
-
-          const initialData = {
-            name: org.name ?? "",
-            email: settings.billingEmail ?? "",
-            phone: settings.phone ?? "",
-            taxId: settings.taxId ?? "",
-            address: settings.address ?? "",
-            timezone: settings.timezone ?? "UTC",
-            tokenTicker,
-            primaryChains,
-            contractAddresses,
-            treasuryWallets,
-            teamWallets,
-          };
-          setOrgMetadata(metadata as Record<string, unknown>);
-          setData(initialData);
-          form.reset(initialData);
-        } else {
-          // If no org found or error, maybe 404
-          console.error("Failed to fetch organization");
+        const initialData = toProjectSettingsFormData(
+          await projectSettingsService.getProjectSettings(organizationId)
+        );
+        setData(initialData);
+        form.reset(initialData);
+      } catch (error) {
+        const err = error as { response?: { status?: number } };
+        if (err.response?.status === 400 && !organizationId) {
+          return;
         }
-      } catch {
-        toast.error("Failed to load company details");
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to load project settings";
+        toast.error(message);
       } finally {
         setLoading(false);
       }
     }
     fetchOrg();
-  }, [form]);
+  }, [form, organizationId]);
 
   const onSubmit = async (values: CompanyFormValues) => {
+    if (!organizationId) {
+      toast.error("No active organization selected");
+      return;
+    }
     const previousData = data;
+    const nextValues = toProjectSettingsFormData(values);
     // Optimistic update
-    setData(values);
+    setData(nextValues);
     setIsEditing(false);
 
     try {
-      const nextMetadata: Record<string, unknown> = { ...orgMetadata };
-      const existingProject =
-        isJsonObject(nextMetadata.project) && nextMetadata.project !== null
-          ? (nextMetadata.project as Record<string, unknown>)
-          : {};
-      nextMetadata.project = {
-        ...existingProject,
-        tokenTicker: values.tokenTicker ?? "",
-        primaryChains: values.primaryChains ?? [],
-        contractAddresses: values.contractAddresses ?? [],
-        treasuryWallets: values.treasuryWallets ?? [],
-        teamWallets: values.teamWallets ?? [],
-      };
-
-      await apiClient.put("/organization", {
-        name: values.name,
-        settings: {
-          billingEmail: values.email,
-          phone: values.phone,
-          taxId: values.taxId,
-          address: values.address,
-          timezone: values.timezone,
-        },
-        metadata: nextMetadata,
-      });
-
-      toast.success("Company details updated successfully");
-    } catch {
+      const saved = await projectSettingsService.saveProjectSettings(
+        nextValues,
+        organizationId
+      );
+      const normalizedSaved = toProjectSettingsFormData(saved);
+      setData(normalizedSaved);
+      form.reset(normalizedSaved);
+      toast.success("Project settings updated successfully");
+    } catch (error) {
       setData(previousData);
       form.reset(previousData ?? undefined);
-      toast.error("Failed to update company details");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to update project settings";
+      toast.error(message);
       setIsEditing(true); // Re-open edit mode on failure
     }
   };

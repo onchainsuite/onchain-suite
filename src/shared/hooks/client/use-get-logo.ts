@@ -3,6 +3,45 @@ import useSWR from "swr";
 import { authClient } from "@/lib/auth-client";
 import { isOrganizationConfirmed } from "@/lib/utils";
 
+const pickString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return undefined;
+};
+
+export const readBrandingData = (branding: unknown) => {
+  const root =
+    branding &&
+    typeof branding === "object" &&
+    "success" in branding &&
+    "data" in branding
+      ? (branding as { success?: boolean; data?: Record<string, unknown> }).data
+      : undefined;
+  const data = root && typeof root === "object" ? root : undefined;
+  const preview =
+    data?.logoPreview && typeof data.logoPreview === "object"
+      ? (data.logoPreview as Record<string, unknown>)
+      : undefined;
+
+  return {
+    primary: pickString(
+      preview?.primaryUrl,
+      data?.primaryLogoUrl,
+      data?.primaryLogo,
+      data?.logoUrl,
+      data?.logo
+    ),
+    dark: pickString(
+      preview?.darkUrl,
+      data?.darkLogoUrl,
+      data?.darkModeLogo,
+      data?.darkLogo
+    ),
+    favicon: pickString(preview?.faviconUrl, data?.faviconUrl, data?.favicon),
+  };
+};
+
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) return { success: false, status: res.status };
@@ -38,13 +77,13 @@ export const useGetLogo = () => {
     return defaultLogos;
   }
 
-  const { primaryLogo, darkModeLogo, favicon } = branding.data;
+  const { primary, dark, favicon } = readBrandingData(branding);
 
   return {
-    lightIcon: primaryLogo ?? defaultLogos.lightIcon,
-    darkIcon: darkModeLogo ?? defaultLogos.darkIcon,
-    lightFull: primaryLogo ?? defaultLogos.lightFull,
-    darkFull: darkModeLogo ?? defaultLogos.darkFull,
-    favicon: favicon ?? defaultLogos.lightIcon,
+    lightIcon: primary ?? defaultLogos.lightIcon,
+    darkIcon: dark ?? defaultLogos.darkIcon,
+    lightFull: primary ?? defaultLogos.lightFull,
+    darkFull: dark ?? defaultLogos.darkFull,
+    favicon: favicon ?? primary ?? defaultLogos.lightIcon,
   };
 };

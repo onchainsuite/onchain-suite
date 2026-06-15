@@ -36,6 +36,12 @@ interface Organization {
   logoUrl?: string; // Handle both cases just in case
 }
 
+const ORG_LIST_CACHE_TTL_MS = 60_000;
+let organizationListCache: Organization[] | null = null;
+let organizationListCacheExpiresAt = 0;
+let organizationListInflight: Promise<Organization[]> | null = null;
+let organizationListRateLimitedUntil = 0;
+
 export function OrganizationSwitcher() {
   const { data: session } = authClient.useSession();
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
@@ -99,6 +105,52 @@ export function OrganizationSwitcher() {
     [toOrganization]
   );
 
+  const loadOrganizations = React.useCallback(
+    async (force = false) => {
+      const now = Date.now();
+      if (
+        !force &&
+        organizationListCache &&
+        organizationListCacheExpiresAt > now
+      ) {
+        return organizationListCache;
+      }
+      if (!force && organizationListInflight) return organizationListInflight;
+      if (!force && organizationListRateLimitedUntil > now) {
+        return organizationListCache ?? [];
+      }
+
+      const request = apiClient
+        .get("/organization/list", {
+          headers: { "x-onchain-silent-error": "1" },
+        })
+        .then((response) => {
+          const payload: unknown = response.data;
+          const orgs = extractOrganizations(payload);
+          organizationListCache = orgs;
+          organizationListCacheExpiresAt = Date.now() + ORG_LIST_CACHE_TTL_MS;
+          organizationListRateLimitedUntil = 0;
+          return orgs;
+        })
+        .catch((error: unknown) => {
+          const err = error as { response?: { status?: number } };
+          if (err.response?.status === 429) {
+            organizationListRateLimitedUntil =
+              Date.now() + ORG_LIST_CACHE_TTL_MS;
+            return organizationListCache ?? [];
+          }
+          throw error;
+        })
+        .finally(() => {
+          organizationListInflight = null;
+        });
+
+      organizationListInflight = request;
+      return request;
+    },
+    [extractOrganizations]
+  );
+
   React.useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -125,53 +177,46 @@ export function OrganizationSwitcher() {
       if (hasLoadedOrganizationsRef.current) return;
       setIsLoading(true);
       try {
-        const response = await apiClient.get("/organization/list");
-        if (response.status === 200) {
-          const payload: unknown = response.data;
-          const orgs = extractOrganizations(payload);
-          if (orgs.length > 0 || Array.isArray(payload)) {
-            setOrganizations(orgs);
-            hasLoadedOrganizationsRef.current = true;
-            if (orgs.length === 0) console.warn("Organization list is empty.");
+        const orgs = await loadOrganizations();
+        const isRateLimitedFallback =
+          orgs.length === 0 &&
+          organizationListCache === null &&
+          organizationListRateLimitedUntil > Date.now();
 
-            const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
-            const sessionOrgId =
-              typeof session?.session?.activeOrganizationId === "string"
-                ? session.session.activeOrganizationId.trim()
-                : "";
-            const cookieIsValid =
-              typeof cookieOrgId === "string" &&
-              cookieOrgId.trim().length > 0 &&
-              orgs.some((o) => o.id === cookieOrgId.trim());
+        if (isRateLimitedFallback) {
+          return;
+        }
 
-            if (!cookieIsValid) {
-              const nextOrgId =
-                (sessionOrgId.length > 0 &&
-                orgs.some((o) => o.id === sessionOrgId)
-                  ? sessionOrgId
-                  : orgs[0]?.id) ?? null;
+        setOrganizations(orgs);
+        hasLoadedOrganizationsRef.current = true;
+        if (orgs.length === 0) console.warn("Organization list is empty.");
 
-              if (nextOrgId) {
-                setSelectedOrgCookieValue(nextOrgId);
-                setActiveOrgId(nextOrgId);
-                window.dispatchEvent(
-                  new CustomEvent("onchain:org-changed", {
-                    detail: { orgId: nextOrgId, previousOrgId: activeOrgId },
-                  })
-                );
-                router.refresh();
-              }
-            }
-          } else {
-            console.error("Expected array of organizations but got:", payload);
-            setOrganizations([]);
+        const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
+        const sessionOrgId =
+          typeof session?.session?.activeOrganizationId === "string"
+            ? session.session.activeOrganizationId.trim()
+            : "";
+        const cookieIsValid =
+          typeof cookieOrgId === "string" &&
+          cookieOrgId.trim().length > 0 &&
+          orgs.some((o) => o.id === cookieOrgId.trim());
+
+        if (!cookieIsValid) {
+          const nextOrgId =
+            (sessionOrgId.length > 0 && orgs.some((o) => o.id === sessionOrgId)
+              ? sessionOrgId
+              : orgs[0]?.id) ?? null;
+
+          if (nextOrgId) {
+            setSelectedOrgCookieValue(nextOrgId);
+            setActiveOrgId(nextOrgId);
+            window.dispatchEvent(
+              new CustomEvent("onchain:org-changed", {
+                detail: { orgId: nextOrgId, previousOrgId: activeOrgId },
+              })
+            );
+            router.refresh();
           }
-        } else {
-          console.error(
-            "Error fetching organizations status:",
-            response.status
-          );
-          toast.error("Failed to load organizations");
         }
       } catch (error) {
         const err = error as { response?: { status?: number } };
@@ -181,6 +226,9 @@ export function OrganizationSwitcher() {
         }
         if (status === 409) {
           setOrganizations([]);
+          return;
+        }
+        if (status === 429) {
           return;
         }
         // Toast handled by interceptor if we wanted, but keep for explicit UI feedback
@@ -195,7 +243,7 @@ export function OrganizationSwitcher() {
     }
   }, [
     activeOrgId,
-    extractOrganizations,
+    loadOrganizations,
     router,
     session?.session?.activeOrganizationId,
     session?.user?.id,
@@ -203,23 +251,20 @@ export function OrganizationSwitcher() {
   ]);
 
   React.useEffect(() => {
-    const handler = () => {
+    const handler = (event: Event) => {
       if (!session) return;
-      setIsLoading(true);
-      apiClient
-        .get("/organization/list")
-        .then((response) => {
-          if (response.status >= 200 && response.status < 300) {
-            const payload: unknown = response.data;
-            setOrganizations(extractOrganizations(payload));
-          }
-        })
-        .finally(() => setIsLoading(false));
+      const detail = "detail" in event ? event.detail : undefined;
+      const nextOrgId =
+        isJsonObject(detail) && typeof detail.orgId === "string"
+          ? detail.orgId
+          : getCookieValue(ORG_SELECTION_COOKIE);
+      setSelectedOrgCookie(nextOrgId);
+      if (nextOrgId) setActiveOrgId(nextOrgId);
     };
 
     window.addEventListener("onchain:org-changed", handler);
     return () => window.removeEventListener("onchain:org-changed", handler);
-  }, [extractOrganizations, session]);
+  }, [session]);
 
   const confirmedActiveOrgId =
     selectedOrgCookie && activeOrgId && selectedOrgCookie === activeOrgId

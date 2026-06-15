@@ -1,9 +1,9 @@
 import { Loader2, Mail } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
-import { isJsonObject } from "@/lib/utils";
+import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -38,14 +38,15 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
 
   const handleSendInvite = async () => {
     if (!inviteEmail) return;
-    if (!session?.session?.activeOrganizationId) {
+    const orgId =
+      getSelectedOrganizationId() ?? session?.session?.activeOrganizationId;
+    if (!orgId) {
       toast.error("No active organization");
       return;
     }
 
     setSaving(true);
     try {
-      const orgId = session.session.activeOrganizationId;
       const response = await fetch(`/api/v1/organizations/${orgId}/invites`, {
         method: "POST",
         headers: {

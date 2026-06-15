@@ -1,14 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-import { cn, getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
+import {
+  cn,
+  extractEmailContent,
+  getSelectedOrganizationId,
+  isJsonObject,
+} from "@/lib/utils";
 
 import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { templatesService } from "@/features/templates/templates.service";
@@ -131,6 +136,11 @@ export default function CampaignEditorPage() {
   const campaignId = (searchParams?.get("campaign") ?? "").trim();
   const returnTo = (searchParams?.get("returnTo") ?? "").trim();
   const templateNameParam = (searchParams?.get("templateName") ?? "").trim();
+  const subjectParam = (searchParams?.get("subject") ?? "").trim();
+  const previewTextParam = (searchParams?.get("previewText") ?? "").trim();
+  const senderNameParam = (searchParams?.get("senderName") ?? "").trim();
+  const senderEmailParam = (searchParams?.get("senderEmail") ?? "").trim();
+  const replyToEmailParam = (searchParams?.get("replyToEmail") ?? "").trim();
   const initialDocument = useMemo(() => {
     const b64 = (searchParams?.get("initialJsonB64") ??
       searchParams?.get("initB64") ??
@@ -564,52 +574,35 @@ export default function CampaignEditorPage() {
   }, [prevWizardUrl, returnTo]);
 
   const createTemplateFromCampaign = useCallback(
-    async (payload?: {
-      html?: string;
-      textVersion?: string;
-      json?: unknown;
-      assets?: unknown;
-    }) => {
+    async (preferredSource?: unknown) => {
       if (!campaignId) throw new Error("Missing campaign id.");
 
-      const html =
-        typeof payload?.html === "string"
-          ? payload.html
-          : (() => {
-              return "";
-            })();
-      const textVersion =
-        typeof payload?.textVersion === "string" ? payload.textVersion : "";
-      const json = payload?.json ?? null;
-      const assets = payload?.assets ?? null;
+      const preferredExtracted = extractEmailContent(preferredSource);
+      const preview = await campaignsService
+        .preview(campaignId)
+        .catch(() => null);
+      const email = await campaignsService
+        .getEmailContent(campaignId)
+        .catch(() => null);
+      const previewExtracted = extractEmailContent(preview);
+      const emailExtracted = extractEmailContent(email);
+      const extracted =
+        (preferredExtracted.html?.trim().length ?? 0) > 0 ||
+        (preferredExtracted.textVersion?.trim().length ?? 0) > 0
+          ? preferredExtracted
+          : (previewExtracted.html?.trim().length ?? 0) > 0 ||
+              (previewExtracted.textVersion?.trim().length ?? 0) > 0
+            ? previewExtracted
+            : emailExtracted;
+      const finalHtml = extracted.html ?? "";
+      const finalTextVersion = extracted.textVersion ?? "";
+      const finalJson = extracted.json ?? null;
+      const finalAssets = extracted.assets ?? null;
 
-      const shouldFetchFromCampaign =
-        html.trim().length === 0 && textVersion.trim().length === 0 && !json;
-
-      const resolved = shouldFetchFromCampaign
-        ? await campaignsService.getEditorContent(campaignId)
-        : null;
-
-      const finalHtml =
-        typeof resolved?.html === "string" && shouldFetchFromCampaign
-          ? resolved.html
-          : html;
-      const finalTextVersion =
-        typeof resolved?.textVersion === "string" && shouldFetchFromCampaign
-          ? resolved.textVersion
-          : textVersion;
-      const finalJson = shouldFetchFromCampaign
-        ? (resolved?.json ?? json)
-        : json;
-      const finalAssets = shouldFetchFromCampaign
-        ? (resolved?.assets ?? assets)
-        : assets;
-
-      const hasAnyContent =
-        finalHtml.trim().length > 0 ||
-        finalTextVersion.trim().length > 0 ||
-        (finalJson !== null && finalJson !== undefined);
-      if (!hasAnyContent) {
+      if (
+        finalHtml.trim().length === 0 &&
+        finalTextVersion.trim().length === 0
+      ) {
         throw new Error("No email content found. Save the email first.");
       }
 
@@ -856,96 +849,124 @@ export default function CampaignEditorPage() {
               new Promise<void>((resolve) => {
                 window.setTimeout(resolve, ms);
               });
+            const extractedFromSave = extractEmailContent(messageData);
+            const saveHtml = extractedFromSave.html?.trim() ?? "";
+            const saveText = extractedFromSave.textVersion?.trim() ?? "";
+            const saveJson = extractedFromSave.json ?? null;
+            const saveAssets = extractedFromSave.assets ?? null;
 
-            const unwrapPayload = (raw: unknown) => {
-              const obj = isJsonObject(raw) ? raw : {};
-              const nested =
-                isJsonObject(obj.data) && Object.keys(obj).length <= 3
-                  ? (obj.data as Record<string, unknown>)
-                  : obj;
-              const payload =
-                isJsonObject(nested.payload) && Object.keys(nested).length <= 4
-                  ? (nested.payload as Record<string, unknown>)
-                  : nested;
-              return payload;
+            if (
+              saveHtml.length === 0 &&
+              saveText.length === 0 &&
+              saveJson === null
+            ) {
+              throw new Error(
+                "Editor save completed, but no email payload was returned from the builder."
+              );
+            }
+
+            const content = await campaignsService
+              .getContent(campaignId)
+              .catch(() => null);
+            const renderRequest = {
+              subject:
+                content && typeof content.subject === "string"
+                  ? content.subject
+                  : subjectParam || undefined,
+              previewText:
+                content && typeof content.previewText === "string"
+                  ? content.previewText
+                  : previewTextParam || undefined,
+              senderName:
+                content && typeof content.senderName === "string"
+                  ? content.senderName
+                  : senderNameParam || undefined,
+              senderEmail:
+                content && typeof content.senderEmail === "string"
+                  ? content.senderEmail
+                  : senderEmailParam || undefined,
+              replyToEmail:
+                content && typeof content.replyToEmail === "string"
+                  ? content.replyToEmail
+                  : replyToEmailParam || undefined,
+              html: saveHtml || undefined,
+              textVersion: saveText || undefined,
+              json: saveJson ?? undefined,
+              assets: saveAssets ?? undefined,
             };
+            const saveResult = await campaignsService.saveEmailContent(
+              campaignId,
+              renderRequest
+            );
 
-            const payload = unwrapPayload(messageData);
-            let resolvedHtml =
-              typeof payload.html === "string" ? payload.html.trim() : "";
-            let resolvedText =
-              typeof payload.textVersion === "string"
-                ? payload.textVersion.trim()
-                : typeof payload.text === "string"
-                  ? payload.text.trim()
-                  : "";
-            let resolvedJson =
-              payload.json ?? payload.design ?? payload.template ?? null;
-            let resolvedAssets = payload.assets ?? null;
-
-            const retryDelays = [0, 250, 700, 1500, 3000];
-            for (const delayMs of retryDelays) {
-              if (
-                resolvedHtml.length > 0 ||
-                resolvedText.length > 0 ||
-                (resolvedJson !== null && resolvedJson !== undefined)
-              ) {
-                break;
+            const savedExtracted = extractEmailContent(saveResult);
+            let renderedSource: unknown = saveResult;
+            if (
+              (savedExtracted.html?.trim().length ?? 0) > 0 ||
+              (savedExtracted.textVersion?.trim().length ?? 0) > 0
+            ) {
+              setLastConfirmedSaveAt(new Date().toISOString());
+              setIsSavingTemplate(true);
+              try {
+                await createTemplateFromCampaign(renderedSource);
+              } finally {
+                setIsSavingTemplate(false);
               }
 
+              toast.success("Saved");
+              hasRedirectedRef.current = true;
+              router.push(nextWizardUrl);
+              return;
+            }
+
+            const retryDelays = [0, 250, 700, 1500, 3000];
+            let hasRenderedEmail = false;
+            for (const delayMs of retryDelays) {
               if (delayMs > 0) await sleep(delayMs);
 
               try {
-                const preview = await campaignsService.preview(campaignId);
-                const nextHtml =
-                  typeof preview.html === "string" ? preview.html.trim() : "";
-                const nextText =
-                  typeof preview.text === "string" ? preview.text.trim() : "";
-                if (nextHtml.length > 0) resolvedHtml = nextHtml;
-                if (nextText.length > 0) resolvedText = nextText;
+                const preview = await campaignsService.preview(
+                  campaignId,
+                  renderRequest
+                );
+                const extracted = extractEmailContent(preview);
+                const nextHtml = extracted.html?.trim() ?? "";
+                const nextText = extracted.textVersion?.trim() ?? "";
+                if (nextHtml.length > 0 || nextText.length > 0) {
+                  hasRenderedEmail = true;
+                  renderedSource = preview;
+                  break;
+                }
               } catch (_e) {
                 String(_e);
               }
 
-              if (resolvedHtml.length > 0 || resolvedText.length > 0) break;
-
               try {
-                const editor =
-                  await campaignsService.getEditorContent(campaignId);
-                const nextHtml =
-                  typeof editor.html === "string" ? editor.html.trim() : "";
-                const nextText =
-                  typeof editor.textVersion === "string"
-                    ? editor.textVersion.trim()
-                    : "";
-                if (nextHtml.length > 0) resolvedHtml = nextHtml;
-                if (nextText.length > 0) resolvedText = nextText;
-                if (editor.json !== undefined) resolvedJson = editor.json;
-                if (editor.assets !== undefined) resolvedAssets = editor.assets;
+                const email =
+                  await campaignsService.getEmailContent(campaignId);
+                const extracted = extractEmailContent(email);
+                const nextHtml = extracted.html?.trim() ?? "";
+                const nextText = extracted.textVersion?.trim() ?? "";
+                if (nextHtml.length > 0 || nextText.length > 0) {
+                  hasRenderedEmail = true;
+                  renderedSource = email;
+                  break;
+                }
               } catch (_e) {
                 String(_e);
               }
             }
 
-            const hasAnyContent =
-              resolvedHtml.length > 0 ||
-              resolvedText.length > 0 ||
-              (resolvedJson !== null && resolvedJson !== undefined);
-            if (!hasAnyContent) {
+            if (!hasRenderedEmail) {
               throw new Error(
-                "Email save was reported, but content is not available yet. Retry saving and ensure the editor save endpoint is persisting content."
+                "Email save was reported, but the backend did not return a rendered email after PUT /campaigns/:id/email. Ensure the canonical render endpoint persists populated html or text."
               );
             }
 
             setLastConfirmedSaveAt(new Date().toISOString());
             setIsSavingTemplate(true);
             try {
-              await createTemplateFromCampaign({
-                html: resolvedHtml,
-                textVersion: resolvedText,
-                json: resolvedJson,
-                assets: resolvedAssets,
-              });
+              await createTemplateFromCampaign(renderedSource);
             } finally {
               setIsSavingTemplate(false);
             }
@@ -980,6 +1001,11 @@ export default function CampaignEditorPage() {
     router,
     campaignId,
     initialDocument,
+    previewTextParam,
+    replyToEmailParam,
+    senderEmailParam,
+    senderNameParam,
+    subjectParam,
   ]);
 
   return (

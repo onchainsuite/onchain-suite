@@ -11,6 +11,7 @@
 !.yarn/versions
 
 /docs/
+/notes/
 
 # testing
 /coverage

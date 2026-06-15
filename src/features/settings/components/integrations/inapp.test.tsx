@@ -214,6 +214,7 @@ describe("InAppIntegration", () => {
       expect(screen.getByText(/active sessions/i)).toBeInTheDocument();
     });
 
+    fireEvent.click(screen.getByRole("button", { name: "Manage keys" }));
     fireEvent.click(screen.getByLabelText("Toggle publishable key visibility"));
 
     expect(screen.getByText("pk_live_123")).toBeInTheDocument();
@@ -223,6 +224,7 @@ describe("InAppIntegration", () => {
   it("submits add origin request", async () => {
     render(wrap(<InAppIntegration />));
 
+    fireEvent.click(screen.getByRole("button", { name: "Manage origins" }));
     const input = await screen.findByPlaceholderText("https://app.example.com");
     fireEvent.change(input, { target: { value: "app.test.dev" } });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
@@ -241,6 +243,7 @@ describe("InAppIntegration", () => {
   it("submits test push request", async () => {
     render(wrap(<InAppIntegration />));
 
+    fireEvent.click(screen.getByRole("button", { name: "Compose test push" }));
     fireEvent.change(screen.getByPlaceholderText("0x…"), {
       target: { value: "0xabc" },
     });
@@ -267,8 +270,8 @@ describe("InAppIntegration", () => {
   it("creates a secret key and shows the returned token once", async () => {
     render(wrap(<InAppIntegration />));
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Create" })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: "Create" })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Create secret key" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
 
     await waitFor(() => {
       expect(vi.mocked(fetch)).toHaveBeenCalledWith(

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import axios from "axios";
 import type { MouseEvent, MouseEventHandler, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mutate } from "swr";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -24,11 +25,13 @@ vi.mock("framer-motion", () => ({
       children,
       className,
       onClick,
+      whileHover,
       ...props
     }: {
       children?: ReactNode;
       className?: string;
       onClick?: MouseEventHandler<HTMLDivElement>;
+      whileHover?: unknown;
       [key: string]: unknown;
     }) => (
       <div
@@ -57,6 +60,13 @@ vi.mock("sonner", () => ({
     success: vi.fn(),
     error: vi.fn(),
   },
+}));
+
+vi.mock("swr", () => ({
+  useSWRConfig: () => ({
+    mutate,
+  }),
+  mutate: vi.fn(),
 }));
 
 // Mock Dialog components from shadcn/ui
@@ -110,6 +120,7 @@ describe("LogoUpload Component", () => {
   const setShowLogoUploadModal = vi.fn();
   const mockedUseSession = vi.mocked(authClient.useSession);
   const mockedAxiosPost = vi.mocked(axios.post);
+  const mockedMutate = vi.mocked(mutate);
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -187,6 +198,43 @@ describe("LogoUpload Component", () => {
             "x-org-id": "org-123",
           }),
         })
+      );
+    });
+  });
+
+  it("should merge logoPreview data into the branding cache after upload", async () => {
+    mockedAxiosPost.mockResolvedValue({
+      data: {
+        type: "primary",
+        url: "/uploads/primary-logo.png",
+        logoPreview: {
+          primaryUrl: "/uploads/primary-logo.png",
+          darkUrl: "/uploads/dark-logo.png",
+          faviconUrl: "/uploads/favicon.png",
+        },
+      },
+    } as unknown as Awaited<ReturnType<typeof axios.post>>);
+
+    render(
+      <LogoUpload
+        showLogoUploadModal={true}
+        setShowLogoUploadModal={setShowLogoUploadModal}
+        logoUploadType="primary"
+      />
+    );
+
+    const file = new File(["dummy content"], "logo.png", { type: "image/png" });
+    const input = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.click(screen.getByText("Upload logo"));
+
+    await waitFor(() => {
+      expect(mockedMutate).toHaveBeenCalledWith(
+        "/api/v1/organization/branding",
+        expect.any(Function),
+        false
       );
     });
   });

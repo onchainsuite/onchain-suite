@@ -8,6 +8,7 @@ import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { extractEmailContent } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
 
@@ -34,31 +35,69 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
     [campaignId]
   );
 
-  const previewMutation = useMutation({
-    mutationFn: async () => {
-      if (!normalizedCampaignId) throw new Error("Missing campaign id.");
-      try {
-        const preview = await campaignsService.preview(normalizedCampaignId);
-        const html =
-          typeof preview.html === "string" ? preview.html.trim() : "";
-        const text =
-          typeof preview.text === "string" ? preview.text.trim() : "";
-        if (html.length > 0 || text.length > 0) return preview;
-      } catch (_e) {
-        String(_e);
-      }
+  const getRenderRequest = () => {
+    const values = form.getValues();
+    const subject = values.emailSubject?.trim();
+    const previewText = values.previewText?.trim();
+    const senderName = values.senderName?.trim();
+    const senderEmail = values.senderEmail?.trim();
+    const replyToEmail = values.replyToEmail?.trim();
 
-      const editor = await campaignsService.getEditorContent(
-        normalizedCampaignId
-      );
-      const html = typeof editor.html === "string" ? editor.html : "";
-      const text =
-        typeof editor.textVersion === "string" ? editor.textVersion : "";
-      if (html.trim().length === 0 && text.trim().length === 0) {
-        throw new Error("No email content is available to preview.");
+    return {
+      subject: subject && subject.length > 0 ? subject : undefined,
+      previewText:
+        previewText && previewText.length > 0 ? previewText : undefined,
+      senderName: senderName && senderName.length > 0 ? senderName : undefined,
+      senderEmail:
+        senderEmail && senderEmail.length > 0 ? senderEmail : undefined,
+      replyToEmail:
+        values.useReplyTo && replyToEmail && replyToEmail.length > 0
+          ? replyToEmail
+          : undefined,
+    };
+  };
+
+  const getCanonicalPreview = async () => {
+    if (!normalizedCampaignId) throw new Error("Missing campaign id.");
+
+    const preview = await campaignsService.preview(
+      normalizedCampaignId,
+      getRenderRequest()
+    );
+    const extracted = extractEmailContent(preview);
+    if (
+      (extracted.html?.trim().length ?? 0) > 0 ||
+      (extracted.textVersion?.trim().length ?? 0) > 0
+    ) {
+      return {
+        html: extracted.html ?? "",
+        text: extracted.textVersion ?? "",
+      };
+    }
+
+    try {
+      const email =
+        await campaignsService.getEmailContent(normalizedCampaignId);
+      const extracted = extractEmailContent(email);
+      if (
+        (extracted.html?.trim().length ?? 0) > 0 ||
+        (extracted.textVersion?.trim().length ?? 0) > 0
+      ) {
+        return {
+          html: extracted.html ?? "",
+          text: extracted.textVersion ?? "",
+        };
       }
-      return { html, text };
-    },
+    } catch (_e) {
+      String(_e);
+    }
+    throw new Error(
+      "This campaign has no rendered email content yet. Save or regenerate the email before previewing or sending."
+    );
+  };
+
+  const previewMutation = useMutation({
+    mutationFn: getCanonicalPreview,
     onSuccess: (data) => {
       setPreviewHtml(typeof data.html === "string" ? data.html : "");
       setPreviewText(typeof data.text === "string" ? data.text : "");
@@ -75,16 +114,10 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
   const sendTestMutation = useMutation({
     mutationFn: async (payload: { to: string }) => {
       if (!normalizedCampaignId) throw new Error("Missing campaign id.");
-      const subjectOverrideRaw = form.getValues("emailSubject");
-      const subjectOverride =
-        typeof subjectOverrideRaw === "string" &&
-        subjectOverrideRaw.trim().length > 0
-          ? subjectOverrideRaw.trim()
-          : undefined;
-      await campaignsService.sendTest(
-        normalizedCampaignId,
-        subjectOverride ? { ...payload, subjectOverride } : payload
-      );
+      await campaignsService.sendTest(normalizedCampaignId, {
+        ...payload,
+        ...getRenderRequest(),
+      });
     },
     onSuccess: () => {
       toast.success("Test email sent");
@@ -168,9 +201,7 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
                 .setTemplate(normalizedCampaignId, { templateId: clean })
                 .catch((e: unknown) => {
                   const message =
-                    e instanceof Error
-                      ? e.message
-                      : "Failed to apply template";
+                    e instanceof Error ? e.message : "Failed to apply template";
                   toast.error(message);
                 });
             }}
@@ -195,7 +226,8 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
               if (subject) params.set("subject", subject);
               if (senderName) params.set("senderName", senderName);
               if (senderEmail) params.set("senderEmail", senderEmail);
-              if (opts?.templateName) params.set("templateName", opts.templateName);
+              if (opts?.templateName)
+                params.set("templateName", opts.templateName);
 
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
@@ -227,11 +259,12 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
             </Button>
           </div>
           {previewTab === "html" ? (
-            <div className="h-[70vh] overflow-hidden rounded-xl border border-border">
+            <div className="h-[70vh] overflow-hidden rounded-xl border border-border bg-white">
               <iframe
                 title="HTML preview"
                 srcDoc={previewHtml}
-                className="h-full w-full bg-white"
+                sandbox="allow-same-origin allow-scripts"
+                className="h-full w-full"
                 style={{ border: "none" }}
               />
             </div>

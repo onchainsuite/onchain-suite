@@ -11,6 +11,106 @@ const pickNonEmpty = (...values: Array<string | undefined | null>) => {
   return "";
 };
 
+const extractTokenFromCookie = (cookieHeader: string): string | null => {
+  const pairs = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+    .map((part) => {
+      const idx = part.indexOf("=");
+      if (idx === -1) return [part, ""] as const;
+      return [part.slice(0, idx), part.slice(idx + 1)] as const;
+    });
+
+  const cookieMap = new Map(pairs);
+  const raw =
+    cookieMap.get("onchain.token") ??
+    cookieMap.get("better-auth.session_token") ??
+    cookieMap.get("__Secure-better-auth.session_token") ??
+    cookieMap.get("__Host-better-auth.session_token") ??
+    cookieMap.get("better-auth.sessionToken") ??
+    cookieMap.get("__Secure-better-auth.sessionToken") ??
+    cookieMap.get("__Host-better-auth.sessionToken") ??
+    null;
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
+
+const extractBearer = (authorizationHeader: string | null): string | null => {
+  if (!authorizationHeader) return null;
+  const trimmed = authorizationHeader.trim();
+  if (trimmed.length === 0) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(trimmed);
+  if (!match) return null;
+  const token = match[1]?.trim() ?? "";
+  return token.length > 0 ? token : null;
+};
+
+const ensureBackendAuthHeaders = (req: NextRequest, headers: Headers) => {
+  const tokenFromAuth = extractBearer(headers.get("authorization"));
+  const tokenFromHeader =
+    req.headers.get("x-editor-token") ?? req.headers.get("x-session-token");
+  const tokenFromQuery =
+    req.nextUrl.searchParams.get("token") ??
+    req.nextUrl.searchParams.get("sessionToken") ??
+    req.nextUrl.searchParams.get("editorToken");
+  const tokenFromCookie = extractTokenFromCookie(
+    req.headers.get("cookie") ?? ""
+  );
+
+  const token =
+    tokenFromAuth ?? tokenFromHeader ?? tokenFromQuery ?? tokenFromCookie;
+  if (!token) return;
+
+  headers.set("Authorization", `Bearer ${token}`);
+  if (!headers.has("x-session-token")) headers.set("x-session-token", token);
+  if (!headers.has("x-editor-token")) headers.set("x-editor-token", token);
+
+  const existingCookie = headers.get("cookie") ?? "";
+  const hasSessionCookie =
+    /(^|;\s*)(__Secure-)?better-auth\.session_token=/.test(existingCookie) ||
+    /(^|;\s*)(__Host-)?better-auth\.session_token=/.test(existingCookie) ||
+    /(^|;\s*)(__Secure-)?better-auth\.sessionToken=/.test(existingCookie) ||
+    /(^|;\s*)(__Host-)?better-auth\.sessionToken=/.test(existingCookie);
+  const hasOnchainTokenCookie = /(^|;\s*)onchain\.token=/.test(existingCookie);
+
+  let nextCookie = existingCookie;
+  if (!hasSessionCookie) {
+    nextCookie = `${nextCookie}${nextCookie ? "; " : ""}better-auth.session_token=${encodeURIComponent(token)}`;
+  }
+  if (!hasOnchainTokenCookie) {
+    nextCookie = `${nextCookie}${nextCookie ? "; " : ""}onchain.token=${encodeURIComponent(token)}`;
+  }
+  if (nextCookie !== existingCookie) {
+    headers.set("cookie", nextCookie);
+  }
+};
+
+const ensureOrgIdHeader = (req: NextRequest, headers: Headers) => {
+  if (headers.has("x-org-id")) return;
+  const candidate =
+    req.nextUrl.searchParams.get("x-org-id") ??
+    req.nextUrl.searchParams.get("orgId") ??
+    req.nextUrl.searchParams.get("xOrgId") ??
+    req.nextUrl.searchParams.get("organizationId") ??
+    req.nextUrl.searchParams.get("activeOrganizationId") ??
+    null;
+  const cleaned = typeof candidate === "string" ? candidate.trim() : "";
+  if (cleaned.length > 0) headers.set("x-org-id", cleaned);
+};
+
+const getBackendApiKey = () => {
+  return pickNonEmpty(
+    process.env.BACKEND_API_KEY,
+    process.env.NEXT_PUBLIC_BACKEND_API_KEY,
+    process.env.NEXT_PUBLIC_API_KEY
+  );
+};
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ type: string }> }
@@ -98,6 +198,10 @@ export async function POST(
     if (authHeader) headers.set("Authorization", authHeader);
     if (cookieHeader) headers.set("Cookie", cookieHeader);
     if (orgIdHeader) headers.set("x-org-id", orgIdHeader);
+    ensureBackendAuthHeaders(req, headers);
+    ensureOrgIdHeader(req, headers);
+    const apiKey = getBackendApiKey();
+    if (apiKey && !headers.has("x-api-key")) headers.set("x-api-key", apiKey);
 
     let response;
     try {

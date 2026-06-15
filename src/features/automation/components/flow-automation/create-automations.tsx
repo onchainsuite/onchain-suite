@@ -50,6 +50,7 @@ import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { isJsonObject } from "@/lib/utils";
+import { projectSettingsService } from "@/features/settings/project-settings.service";
 
 import "reactflow/dist/style.css";
 import { automationService } from "../../automation.service";
@@ -78,6 +79,10 @@ import {
   getInitialNodes,
   isValidConnection,
 } from "@/features/automation/utils";
+import {
+  buildTriggerContractPatch,
+  resolveContractCatalog,
+} from "@/features/automation/utils/contracts";
 
 // This is a known benign error with ReactFlow that can be safely ignored
 if (typeof window === "undefined") {
@@ -243,6 +248,20 @@ const CreateAutomationContent = () => {
       .filter((x): x is (typeof actionNodes)[number] => !!x);
     return normalized.length > 0 ? normalized : resolvedActionNodes;
   }, [actionsQuery.data, resolvedActionNodes]);
+
+  const projectSettingsQuery = useQuery({
+    queryKey: ["project-settings", "automations"],
+    queryFn: () => projectSettingsService.getProjectSettings(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const contractCatalog = useMemo(() => {
+    return resolveContractCatalog(
+      projectSettingsQuery.data?.contractAddresses,
+      mockContracts
+    );
+  }, [projectSettingsQuery.data?.contractAddresses]);
 
   const automationDetailQuery = useQuery({
     queryKey: ["automations", "detail", automationId],
@@ -476,6 +495,53 @@ const CreateAutomationContent = () => {
       .filter((x): x is (typeof recentEntries)[number] => !!x);
     return mapped.length > 0 ? mapped : recentEntries;
   }, [statsEntriesQuery.data]);
+
+  const selectedNodeDetails = useMemo(
+    () => nodes.find((n) => n.id === selectedNode) ?? null,
+    [nodes, selectedNode]
+  );
+  const selectedNodeData = useMemo(
+    () =>
+      isJsonObject(selectedNodeDetails?.data)
+        ? (selectedNodeDetails.data as Record<string, unknown>)
+        : {},
+    [selectedNodeDetails]
+  );
+  const selectedTemplate = useMemo(() => {
+    const templateId = asString(selectedNodeData.templateId);
+    return (
+      emailTemplates.find((template) => template.id === templateId) ?? null
+    );
+  }, [selectedNodeData]);
+  const selectedNodeStats = useMemo(
+    () =>
+      isJsonObject(selectedNodeData.stats)
+        ? (selectedNodeData.stats as Record<string, unknown>)
+        : {},
+    [selectedNodeData]
+  );
+
+  const updateSelectedNodeData = useCallback(
+    (patch: Record<string, unknown>) => {
+      if (!selectedNode) return;
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id !== selectedNode) return node;
+          const currentData = isJsonObject(node.data)
+            ? (node.data as Record<string, unknown>)
+            : {};
+          return {
+            ...node,
+            data: {
+              ...currentData,
+              ...patch,
+            },
+          };
+        })
+      );
+    },
+    [selectedNode, setNodes]
+  );
 
   useEffect(() => {
     if (isNew) return;
@@ -1037,9 +1103,7 @@ const CreateAutomationContent = () => {
             {/* Properties Panel */}
             <AnimatePresence>
               {selectedNode &&
-                !nodes
-                  .find((n) => n.id === selectedNode)
-                  ?.type?.includes("placeholder") && (
+                !selectedNodeDetails?.type?.includes("placeholder") && (
                   <motion.div
                     initial={{ x: 320, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -1066,23 +1130,40 @@ const CreateAutomationContent = () => {
                         <input
                           type="text"
                           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                          defaultValue={
-                            nodes.find((n) => n.id === selectedNode)?.data.label
+                          value={asString(selectedNodeData.label)}
+                          onChange={(e) =>
+                            updateSelectedNodeData({ label: e.target.value })
                           }
                         />
                       </div>
 
                       {/* Specific fields */}
-                      {nodes.find((n) => n.id === selectedNode)?.type ===
-                        "trigger" && (
+                      {selectedNodeDetails?.type === "trigger" && (
                         <>
                           <div className="space-y-2">
                             <label className="text-xs font-medium text-muted-foreground">
                               Contract
                             </label>
-                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none">
-                              {mockContracts.map((c) => (
-                                <option key={c.address}>{c.name}</option>
+                            <select
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                              value={
+                                asString(selectedNodeData.contractAddress) ||
+                                asString(selectedNodeData.contract)
+                              }
+                              onChange={(e) => {
+                                updateSelectedNodeData(
+                                  buildTriggerContractPatch(
+                                    e.target.value,
+                                    contractCatalog
+                                  )
+                                );
+                              }}
+                            >
+                              <option value="">Select contract</option>
+                              {contractCatalog.map((c) => (
+                                <option key={c.address} value={c.address}>
+                                  {c.name} ({c.chain})
+                                </option>
                               ))}
                             </select>
                           </div>
@@ -1090,25 +1171,53 @@ const CreateAutomationContent = () => {
                             <label className="text-xs font-medium text-muted-foreground">
                               Event
                             </label>
-                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none">
+                            <select
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                              value={asString(selectedNodeData.event)}
+                              onChange={(e) =>
+                                updateSelectedNodeData({
+                                  event: e.target.value,
+                                })
+                              }
+                            >
+                              <option value="">Select event</option>
                               {eventTypes.map((e) => (
-                                <option key={e}>{e}</option>
+                                <option key={e} value={e}>
+                                  {e}
+                                </option>
                               ))}
                             </select>
                           </div>
                         </>
                       )}
 
-                      {nodes.find((n) => n.id === selectedNode)?.type ===
-                        "email" && (
+                      {selectedNodeDetails?.type === "email" && (
                         <>
                           <div className="space-y-2">
                             <label className="text-xs font-medium text-muted-foreground">
                               Template
                             </label>
-                            <select className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none">
+                            <select
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                              value={asString(selectedNodeData.templateId)}
+                              onChange={(e) => {
+                                const template =
+                                  emailTemplates.find(
+                                    (item) => item.id === e.target.value
+                                  ) ?? null;
+                                updateSelectedNodeData({
+                                  templateId: e.target.value,
+                                  templateName: template?.name ?? "",
+                                  subject: template?.subject ?? "",
+                                  previewText: template?.previewText ?? "",
+                                });
+                              }}
+                            >
+                              <option value="">Select template</option>
                               {emailTemplates.map((t) => (
-                                <option key={t.id}>{t.name}</option>
+                                <option key={t.id} value={t.id}>
+                                  {t.name}
+                                </option>
                               ))}
                             </select>
                           </div>
@@ -1118,10 +1227,15 @@ const CreateAutomationContent = () => {
                             </p>
                             <div className="space-y-1">
                               <p className="text-xs font-medium">
-                                Subject: We miss you, vitalik.eth
+                                Subject:{" "}
+                                {(selectedTemplate?.subject ??
+                                  asString(selectedNodeData.subject)) ||
+                                  "Select a template"}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Hi vitalik.eth, we noticed you haven&apos;t...
+                                {(selectedTemplate?.previewText ??
+                                  asString(selectedNodeData.previewText)) ||
+                                  "Template preview text will appear here."}
                               </p>
                             </div>
                           </div>
@@ -1139,8 +1253,7 @@ const CreateAutomationContent = () => {
                               Total Conversions
                             </div>
                             <div className="text-2xl font-bold text-foreground">
-                              {nodes.find((n) => n.id === selectedNode)?.data
-                                .stats?.conversions ?? 0}
+                              {asNumber(selectedNodeStats.conversions)}
                             </div>
                           </div>
                         </div>
@@ -1153,8 +1266,7 @@ const CreateAutomationContent = () => {
                               Active Users
                             </div>
                             <div className="text-2xl font-bold text-foreground">
-                              {nodes.find((n) => n.id === selectedNode)?.data
-                                .stats?.active ?? 0}
+                              {asNumber(selectedNodeStats.active)}
                             </div>
                           </div>
                         </div>
@@ -1167,9 +1279,7 @@ const CreateAutomationContent = () => {
                               Click Rate
                             </div>
                             <div className="text-2xl font-bold text-foreground">
-                              {nodes.find((n) => n.id === selectedNode)?.data
-                                .stats?.clickRate ?? 0}
-                              %
+                              {asNumber(selectedNodeStats.clickRate)}%
                             </div>
                           </div>
                         </div>
@@ -1182,9 +1292,7 @@ const CreateAutomationContent = () => {
                               Revenue
                             </div>
                             <div className="text-2xl font-bold text-foreground">
-                              $
-                              {nodes.find((n) => n.id === selectedNode)?.data
-                                .stats?.revenue ?? 0}
+                              ${asNumber(selectedNodeStats.revenue)}
                             </div>
                           </div>
                         </div>

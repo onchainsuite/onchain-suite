@@ -18,7 +18,7 @@ import {
   parseTimeOfDay,
   zonedWallTimeToUtcDate,
 } from "@/lib/timezone";
-import { isJsonObject } from "@/lib/utils";
+import { extractEmailContent, isJsonObject } from "@/lib/utils";
 
 import {
   type CampaignFormData,
@@ -87,31 +87,68 @@ function CampaignPreviewStep({
     return campaignId && campaignId.trim().length > 0 ? campaignId.trim() : "";
   }, [campaignId]);
 
-  const previewMutation = useMutation({
-    mutationFn: async () => {
-      if (!normalizedCampaignId) throw new Error("Missing campaign id.");
-      try {
-        const preview = await campaignsService.preview(normalizedCampaignId);
-        const html =
-          typeof preview.html === "string" ? preview.html.trim() : "";
-        const text =
-          typeof preview.text === "string" ? preview.text.trim() : "";
-        if (html.length > 0 || text.length > 0) return preview;
-      } catch (_e) {
-        String(_e);
-      }
+  const getRenderRequest = () => {
+    const values = form.getValues();
+    const subject = values.emailSubject?.trim();
+    const previewText = values.previewText?.trim();
+    const senderName = values.senderName?.trim();
+    const senderEmail = values.senderEmail?.trim();
+    const replyToEmail = values.replyToEmail?.trim();
 
-      const editor = await campaignsService.getEditorContent(
-        normalizedCampaignId
-      );
-      const html = typeof editor.html === "string" ? editor.html : "";
-      const text =
-        typeof editor.textVersion === "string" ? editor.textVersion : "";
-      if (html.trim().length === 0 && text.trim().length === 0) {
-        throw new Error("No email content is available to preview.");
+    return {
+      subject: subject && subject.length > 0 ? subject : undefined,
+      previewText:
+        previewText && previewText.length > 0 ? previewText : undefined,
+      senderName: senderName && senderName.length > 0 ? senderName : undefined,
+      senderEmail:
+        senderEmail && senderEmail.length > 0 ? senderEmail : undefined,
+      replyToEmail:
+        values.useReplyTo && replyToEmail && replyToEmail.length > 0
+          ? replyToEmail
+          : undefined,
+    };
+  };
+
+  const getCanonicalPreview = async () => {
+    if (!normalizedCampaignId) throw new Error("Missing campaign id.");
+    const preview = await campaignsService.preview(
+      normalizedCampaignId,
+      getRenderRequest()
+    );
+    const extracted = extractEmailContent(preview);
+    if (
+      (extracted.html?.trim().length ?? 0) > 0 ||
+      (extracted.textVersion?.trim().length ?? 0) > 0
+    ) {
+      return {
+        html: extracted.html ?? "",
+        text: extracted.textVersion ?? "",
+      };
+    }
+
+    try {
+      const email =
+        await campaignsService.getEmailContent(normalizedCampaignId);
+      const extracted = extractEmailContent(email);
+      if (
+        (extracted.html?.trim().length ?? 0) > 0 ||
+        (extracted.textVersion?.trim().length ?? 0) > 0
+      ) {
+        return {
+          html: extracted.html ?? "",
+          text: extracted.textVersion ?? "",
+        };
       }
-      return { html, text };
-    },
+    } catch (_e) {
+      String(_e);
+    }
+    throw new Error(
+      "This campaign has no rendered email content yet. Save or regenerate the email before launch."
+    );
+  };
+
+  const previewMutation = useMutation({
+    mutationFn: getCanonicalPreview,
     onSuccess: (data) => {
       setPreviewHtml(typeof data.html === "string" ? data.html : "");
       setPreviewText(typeof data.text === "string" ? data.text : "");

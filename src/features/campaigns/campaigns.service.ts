@@ -72,8 +72,39 @@ export interface CampaignEditorContent {
   html?: string;
   json?: unknown;
   textVersion?: string;
+  text?: string;
   assets?: unknown;
   [key: string]: unknown;
+}
+
+export interface CampaignRenderRequest extends CampaignEditorContent {
+  subject?: string;
+  previewText?: string;
+  senderName?: string;
+  senderEmail?: string;
+  replyToEmail?: string;
+  to?: string;
+  recipient?: unknown;
+  contact?: unknown;
+  audience?: unknown;
+}
+
+export interface CampaignRenderResponse extends CampaignEditorContent {
+  id?: string;
+  subject?: string;
+  previewText?: string;
+  senderName?: string;
+  senderEmail?: string;
+  replyToEmail?: string;
+  missingFields?: string[];
+  warnings?: string[];
+  source?: {
+    campaignId?: string;
+    templateId?: string;
+    renderedAt?: string;
+    recipient?: unknown;
+    [key: string]: unknown;
+  };
 }
 
 export interface CampaignTypeItem {
@@ -382,19 +413,35 @@ export const campaignsService = {
     );
   },
 
-  preview(id: string, orgId?: string) {
-    return request<{ html?: string; text?: string }>(
-      { method: "POST", url: `/campaigns/${id}/preview` },
+  getEmailContent(id: string, orgId?: string) {
+    return request<CampaignRenderResponse>(
+      { method: "GET", url: `/campaigns/${id}/email` },
       orgId
     );
   },
 
-  sendTest(
-    id: string,
-    body: { to: string; subjectOverride?: string },
-    orgId?: string
-  ) {
-    return request<{ success?: boolean }>(
+  saveEmailContent(id: string, body: CampaignRenderRequest, orgId?: string) {
+    return request<CampaignRenderResponse & { success?: boolean }>(
+      { method: "PUT", url: `/campaigns/${id}/email`, data: body },
+      orgId
+    );
+  },
+
+  preview(id: string, body?: CampaignRenderRequest, orgId?: string) {
+    return request<CampaignRenderResponse>(
+      { method: "POST", url: `/campaigns/${id}/preview`, data: body },
+      orgId
+    );
+  },
+
+  sendTest(id: string, body: CampaignRenderRequest & { to: string }, orgId?: string) {
+    return request<{
+      success?: boolean;
+      messageId?: string;
+      renderedAt?: string;
+      htmlLength?: number;
+      textLength?: number;
+    }>(
       { method: "POST", url: `/campaigns/${id}/send-test`, data: body },
       orgId
     );
