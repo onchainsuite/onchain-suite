@@ -102,6 +102,16 @@ interface SenderIdentityRow {
   dkim: boolean;
   spf: boolean;
   status: SenderStatus;
+  isDefault: boolean;
+}
+
+interface TeamPermissions {
+  canManageMembers: boolean;
+  canManageSenderIdentities: boolean;
+  canEditCampaigns: boolean;
+  canSendEmail: boolean;
+  canLaunchCampaigns: boolean;
+  canViewSettings: boolean;
 }
 
 interface TeamRow {
@@ -109,10 +119,12 @@ interface TeamRow {
   name: string;
   email: string;
   role: string;
+  roleLabel: string;
   avatar: string;
   twoFactorEnabled: boolean | null;
   isEnabled: boolean;
   kind: "member" | "invite";
+  permissions?: TeamPermissions;
 }
 
 const defaultBrandingState: BrandingState = {};
@@ -173,6 +185,26 @@ const pickBoolean = (...values: unknown[]) => {
     }
   }
   return undefined;
+};
+
+const normalizeRoleLabel = (value: unknown) => {
+  if (typeof value !== "string") return "Viewer";
+  const normalized = value.trim().replace(/[_-]+/g, " ").toLowerCase();
+  if (normalized.length === 0) return "Viewer";
+  return normalized.replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const normalizePermissions = (value: unknown): TeamPermissions | undefined => {
+  if (!isJsonObject(value)) return undefined;
+  return {
+    canManageMembers: pickBooleanLike(value.canManageMembers) ?? false,
+    canManageSenderIdentities:
+      pickBooleanLike(value.canManageSenderIdentities) ?? false,
+    canEditCampaigns: pickBooleanLike(value.canEditCampaigns) ?? false,
+    canSendEmail: pickBooleanLike(value.canSendEmail) ?? false,
+    canLaunchCampaigns: pickBooleanLike(value.canLaunchCampaigns) ?? false,
+    canViewSettings: pickBooleanLike(value.canViewSettings) ?? false,
+  };
 };
 
 const pickBooleanLike = (...values: unknown[]) => {
@@ -687,9 +719,16 @@ const normalizeSenders = (
         dkim,
         spf,
         status,
+        isDefault:
+          pickBooleanLike(entry.isDefault, entry.default, entry.isPrimary) ??
+          false,
       } satisfies SenderIdentityRow;
     })
-    .filter((row): row is SenderIdentityRow => Boolean(row));
+    .filter((row): row is SenderIdentityRow => Boolean(row))
+    .sort((left, right) => {
+      if (left.isDefault !== right.isDefault) return left.isDefault ? -1 : 1;
+      return left.email.localeCompare(right.email);
+    });
 };
 
 const normalizeMembers = (payload: unknown): TeamRow[] => {
@@ -704,12 +743,17 @@ const normalizeMembers = (payload: unknown): TeamRow[] => {
         id: pickString(entry.userId, entry.id) ?? `${email}-${index}`,
         name,
         email,
-        role: pickString(entry.role) ?? "Viewer",
+        role:
+          pickString(entry.role)?.toUpperCase() ??
+          pickString(entry.roleLabel)?.toUpperCase() ??
+          "VIEWER",
+        roleLabel: normalizeRoleLabel(entry.roleLabel ?? entry.role),
         avatar: name.charAt(0).toUpperCase(),
         twoFactorEnabled:
           pickBoolean(entry.twoFactorEnabled, entry.twoFAEnabled) ?? false,
         isEnabled: pickBoolean(entry.isEnabled, entry.enabled, true) ?? true,
         kind: "member",
+        permissions: normalizePermissions(entry.permissions),
       } satisfies TeamRow;
     })
     .filter(Boolean) as TeamRow[];
@@ -726,11 +770,15 @@ const normalizeInvites = (payload: unknown): TeamRow[] => {
         id: pickString(entry.id, entry.inviteId) ?? `${email}-${index}`,
         name: pickString(entry.name, entry.invitedName) ?? "Pending invite",
         email,
-        role,
+        role: pickString(entry.role)?.toUpperCase() ?? "VIEWER",
+        roleLabel: normalizeRoleLabel(entry.roleLabel ?? role),
         avatar: email.charAt(0).toUpperCase(),
         twoFactorEnabled: null,
         isEnabled: true,
         kind: "invite",
+        permissions: normalizePermissions(
+          entry.plannedPermissions ?? entry.permissions
+        ),
       } satisfies TeamRow;
     })
     .filter(Boolean) as TeamRow[];
@@ -1109,7 +1157,14 @@ export default function CompanySettingsView() {
             isJsonObject(session?.user)
               ? (session.user as Record<string, unknown>).role
               : undefined
-          ) ?? "Member",
+          ) ?? "MEMBER",
+        roleLabel:
+          normalizeRoleLabel(
+            isJsonObject(session?.user)
+              ? ((session.user as Record<string, unknown>).roleLabel ??
+                  (session.user as Record<string, unknown>).role)
+              : undefined
+          ) || "Member",
         avatar: sessionEmail.charAt(0).toUpperCase(),
         twoFactorEnabled:
           pickBoolean(
@@ -1119,6 +1174,11 @@ export default function CompanySettingsView() {
           ) ?? null,
         isEnabled: true,
         kind: "member" as const,
+        permissions: normalizePermissions(
+          isJsonObject(session?.user)
+            ? (session.user as Record<string, unknown>).permissions
+            : undefined
+        ),
       },
       ...rows,
     ];
@@ -1146,6 +1206,45 @@ export default function CompanySettingsView() {
       (domainDnsStatus?.checks ?? []).filter((check) => check.passed === false),
     [domainDnsStatus]
   );
+  const teamSummary = useMemo(() => {
+    const activeMembers = teamMembers.filter(
+      (member) => member.kind === "member"
+    );
+    const pendingInvites = teamMembers.filter(
+      (member) => member.kind === "invite"
+    );
+    const enabledMembers = activeMembers.filter((member) => member.isEnabled);
+    const sendCapableMembers = enabledMembers.filter(
+      (member) => member.permissions?.canSendEmail === true
+    );
+    const roleCounts = activeMembers.reduce<Record<string, number>>(
+      (acc, member) => {
+        acc[member.roleLabel] = (acc[member.roleLabel] ?? 0) + 1;
+        return acc;
+      },
+      {}
+    );
+
+    return {
+      activeMembers: activeMembers.length,
+      enabledMembers: enabledMembers.length,
+      sendCapableMembers: sendCapableMembers.length,
+      pendingInvites: pendingInvites.length,
+      roleCounts,
+    };
+  }, [teamMembers]);
+  const currentMemberPermissions = useMemo(() => {
+    const sessionEmail = pickString(session?.user?.email)?.toLowerCase();
+    if (!sessionEmail) return undefined;
+    return teamMembers.find(
+      (member) =>
+        member.kind === "member" &&
+        member.email.toLowerCase() === sessionEmail &&
+        member.isEnabled
+    )?.permissions;
+  }, [session?.user?.email, teamMembers]);
+  const canManageSenderIdentities =
+    currentMemberPermissions?.canManageSenderIdentities !== false;
 
   return (
     <>
@@ -1214,8 +1313,8 @@ export default function CompanySettingsView() {
                   Sender verification
                 </CardTitle>
                 <CardDescription>
-                  Verify domains first, then add sender identities and
-                  subdomains.
+                  Verify domains and set up optional sender infrastructure for
+                  branded organization sending.
                 </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -1223,7 +1322,7 @@ export default function CompanySettingsView() {
                   variant="outline"
                   className="rounded-xl"
                   onClick={() => setAddDomainOpen(true)}
-                  disabled={!organizationId}
+                  disabled={!organizationId || !canManageSenderIdentities}
                 >
                   <Globe2 className="mr-2 h-4 w-4" />
                   Add domain
@@ -1232,7 +1331,7 @@ export default function CompanySettingsView() {
                   variant="outline"
                   className="rounded-xl"
                   onClick={() => setAddSenderOpen(true)}
-                  disabled={!organizationId}
+                  disabled={!organizationId || !canManageSenderIdentities}
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Add sender identity
@@ -1372,14 +1471,45 @@ export default function CompanySettingsView() {
                     Sender identities
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    After your domain is verified, add the sender addresses or
-                    subdomains you want to send from.
+                    Add verified sender addresses and subdomains for branded
+                    from-addresses, default sender selection, and domain-backed
+                    deliverability.
                   </p>
                 </div>
                 <Badge variant="outline" className="rounded-full">
                   {senderSummary.verified} verified
                 </Badge>
               </div>
+
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
+                      Shared sending access
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Team roles control who can send. Sender identities are
+                      optional workspace infrastructure the backend can use
+                      first before falling back to the default or platform
+                      sender.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="rounded-full">
+                      {teamSummary.sendCapableMembers} can send
+                    </Badge>
+                    <Badge variant="outline" className="rounded-full">
+                      {senderSummary.verified} verified senders
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              {!canManageSenderIdentities ? (
+                <div className="rounded-2xl border border-dashed border-border/70 bg-background/50 p-4 text-sm text-muted-foreground">
+                  Your role can view sender identities, but only owners and
+                  admins can add, recheck, or manage them.
+                </div>
+              ) : null}
 
               {senderQuery.isLoading ? (
                 <div className="space-y-3">
@@ -1412,8 +1542,16 @@ export default function CompanySettingsView() {
                             <div className="font-medium text-foreground">
                               {sender.email}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                               {sender.name}
+                              {sender.isDefault ? (
+                                <Badge
+                                  variant="outline"
+                                  className="rounded-full"
+                                >
+                                  Default
+                                </Badge>
+                              ) : null}
                             </div>
                           </div>
                         </TableCell>
@@ -1436,7 +1574,9 @@ export default function CompanySettingsView() {
                             size="sm"
                             className="h-8 rounded-lg px-2"
                             disabled={
-                              !sender.id || recheckSenderMutation.isPending
+                              !sender.id ||
+                              recheckSenderMutation.isPending ||
+                              !canManageSenderIdentities
                             }
                             onClick={() =>
                               recheckSenderMutation.mutate(sender.id)
@@ -1468,7 +1608,7 @@ export default function CompanySettingsView() {
                   Team members
                 </CardTitle>
                 <CardDescription>
-                  Manage team access and permissions.
+                  Manage team access, sender access, and member roles.
                 </CardDescription>
               </div>
               <Button
@@ -1480,7 +1620,53 @@ export default function CompanySettingsView() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="space-y-5 p-6">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  Active members
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {teamSummary.activeMembers}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  Can send email
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {teamSummary.sendCapableMembers}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Members with `canSendEmail`
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  Pending invites
+                </div>
+                <div className="mt-2 text-2xl font-semibold text-foreground">
+                  {teamSummary.pendingInvites}
+                </div>
+              </div>
+            </div>
+
+            {Object.keys(teamSummary.roleCounts).length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(teamSummary.roleCounts)
+                  .sort(([left], [right]) => left.localeCompare(right))
+                  .map(([role, count]) => (
+                    <Badge
+                      key={role}
+                      variant="outline"
+                      className="rounded-full"
+                    >
+                      {role}: {count}
+                    </Badge>
+                  ))}
+              </div>
+            ) : null}
+
             {membersQuery.isLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-full rounded-xl" />
@@ -1545,18 +1731,29 @@ export default function CompanySettingsView() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="rounded-full">
-                          {member.role}
+                          {member.roleLabel}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {member.kind === "invite" ? (
-                          <span className="text-xs text-muted-foreground">
-                            Pending invite
-                          </span>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <div>Pending invite</div>
+                            {member.permissions?.canSendEmail ? (
+                              <div>Can send after acceptance</div>
+                            ) : null}
+                          </div>
                         ) : member.isEnabled ? (
-                          <span className="text-xs text-muted-foreground">
-                            Active member
-                          </span>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <div>Active member</div>
+                            {member.permissions?.canSendEmail ? (
+                              <div>Can send for the organization</div>
+                            ) : (
+                              <div>Cannot send email with this role</div>
+                            )}
+                            {member.permissions?.canLaunchCampaigns ? (
+                              <div>Can launch campaigns</div>
+                            ) : null}
+                          </div>
                         ) : (
                           <span className="text-xs text-muted-foreground">
                             Disabled
@@ -1895,7 +2092,8 @@ export default function CompanySettingsView() {
               variant="outline"
               disabled={
                 !domainDnsDialog.domainId ||
-                autoConfigureDomainDnsMutation.isPending
+                autoConfigureDomainDnsMutation.isPending ||
+                !canManageSenderIdentities
               }
               onClick={() => {
                 if (!domainDnsDialog.domainId) return;
@@ -1909,7 +2107,9 @@ export default function CompanySettingsView() {
             </Button>
             <Button
               disabled={
-                !domainDnsDialog.domainId || recheckDomainMutation.isPending
+                !domainDnsDialog.domainId ||
+                recheckDomainMutation.isPending ||
+                !canManageSenderIdentities
               }
               onClick={() => {
                 if (!domainDnsDialog.domainId) return;

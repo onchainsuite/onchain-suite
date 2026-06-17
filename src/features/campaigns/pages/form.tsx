@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Clock, Loader2, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,20 +18,24 @@ import {
   parseTimeOfDay,
   zonedWallTimeToUtcDate,
 } from "@/lib/timezone";
-import { extractEmailContent, isJsonObject } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
+import { apiClient } from "@/lib/api-client";
+import {
+  extractEmailContent,
+  getSelectedOrganizationId,
+  isJsonObject,
+} from "@/lib/utils";
 
 import {
   type CampaignFormData,
   campaignFormSchema,
 } from "../../campaigns/validations";
-import {
-  AudienceStep,
-  CampaignDetailsStep,
-  ConfirmationPage,
-  ScheduleStep,
-  TemplateStep,
-} from "../components/campaign-form";
 import { campaignsService } from "@/features/campaigns/campaigns.service";
+import { AudienceStep } from "@/features/campaigns/components/campaign-form/audience-step";
+import { CampaignDetailsStep } from "@/features/campaigns/components/campaign-form/campaign-details-step";
+import { ConfirmationPage } from "@/features/campaigns/components/campaign-form/campaign-confirmation";
+import { ScheduleStep } from "@/features/campaigns/components/campaign-form/schedule-step";
+import { TemplateStep } from "@/features/campaigns/components/campaign-form/template-step";
 import {
   CAMPAIGN_LISTS,
   CAMPAIGN_SEGMENTS,
@@ -53,6 +57,198 @@ const sendOptions = new Set<CampaignFormData["sendOption"]>([
   "now",
   "schedule",
 ]);
+
+interface SenderIdentityOption {
+  id: string;
+  email: string;
+  name: string;
+  isDefault: boolean;
+  status: "verified" | "pending" | "failed";
+}
+
+interface OrganizationMemberPermissions {
+  canManageMembers: boolean;
+  canManageSenderIdentities: boolean;
+  canEditCampaigns: boolean;
+  canSendEmail: boolean;
+  canLaunchCampaigns: boolean;
+  canViewSettings: boolean;
+}
+
+interface CurrentMemberAccess {
+  id: string;
+  email: string;
+  roleLabel: string;
+  isEnabled: boolean;
+  permissions?: OrganizationMemberPermissions;
+}
+
+const unwrapData = (payload: unknown): unknown => {
+  if (isJsonObject(payload) && "data" in payload) {
+    return payload.data ?? payload;
+  }
+  return payload;
+};
+
+const toArray = (payload: unknown): unknown[] => {
+  const root = unwrapData(payload);
+  if (Array.isArray(root)) return root;
+  if (isJsonObject(root) && Array.isArray(root.items)) return root.items;
+  if (isJsonObject(root) && Array.isArray(root.data)) return root.data;
+  return [];
+};
+
+const pickString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return undefined;
+};
+
+const pickBooleanLike = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") {
+      if (value === 1) return true;
+      if (value === 0) return false;
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (
+        [
+          "true",
+          "1",
+          "yes",
+          "enabled",
+          "active",
+          "verified",
+          "default",
+        ].includes(normalized)
+      ) {
+        return true;
+      }
+      if (
+        [
+          "false",
+          "0",
+          "no",
+          "disabled",
+          "inactive",
+          "pending",
+          "failed",
+        ].includes(normalized)
+      ) {
+        return false;
+      }
+    }
+  }
+  return undefined;
+};
+
+const resolveSenderStatus = (
+  ...values: unknown[]
+): SenderIdentityOption["status"] => {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const normalized = value.trim().toLowerCase();
+    if (normalized.includes("ver")) return "verified";
+    if (normalized.includes("pend")) return "pending";
+    if (normalized.includes("fail")) return "failed";
+  }
+  return "pending";
+};
+
+const normalizeSenderIdentities = (
+  payload: unknown
+): SenderIdentityOption[] => {
+  return toArray(payload)
+    .map((entry, index) => {
+      if (!isJsonObject(entry)) return null;
+      const email = pickString(
+        entry.email,
+        entry.senderEmail,
+        entry.address,
+        entry.fromEmail
+      );
+      if (!email) return null;
+      return {
+        id:
+          pickString(entry.id, entry.senderId, entry.identityId) ??
+          `${email}-${index}`,
+        email,
+        name:
+          pickString(entry.name, entry.senderName, entry.displayName) ??
+          email.split("@")[0] ??
+          "Sender",
+        isDefault:
+          pickBooleanLike(entry.isDefault, entry.default, entry.isPrimary) ??
+          false,
+        status: resolveSenderStatus(
+          entry.status,
+          entry.verificationStatus,
+          entry.state,
+          pickBooleanLike(entry.verified, entry.isVerified)
+            ? "verified"
+            : "pending"
+        ),
+      } satisfies SenderIdentityOption;
+    })
+    .filter((entry): entry is SenderIdentityOption => Boolean(entry))
+    .sort((left, right) => {
+      if (left.isDefault !== right.isDefault) {
+        return left.isDefault ? -1 : 1;
+      }
+      return left.email.localeCompare(right.email);
+    });
+};
+
+const normalizeMemberPermissions = (
+  payload: unknown
+): OrganizationMemberPermissions | undefined => {
+  if (!isJsonObject(payload)) return undefined;
+  return {
+    canManageMembers: pickBooleanLike(payload.canManageMembers) ?? false,
+    canManageSenderIdentities:
+      pickBooleanLike(payload.canManageSenderIdentities) ?? false,
+    canEditCampaigns: pickBooleanLike(payload.canEditCampaigns) ?? false,
+    canSendEmail: pickBooleanLike(payload.canSendEmail) ?? false,
+    canLaunchCampaigns: pickBooleanLike(payload.canLaunchCampaigns) ?? false,
+    canViewSettings: pickBooleanLike(payload.canViewSettings) ?? false,
+  };
+};
+
+const normalizeCurrentMemberAccess = (
+  payload: unknown,
+  sessionUser: { email?: string | null; id?: string | null } | undefined
+): CurrentMemberAccess | null => {
+  const sessionEmail = sessionUser?.email?.trim().toLowerCase();
+  const sessionUserId = sessionUser?.id?.trim();
+
+  if (!sessionEmail && !sessionUserId) return null;
+
+  for (const entry of toArray(payload)) {
+    if (!isJsonObject(entry)) continue;
+    const email = pickString(entry.email, entry.userEmail)?.toLowerCase();
+    const id = pickString(entry.userId, entry.id);
+    const matchesEmail = Boolean(sessionEmail && email === sessionEmail);
+    const matchesId = Boolean(sessionUserId && id === sessionUserId);
+    if (!matchesEmail && !matchesId) continue;
+
+    return {
+      id: id ?? email ?? "current-member",
+      email: email ?? sessionEmail ?? "",
+      roleLabel:
+        pickString(entry.roleLabel, entry.role, entry.roleName) ?? "Viewer",
+      isEnabled:
+        pickBooleanLike(entry.isEnabled, entry.enabled, entry.active) ?? true,
+      permissions: normalizeMemberPermissions(entry.permissions),
+    };
+  }
+
+  return null;
+};
 
 const asCampaignType = (
   value: unknown
@@ -333,10 +529,12 @@ export function CreateCampaignPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { timezone: activeTimezone } = useActiveTimezone();
+  const { data: session } = authClient.useSession();
   const safeSearchParams = useMemo(
     () => searchParams ?? new URLSearchParams(),
     [searchParams]
   );
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
   const initialStep = useMemo(() => {
     const raw = Number(safeSearchParams.get("step") ?? "1");
@@ -386,6 +584,119 @@ export function CreateCampaignPage() {
       timezone: "UTC",
     },
   });
+
+  useEffect(() => {
+    const syncSelectedOrgId = () => {
+      setSelectedOrgId(getSelectedOrganizationId());
+    };
+
+    syncSelectedOrgId();
+    window.addEventListener("onchain:org-changed", syncSelectedOrgId);
+    return () =>
+      window.removeEventListener("onchain:org-changed", syncSelectedOrgId);
+  }, []);
+
+  const organizationId = useMemo(() => {
+    const selected = selectedOrgId?.trim();
+    if (selected) return selected;
+    const active = session?.session?.activeOrganizationId;
+    return typeof active === "string" && active.trim().length > 0
+      ? active.trim()
+      : null;
+  }, [selectedOrgId, session?.session?.activeOrganizationId]);
+
+  const orgHeaders = useMemo(
+    () =>
+      organizationId
+        ? {
+            "x-org-id": organizationId,
+            "x-onchain-silent-error": "1",
+          }
+        : undefined,
+    [organizationId]
+  );
+
+  const senderIdentitiesQuery = useQuery({
+    queryKey: ["campaigns", "sender-identities", organizationId],
+    enabled: Boolean(organizationId && orgHeaders),
+    retry: false,
+    queryFn: async () => {
+      const response = await apiClient.get("/sender-identities", {
+        headers: orgHeaders,
+      });
+      return normalizeSenderIdentities(response.data);
+    },
+  });
+
+  const currentMemberAccessQuery = useQuery({
+    queryKey: ["campaigns", "member-access", organizationId, session?.user?.id],
+    enabled: Boolean(organizationId && orgHeaders),
+    retry: false,
+    queryFn: async () => {
+      const response = await apiClient.get(
+        `/organizations/${organizationId}/members`,
+        {
+          headers: orgHeaders,
+        }
+      );
+      return normalizeCurrentMemberAccess(response.data, {
+        email: session?.user?.email ?? null,
+        id:
+          typeof session?.user?.id === "string"
+            ? session.user.id
+            : typeof session?.session?.userId === "string"
+              ? session.session.userId
+              : null,
+      });
+    },
+  });
+
+  const verifiedSenderIdentities = useMemo(
+    () =>
+      (senderIdentitiesQuery.data ?? []).filter(
+        (identity) => identity.status === "verified"
+      ),
+    [senderIdentitiesQuery.data]
+  );
+
+  const currentMemberAccess = currentMemberAccessQuery.data;
+  const canSendEmail =
+    currentMemberAccess?.isEnabled === false
+      ? false
+      : currentMemberAccess?.permissions?.canSendEmail !== false;
+  const canLaunchCampaigns =
+    currentMemberAccess?.isEnabled === false
+      ? false
+      : currentMemberAccess?.permissions?.canLaunchCampaigns !== false;
+
+  useEffect(() => {
+    const currentSenderEmail = form.getValues("senderEmail").trim();
+    if (currentSenderEmail.length > 0) return;
+    if (verifiedSenderIdentities.length === 0) return;
+
+    const preferredSender =
+      verifiedSenderIdentities.find((identity) => identity.isDefault) ??
+      verifiedSenderIdentities[0];
+    if (!preferredSender) return;
+
+    form.setValue("senderEmail", preferredSender.email, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: true,
+    });
+
+    const currentSenderName = form.getValues("senderName").trim();
+    if (
+      currentSenderName.length === 0 ||
+      currentSenderName === "Pivotup Media"
+    ) {
+      form.setValue("senderName", preferredSender.name, {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: true,
+      });
+    }
+  }, [form, verifiedSenderIdentities]);
 
   useEffect(() => {
     const current = form.getValues("timezone");
@@ -790,6 +1101,10 @@ export function CreateCampaignPage() {
       toast.error("Missing campaign id.");
       return;
     }
+    if (!canLaunchCampaigns) {
+      toast.error("Your role cannot launch campaigns for this organization.");
+      return;
+    }
 
     try {
       const data = form.getValues();
@@ -901,7 +1216,13 @@ export function CreateCampaignPage() {
                   {currentStep === 1 && <CampaignDetailsStep form={form} />}
                   {currentStep === 2 && <AudienceStep form={form} />}
                   {currentStep === 3 && (
-                    <TemplateStep form={form} campaignId={campaignId} />
+                    <TemplateStep
+                      form={form}
+                      campaignId={campaignId}
+                      verifiedSenderIdentities={verifiedSenderIdentities}
+                      senderIdentitiesLoading={senderIdentitiesQuery.isLoading}
+                      canSendEmail={canSendEmail}
+                    />
                   )}
                   {currentStep === 4 && <ScheduleStep form={form} />}
                   {currentStep === 5 && (
@@ -923,20 +1244,31 @@ export function CreateCampaignPage() {
                       </Button>
 
                       {currentStep === TOTAL_STEPS ? (
-                        <Button
-                          type="submit"
-                          disabled={!campaignId || isBootstrappingCampaign}
-                          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-[1.02]"
-                        >
-                          {sendOption === "now"
-                            ? "Send Campaign Now"
-                            : "Schedule Campaign"}
-                          {sendOption === "now" ? (
-                            <Send className="ml-2 h-4 w-4" />
-                          ) : (
-                            <Clock className="ml-2 h-4 w-4" />
+                        <div className="flex flex-col items-end gap-2">
+                          {!canLaunchCampaigns && (
+                            <div className="text-right text-xs text-muted-foreground">
+                              Your role cannot launch campaigns for this organization.
+                            </div>
                           )}
-                        </Button>
+                          <Button
+                            type="submit"
+                            disabled={
+                              !campaignId ||
+                              isBootstrappingCampaign ||
+                              !canLaunchCampaigns
+                            }
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-[1.02]"
+                          >
+                            {sendOption === "now"
+                              ? "Send Campaign Now"
+                              : "Schedule Campaign"}
+                            {sendOption === "now" ? (
+                              <Send className="ml-2 h-4 w-4" />
+                            ) : (
+                              <Clock className="ml-2 h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       ) : (
                         <Button
                           type="button"

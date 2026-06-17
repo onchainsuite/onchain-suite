@@ -17,12 +17,26 @@ import type { CampaignFormData } from "../../validations";
 import { EmailMessageForm } from "./email-message-form";
 import { TemplateSelector } from "./template-selector";
 
-interface TemplateStepProps {
+export interface TemplateStepProps {
   form: UseFormReturn<CampaignFormData>;
   campaignId?: string;
+  verifiedSenderIdentities: Array<{
+    id: string;
+    email: string;
+    name: string;
+    isDefault: boolean;
+  }>;
+  senderIdentitiesLoading: boolean;
+  canSendEmail: boolean;
 }
 
-export function TemplateStep({ form, campaignId }: TemplateStepProps) {
+export function TemplateStep({
+  form,
+  campaignId,
+  verifiedSenderIdentities,
+  senderIdentitiesLoading,
+  canSendEmail,
+}: TemplateStepProps) {
   const router = useRouter();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTab, setPreviewTab] = useState<"html" | "text">("html");
@@ -133,7 +147,11 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
     <div className="animate-in fade-in duration-500">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <EmailMessageForm form={form} />
+          <EmailMessageForm
+            form={form}
+            verifiedSenderIdentities={verifiedSenderIdentities}
+            senderIdentitiesLoading={senderIdentitiesLoading}
+          />
           <div className="border-t border-border bg-card p-4">
             <div className="flex flex-col gap-3">
               <div className="text-sm font-medium text-foreground">
@@ -167,7 +185,8 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
                     disabled={
                       !normalizedCampaignId ||
                       sendTestMutation.isPending ||
-                      testTo.trim().length === 0
+                      testTo.trim().length === 0 ||
+                      !canSendEmail
                     }
                     onClick={() =>
                       sendTestMutation.mutate({ to: testTo.trim() })
@@ -186,6 +205,11 @@ export function TemplateStep({ form, campaignId }: TemplateStepProps) {
                   Create the campaign draft first to enable preview/test.
                 </div>
               )}
+              {normalizedCampaignId && !canSendEmail ? (
+                <div className="text-xs text-muted-foreground">
+                  Your role cannot send test emails for this organization.
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
