@@ -27,13 +27,6 @@ import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -53,6 +46,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { fadeInUp } from "@/features/settings/utils";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 type LogoType = "primary" | "dark" | "favicon";
 type SenderStatus = "verified" | "pending" | "failed";
@@ -1256,90 +1250,73 @@ export default function CompanySettingsView() {
         className="mx-auto max-w-6xl space-y-8 py-8"
       >
         <CompanyEditForm />
-        <Card className="overflow-hidden rounded-3xl border-border/60 bg-card/70 shadow-sm">
-          <CardHeader className="border-b border-border/50 pb-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Palette className="h-5 w-5 text-primary" />
-                  Branding
-                </CardTitle>
-                <CardDescription className="mt-1 max-w-xl">
-                  Customize your brand appearance across all touchpoints.
-                </CardDescription>
-              </div>
-              <Badge variant="outline" className="rounded-full px-3 py-1">
-                Brand kit
-              </Badge>
+        <SettingsSectionCard
+          title="Branding"
+          description="Customize your brand appearance across all touchpoints."
+          icon={<Palette className="h-5 w-5" />}
+          badge="Brand kit"
+        >
+          <section className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">
+                Upload your logos for light and dark backgrounds
+              </h3>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-8 p-6">
-            <section className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">
-                  Upload your logos for light and dark backgrounds
-                </h3>
-              </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                <LogoTile
-                  label="Primary logo"
-                  spec="SVG, PNG • 400×100px"
-                  previewUrl={branding.primaryLogoUrl}
-                  onClick={() => setLogoModal({ open: true, type: "primary" })}
-                />
-                <LogoTile
-                  label="Dark mode logo"
-                  spec="SVG, PNG • 400×100px"
-                  previewUrl={branding.darkLogoUrl}
-                  onClick={() => setLogoModal({ open: true, type: "dark" })}
-                />
-                <LogoTile
-                  label="Favicon"
-                  spec="ICO, PNG • 32×32px"
-                  previewUrl={branding.faviconUrl}
-                  onClick={() => setLogoModal({ open: true, type: "favicon" })}
-                />
-              </div>
-            </section>
-          </CardContent>
-        </Card>
+            <div className="grid gap-4 md:grid-cols-3">
+              <LogoTile
+                label="Primary logo"
+                spec="SVG, PNG • 400×100px"
+                previewUrl={branding.primaryLogoUrl}
+                onClick={() => setLogoModal({ open: true, type: "primary" })}
+              />
+              <LogoTile
+                label="Dark mode logo"
+                spec="SVG, PNG • 400×100px"
+                previewUrl={branding.darkLogoUrl}
+                onClick={() => setLogoModal({ open: true, type: "dark" })}
+              />
+              <LogoTile
+                label="Favicon"
+                spec="ICO, PNG • 32×32px"
+                previewUrl={branding.faviconUrl}
+                onClick={() => setLogoModal({ open: true, type: "favicon" })}
+              />
+            </div>
+          </section>
+        </SettingsSectionCard>
 
-        <Card className="rounded-3xl border-border/60 bg-card/70 shadow-sm">
-          <CardHeader className="border-b border-border/50 pb-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <KeyRound className="h-5 w-5 text-primary" />
-                  Sender verification
-                </CardTitle>
-                <CardDescription>
-                  Verify domains and set up optional sender infrastructure for
-                  branded organization sending.
-                </CardDescription>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  className="rounded-xl"
-                  onClick={() => setAddDomainOpen(true)}
-                  disabled={!organizationId || !canManageSenderIdentities}
-                >
-                  <Globe2 className="mr-2 h-4 w-4" />
-                  Add domain
-                </Button>
-                <Button
-                  variant="outline"
-                  className="rounded-xl"
-                  onClick={() => setAddSenderOpen(true)}
-                  disabled={!organizationId || !canManageSenderIdentities}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add sender identity
-                </Button>
-              </div>
+        <SettingsSectionCard
+          title="Sender verification"
+          description="Verify domains and set up sender infrastructure for branded organization sending."
+          icon={<KeyRound className="h-5 w-5" />}
+          badge={
+            domainSummary.pending > 0
+              ? `${domainSummary.pending} pending`
+              : "Ready"
+          }
+        >
+          <div className="space-y-5">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setAddDomainOpen(true)}
+                disabled={!organizationId || !canManageSenderIdentities}
+              >
+                <Globe2 className="mr-2 h-4 w-4" />
+                Add domain
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setAddSenderOpen(true)}
+                disabled={!organizationId || !canManageSenderIdentities}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add sender identity
+              </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-5 p-6">
+
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
                 <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -1596,21 +1573,17 @@ export default function CompanySettingsView() {
                 </Table>
               )}
             </section>
-          </CardContent>
-        </Card>
+          </div>
+        </SettingsSectionCard>
 
-        <Card className="rounded-3xl border-border/60 bg-card/70 shadow-sm">
-          <CardHeader className="border-b border-border/50 pb-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Users className="h-5 w-5 text-primary" />
-                  Team members
-                </CardTitle>
-                <CardDescription>
-                  Manage team access, sender access, and member roles.
-                </CardDescription>
-              </div>
+        <SettingsSectionCard
+          title="Team members"
+          description="Manage team access, sender access, and member roles."
+          icon={<Users className="h-5 w-5" />}
+          badge={`${teamSummary.activeMembers} active members`}
+        >
+          <div className="space-y-5">
+            <div className="flex justify-end">
               <Button
                 variant="outline"
                 className="rounded-xl"
@@ -1619,8 +1592,6 @@ export default function CompanySettingsView() {
                 Invite user
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-5 p-6">
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
                 <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -1765,8 +1736,8 @@ export default function CompanySettingsView() {
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SettingsSectionCard>
       </motion.div>
 
       <LogoUpload

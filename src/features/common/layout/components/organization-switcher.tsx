@@ -37,6 +37,7 @@ interface Organization {
 }
 
 const ORG_LIST_CACHE_TTL_MS = 60_000;
+const ORG_VERIFIED_SESSION_KEY = "onchain.verifiedOrgId";
 let organizationListCache: Organization[] | null = null;
 let organizationListCacheExpiresAt = 0;
 let organizationListInflight: Promise<Organization[]> | null = null;
@@ -64,11 +65,33 @@ export function OrganizationSwitcher() {
     return undefined;
   }, []);
 
+  const getVerifiedOrgId = React.useCallback(() => {
+    if (typeof window === "undefined") return null;
+    const value = window.sessionStorage.getItem(ORG_VERIFIED_SESSION_KEY);
+    return value && value.trim().length > 0 ? value.trim() : null;
+  }, []);
+
+  const setVerifiedOrgId = React.useCallback((orgId: string | null) => {
+    if (typeof window === "undefined") return;
+    if (orgId && orgId.trim().length > 0) {
+      window.sessionStorage.setItem(ORG_VERIFIED_SESSION_KEY, orgId.trim());
+      return;
+    }
+    window.sessionStorage.removeItem(ORG_VERIFIED_SESSION_KEY);
+  }, []);
+
   const setSelectedOrgCookieValue = React.useCallback((orgId: string) => {
     if (typeof document === "undefined") return;
     document.cookie = `${ORG_SELECTION_COOKIE}=${encodeURIComponent(orgId)}; path=/; samesite=lax`;
     setSelectedOrgCookie(orgId);
-  }, []);
+    const verifiedOrgId =
+      typeof window !== "undefined"
+        ? window.sessionStorage.getItem(ORG_VERIFIED_SESSION_KEY)
+        : null;
+    if (verifiedOrgId && verifiedOrgId !== orgId) {
+      setVerifiedOrgId(null);
+    }
+  }, [setVerifiedOrgId]);
 
   const toOrganization = React.useCallback(
     (raw: unknown): Organization | null => {
@@ -169,8 +192,14 @@ export function OrganizationSwitcher() {
       typeof session?.session?.activeOrganizationId === "string"
         ? session.session.activeOrganizationId.trim()
         : "";
-    if (sessionOrgId.length > 0) setActiveOrgId(sessionOrgId);
-  }, [session?.session?.activeOrganizationId]);
+    if (sessionOrgId.length > 0) {
+      setActiveOrgId(sessionOrgId);
+      const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
+      if (cookieOrgId === sessionOrgId) {
+        setVerifiedOrgId(sessionOrgId);
+      }
+    }
+  }, [session?.session?.activeOrganizationId, setVerifiedOrgId]);
 
   React.useEffect(() => {
     const fetchOrganizations = async () => {
@@ -339,7 +368,11 @@ export function OrganizationSwitcher() {
 
   const handleSwitchOrg = React.useCallback(
     async (orgId: string, silent = false) => {
-      if (orgId === activeOrgId) {
+      const sessionActiveOrgId =
+        typeof session?.session?.activeOrganizationId === "string"
+          ? session.session.activeOrganizationId
+          : null;
+      if (orgId === activeOrgId && (!silent || sessionActiveOrgId === orgId)) {
         setSelectedOrgCookieValue(orgId);
         if (!silent) {
           window.dispatchEvent(
@@ -376,10 +409,10 @@ export function OrganizationSwitcher() {
         const success = payloadObj
           ? (payloadObj.success ?? payloadObj.ok ?? nestedData?.success)
           : undefined;
-
         if (ok && success !== false) {
           setSelectedOrgCookieValue(orgId);
           setActiveOrgId(orgId);
+          setVerifiedOrgId(orgId);
           if (!silent) toast.success("Switched organization");
           await authClient.getSession();
           window.dispatchEvent(
@@ -434,7 +467,15 @@ export function OrganizationSwitcher() {
         setIsLoading(false);
       }
     },
-    [activeOrgId, pickNonEmptyString, router, setSelectedOrgCookieValue]
+    [
+      activeOrgId,
+      pickNonEmptyString,
+      router,
+      selectedOrgCookie,
+      session?.session?.activeOrganizationId,
+      setSelectedOrgCookieValue,
+      setVerifiedOrgId,
+    ]
   );
 
   React.useEffect(() => {
@@ -445,9 +486,23 @@ export function OrganizationSwitcher() {
         : null;
     const cookieOrgId = getCookieValue(ORG_SELECTION_COOKIE);
     setSelectedOrgCookie(cookieOrgId);
-    if (!cookieOrgId) return;
+    if (!cookieOrgId) {
+      setVerifiedOrgId(null);
+      return;
+    }
+    const verifiedOrgId = getVerifiedOrgId();
+    if (verifiedOrgId === cookieOrgId) {
+      if (!activeOrgId) setActiveOrgId(cookieOrgId);
+      return;
+    }
     if (lastAutoSyncOrgIdRef.current === cookieOrgId) return;
-    if (sessionOrgId === cookieOrgId && activeOrgId === cookieOrgId) return;
+    if (sessionOrgId === cookieOrgId) {
+      if (activeOrgId !== cookieOrgId) {
+        setActiveOrgId(cookieOrgId);
+      }
+      setVerifiedOrgId(cookieOrgId);
+      return;
+    }
     if (
       !activeOrgId ||
       activeOrgId !== cookieOrgId ||
@@ -456,7 +511,14 @@ export function OrganizationSwitcher() {
       lastAutoSyncOrgIdRef.current = cookieOrgId;
       handleSwitchOrg(cookieOrgId, true);
     }
-  }, [activeOrgId, handleSwitchOrg, isMounted, session]);
+  }, [
+    activeOrgId,
+    getVerifiedOrgId,
+    handleSwitchOrg,
+    isMounted,
+    session,
+    setVerifiedOrgId,
+  ]);
 
   if (!isMounted || !session) {
     return (

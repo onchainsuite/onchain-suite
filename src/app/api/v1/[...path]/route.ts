@@ -156,6 +156,27 @@ const reportEmailDebug = (
   }).catch(() => undefined);
 };
 
+const reportSettingsProfileBillingDebug = (
+  hypothesisId: "A" | "B" | "C" | "D" | "E",
+  location: string,
+  msg: string,
+  data: Record<string, unknown>
+) => {
+  fetch("http://127.0.0.1:7777/event", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      sessionId: "settings-profile-billing",
+      runId: "pre-fix",
+      hypothesisId,
+      location,
+      msg,
+      data,
+      ts: Date.now(),
+    }),
+  }).catch(() => undefined);
+};
+
 const extractTokenFromCookie = (cookieHeader: string): string | null => {
   const pairs = cookieHeader
     .split(";")
@@ -168,15 +189,7 @@ const extractTokenFromCookie = (cookieHeader: string): string | null => {
     });
 
   const cookieMap = new Map(pairs);
-  const raw =
-    cookieMap.get("onchain.token") ??
-    cookieMap.get("better-auth.session_token") ??
-    cookieMap.get("__Secure-better-auth.session_token") ??
-    cookieMap.get("__Host-better-auth.session_token") ??
-    cookieMap.get("better-auth.sessionToken") ??
-    cookieMap.get("__Secure-better-auth.sessionToken") ??
-    cookieMap.get("__Host-better-auth.sessionToken") ??
-    null;
+  const raw = cookieMap.get("onchain.token") ?? null;
   if (!raw) return null;
   try {
     return decodeURIComponent(raw);
@@ -184,6 +197,11 @@ const extractTokenFromCookie = (cookieHeader: string): string | null => {
     return raw;
   }
 };
+
+const hasBetterAuthSessionCookie = (cookieHeader: string) =>
+  /(^|;\s*)(?:__Secure-|__Host-)?better-auth\.(?:session_token|sessionToken)=/.test(
+    cookieHeader
+  );
 
 const extractBearer = (authorizationHeader: string | null): string | null => {
   if (!authorizationHeader) return null;
@@ -313,7 +331,6 @@ const buildBackendHeaders = (req: NextRequest) => {
 };
 
 const fetchBackendJson = async (
-  req: NextRequest,
   input: string,
   init: RequestInit
 ): Promise<{ ok: boolean; status: number; json: unknown; text: string }> => {
@@ -505,20 +522,16 @@ const handleAudienceImportExport = async (
         body: Record<string, unknown>,
         rowNumber?: number
       ) => {
-        const res = await fetchBackendJson(
-          req,
-          `${backendBase}/audience/profiles`,
-          {
-            method: "POST",
-            headers: (() => {
-              const h = new Headers(backendHeaders);
-              h.set("content-type", "application/json");
-              return h;
-            })(),
-            body: JSON.stringify(body),
-            cache: "no-store",
-          }
-        );
+        const res = await fetchBackendJson(`${backendBase}/audience/profiles`, {
+          method: "POST",
+          headers: (() => {
+            const h = new Headers(backendHeaders);
+            h.set("content-type", "application/json");
+            return h;
+          })(),
+          body: JSON.stringify(body),
+          cache: "no-store",
+        });
         if (res.ok) {
           job.createdCount += 1;
           return;
@@ -878,7 +891,7 @@ const handleAudienceImportExport = async (
         const all: unknown[] = [];
         while (all.length < maxItems) {
           const url = `${backendBase}/audience/profiles?page=${page}&limit=${limit}`;
-          const res = await fetchBackendJson(req, url, {
+          const res = await fetchBackendJson(url, {
             method: "GET",
             headers: backendHeaders,
             cache: "no-store",
@@ -1748,9 +1761,10 @@ const ensureBackendAuthHeaders = (req: NextRequest, headers: Headers) => {
     req.nextUrl.searchParams.get("token") ??
     req.nextUrl.searchParams.get("sessionToken") ??
     req.nextUrl.searchParams.get("editorToken");
-  const tokenFromCookie = extractTokenFromCookie(
-    req.headers.get("cookie") ?? ""
-  );
+  const cookieHeader = req.headers.get("cookie") ?? "";
+  const tokenFromCookie = hasBetterAuthSessionCookie(cookieHeader)
+    ? null
+    : extractTokenFromCookie(cookieHeader);
 
   const token =
     tokenFromAuth ?? tokenFromHeader ?? tokenFromQuery ?? tokenFromCookie;
@@ -1839,6 +1853,32 @@ const forward = async (
   const apiKey = getBackendApiKey();
   if (apiKey && !headers.has("x-api-key")) {
     headers.set("x-api-key", apiKey);
+  }
+  const isSettingsBillingPath =
+    path[0] === "billing" ||
+    (path[0] === "organization" && path.includes("billing"));
+  if (isSettingsBillingPath) {
+    // #region debug-point C:billing-proxy-start
+    reportSettingsProfileBillingDebug(
+      "C",
+      "src/app/api/v1/[...path]/route.ts:1861",
+      "[DEBUG] billing proxy request",
+      {
+        method,
+        path: path.join("/"),
+        targetUrl,
+        hasAuthorization: headers.has("authorization"),
+        hasApiKey: headers.has("x-api-key"),
+        hasOrgId: headers.has("x-org-id"),
+        orgId: headers.get("x-org-id"),
+        cookieNames: (req.headers.get("cookie") ?? "")
+          .split(";")
+          .map((item) => item.trim().split("=")[0])
+          .filter(Boolean)
+          .slice(0, 12),
+      }
+    );
+    // #endregion
   }
 
   const hasBody = !["GET", "HEAD"].includes(method);
@@ -1974,6 +2014,22 @@ const forward = async (
       body,
       cache: "no-store",
     });
+    if (isSettingsBillingPath) {
+      // #region debug-point C:billing-proxy-response
+      reportSettingsProfileBillingDebug(
+        "C",
+        "src/app/api/v1/[...path]/route.ts:1995",
+        "[DEBUG] billing proxy response",
+        {
+          method,
+          path: path.join("/"),
+          targetUrl,
+          status: upstream.status,
+          contentType: upstream.headers.get("content-type"),
+        }
+      );
+      // #endregion
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : "Upstream request failed";
     const res = NextResponse.json(

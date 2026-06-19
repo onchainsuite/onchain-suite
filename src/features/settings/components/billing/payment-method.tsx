@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import { CreditCard } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -29,6 +31,7 @@ import {
 
 const PaymentMethod = () => {
   const queryClient = useQueryClient();
+  const [isOpen, setIsOpen] = React.useState(false);
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [type, setType] = React.useState<"card" | "crypto">("card");
   const [brand, setBrand] = React.useState("");
@@ -38,8 +41,13 @@ const PaymentMethod = () => {
   const methodsQuery = useQuery({
     queryKey: ["billing", "payment-methods"],
     queryFn: () => billingService.listPaymentMethods(),
+    enabled: isOpen,
     retry: false,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const setDefaultMutation = useMutation({
@@ -71,14 +79,32 @@ const PaymentMethod = () => {
   });
 
   const methodsData: unknown = methodsQuery.data;
-  const methodsRaw = isJsonObject(methodsData)
-    ? Array.isArray(methodsData.items)
-      ? methodsData.items
-      : Array.isArray(methodsData.data)
-        ? methodsData.data
-        : undefined
-    : undefined;
+  const methodsRaw = Array.isArray(methodsData)
+    ? methodsData
+    : isJsonObject(methodsData)
+      ? Array.isArray(methodsData.items)
+        ? methodsData.items
+        : Array.isArray(methodsData.data)
+          ? methodsData.data
+          : undefined
+      : undefined;
   const methods = Array.isArray(methodsRaw) ? methodsRaw : [];
+  const defaultMethod = methods.find(
+    (method) => isJsonObject(method) && Boolean(method.isDefault)
+  );
+  const defaultMethodLabel = isJsonObject(defaultMethod)
+    ? [
+        typeof defaultMethod.brand === "string"
+          ? defaultMethod.brand
+          : "Payment",
+        typeof defaultMethod.last4 === "string" &&
+        defaultMethod.last4.length > 0
+          ? `ending in ${defaultMethod.last4}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : null;
 
   const addMutation = useMutation({
     mutationFn: async () => {
@@ -120,109 +146,127 @@ const PaymentMethod = () => {
       initial="initial"
       animate="animate"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <motion.h2
-            variants={fadeInUp}
-            className="text-xl font-light tracking-tight text-foreground lg:text-2xl"
-          >
-            Payment method
-          </motion.h2>
-          <motion.p variants={fadeInUp} className="mt-3 text-muted-foreground">
-            Manage your payment details
-          </motion.p>
-        </div>
-        <motion.div variants={fadeInUp}>
-          <Button
-            className="rounded-xl"
-            onClick={() => setShowAddModal(true)}
-            disabled={methodsQuery.isLoading || addMutation.isPending}
-          >
-            Add payment method
-          </Button>
-        </motion.div>
-      </div>
-
-      <motion.div
-        variants={fadeInUp}
-        className="mt-8 border-t border-border/60 pt-8 lg:mt-10 lg:pt-10"
+      <SettingsSectionCard
+        title="Payment methods"
+        description="Manage the cards and crypto methods used for billing."
+        icon={<CreditCard className="h-5 w-5" />}
+        badge={`${methods.length} method${methods.length === 1 ? "" : "s"} saved`}
+        onOpenChange={setIsOpen}
+        collapsedPreview={
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Default method
+              </p>
+              <p className="mt-1 text-sm text-foreground">
+                {isOpen
+                  ? defaultMethodLabel || "No default payment method"
+                  : "Expand to load live data"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Saved methods
+              </p>
+              <p className="mt-1 text-sm text-foreground">
+                {isOpen ? methods.length : "—"}
+              </p>
+            </div>
+          </div>
+        }
       >
-        {methodsQuery.isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Loading payment methods...
+        <motion.div variants={fadeInUp} className="space-y-6">
+          <div className="flex justify-end">
+            <Button
+              className="rounded-xl"
+              onClick={() => setShowAddModal(true)}
+              disabled={methodsQuery.isLoading || addMutation.isPending}
+            >
+              Add payment method
+            </Button>
           </div>
-        ) : methodsQuery.isError ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Failed to load payment methods.
-          </div>
-        ) : methods.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
-            No payment methods on file.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {methods.map((m, idx: number) => {
-              const obj = isJsonObject(m) ? m : {};
-              const isDefault = Boolean(obj.isDefault);
-              const brand = String(obj.brand ?? obj.type ?? "Payment");
-              const last4 = obj.last4 ? String(obj.last4) : "";
-              const label = last4 ? `${brand} ending in ${last4}` : brand;
-              return (
-                <div
-                  key={String(obj.id ?? idx)}
-                  className="flex items-center justify-between rounded-2xl border border-border/60 bg-card p-6 lg:p-8"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="flex h-12 w-16 items-center justify-center rounded-lg bg-muted">
-                      <span className="font-mono text-sm font-bold tracking-wider text-muted-foreground">
-                        {String(brand).slice(0, 6).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <div className="font-medium text-foreground truncate">
-                          {label}
+
+          {!isOpen ? (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
+              Expand this section to load live payment methods.
+            </div>
+          ) : methodsQuery.isLoading ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Loading payment methods...
+            </div>
+          ) : methodsQuery.isError ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Failed to load payment methods.
+            </div>
+          ) : methods.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
+              No payment methods on file.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {methods.map((m, idx: number) => {
+                const obj = isJsonObject(m) ? m : {};
+                const isDefault = Boolean(obj.isDefault);
+                const brand = String(obj.brand ?? obj.type ?? "Payment");
+                const last4 = obj.last4 ? String(obj.last4) : "";
+                const label = last4 ? `${brand} ending in ${last4}` : brand;
+                return (
+                  <div
+                    key={String(obj.id ?? idx)}
+                    className="flex items-center justify-between rounded-2xl border border-border/60 bg-card p-6 lg:p-8"
+                  >
+                    <div className="min-w-0 flex items-center gap-4">
+                      <div className="flex h-12 w-16 items-center justify-center rounded-lg bg-muted">
+                        <span className="font-mono text-sm font-bold tracking-wider text-muted-foreground">
+                          {String(brand).slice(0, 6).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="truncate font-medium text-foreground">
+                            {label}
+                          </div>
+                          {isDefault ? (
+                            <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              Default
+                            </span>
+                          ) : null}
                         </div>
-                        {isDefault ? (
-                          <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                            Default
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {obj.type ? String(obj.type).toUpperCase() : ""}
+                        <div className="text-sm text-muted-foreground">
+                          {obj.type ? String(obj.type).toUpperCase() : ""}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!isDefault ? (
+                    <div className="flex items-center gap-2">
+                      {!isDefault ? (
+                        <Button
+                          variant="outline"
+                          disabled={setDefaultMutation.isPending}
+                          onClick={() =>
+                            setDefaultMutation.mutate(String(obj.id ?? ""))
+                          }
+                        >
+                          Set default
+                        </Button>
+                      ) : null}
                       <Button
                         variant="outline"
-                        disabled={setDefaultMutation.isPending}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        disabled={removeMutation.isPending || isDefault}
                         onClick={() =>
-                          setDefaultMutation.mutate(String(obj.id ?? ""))
+                          removeMutation.mutate(String(obj.id ?? ""))
                         }
                       >
-                        Set default
+                        Remove
                       </Button>
-                    ) : null}
-                    <Button
-                      variant="outline"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      disabled={removeMutation.isPending || isDefault}
-                      onClick={() =>
-                        removeMutation.mutate(String(obj.id ?? ""))
-                      }
-                    >
-                      Remove
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
+      </SettingsSectionCard>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="sm:max-w-lg">

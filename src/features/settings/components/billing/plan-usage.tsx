@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import React from "react";
+import { BarChart3 } from "lucide-react";
+import { useState } from "react";
 
 import { Switch } from "@/components/ui/switch";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -14,19 +16,56 @@ interface PlanUsageProps {
   setOptimisePlan: (value: boolean) => void;
 }
 
+const pickString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return "";
+};
+
+const pickNumber = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim().length > 0) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return 0;
+};
+
+const formatDate = (value: unknown) => {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString();
+};
+
 const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
+  const [isOpen, setIsOpen] = useState(false);
   const overviewQuery = useQuery({
     queryKey: ["billing", "overview"],
     queryFn: () => billingService.getOverview(),
     retry: false,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const usageQuery = useQuery({
     queryKey: ["billing", "usage", "month"],
     queryFn: () => billingService.getUsage({ period: "month" }),
+    enabled: isOpen,
     retry: false,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const overviewErrorMessage = String(
@@ -36,18 +75,77 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
     overviewQuery.isError &&
     overviewErrorMessage.includes("billing is not available");
   const overviewData: unknown = overviewQuery.data;
-  const plan =
-    isJsonObject(overviewData) && isJsonObject(overviewData.plan)
-      ? overviewData.plan
-      : undefined;
+  const overview = isJsonObject(overviewData) ? overviewData : {};
+  const planObject = isJsonObject(overview.plan) ? overview.plan : undefined;
+  const usageSummary = isJsonObject(overview.usage)
+    ? overview.usage
+    : undefined;
+  const paymentMethod = isJsonObject(overview.paymentMethod)
+    ? overview.paymentMethod
+    : undefined;
   const planName =
-    isFreeFallback || typeof plan?.name !== "string" ? "Free" : plan.name;
+    pickString(
+      typeof overview.plan === "string" ? overview.plan : undefined,
+      planObject?.name
+    ) || (isFreeFallback ? "Free" : "Unknown");
+  const billingStatus = pickString(overview.status, planObject?.status);
+  const billingCycle = pickString(overview.billingCycle, planObject?.interval);
+  const nextBillingDate = formatDate(overview.nextBillingDate);
   const usageData: unknown = usageQuery.data;
-  const usageItemsRaw =
-    isJsonObject(usageData) && Array.isArray(usageData.items)
-      ? usageData.items
-      : undefined;
-  const usageItems = Array.isArray(usageItemsRaw) ? usageItemsRaw : [];
+  const usageRoot = isJsonObject(usageData) ? usageData : {};
+  const usageItemsRaw = Array.isArray(usageRoot.items)
+    ? usageRoot.items
+    : undefined;
+  const usageItems = Array.isArray(usageItemsRaw)
+    ? usageItemsRaw
+    : [
+        {
+          key: "Emails sent",
+          used: pickNumber(usageRoot.emailsSent, usageSummary?.emailsSent),
+          limit: pickNumber(
+            isJsonObject(usageRoot.limits)
+              ? usageRoot.limits.emailsSent
+              : undefined,
+            isJsonObject(usageSummary?.limits)
+              ? usageSummary.limits.emailsSent
+              : undefined
+          ),
+        },
+        {
+          key: "Contacts",
+          used: pickNumber(usageRoot.contacts, usageSummary?.contacts),
+          limit: pickNumber(
+            isJsonObject(usageRoot.limits)
+              ? usageRoot.limits.contacts
+              : undefined,
+            isJsonObject(usageSummary?.limits)
+              ? usageSummary.limits.contacts
+              : undefined
+          ),
+        },
+        {
+          key: "On-chain sends",
+          used: pickNumber(usageRoot.onChainSends, usageSummary?.onChainSends),
+          limit: pickNumber(
+            isJsonObject(usageRoot.limits)
+              ? usageRoot.limits.onChainSends
+              : undefined,
+            isJsonObject(usageSummary?.limits)
+              ? usageSummary.limits.onChainSends
+              : undefined
+          ),
+        },
+      ].filter((item) => item.used > 0 || (item.limit ?? 0) > 0);
+  const paymentMethodLabel = paymentMethod
+    ? [
+        pickString(paymentMethod.brand),
+        pickString(paymentMethod.last4)
+          ? `ending in ${pickString(paymentMethod.last4)}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : null;
 
   return (
     <motion.section
@@ -55,117 +153,165 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
       initial="initial"
       animate="animate"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <motion.h2
-            variants={fadeInUp}
-            className="text-xl font-light tracking-tight text-foreground lg:text-2xl"
-          >
-            Plan & Usage
-          </motion.h2>
-          <motion.p variants={fadeInUp} className="mt-3 text-muted-foreground">
-            You&apos;re on the{" "}
-            <span className="font-medium text-primary">{planName}</span> plan
-          </motion.p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
-            Optimise plan automatically
-          </span>
-          <Switch
-            checked={optimisePlan}
-            onCheckedChange={setOptimisePlan}
-            className="data-[state=checked]:bg-primary"
-          />
-        </div>
-      </div>
-
-      <motion.div
-        variants={fadeInUp}
-        className="mt-8 border-t border-border/60 pt-8 lg:mt-10 lg:pt-10"
+      <SettingsSectionCard
+        title="Plan & usage"
+        description="Review your current billing plan and monthly usage."
+        icon={<BarChart3 className="h-5 w-5" />}
+        badge={`Current plan: ${planName}`}
+        onOpenChange={setIsOpen}
+        collapsedPreview={
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Status
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {billingStatus || "Not available"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Billing cycle
+              </p>
+              <p className="mt-1 text-sm text-foreground">
+                {billingCycle || "Not available"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                Next billing
+              </p>
+              <p className="mt-1 text-sm text-foreground">
+                {nextBillingDate || "Not scheduled"}
+              </p>
+            </div>
+          </div>
+        }
       >
-        {overviewQuery.isLoading || usageQuery.isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Loading billing usage...
-          </div>
-        ) : isFreeFallback ? (
-          <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
-            You’re on the Free plan. Upgrade to unlock billing features and
-            usage tracking.
-          </div>
-        ) : overviewQuery.isError || usageQuery.isError ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Failed to load billing usage.
-          </div>
-        ) : usageItems.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
-            No usage data available for this period.
-          </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">
-            {usageItems.slice(0, 3).map((quota, idx: number) => {
-              const quotaObj = isJsonObject(quota) ? quota : {};
-              const used = Number(quotaObj.used ?? 0);
-              const limit =
-                quotaObj.limit !== undefined ? Number(quotaObj.limit) : null;
-              const percent =
-                limit && limit > 0
-                  ? Math.min(100, Math.round((used / limit) * 100))
-                  : 0;
-              const label = String(quotaObj.key ?? "Usage");
-              const colorClass = idx === 2 ? "text-chart-2" : "text-primary";
-              return (
-                <motion.div
-                  key={label}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="flex flex-col items-center rounded-2xl border border-border/60 bg-card p-6 lg:p-8"
-                >
-                  <div className="relative h-28 w-28 lg:h-32 lg:w-32">
-                    <svg
-                      className="h-full w-full -rotate-90"
-                      viewBox="0 0 36 36"
-                    >
-                      <path
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke="currentColor"
-                        className="text-muted-foreground/20"
-                        strokeWidth="2"
-                      />
-                      <motion.path
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        fill="none"
-                        stroke="currentColor"
-                        className={colorClass}
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeDasharray={`${percent}, 100`}
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1, ease: "easeOut" }}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className="text-2xl font-semibold text-foreground">
-                        {percent}%
-                      </span>
-                    </div>
+        <motion.div variants={fadeInUp} className="space-y-6">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-medium text-foreground">
+                Plan optimization
+              </div>
+              <div className="mt-1 space-y-2 text-sm text-muted-foreground">
+                <p>
+                  You&apos;re currently on the{" "}
+                  <span className="font-medium text-primary">{planName}</span>{" "}
+                  plan.
+                </p>
+                {(billingStatus || nextBillingDate || paymentMethodLabel) && (
+                  <div className="space-y-1">
+                    {billingStatus ? <p>Status: {billingStatus}</p> : null}
+                    {nextBillingDate ? (
+                      <p>Next billing date: {nextBillingDate}</p>
+                    ) : null}
+                    {paymentMethodLabel ? (
+                      <p>Payment method: {paymentMethodLabel}</p>
+                    ) : null}
                   </div>
-                  <div className="mt-4 text-center">
-                    <div className="font-medium text-foreground">{label}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {used.toLocaleString()}
-                      {limit && limit > 0 ? ` / ${limit.toLocaleString()}` : ""}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground"></span>
+              <Switch
+                checked={optimisePlan}
+                onCheckedChange={setOptimisePlan}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
           </div>
-        )}
-      </motion.div>
+
+          {overviewQuery.isLoading || (isOpen && usageQuery.isLoading) ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Loading billing usage...
+            </div>
+          ) : isFreeFallback ? (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
+              You’re on the Free plan. Upgrade to unlock billing features and
+              usage tracking.
+            </div>
+          ) : overviewQuery.isError || (isOpen && usageQuery.isError) ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Failed to load billing usage.
+            </div>
+          ) : !isOpen ? (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
+              Expand this section to load live usage metrics.
+            </div>
+          ) : usageItems.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">
+              No usage metrics are available for this billing period yet.
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">
+              {usageItems.slice(0, 3).map((quota, idx: number) => {
+                const quotaObj = isJsonObject(quota) ? quota : {};
+                const used = Number(quotaObj.used ?? 0);
+                const limit =
+                  quotaObj.limit !== undefined ? Number(quotaObj.limit) : null;
+                const percent =
+                  limit && limit > 0
+                    ? Math.min(100, Math.round((used / limit) * 100))
+                    : 0;
+                const label = String(quotaObj.key ?? "Usage");
+                const colorClass = idx === 2 ? "text-chart-2" : "text-primary";
+                return (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="flex flex-col items-center rounded-2xl border border-border/60 bg-card p-6 lg:p-8"
+                  >
+                    <div className="relative h-28 w-28 lg:h-32 lg:w-32">
+                      <svg
+                        className="h-full w-full -rotate-90"
+                        viewBox="0 0 36 36"
+                      >
+                        <path
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="currentColor"
+                          className="text-muted-foreground/20"
+                          strokeWidth="2"
+                        />
+                        <motion.path
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="currentColor"
+                          className={colorClass}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeDasharray={`${percent}, 100`}
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <span className="text-2xl font-semibold text-foreground">
+                          {percent}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 text-center">
+                      <div className="font-medium text-foreground">{label}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {used.toLocaleString()}
+                        {limit && limit > 0
+                          ? ` / ${limit.toLocaleString()}`
+                          : ""}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
+      </SettingsSectionCard>
     </motion.section>
   );
 };

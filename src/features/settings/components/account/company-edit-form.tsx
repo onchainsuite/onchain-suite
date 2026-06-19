@@ -9,13 +9,6 @@ import { toast } from "sonner";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -33,6 +26,7 @@ import {
   projectSettingsService,
   type ProjectSettingsFormData,
 } from "@/features/settings/project-settings.service";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
@@ -276,39 +270,22 @@ export default function CompanyEditForm() {
   if (loading) return <Skeleton className="h-75 w-full rounded-xl" />;
 
   return (
-    <Card className="overflow-hidden border-border/60 bg-card/50 backdrop-blur-sm transition-all hover:bg-card/80">
-      <CardHeader className="flex flex-row items-center justify-between border-b border-border/40 pb-6">
-        <div className="space-y-1">
-          <CardTitle className="text-xl font-medium">
-            Project Settings
-          </CardTitle>
-          <CardDescription>
-            Manage protocol identity, chains, contracts, and wallets.
-          </CardDescription>
-        </div>
-        {!isEditing && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsEditing(true)}
-            className="gap-2"
+    <SettingsSectionCard
+      title="Project settings"
+      description="Manage protocol identity, chains, contracts, and wallets."
+      badge={data?.name ? `Protocol: ${data.name}` : "No project name set"}
+      className="bg-card/50 backdrop-blur-sm transition-all hover:bg-card/80"
+    >
+      <AnimatePresence mode="wait">
+        {isEditing ? (
+          <motion.form
+            key="edit-form"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6"
           >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent className="pt-6">
-        <AnimatePresence mode="wait">
-          {isEditing ? (
-            <motion.form
-              key="edit-form"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6"
-            >
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>
@@ -712,7 +689,7 @@ export default function CompanyEditForm() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
+              <div className="flex justify-end gap-3 border-t border-border/40 pt-4">
                 <Button
                   type="button"
                   variant="ghost"
@@ -732,15 +709,28 @@ export default function CompanyEditForm() {
                   Save Changes
                 </Button>
               </div>
-            </motion.form>
-          ) : (
-            <motion.div
-              key="view-mode"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6"
-            >
+          </motion.form>
+        ) : (
+          <motion.div
+            key="view-mode"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="gap-2"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">
                   Project / Protocol Name
@@ -879,10 +869,10 @@ export default function CompanyEditForm() {
                     : "Not set"}
                 </p>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </CardContent>
-    </Card>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </SettingsSectionCard>
   );
 }

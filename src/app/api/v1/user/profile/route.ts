@@ -44,6 +44,40 @@ const extractTokenFromCookie = (cookieHeader: string): string | null => {
   return raw ? decodeURIComponent(raw) : null;
 };
 
+const extractMirroredUserFromCookie = (
+  cookieHeader: string
+): Record<string, unknown> | null => {
+  const pairs = cookieHeader
+    .split(";")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((p) => {
+      const idx = p.indexOf("=");
+      if (idx === -1) return [p, ""] as const;
+      return [p.slice(0, idx), p.slice(idx + 1)] as const;
+    });
+
+  const cookieMap = new Map(pairs);
+  const raw = cookieMap.get("onchain.user") ?? null;
+  if (!raw) return null;
+  try {
+    const json = Buffer.from(decodeURIComponent(raw), "base64").toString(
+      "utf8"
+    );
+    const parsed = JSON.parse(json);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const hasBetterAuthSession = (cookieHeader: string) =>
+  /(^|;\s*)(?:__Secure-|__Host-)?better-auth\.(?:session_token|sessionToken)=/.test(
+    cookieHeader
+  );
+
 const buildUpstreamHeaders = (req: NextRequest) => {
   const headers = new Headers(req.headers);
   headers.delete("host");
@@ -53,7 +87,11 @@ const buildUpstreamHeaders = (req: NextRequest) => {
 
   const cookieHeader = req.headers.get("cookie") ?? "";
   const token = extractTokenFromCookie(cookieHeader);
-  if (token && !headers.has("authorization")) {
+  if (
+    token &&
+    !hasBetterAuthSession(cookieHeader) &&
+    !headers.has("authorization")
+  ) {
     headers.set("Authorization", `Bearer ${token}`);
   }
   const apiKey = getBackendApiKey();
@@ -62,6 +100,90 @@ const buildUpstreamHeaders = (req: NextRequest) => {
   }
 
   return headers;
+};
+
+const isPlaceholderIdentity = (user: Record<string, unknown> | null) => {
+  if (!user) return false;
+  const email = typeof user.email === "string" ? user.email.toLowerCase() : "";
+  const name =
+    typeof user.name === "string" ? user.name.trim().toLowerCase() : "";
+  const id = typeof user.id === "string" ? user.id.toLowerCase() : "";
+  return (
+    email.endsWith("@onchainsuite.local") ||
+    name === "test user" ||
+    id === "test-user-id"
+  );
+};
+
+const patchPlaceholderIdentity = (
+  payload: unknown,
+  mirroredUser: Record<string, unknown> | null
+) => {
+  if (!mirroredUser || typeof payload !== "object" || payload === null) {
+    return null;
+  }
+
+  const payloadObj = payload as Record<string, unknown>;
+  const root =
+    "data" in payloadObj &&
+    payloadObj.data &&
+    typeof payloadObj.data === "object"
+      ? (payloadObj.data as Record<string, unknown>)
+      : payloadObj;
+  const currentUser =
+    "user" in root && root.user && typeof root.user === "object"
+      ? (root.user as Record<string, unknown>)
+      : root;
+
+  if (
+    !isPlaceholderIdentity(currentUser) ||
+    isPlaceholderIdentity(mirroredUser)
+  ) {
+    return null;
+  }
+
+  const patchedUser = { ...currentUser };
+  for (const key of [
+    "name",
+    "email",
+    "firstName",
+    "lastName",
+    "image",
+  ] as const) {
+    const mirroredValue = mirroredUser[key];
+    if (typeof mirroredValue === "string" && mirroredValue.trim().length > 0) {
+      patchedUser[key] = mirroredValue;
+    }
+  }
+
+  if ("user" in root && root.user && typeof root.user === "object") {
+    return {
+      ...payloadObj,
+      data: {
+        ...root,
+        user: patchedUser,
+      },
+    };
+  }
+
+  if (
+    "data" in payloadObj &&
+    payloadObj.data &&
+    typeof payloadObj.data === "object"
+  ) {
+    return {
+      ...payloadObj,
+      data: {
+        ...root,
+        ...patchedUser,
+      },
+    };
+  }
+
+  return {
+    ...payloadObj,
+    ...patchedUser,
+  };
 };
 
 const buildResponse = async (upstream: Response) => {
@@ -80,12 +202,35 @@ const buildResponse = async (upstream: Response) => {
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const targetUrl = `${getBackendBaseUrl()}/user/profile${url.search}`;
+  const cookieHeader = req.headers.get("cookie") ?? "";
+  const mirroredUser = extractMirroredUserFromCookie(cookieHeader);
+  const upstreamHeaders = buildUpstreamHeaders(req);
 
   const upstream = await fetch(targetUrl, {
     method: "GET",
-    headers: buildUpstreamHeaders(req),
+    headers: upstreamHeaders,
     cache: "no-store",
   });
+  const cloned = upstream.clone();
+  const responseText = await cloned.text().catch(() => "");
+  let responseJson: unknown = null;
+  try {
+    responseJson = responseText.length > 0 ? JSON.parse(responseText) : null;
+  } catch {
+    responseJson = null;
+  }
+  const patchedPayload = patchPlaceholderIdentity(responseJson, mirroredUser);
+  if (patchedPayload) {
+    const headers = new Headers(upstream.headers);
+    headers.delete("connection");
+    headers.delete("transfer-encoding");
+    headers.delete("content-length");
+    headers.delete("content-encoding");
+    return new NextResponse(JSON.stringify(patchedPayload), {
+      status: upstream.status,
+      headers,
+    });
+  }
 
   return buildResponse(upstream);
 }

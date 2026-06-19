@@ -14,7 +14,7 @@ export default function ProfileSettings() {
       animate="animate"
       exit="exit"
       transition={{ duration: 0.3 }}
-      className="grid gap-16 lg:gap-24 lg:grid-cols-2"
+      className="space-y-6"
     >
       <PersonalDetails />
 

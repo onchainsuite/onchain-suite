@@ -2,12 +2,16 @@
  * @vitest-environment node
  */
 import { NextRequest } from "next/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET, POST } from "./route";
 
 const mockedFetch = vi.fn<typeof fetch>();
 global.fetch = mockedFetch as unknown as typeof fetch;
+
+beforeEach(() => {
+  mockedFetch.mockReset();
+});
 
 const createUpstreamResponse = (opts: {
   status: number;
@@ -166,5 +170,140 @@ describe("Auth Proxy API", () => {
 
     expect(res.status).toBe(403);
     expect(text).toContain("account_blocked");
+  });
+
+  it("prefers live upstream session data over stale onchain.user cookie data", async () => {
+    const staleUser = Buffer.from(
+      JSON.stringify({
+        id: "stale-user",
+        email: "stale@example.com",
+        name: "Stale User",
+      }),
+      "utf8"
+    ).toString("base64");
+
+    mockedFetch.mockResolvedValueOnce(
+      createUpstreamResponse({
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          user: {
+            id: "live-user",
+            email: "live@example.com",
+            name: "Live User",
+          },
+        }),
+      })
+    );
+
+    const req = new NextRequest(
+      "http://localhost:3000/api/v1/auth/get-session",
+      {
+        headers: {
+          cookie: `onchain.token=stale-token; onchain.user=${encodeURIComponent(staleUser)}; better-auth.session_token=live-session-token`,
+        },
+      }
+    );
+
+    const res = await GET(req, {
+      params: Promise.resolve({ path: ["get-session"] }),
+    });
+    const json = await res.json();
+    const setCookie = res.headers.get("set-cookie") ?? "";
+
+    expect(res.status).toBe(200);
+    expect(json).toEqual(
+      expect.objectContaining({
+        user: expect.objectContaining({
+          email: "live@example.com",
+          name: "Live User",
+        }),
+      })
+    );
+    expect(setCookie).toContain("onchain.user=");
+    expect(setCookie).not.toContain("onchain.token=live-session-token");
+
+    const [, init] = mockedFetch.mock.calls[0] ?? [];
+    const headers = (init?.headers as Headers) ?? new Headers();
+    expect(headers.get("authorization")).toBeNull();
+  });
+
+  it("falls back to mirrored onchain.user when get-session returns 200 without a user", async () => {
+    const mirroredUser = {
+      id: "cookie-user",
+      email: "cookie@example.com",
+      name: "Cookie User",
+    };
+    const encodedUser = Buffer.from(
+      JSON.stringify(mirroredUser),
+      "utf8"
+    ).toString("base64");
+
+    mockedFetch.mockResolvedValueOnce(
+      createUpstreamResponse({
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session: {} }),
+      })
+    );
+    mockedFetch.mockResolvedValueOnce(
+      createUpstreamResponse({
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session: {} }),
+      })
+    );
+
+    const req = new NextRequest(
+      "http://localhost:3000/api/v1/auth/get-session",
+      {
+        headers: {
+          cookie: `onchain.token=cookie-token; onchain.user=${encodeURIComponent(encodedUser)}`,
+        },
+      }
+    );
+
+    const res = await GET(req, {
+      params: Promise.resolve({ path: ["get-session"] }),
+    });
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json).toEqual(
+      expect.objectContaining({
+        user: expect.objectContaining({
+          id: "cookie-user",
+          email: "cookie@example.com",
+        }),
+      })
+    );
+    expect(mockedFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears mirrored onchain cookies on sign-out", async () => {
+    mockedFetch.mockResolvedValueOnce(
+      createUpstreamResponse({
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ success: true }),
+      })
+    );
+
+    const req = new NextRequest("http://localhost:3000/api/v1/auth/sign-out", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: "onchain.token=abc; onchain.user=def",
+      },
+    });
+
+    const res = await POST(req, {
+      params: Promise.resolve({ path: ["sign-out"] }),
+    });
+    const setCookie = res.headers.get("set-cookie") ?? "";
+
+    expect(res.status).toBe(200);
+    expect(setCookie).toContain("onchain.token=;");
+    expect(setCookie).toContain("onchain.user=;");
   });
 });

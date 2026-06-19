@@ -237,7 +237,8 @@ const withAuthHeaders = (
 ) => {
   const headers = new Headers(base);
   if (cookieHeader) headers.set("Cookie", cookieHeader);
-  if (token && !headers.has("authorization")) {
+  const hasBetterAuthSession = Boolean(extractBetterAuthSession(cookieHeader));
+  if (token && !hasBetterAuthSession && !headers.has("authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
   const apiKey = getBackendApiKey();
@@ -245,6 +246,101 @@ const withAuthHeaders = (
     headers.set("x-api-key", apiKey);
   }
   return headers;
+};
+
+const appendOnchainUserCookie = (
+  response: NextResponse,
+  user: unknown,
+  token?: string | null
+) => {
+  if (token && token.length > 0) {
+    response.headers.append(
+      "set-cookie",
+      `onchain.token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`
+    );
+  }
+  if (user) {
+    const encoded = encodeURIComponent(
+      Buffer.from(JSON.stringify(user), "utf8").toString("base64")
+    );
+    response.headers.append(
+      "set-cookie",
+      `onchain.user=${encoded}; Path=/; HttpOnly; SameSite=Lax`
+    );
+  }
+};
+
+const clearOnchainMirrorCookies = (response: NextResponse) => {
+  response.headers.append(
+    "set-cookie",
+    "onchain.token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+  );
+  response.headers.append(
+    "set-cookie",
+    "onchain.user=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+  );
+};
+
+const buildFallbackSessionResponse = async (args: {
+  backendBase: string;
+  cookieHeader: string;
+  onchainToken: string | null;
+  onchainUser: unknown | null;
+  cacheKey: string;
+}) => {
+  let profileTry: Response | null = null;
+  try {
+    profileTry = await fetch(`${args.backendBase}/user/profile`, {
+      method: "GET",
+      headers: withAuthHeaders(
+        new Headers(),
+        args.onchainToken,
+        args.cookieHeader
+      ),
+      cache: "no-store",
+    });
+  } catch {
+    profileTry = null;
+  }
+
+  if (profileTry?.ok) {
+    const profileJson = await profileTry.json().catch(() => null);
+    const user = normalizeUserFromResponse(profileJson);
+    if (user) {
+      const json = {
+        session: args.onchainToken ? { token: args.onchainToken } : {},
+        user,
+      };
+      const res = NextResponse.json(
+        {
+          ...json,
+        },
+        { status: 200 }
+      );
+      appendOnchainUserCookie(res, user, args.onchainToken);
+      res.headers.set("cache-control", "private, max-age=10");
+      getSessionCache.set(args.cacheKey, { at: Date.now(), status: 200, json });
+      return res;
+    }
+  }
+
+  if (args.onchainUser) {
+    const json = {
+      session: args.onchainToken ? { token: args.onchainToken } : {},
+      user: args.onchainUser,
+    };
+    const res = NextResponse.json(
+      {
+        ...json,
+      },
+      { status: 200 }
+    );
+    res.headers.set("cache-control", "private, max-age=10");
+    getSessionCache.set(args.cacheKey, { at: Date.now(), status: 200, json });
+    return res;
+  }
+
+  return null;
 };
 
 const forward = async (
@@ -294,22 +390,6 @@ const forward = async (
       return res;
     }
 
-    if (onchainUser) {
-      const json = {
-        session: onchainToken ? { token: onchainToken } : {},
-        user: onchainUser,
-      };
-      const res = NextResponse.json(
-        {
-          ...json,
-        },
-        { status: 200 }
-      );
-      res.headers.set("cache-control", "private, max-age=10");
-      getSessionCache.set(cacheKey, { at: Date.now(), status: 200, json });
-      return res;
-    }
-
     const backendBase = getBackendBaseUrl();
     let upstream: Response;
     try {
@@ -329,73 +409,72 @@ const forward = async (
     }
 
     if (!upstream.ok) {
-      let profileTry: Response | null = null;
-      try {
-        profileTry = await fetch(`${backendBase}/user/profile`, {
-          method: "GET",
-          headers: withAuthHeaders(new Headers(), onchainToken, cookieHeader),
-          cache: "no-store",
-        });
-      } catch {
-        profileTry = null;
-      }
+      const fallback = await buildFallbackSessionResponse({
+        backendBase,
+        cookieHeader,
+        onchainToken,
+        onchainUser,
+        cacheKey,
+      });
+      if (fallback) return fallback;
+    } else {
+      const responseHeaders = new Headers(upstream.headers);
+      responseHeaders.delete("connection");
+      responseHeaders.delete("transfer-encoding");
+      responseHeaders.delete("content-length");
+      responseHeaders.delete("content-encoding");
+      responseHeaders.delete("set-cookie");
 
-      if (profileTry?.ok) {
-        const profileJson = await profileTry.json().catch(() => null);
-        const user = normalizeUserFromResponse(profileJson);
-        if (user) {
-          return NextResponse.json(
-            {
-              session: onchainToken ? { token: onchainToken } : {},
-              user,
-            },
-            { status: 200 }
+      const contentType = responseHeaders.get("content-type") ?? "";
+      const canJson = contentType.includes("application/json");
+      if (canJson) {
+        const json = await upstream.json().catch(() => null);
+        const user = normalizeUserFromResponse(json);
+        if (!user) {
+          const fallback = await buildFallbackSessionResponse({
+            backendBase,
+            cookieHeader,
+            onchainToken,
+            onchainUser,
+            cacheKey,
+          });
+          if (fallback) return fallback;
+        }
+        const res = NextResponse.json(json, { status: upstream.status });
+        for (const cookie of getSetCookieHeaders(upstream.headers)) {
+          res.headers.append(
+            "set-cookie",
+            rewriteSetCookieForLocalDev(cookie, url)
           );
         }
+        if (user) appendOnchainUserCookie(res, user, onchainToken);
+        res.headers.set("cache-control", "private, max-age=10");
+        if (user) {
+          getSessionCache.set(cacheKey, {
+            at: Date.now(),
+            status: upstream.status,
+            json,
+          });
+        }
+        return res;
       }
-    }
 
-    const responseHeaders = new Headers(upstream.headers);
-    responseHeaders.delete("connection");
-    responseHeaders.delete("transfer-encoding");
-    responseHeaders.delete("content-length");
-    responseHeaders.delete("content-encoding");
-    responseHeaders.delete("set-cookie");
+      const body =
+        upstream.status === 204 ? null : await upstream.arrayBuffer();
+      const nextResponse = new NextResponse(body, {
+        status: upstream.status,
+        headers: responseHeaders,
+      });
 
-    const contentType = responseHeaders.get("content-type") ?? "";
-    const canJson = contentType.includes("application/json");
-    if (canJson) {
-      const json = await upstream.json().catch(() => null);
-      const res = NextResponse.json(json, { status: upstream.status });
       for (const cookie of getSetCookieHeaders(upstream.headers)) {
-        res.headers.append(
+        nextResponse.headers.append(
           "set-cookie",
           rewriteSetCookieForLocalDev(cookie, url)
         );
       }
-      res.headers.set("cache-control", "private, max-age=10");
-      getSessionCache.set(cacheKey, {
-        at: Date.now(),
-        status: upstream.status,
-        json,
-      });
-      return res;
+
+      return nextResponse;
     }
-
-    const body = upstream.status === 204 ? null : await upstream.arrayBuffer();
-    const nextResponse = new NextResponse(body, {
-      status: upstream.status,
-      headers: responseHeaders,
-    });
-
-    for (const cookie of getSetCookieHeaders(upstream.headers)) {
-      nextResponse.headers.append(
-        "set-cookie",
-        rewriteSetCookieForLocalDev(cookie, url)
-      );
-    }
-
-    return nextResponse;
   }
 
   const hasBody = !["GET", "HEAD"].includes(method);
@@ -424,6 +503,10 @@ const forward = async (
     path.length >= 2 &&
     path[0] === "sign-in" &&
     path[1] === "email";
+  const isSignOut =
+    method === "POST" &&
+    path.length >= 1 &&
+    (path[0] === "sign-out" || path[0] === "logout");
 
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.delete("connection");
@@ -521,6 +604,11 @@ const forward = async (
         String(_e);
       }
     }
+  }
+
+  if (isSignOut) {
+    clearOnchainMirrorCookies(nextResponse);
+    getSessionCache.clear();
   }
 
   return nextResponse;

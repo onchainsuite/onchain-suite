@@ -38,21 +38,23 @@ export async function getSession() {
       });
     const cookieNames = cookiePairs.map(([name]) => name);
     const cookieMap = new Map(cookiePairs);
-    const sessionTokenRaw =
+    const sessionCookieRaw =
       cookieMap.get("better-auth.session_token") ??
       cookieMap.get("__Secure-better-auth.session_token") ??
       cookieMap.get("__Host-better-auth.session_token") ??
       cookieMap.get("better-auth.sessionToken") ??
       cookieMap.get("__Secure-better-auth.sessionToken") ??
       cookieMap.get("__Host-better-auth.sessionToken") ??
-      cookieMap.get("onchain.token") ??
       null;
-    const sessionToken = sessionTokenRaw
-      ? decodeURIComponent(sessionTokenRaw)
+    const sessionCookie = sessionCookieRaw
+      ? decodeURIComponent(sessionCookieRaw)
       : null;
+    const apiTokenRaw = cookieMap.get("onchain.token") ?? null;
+    const apiToken = apiTokenRaw ? decodeURIComponent(apiTokenRaw) : null;
     const hasBetterAuthCookie = cookieNames.some((n) =>
       n.toLowerCase().includes("better-auth")
     );
+    const shouldSendApiBearer = Boolean(apiToken) && !hasBetterAuthCookie;
 
     const forwardedProto = headersList.get("x-forwarded-proto") ?? "http";
     const forwardedHost =
@@ -75,8 +77,8 @@ export async function getSession() {
         {
           headers: {
             Cookie: cookie,
-            ...(sessionToken
-              ? { Authorization: `Bearer ${sessionToken}` }
+            ...(shouldSendApiBearer
+              ? { Authorization: `Bearer ${apiToken}` }
               : {}),
           },
           cache: "no-store",
@@ -87,7 +89,6 @@ export async function getSession() {
         const sessionJson = await sessionResponse.json();
         const normalized = normalizeSessionResponse(sessionJson);
         const user = normalized?.user ?? null;
-
         if (user?.id || user?.email) {
           return {
             session: sessionJson?.session ?? {},
@@ -105,7 +106,7 @@ export async function getSession() {
             hasCookieHeader,
             cookieLength,
             endpoint: "/auth/get-session",
-            tokenPresent: !!sessionToken,
+            tokenPresent: !!apiToken || !!sessionCookie,
           });
         }
       }
@@ -114,7 +115,9 @@ export async function getSession() {
       const profileResponse = await fetch(`${appClean}/api/v1/user/profile`, {
         headers: {
           Cookie: cookie,
-          ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          ...(shouldSendApiBearer
+            ? { Authorization: `Bearer ${apiToken}` }
+            : {}),
         },
         cache: "no-store",
       });
@@ -128,7 +131,7 @@ export async function getSession() {
             hasCookieHeader,
             cookieLength,
             endpoint: "/user/profile",
-            tokenPresent: !!sessionToken,
+            tokenPresent: !!apiToken || !!sessionCookie,
             hasBetterAuthCookie,
             cookieNames: cookieNames.slice(0, 10),
           });
@@ -139,7 +142,6 @@ export async function getSession() {
       const profileJson = await profileResponse.json();
       const normalized = normalizeSessionResponse(profileJson);
       const user = normalized?.user ?? null;
-
       if (!user?.id && !user?.email) {
         console.warn("[getSession]", {
           at: new Date().toISOString(),
@@ -148,7 +150,7 @@ export async function getSession() {
           hasCookieHeader,
           cookieLength,
           endpoint: "/user/profile",
-          tokenPresent: !!sessionToken,
+          tokenPresent: !!apiToken || !!sessionCookie,
           hasBetterAuthCookie,
           cookieNames: cookieNames.slice(0, 10),
         });
@@ -156,7 +158,7 @@ export async function getSession() {
       }
 
       return {
-        session: { token: sessionToken },
+        session: apiToken ? { token: apiToken } : {},
         user,
       };
     } catch (innerError) {

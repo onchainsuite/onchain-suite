@@ -24,13 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 import { authClient } from "@/lib/auth-client";
 import {
@@ -538,34 +532,60 @@ const InAppIntegration = () => {
 
   return (
     <motion.div className="space-y-6">
-      <Card className="overflow-hidden rounded-3xl border-border/60 bg-card/70 shadow-sm">
-        <CardHeader className="border-b border-border/50 pb-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Shield className="h-5 w-5 text-primary" />
-                In-app push
-              </CardTitle>
-              <CardDescription className="mt-1 max-w-2xl">
-                Configure SDK keys, approved origins, and test delivery from one
-                place.
-              </CardDescription>
+      <SettingsSectionCard
+        title="In-app push"
+        description="Configure SDK keys, approved origins, and test delivery."
+        icon={<Shield className="h-5 w-5" />}
+        badge={
+          orgId
+            ? `Active sessions: ${statusQuery.isLoading ? "Loading…" : (status.sessionCount ?? "—")}`
+            : "Select an organization"
+        }
+        collapsedPreview={
+          !orgId ? (
+            <div className="text-sm text-muted-foreground">
+              Select an organization to manage in-app integration.
             </div>
-            {orgId ? (
-              <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3 text-sm">
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
                 <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                  Active sessions
+                  Publishable keys
                 </div>
-                <div className="mt-1 text-lg font-semibold text-foreground">
+                <div className="mt-2 text-sm text-foreground">
                   {statusQuery.isLoading
                     ? "Loading…"
-                    : (status.sessionCount ?? "—")}
+                    : status.publishableKeys.production ||
+                        status.publishableKeys.test
+                      ? "Configured"
+                      : "Not available yet"}
                 </div>
               </div>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-5 p-6">
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  Secret keys
+                </div>
+                <div className="mt-2 text-sm text-foreground">
+                  {statusQuery.isLoading
+                    ? "Loading…"
+                    : `${status.secretKeys.length} created`}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  Allowed origins
+                </div>
+                <div className="mt-2 text-sm text-foreground">
+                  {originsQuery.isLoading
+                    ? "Loading…"
+                    : `${origins.length} added`}
+                </div>
+              </div>
+            </div>
+          )
+        }
+      >
+        <div className="space-y-5">
           {!orgId ? (
             <div className="rounded-2xl border border-border/80 bg-muted/50 p-4 text-sm text-muted-foreground">
               Select an organization to manage in-app integration.
@@ -1076,8 +1096,8 @@ const InAppIntegration = () => {
                 )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SettingsSectionCard>
       <Dialog open={createSecretOpen} onOpenChange={setCreateSecretOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
