@@ -54,7 +54,7 @@ const request = async <T>(
       (isJsonObject(dataObj) ? dataObj.message : undefined) ??
       err.message ??
       "Notifications request failed";
-    throw new Error(String(message));
+    throw new Error(String(message), { cause: e });
   }
 };
 

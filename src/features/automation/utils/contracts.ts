@@ -14,13 +14,18 @@ export const resolveContractCatalog = (
     return savedContracts
       .filter(
         (contract): contract is ProjectSettingsAddressRow =>
-          typeof contract.address === "string" && contract.address.trim().length > 0
+          typeof contract.address === "string" &&
+          contract.address.trim().length > 0
       )
-      .map((contract) => ({
-        address: contract.address,
-        chain: contract.chain?.trim() || "Unknown",
-        name: contract.label?.trim() || contract.address,
-      }));
+      .map((contract) => {
+        const chain = contract.chain?.trim() ?? "";
+        const name = contract.label?.trim() ?? "";
+        return {
+          address: contract.address,
+          chain: chain.length > 0 ? chain : "Unknown",
+          name: name.length > 0 ? name : contract.address,
+        };
+      });
   }
 
   return fallbackContracts;

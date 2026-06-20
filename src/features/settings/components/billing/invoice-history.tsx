@@ -5,12 +5,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 import { isJsonObject } from "@/lib/utils";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { billingService } from "@/features/billing/billing.service";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 const InvoiceHistory = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,7 +37,7 @@ const InvoiceHistory = () => {
           : undefined
       : undefined;
   const items = Array.isArray(itemsRaw) ? itemsRaw : [];
-  const latestInvoice = items[0];
+  const [latestInvoice] = items;
 
   const formatMoney = (inv: unknown) => {
     const obj = isJsonObject(inv) ? inv : {};
@@ -111,7 +111,11 @@ const InvoiceHistory = () => {
                 Latest amount
               </p>
               <p className="mt-1 text-sm text-foreground">
-                {isOpen ? (items.length > 0 ? formatMoney(latestInvoice) : "—") : "—"}
+                {isOpen
+                  ? items.length > 0
+                    ? formatMoney(latestInvoice)
+                    : "—"
+                  : "—"}
               </p>
             </div>
           </div>

@@ -149,7 +149,8 @@ const request = async <T>(
         ? data.message
         : (err.message ?? "Campaigns request failed");
     throw new Error(
-      status ? `[HTTP ${status}] ${String(message)}` : String(message)
+      status ? `[HTTP ${status}] ${String(message)}` : String(message),
+      { cause: e }
     );
   }
 };
@@ -434,7 +435,11 @@ export const campaignsService = {
     );
   },
 
-  sendTest(id: string, body: CampaignRenderRequest & { to: string }, orgId?: string) {
+  sendTest(
+    id: string,
+    body: CampaignRenderRequest & { to: string },
+    orgId?: string
+  ) {
     return request<{
       success?: boolean;
       messageId?: string;

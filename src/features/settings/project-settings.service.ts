@@ -73,7 +73,11 @@ const normalizeAddressRows = (
       if (!isJsonObject(entry)) return null;
       const row = entry as Record<string, unknown>;
       const chain = pickString(row.chain, row.network);
-      const address = pickString(row.address, row.contractAddress, row.walletAddress);
+      const address = pickString(
+        row.address,
+        row.contractAddress,
+        row.walletAddress
+      );
       const label = pickString(row.label, row.name);
       if (address.length === 0) return null;
       if (options?.requireChain && chain.length === 0) return null;
@@ -86,7 +90,9 @@ const normalizeAddressRows = (
     .filter((row): row is ProjectSettingsAddressRow => Boolean(row));
 };
 
-const normalizeLegacyOrganization = (payload: unknown): ProjectSettingsFormData => {
+const normalizeLegacyOrganization = (
+  payload: unknown
+): ProjectSettingsFormData => {
   const root = unwrapData(payload);
   const org = isJsonObject(root) ? root : {};
   const settings = isJsonObject(org.settings) ? org.settings : {};
@@ -119,7 +125,9 @@ const normalizeLegacyOrganization = (payload: unknown): ProjectSettingsFormData 
   };
 };
 
-export const normalizeProjectSettings = (payload: unknown): ProjectSettingsFormData => {
+export const normalizeProjectSettings = (
+  payload: unknown
+): ProjectSettingsFormData => {
   const root = unwrapData(payload);
   if (!isJsonObject(root)) return { ...DEFAULT_PROJECT_SETTINGS };
 
@@ -188,7 +196,9 @@ const toSavePayload = (values: ProjectSettingsFormData) => ({
   timezone: pickString(values.timezone) || "UTC",
   tokenTicker: pickString(values.tokenTicker),
   primaryChains: toStringArray(values.primaryChains),
-  contractAddresses: sanitizeRows(values.contractAddresses, { requireChain: true }),
+  contractAddresses: sanitizeRows(values.contractAddresses, {
+    requireChain: true,
+  }),
   treasuryWallets: sanitizeRows(values.treasuryWallets),
   teamWallets: sanitizeRows(values.teamWallets),
 });
@@ -237,9 +247,13 @@ export const projectSettingsService = {
   ) {
     try {
       const payload = toSavePayload(values);
-      const response = await apiClient.put("/organization/project-settings", payload, {
-        headers: getHeaders(organizationId),
-      });
+      const response = await apiClient.put(
+        "/organization/project-settings",
+        payload,
+        {
+          headers: getHeaders(organizationId),
+        }
+      );
       const normalized = normalizeProjectSettings(response.data);
       return {
         ...payload,
@@ -249,7 +263,10 @@ export const projectSettingsService = {
       } satisfies ProjectSettingsFormData;
     } catch (error) {
       throw new Error(
-        extractErrorMessage(error, "Failed to update project settings")
+        extractErrorMessage(error, "Failed to update project settings"),
+        {
+          cause: error,
+        }
       );
     }
   },

@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import { authClient } from "@/lib/auth-client";
-import { Badge } from "@/shared/components/ui/badge";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import TwoFactorAuthModal from "../two-factor-auth-modal";
 import { useUserProfile } from "./use-user-profile";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import { Badge } from "@/shared/components/ui/badge";
 
 const formatSecurityDate = (value?: string) => {
   if (!value) return null;
@@ -98,20 +98,23 @@ const Security = () => {
         }
       >
         {profileQuery.isLoading ? (
-          <motion.div variants={fadeInUp} className="text-sm text-muted-foreground">
+          <motion.div
+            variants={fadeInUp}
+            className="text-sm text-muted-foreground"
+          >
             Loading security settings...
           </motion.div>
         ) : profileQuery.isError ? (
           <motion.div variants={fadeInUp} className="space-y-3">
             <div className="rounded-2xl border border-dashed border-border/60 bg-card p-6 text-sm text-muted-foreground">
-              Live security details are temporarily unavailable. Please retry in a
-              moment.
+              Live security details are temporarily unavailable. Please retry in
+              a moment.
             </div>
             <div className="flex justify-end">
               <Button
                 variant="outline"
                 onClick={() => {
-                  void profileQuery.refetch();
+                  profileQuery.refetch();
                 }}
               >
                 Retry

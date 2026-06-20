@@ -71,7 +71,7 @@ const LogoUpload = ({
     }
     if (Object.keys(next).length === 0) return;
 
-    void mutate(
+    mutate(
       "/api/v1/organization/branding",
       (current: unknown) => {
         const currentRoot = isJsonObject(current) ? current : {};
@@ -149,7 +149,7 @@ const LogoUpload = ({
 
       // Update the logo across the app without reload
       mergeBrandingPreview(response.data);
-      void mutate("/api/v1/organization/branding");
+      mutate("/api/v1/organization/branding");
       await onUploaded?.(response.data);
 
       // Close modal and reset state

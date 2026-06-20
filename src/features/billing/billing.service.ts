@@ -253,7 +253,24 @@ const billingRequest = async <T>(
   return limiter.schedule(async () => {
     const startedAt = Date.now();
     // #region debug-point B:billing-request-start
-    fetch("http://127.0.0.1:7777/event", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId: "settings-profile-billing", runId: "pre-fix", hypothesisId: "B", location: "billing.service.ts:256", msg: "[DEBUG] billing request start", data: { method: safeMeta.method, url: safeMeta.url, orgIdPresent: safeMeta.orgIdPresent, withCredentials: true }, ts: Date.now() }) }).catch(() => undefined);
+    fetch("http://127.0.0.1:7777/event", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "settings-profile-billing",
+        runId: "pre-fix",
+        hypothesisId: "B",
+        location: "billing.service.ts:256",
+        msg: "[DEBUG] billing request start",
+        data: {
+          method: safeMeta.method,
+          url: safeMeta.url,
+          orgIdPresent: safeMeta.orgIdPresent,
+          withCredentials: true,
+        },
+        ts: Date.now(),
+      }),
+    }).catch(() => undefined);
     // #endregion
     try {
       const res = await requestWithRetry<T>({ ...config, headers });
@@ -267,7 +284,31 @@ const billingRequest = async <T>(
       const data =
         isJsonObject(envelope) && "data" in envelope ? envelope.data : envelope;
       // #region debug-point B:billing-request-success
-      fetch("http://127.0.0.1:7777/event", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId: "settings-profile-billing", runId: "pre-fix", hypothesisId: "B", location: "billing.service.ts:271", msg: "[DEBUG] billing request success", data: { method: safeMeta.method, url: safeMeta.url, status: res.status, envelopeKeys: isJsonObject(envelope) ? Object.keys(envelope).slice(0, 20) : [], dataKeys: isJsonObject(data) ? Object.keys(data).slice(0, 20) : Array.isArray(data) ? ["array"] : [] }, ts: Date.now() }) }).catch(() => undefined);
+      fetch("http://127.0.0.1:7777/event", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "settings-profile-billing",
+          runId: "pre-fix",
+          hypothesisId: "B",
+          location: "billing.service.ts:271",
+          msg: "[DEBUG] billing request success",
+          data: {
+            method: safeMeta.method,
+            url: safeMeta.url,
+            status: res.status,
+            envelopeKeys: isJsonObject(envelope)
+              ? Object.keys(envelope).slice(0, 20)
+              : [],
+            dataKeys: isJsonObject(data)
+              ? Object.keys(data).slice(0, 20)
+              : Array.isArray(data)
+                ? ["array"]
+                : [],
+          },
+          ts: Date.now(),
+        }),
+      }).catch(() => undefined);
       // #endregion
       return data as T;
     } catch (error) {
@@ -279,9 +320,31 @@ const billingRequest = async <T>(
         ms: Date.now() - startedAt,
       });
       // #region debug-point B:billing-request-error
-      fetch("http://127.0.0.1:7777/event", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sessionId: "settings-profile-billing", runId: "pre-fix", hypothesisId: "B", location: "billing.service.ts:281", msg: "[DEBUG] billing request error", data: { method: safeMeta.method, url: safeMeta.url, status: e?.response?.status ?? null, responseKeys: isJsonObject(e?.response?.data) ? Object.keys(e.response?.data as Record<string, unknown>).slice(0, 20) : [] }, ts: Date.now() }) }).catch(() => undefined);
+      fetch("http://127.0.0.1:7777/event", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sessionId: "settings-profile-billing",
+          runId: "pre-fix",
+          hypothesisId: "B",
+          location: "billing.service.ts:281",
+          msg: "[DEBUG] billing request error",
+          data: {
+            method: safeMeta.method,
+            url: safeMeta.url,
+            status: e?.response?.status ?? null,
+            responseKeys: isJsonObject(e?.response?.data)
+              ? Object.keys(e.response?.data as Record<string, unknown>).slice(
+                  0,
+                  20
+                )
+              : [],
+          },
+          ts: Date.now(),
+        }),
+      }).catch(() => undefined);
       // #endregion
-      throw new Error(toFriendlyMessage(error));
+      throw new Error(toFriendlyMessage(error), { cause: error });
     }
   });
 };

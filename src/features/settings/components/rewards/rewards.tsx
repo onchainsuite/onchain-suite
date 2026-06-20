@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { Gift } from "lucide-react";
 
 import { fadeInUp } from "../../utils";
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import FloatingSparkles from "./floating-sparkles";
 import RewardsContent from "./rewards-content";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 export default function RewardsSettings() {
   return (

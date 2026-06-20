@@ -213,12 +213,13 @@ export async function GET(req: NextRequest) {
   });
   const cloned = upstream.clone();
   const responseText = await cloned.text().catch(() => "");
-  let responseJson: unknown = null;
-  try {
-    responseJson = responseText.length > 0 ? JSON.parse(responseText) : null;
-  } catch {
-    responseJson = null;
-  }
+  const responseJson: unknown = (() => {
+    try {
+      return responseText.length > 0 ? JSON.parse(responseText) : null;
+    } catch {
+      return null;
+    }
+  })();
   const patchedPayload = patchPlaceholderIdentity(responseJson, mirroredUser);
   if (patchedPayload) {
     const headers = new Headers(upstream.headers);

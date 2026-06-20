@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { intelligenceService } from "./intelligence.service";
+
 const mocks = vi.hoisted(() => ({
   apiClient: {
     request: vi.fn(),
@@ -17,8 +19,6 @@ vi.mock("@/lib/utils", async () => {
     getSelectedOrganizationId: () => "org_test_123",
   };
 });
-
-import { intelligenceService } from "./intelligence.service";
 
 describe("intelligenceService", () => {
   beforeEach(() => {

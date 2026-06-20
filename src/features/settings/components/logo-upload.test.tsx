@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import axios from "axios";
 import type { MouseEvent, MouseEventHandler, ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mutate } from "swr";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -25,7 +25,7 @@ vi.mock("framer-motion", () => ({
       children,
       className,
       onClick,
-      whileHover,
+      whileHover: _whileHover,
       ...props
     }: {
       children?: ReactNode;

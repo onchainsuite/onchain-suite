@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 import { authClient } from "@/lib/auth-client";
 import {
@@ -32,6 +31,8 @@ import {
   isJsonObject,
   ORG_SELECTION_COOKIE,
 } from "@/lib/utils";
+
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 type InAppEnvironment = "production" | "staging" | "development";
 type SecretKeyEnvironment = "live" | "test";

@@ -55,7 +55,8 @@ describe("Logo upload proxy route", () => {
     );
 
     const [, init] = mockedFetch.mock.calls[0] ?? [];
-    const forwardedHeaders = (init as RequestInit | undefined)?.headers as Headers;
+    const forwardedHeaders = (init as RequestInit | undefined)
+      ?.headers as Headers;
     expect(forwardedHeaders.get("authorization")).toBe(
       "Bearer session-token-123"
     );

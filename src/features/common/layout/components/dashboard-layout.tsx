@@ -19,6 +19,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 
 import { CommandPaletteProvider } from "@/components/common/command-palette";
+
 import { authClient } from "@/lib/auth-client";
 import {
   cn,

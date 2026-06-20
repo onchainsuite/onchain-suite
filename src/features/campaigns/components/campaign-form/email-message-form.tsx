@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 
 import { Button } from "@/ui/button";
@@ -32,14 +32,10 @@ export interface EmailMessageFormProps {
 export function EmailMessageForm({
   form,
   verifiedSenderIdentities,
-  senderIdentitiesLoading,
+  senderIdentitiesLoading: _senderIdentitiesLoading,
 }: EmailMessageFormProps) {
   const useReplyTo = form.watch("useReplyTo");
   const selectedSenderEmail = form.watch("senderEmail");
-  const selectedVerifiedSender = verifiedSenderIdentities.find(
-    (identity) =>
-      identity.email.toLowerCase() === selectedSenderEmail.trim().toLowerCase()
-  );
 
   return (
     <div className="space-y-6 p-6 md:p-8">

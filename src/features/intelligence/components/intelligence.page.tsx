@@ -11,7 +11,7 @@ import { ReportsTab } from "./reports";
 import { SegmentsTab } from "./segments";
 
 export default function IntelligencePage() {
-  const [activeTab, setActiveTab] = useState("query");
+  const [activeTab, setActiveTab] = useState("chat");
 
   const metricsQuery = useQuery({
     queryKey: ["intelligence", "metrics"],
@@ -23,6 +23,20 @@ export default function IntelligencePage() {
   const segmentsMetricsQuery = useQuery({
     queryKey: ["intelligence", "segments", "metrics"],
     queryFn: () => intelligenceService.getSegmentsMetrics(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const reportsMetricsQuery = useQuery({
+    queryKey: ["intelligence", "reports", "metrics"],
+    queryFn: () => intelligenceService.getReportsMetrics(),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const reportsSummaryQuery = useQuery({
+    queryKey: ["intelligence", "reports", "summary"],
+    queryFn: () => intelligenceService.getReportsSummary(),
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -43,7 +57,7 @@ export default function IntelligencePage() {
             Analyze on-chain data and create targeted segments.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
             <span className="text-muted-foreground">Score</span>{" "}
             <span className="font-medium text-foreground">
@@ -60,6 +74,38 @@ export default function IntelligencePage() {
                 : "—"}
             </span>
           </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
+            <span className="text-muted-foreground">Segments</span>{" "}
+            <span className="font-medium text-foreground">
+              {typeof segmentsMetricsQuery.data?.segmentsCount === "number"
+                ? segmentsMetricsQuery.data.segmentsCount.toLocaleString()
+                : "—"}
+            </span>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
+            <span className="text-muted-foreground">Reports</span>{" "}
+            <span className="font-medium text-foreground">
+              {typeof (
+                reportsMetricsQuery.data as Record<string, unknown> | undefined
+              )?.reportsCount === "number"
+                ? (
+                    reportsMetricsQuery.data as { reportsCount: number }
+                  ).reportsCount.toLocaleString()
+                : typeof (
+                      reportsSummaryQuery.data as
+                        | Record<string, unknown>
+                        | undefined
+                    )?.summary === "string"
+                  ? String(
+                      (
+                        reportsSummaryQuery.data as {
+                          summary: string;
+                        }
+                      ).summary
+                    )
+                  : "—"}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -69,8 +115,11 @@ export default function IntelligencePage() {
         className="space-y-4"
       >
         <TabsList className="rounded-xl border border-border bg-card p-1">
-          <TabsTrigger value="query" className="rounded-lg">
-            Query
+          <TabsTrigger value="chat" className="rounded-lg">
+            Chat
+          </TabsTrigger>
+          <TabsTrigger value="sql" className="rounded-lg">
+            SQL
           </TabsTrigger>
           <TabsTrigger value="segments" className="rounded-lg">
             Segments
@@ -85,12 +134,15 @@ export default function IntelligencePage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="query" className="space-y-4">
-          <QueryTab
-            openEmailComposer={openEmailComposer}
-            setActiveTab={setActiveTab}
-          />
-        </TabsContent>
+        {activeTab === "chat" || activeTab === "sql" ? (
+          <div className="space-y-4">
+            <QueryTab
+              activeSurface={activeTab === "chat" ? "chat" : "sql"}
+              openEmailComposer={openEmailComposer}
+              setActiveTab={setActiveTab}
+            />
+          </div>
+        ) : null}
 
         <TabsContent value="segments" className="space-y-4">
           <SegmentsTab

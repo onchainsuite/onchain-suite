@@ -4,12 +4,12 @@ import { BarChart3 } from "lucide-react";
 import { useState } from "react";
 
 import { Switch } from "@/components/ui/switch";
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 import { isJsonObject } from "@/lib/utils";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { billingService } from "@/features/billing/billing.service";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 interface PlanUsageProps {
   optimisePlan: boolean;
@@ -146,6 +146,10 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
         .filter(Boolean)
         .join(" ")
     : null;
+  const hasBillingDetails =
+    billingStatus !== "" ||
+    nextBillingDate !== null ||
+    paymentMethodLabel !== null;
 
   return (
     <motion.section
@@ -182,7 +186,7 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
                 Next billing
               </p>
               <p className="mt-1 text-sm text-foreground">
-                {nextBillingDate || "Not scheduled"}
+                {nextBillingDate ?? "Not scheduled"}
               </p>
             </div>
           </div>
@@ -200,7 +204,7 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
                   <span className="font-medium text-primary">{planName}</span>{" "}
                   plan.
                 </p>
-                {(billingStatus || nextBillingDate || paymentMethodLabel) && (
+                {hasBillingDetails && (
                   <div className="space-y-1">
                     {billingStatus ? <p>Status: {billingStatus}</p> : null}
                     {nextBillingDate ? (
@@ -214,7 +218,7 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground"></span>
+              <span className="text-sm text-muted-foreground" />
               <Switch
                 checked={optimisePlan}
                 onCheckedChange={setOptimisePlan}

@@ -56,6 +56,45 @@ export interface IntelligenceGoldrushRunBody {
   noSpam?: boolean;
 }
 
+export interface IntelligenceGoldrushMcpQueryBody {
+  prompt?: string;
+  sql?: string;
+  protocol?: string;
+  chain?: string;
+  chains?: string[];
+  contractAddress?: string;
+  contractAddresses?: string[];
+  contracts?: Array<{ chain?: string; address: string; label?: string }>;
+  walletAddress?: string;
+  walletAddresses?: string[];
+  mode?: "fast" | "best";
+  maxSteps?: number;
+  useProjectSettings?: boolean;
+  useProtocolRegistry?: boolean;
+}
+
+export interface IntelligenceGoldrushMcpStep {
+  toolName?: string;
+  title?: string;
+  description?: string;
+  preview?: unknown;
+  [key: string]: unknown;
+}
+
+export interface IntelligenceGoldrushMcpQueryResponse {
+  queryId?: string;
+  mode?: "dynamic_agent" | "deterministic_fallback" | string;
+  status?: "answered" | "needs_clarification" | string;
+  answer?: string;
+  question?: string;
+  rationale?: string;
+  confidence?: number;
+  plan?: unknown;
+  steps?: IntelligenceGoldrushMcpStep[];
+  execution?: unknown;
+  [key: string]: unknown;
+}
+
 export interface IntelligenceQueryStatusResponse {
   queryId: string;
   status: IntelligenceQueryStatus;
@@ -256,25 +295,22 @@ export interface IntelligenceQueryCacheListResponse {
   meta?: Record<string, unknown>;
 }
 
-export interface IntelligenceQueryCacheDetailResponse extends Record<
-  string,
-  unknown
-> {}
+export type IntelligenceQueryCacheDetailResponse = Record<string, unknown>;
 
-export interface IntelligenceWalletEnrichmentEnqueueResponse extends Record<
+export type IntelligenceWalletEnrichmentEnqueueResponse = Record<
   string,
   unknown
-> {}
+>;
 
-export interface IntelligenceContactsEnrichmentEnqueueResponse extends Record<
+export type IntelligenceContactsEnrichmentEnqueueResponse = Record<
   string,
   unknown
-> {}
+>;
 
-export interface IntelligenceWalletEnrichmentMetricsResponse extends Record<
+export type IntelligenceWalletEnrichmentMetricsResponse = Record<
   string,
   unknown
-> {}
+>;
 
 const pickOrgId = (orgId?: string) =>
   orgId ?? getSelectedOrganizationId() ?? null;
@@ -312,7 +348,7 @@ const request = async <T>(
         : typeof data === "string"
           ? data
           : (err.message ?? "Intelligence request failed");
-    throw new Error(String(message));
+    throw new Error(String(message), { cause: e });
   }
 };
 
@@ -405,6 +441,17 @@ export const intelligenceService = {
       {
         method: "POST",
         url: "/intelligence/query/goldrush/run",
+        data: body,
+      },
+      orgId
+    );
+  },
+
+  queryGoldrushMcp(body: IntelligenceGoldrushMcpQueryBody, orgId?: string) {
+    return request<IntelligenceGoldrushMcpQueryResponse>(
+      {
+        method: "POST",
+        url: "/intelligence/query/goldrush/mcp/query",
         data: body,
       },
       orgId

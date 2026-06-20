@@ -94,7 +94,7 @@ const request = async <T>(
         : typeof data === "string"
           ? data
           : (err.message ?? "Inbox request failed");
-    throw new Error(String(message));
+    throw new Error(String(message), { cause: e });
   }
 };
 

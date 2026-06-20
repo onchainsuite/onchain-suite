@@ -16,16 +16,16 @@ import {
 } from "@/components/ui/select";
 
 import { apiClient } from "@/lib/api-client";
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
-import { Badge } from "@/shared/components/ui/badge";
 
 import { fadeInUp, staggerContainer } from "../../utils";
-import { Switch } from "@/shared/components/ui/switch";
-import { useTimezones } from "@/shared/hooks/client/use-timezones";
 import {
   type UserProfilePreferenceField,
   useUserProfile,
 } from "./use-user-profile";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import { Badge } from "@/shared/components/ui/badge";
+import { Switch } from "@/shared/components/ui/switch";
+import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
 interface ProfileDetailsFormState {
   email: string;
@@ -66,8 +66,9 @@ const PersonalDetails = () => {
       lastName: profileQuery.data.lastName,
       timezone: profileQuery.data.timezone,
       zkIntegration:
-        profileQuery.data.preferences.find((item) => item.id === "zkIntegration")
-          ?.value ?? false,
+        profileQuery.data.preferences.find(
+          (item) => item.id === "zkIntegration"
+        )?.value ?? false,
       preferences: profileQuery.data.preferences.filter(
         (item) => item.id !== "zkIntegration"
       ),
@@ -95,7 +96,9 @@ const PersonalDetails = () => {
       await apiClient.put("/user/profile", payload);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["settings", "profile"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["settings", "profile"],
+      });
       setIsEditing(false);
       toast.success("Profile updated successfully");
     },
@@ -109,6 +112,15 @@ const PersonalDetails = () => {
     : profileQuery.data?.updatedAt
       ? `Updated ${new Date(profileQuery.data.updatedAt).toLocaleDateString()}`
       : "Live profile data";
+  const fullNameLabel =
+    typeof profileQuery.data?.fullName === "string" &&
+    profileQuery.data.fullName.trim().length > 0
+      ? profileQuery.data.fullName
+      : "Not set";
+  const timezoneLabel =
+    typeof profileData.timezone === "string" && profileData.timezone.length > 0
+      ? profileData.timezone
+      : "UTC";
 
   const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -128,7 +140,7 @@ const PersonalDetails = () => {
                 Full name
               </p>
               <p className="mt-1 text-sm font-medium text-foreground">
-                {profileQuery.data?.fullName || "Not set"}
+                {fullNameLabel}
               </p>
             </div>
             <div>
@@ -152,14 +164,14 @@ const PersonalDetails = () => {
         ) : profileQuery.isError ? (
           <motion.div variants={fadeInUp} className="space-y-3">
             <div className="rounded-2xl border border-dashed border-border/60 bg-card p-6 text-sm text-muted-foreground">
-              We couldn&apos;t load your live profile data right now. Please wait a
-              moment and try again.
+              We couldn&apos;t load your live profile data right now. Please
+              wait a moment and try again.
             </div>
             <div className="flex justify-end">
               <Button
                 variant="outline"
                 onClick={() => {
-                  void profileQuery.refetch();
+                  profileQuery.refetch();
                 }}
               >
                 Retry
@@ -337,7 +349,7 @@ const PersonalDetails = () => {
                   Full name
                 </p>
                 <p className="text-base font-medium text-foreground">
-                  {profileQuery.data?.fullName || "Not set"}
+                  {fullNameLabel}
                 </p>
               </div>
               <div>
@@ -352,9 +364,7 @@ const PersonalDetails = () => {
                 <p className="mb-1 text-sm font-medium text-muted-foreground">
                   Timezone
                 </p>
-                <p className="text-base text-foreground">
-                  {profileData.timezone || "UTC"}
-                </p>
+                <p className="text-base text-foreground">{timezoneLabel}</p>
               </div>
             </div>
 

@@ -50,7 +50,6 @@ import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { isJsonObject } from "@/lib/utils";
-import { projectSettingsService } from "@/features/settings/project-settings.service";
 
 import "reactflow/dist/style.css";
 import { automationService } from "../../automation.service";
@@ -83,6 +82,7 @@ import {
   buildTriggerContractPatch,
   resolveContractCatalog,
 } from "@/features/automation/utils/contracts";
+import { projectSettingsService } from "@/features/settings/project-settings.service";
 
 // This is a known benign error with ReactFlow that can be safely ignored
 if (typeof window === "undefined") {

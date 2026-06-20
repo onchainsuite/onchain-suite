@@ -1,7 +1,6 @@
 import { afterEach } from "vitest";
 
-const isDom =
-  typeof window !== "undefined" && typeof document !== "undefined";
+const isDom = typeof window !== "undefined" && typeof document !== "undefined";
 
 if (isDom) {
   import("@testing-library/jest-dom/vitest");
@@ -9,4 +8,3 @@ if (isDom) {
     afterEach(() => cleanup());
   });
 }
-

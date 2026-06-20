@@ -288,20 +288,15 @@ const buildFallbackSessionResponse = async (args: {
   onchainUser: unknown | null;
   cacheKey: string;
 }) => {
-  let profileTry: Response | null = null;
-  try {
-    profileTry = await fetch(`${args.backendBase}/user/profile`, {
-      method: "GET",
-      headers: withAuthHeaders(
-        new Headers(),
-        args.onchainToken,
-        args.cookieHeader
-      ),
-      cache: "no-store",
-    });
-  } catch {
-    profileTry = null;
-  }
+  const profileTry = await fetch(`${args.backendBase}/user/profile`, {
+    method: "GET",
+    headers: withAuthHeaders(
+      new Headers(),
+      args.onchainToken,
+      args.cookieHeader
+    ),
+    cache: "no-store",
+  }).catch(() => null);
 
   if (profileTry?.ok) {
     const profileJson = await profileTry.json().catch(() => null);

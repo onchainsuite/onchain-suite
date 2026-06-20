@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildTriggerContractPatch,
-  resolveContractCatalog,
-} from "./contracts";
+import { buildTriggerContractPatch, resolveContractCatalog } from "./contracts";
 
 describe("automation contract helpers", () => {
   it("prefers saved project settings contracts over fallback mock contracts", () => {

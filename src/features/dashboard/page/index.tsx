@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { CommandBar } from "../components/command-bar";
-import { ActivitySection } from "@/features/dashboard/components/activity-section";
 import { GetStartedSection } from "@/features/dashboard/components/get-started";
 
 interface UserData {
@@ -91,9 +90,6 @@ export function MainDashboard({ userData }: MainDashboardProps) {
 
           {/* Get Started Section */}
           <GetStartedSection />
-
-          {/* Activity Section */}
-          <ActivitySection />
         </div>
       </div>
     </div>

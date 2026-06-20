@@ -22,12 +22,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { authClient } from "@/lib/auth-client";
 import { getSelectedOrganizationId } from "@/lib/utils";
-import {
-  projectSettingsService,
-  type ProjectSettingsFormData,
-} from "@/features/settings/project-settings.service";
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import {
+  type ProjectSettingsFormData,
+  projectSettingsService,
+} from "@/features/settings/project-settings.service";
 import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
 const chainOptions = [
@@ -286,257 +286,313 @@ export default function CompanyEditForm() {
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-6"
           >
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>
-                    Project / Protocol Name{" "}
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <Input {...form.register("name")} placeholder="Acme Inc." />
-                  {form.formState.errors.name && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {form.formState.errors.name.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Billing Email</Label>
-                  <Input
-                    {...form.register("email")}
-                    type="email"
-                    placeholder="billing@acme.com"
-                  />
-                  {form.formState.errors.email && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {form.formState.errors.email.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Token Ticker</Label>
-                  <Input
-                    {...form.register("tokenTicker")}
-                    placeholder="$SUITE"
-                    autoCapitalize="characters"
-                  />
-                  {form.formState.errors.tokenTicker && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {form.formState.errors.tokenTicker.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Primary Chains</Label>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <Select
-                      value={chainToAdd}
-                      onValueChange={(val) => setChainToAdd(val as ChainOption)}
-                    >
-                      <SelectTrigger className="sm:w-56">
-                        <SelectValue placeholder="Select chain" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {chainOptions.map((chain) => (
-                          <SelectItem key={chain} value={chain}>
-                            {chain}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => {
-                        const current = form.getValues("primaryChains") ?? [];
-                        if (!current.includes(chainToAdd)) {
-                          form.setValue(
-                            "primaryChains",
-                            [...current, chainToAdd],
-                            {
-                              shouldDirty: true,
-                            }
-                          );
-                        }
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add chain
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {(form.getValues("primaryChains") ?? []).map((chain) => (
-                      <span
-                        key={chain}
-                        className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-foreground"
-                      >
-                        {chain}
-                        <button
-                          type="button"
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={() => {
-                            const current =
-                              form.getValues("primaryChains") ?? [];
-                            form.setValue(
-                              "primaryChains",
-                              current.filter((c) => c !== chain),
-                              { shouldDirty: true }
-                            );
-                          }}
-                          aria-label={`Remove ${chain}`}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                    {(form.getValues("primaryChains") ?? []).length === 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        Select one or more chains
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone (E.164)</Label>
-                  <Input
-                    {...form.register("phone")}
-                    placeholder="+1234567890"
-                  />
-                  {form.formState.errors.phone && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {form.formState.errors.phone.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Tax ID / VAT Number</Label>
-                  <Input
-                    {...form.register("taxId")}
-                    placeholder="US-123456789"
-                  />
-                  {form.formState.errors.taxId && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {form.formState.errors.taxId.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Timezone</Label>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>
+                  Project / Protocol Name{" "}
+                  <span className="text-red-500">*</span>
+                </Label>
+                <Input {...form.register("name")} placeholder="Acme Inc." />
+                {form.formState.errors.name && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {form.formState.errors.name.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Billing Email</Label>
+                <Input
+                  {...form.register("email")}
+                  type="email"
+                  placeholder="billing@acme.com"
+                />
+                {form.formState.errors.email && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {form.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Token Ticker</Label>
+                <Input
+                  {...form.register("tokenTicker")}
+                  placeholder="$SUITE"
+                  autoCapitalize="characters"
+                />
+                {form.formState.errors.tokenTicker && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {form.formState.errors.tokenTicker.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Primary Chains</Label>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <Select
-                    onValueChange={(val) => form.setValue("timezone", val)}
-                    defaultValue={form.getValues("timezone")}
+                    value={chainToAdd}
+                    onValueChange={(val) => setChainToAdd(val as ChainOption)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select timezone" />
+                    <SelectTrigger className="sm:w-56">
+                      <SelectValue placeholder="Select chain" />
                     </SelectTrigger>
                     <SelectContent>
-                      {tzLoading ? (
-                        <div className="p-2 text-sm text-muted-foreground">
-                          Loading…
-                        </div>
-                      ) : (
-                        timezones.map((tz) => (
-                          <SelectItem key={tz.id} value={tz.id}>
-                            {tz.label}
-                          </SelectItem>
-                        ))
-                      )}
+                      {chainOptions.map((chain) => (
+                        <SelectItem key={chain} value={chain}>
+                          {chain}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      const current = form.getValues("primaryChains") ?? [];
+                      if (!current.includes(chainToAdd)) {
+                        form.setValue(
+                          "primaryChains",
+                          [...current, chainToAdd],
+                          {
+                            shouldDirty: true,
+                          }
+                        );
+                      }
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add chain
+                  </Button>
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Address</Label>
-                  <Input
-                    {...form.register("address")}
-                    placeholder="123 Market St, San Francisco, CA 94103"
-                  />
-                  {form.formState.errors.address && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {form.formState.errors.address.message}
-                    </p>
+                <div className="flex flex-wrap gap-2">
+                  {(form.getValues("primaryChains") ?? []).map((chain) => (
+                    <span
+                      key={chain}
+                      className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-foreground"
+                    >
+                      {chain}
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          const current = form.getValues("primaryChains") ?? [];
+                          form.setValue(
+                            "primaryChains",
+                            current.filter((c) => c !== chain),
+                            { shouldDirty: true }
+                          );
+                        }}
+                        aria-label={`Remove ${chain}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {(form.getValues("primaryChains") ?? []).length === 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      Select one or more chains
+                    </span>
                   )}
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Phone (E.164)</Label>
+                <Input {...form.register("phone")} placeholder="+1234567890" />
+                {form.formState.errors.phone && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {form.formState.errors.phone.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Tax ID / VAT Number</Label>
+                <Input {...form.register("taxId")} placeholder="US-123456789" />
+                {form.formState.errors.taxId && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {form.formState.errors.taxId.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Timezone</Label>
+                <Select
+                  onValueChange={(val) => form.setValue("timezone", val)}
+                  defaultValue={form.getValues("timezone")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tzLoading ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        Loading…
+                      </div>
+                    ) : (
+                      timezones.map((tz) => (
+                        <SelectItem key={tz.id} value={tz.id}>
+                          {tz.label}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Address</Label>
+                <Input
+                  {...form.register("address")}
+                  placeholder="123 Market St, San Francisco, CA 94103"
+                />
+                {form.formState.errors.address && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {form.formState.errors.address.message}
+                  </p>
+                )}
+              </div>
+            </div>
 
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Contract Addresses
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Add contracts for on-chain queries and intelligence.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() =>
+                    appendContract({
+                      chain: chainOptions[0],
+                      address: "",
+                      label: "",
+                    })
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                  Add contract
+                </Button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {contractFields.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    No contracts added
+                  </div>
+                ) : (
+                  contractFields.map((field, idx) => (
+                    <div
+                      key={field.id}
+                      className="grid gap-3 rounded-xl border border-border/60 bg-card/40 p-3 md:grid-cols-12"
+                    >
+                      <div className="md:col-span-3">
+                        <Label className="sr-only">Chain</Label>
+                        <Select
+                          onValueChange={(val) =>
+                            form.setValue(
+                              `contractAddresses.${idx}.chain`,
+                              val,
+                              { shouldDirty: true }
+                            )
+                          }
+                          defaultValue={form.getValues(
+                            `contractAddresses.${idx}.chain`
+                          )}
+                        >
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="Chain" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {chainOptions.map((chain) => (
+                              <SelectItem key={chain} value={chain}>
+                                {chain}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-5">
+                        <Label className="sr-only">Address</Label>
+                        <Input
+                          {...form.register(`contractAddresses.${idx}.address`)}
+                          placeholder="0x… or base58…"
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="md:col-span-3">
+                        <Label className="sr-only">Label</Label>
+                        <Input
+                          {...form.register(`contractAddresses.${idx}.label`)}
+                          placeholder="Main Token"
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="flex items-center justify-end md:col-span-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeContract(idx)}
+                          aria-label="Remove contract"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Contract Addresses
+                      Treasury Wallets
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Add contracts for on-chain queries and intelligence.
+                      Treasury, marketing, team, etc.
                     </p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     className="gap-2"
-                    onClick={() =>
-                      appendContract({
-                        chain: chainOptions[0],
-                        address: "",
-                        label: "",
-                      })
-                    }
+                    onClick={() => appendTreasury({ address: "", label: "" })}
                   >
                     <Plus className="h-4 w-4" />
-                    Add contract
+                    Add
                   </Button>
                 </div>
-
                 <div className="mt-4 space-y-3">
-                  {contractFields.length === 0 ? (
+                  {treasuryFields.length === 0 ? (
                     <div className="text-sm text-muted-foreground">
-                      No contracts added
+                      No wallets added
                     </div>
                   ) : (
-                    contractFields.map((field, idx) => (
+                    treasuryFields.map((field, idx) => (
                       <div
                         key={field.id}
                         className="grid gap-3 rounded-xl border border-border/60 bg-card/40 p-3 md:grid-cols-12"
                       >
-                        <div className="md:col-span-3">
-                          <Label className="sr-only">Chain</Label>
-                          <Select
-                            onValueChange={(val) =>
-                              form.setValue(
-                                `contractAddresses.${idx}.chain`,
-                                val,
-                                { shouldDirty: true }
-                              )
-                            }
-                            defaultValue={form.getValues(
-                              `contractAddresses.${idx}.chain`
-                            )}
-                          >
-                            <SelectTrigger className="h-11">
-                              <SelectValue placeholder="Chain" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {chainOptions.map((chain) => (
-                                <SelectItem key={chain} value={chain}>
-                                  {chain}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="md:col-span-5">
-                          <Label className="sr-only">Address</Label>
+                        <div className="md:col-span-7">
+                          <Label className="sr-only">Wallet address</Label>
                           <Input
-                            {...form.register(
-                              `contractAddresses.${idx}.address`
-                            )}
-                            placeholder="0x… or base58…"
+                            {...form.register(`treasuryWallets.${idx}.address`)}
+                            placeholder="0x…"
                             className="h-11"
                           />
                         </div>
-                        <div className="md:col-span-3">
+                        <div className="md:col-span-4">
                           <Label className="sr-only">Label</Label>
                           <Input
-                            {...form.register(`contractAddresses.${idx}.label`)}
-                            placeholder="Main Token"
+                            {...form.register(`treasuryWallets.${idx}.label`)}
+                            placeholder="Treasury"
                             className="h-11"
                           />
                         </div>
@@ -545,8 +601,8 @@ export default function CompanyEditForm() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeContract(idx)}
-                            aria-label="Remove contract"
+                            onClick={() => removeTreasury(idx)}
+                            aria-label="Remove wallet"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -557,158 +613,91 @@ export default function CompanyEditForm() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        Treasury Wallets
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Treasury, marketing, team, etc.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => appendTreasury({ address: "", label: "" })}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add
-                    </Button>
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Deployer / Team Wallets
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      For privilege tracking and intelligence features.
+                    </p>
                   </div>
-                  <div className="mt-4 space-y-3">
-                    {treasuryFields.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">
-                        No wallets added
-                      </div>
-                    ) : (
-                      treasuryFields.map((field, idx) => (
-                        <div
-                          key={field.id}
-                          className="grid gap-3 rounded-xl border border-border/60 bg-card/40 p-3 md:grid-cols-12"
-                        >
-                          <div className="md:col-span-7">
-                            <Label className="sr-only">Wallet address</Label>
-                            <Input
-                              {...form.register(
-                                `treasuryWallets.${idx}.address`
-                              )}
-                              placeholder="0x…"
-                              className="h-11"
-                            />
-                          </div>
-                          <div className="md:col-span-4">
-                            <Label className="sr-only">Label</Label>
-                            <Input
-                              {...form.register(`treasuryWallets.${idx}.label`)}
-                              placeholder="Treasury"
-                              className="h-11"
-                            />
-                          </div>
-                          <div className="flex items-center justify-end md:col-span-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeTreasury(idx)}
-                              aria-label="Remove wallet"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => appendTeam({ address: "", label: "" })}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </Button>
                 </div>
-
-                <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        Deployer / Team Wallets
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        For privilege tracking and intelligence features.
-                      </p>
+                <div className="mt-4 space-y-3">
+                  {teamFields.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      No wallets added
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="gap-2"
-                      onClick={() => appendTeam({ address: "", label: "" })}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add
-                    </Button>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {teamFields.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">
-                        No wallets added
-                      </div>
-                    ) : (
-                      teamFields.map((field, idx) => (
-                        <div
-                          key={field.id}
-                          className="grid gap-3 rounded-xl border border-border/60 bg-card/40 p-3 md:grid-cols-12"
-                        >
-                          <div className="md:col-span-7">
-                            <Label className="sr-only">Wallet address</Label>
-                            <Input
-                              {...form.register(`teamWallets.${idx}.address`)}
-                              placeholder="0x…"
-                              className="h-11"
-                            />
-                          </div>
-                          <div className="md:col-span-4">
-                            <Label className="sr-only">Label</Label>
-                            <Input
-                              {...form.register(`teamWallets.${idx}.label`)}
-                              placeholder="Deployer"
-                              className="h-11"
-                            />
-                          </div>
-                          <div className="flex items-center justify-end md:col-span-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeTeam(idx)}
-                              aria-label="Remove wallet"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 border-t border-border/40 pt-4">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setIsEditing(false);
-                    form.reset(data ?? undefined);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
-                    <Save className="h-4 w-4 mr-2" />
+                    teamFields.map((field, idx) => (
+                      <div
+                        key={field.id}
+                        className="grid gap-3 rounded-xl border border-border/60 bg-card/40 p-3 md:grid-cols-12"
+                      >
+                        <div className="md:col-span-7">
+                          <Label className="sr-only">Wallet address</Label>
+                          <Input
+                            {...form.register(`teamWallets.${idx}.address`)}
+                            placeholder="0x…"
+                            className="h-11"
+                          />
+                        </div>
+                        <div className="md:col-span-4">
+                          <Label className="sr-only">Label</Label>
+                          <Input
+                            {...form.register(`teamWallets.${idx}.label`)}
+                            placeholder="Deployer"
+                            className="h-11"
+                          />
+                        </div>
+                        <div className="flex items-center justify-end md:col-span-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeTeam(idx)}
+                            aria-label="Remove wallet"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
                   )}
-                  Save Changes
-                </Button>
+                </div>
               </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-border/40 pt-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setIsEditing(false);
+                  form.reset(data ?? undefined);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Changes
+              </Button>
+            </div>
           </motion.form>
         ) : (
           <motion.div

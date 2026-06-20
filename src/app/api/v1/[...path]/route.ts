@@ -2272,12 +2272,13 @@ const forward = async (
     if (isCampaignPreview || isCampaignSendTest || isCampaignEditorContent) {
       const cloned = upstream.clone();
       const text = await cloned.text().catch(() => "");
-      let json: unknown = null;
-      try {
-        json = text.length > 0 ? JSON.parse(text) : null;
-      } catch {
-        json = null;
-      }
+      const json: unknown = (() => {
+        try {
+          return text.length > 0 ? JSON.parse(text) : null;
+        } catch {
+          return null;
+        }
+      })();
       const obj =
         json && typeof json === "object"
           ? (json as Record<string, unknown>)

@@ -63,7 +63,8 @@ const request = async <T>(
       err.message ??
       "Templates request failed";
     throw new Error(
-      status ? `[HTTP ${status}] ${String(message)}` : String(message)
+      status ? `[HTTP ${status}] ${String(message)}` : String(message),
+      { cause: e }
     );
   }
 };

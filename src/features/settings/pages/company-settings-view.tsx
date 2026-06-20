@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   Check,
   ChevronRight,
@@ -13,16 +14,18 @@ import {
   RefreshCw,
   Users,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+
+import { apiClient } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
+import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import CompanyEditForm from "@/features/settings/components/account/company-edit-form";
 import InviteUser from "@/features/settings/components/invite-user";
 import LogoUpload from "@/features/settings/components/logo-upload";
-import { apiClient } from "@/lib/api-client";
-import { authClient } from "@/lib/auth-client";
-import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import { fadeInUp } from "@/features/settings/utils";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -45,8 +48,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { fadeInUp } from "@/features/settings/utils";
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 type LogoType = "primary" | "dark" | "favicon";
 type SenderStatus = "verified" | "pending" | "failed";
@@ -1126,10 +1127,10 @@ export default function CompanySettingsView() {
   });
 
   const branding = brandingQuery.data ?? defaultBrandingState;
-  const domains = domainQuery.data ?? [];
+  const domains = useMemo(() => domainQuery.data ?? [], [domainQuery.data]);
   const domainDnsRecords = domainDnsQuery.data?.records ?? [];
   const domainDnsStatus = domainDnsQuery.data?.status;
-  const senders = senderQuery.data ?? [];
+  const senders = useMemo(() => senderQuery.data ?? [], [senderQuery.data]);
   const teamMembers = useMemo(() => {
     const rows = membersQuery.data ?? [];
     const sessionEmail = pickString(session?.user?.email);
@@ -1947,7 +1948,7 @@ export default function CompanySettingsView() {
                       const hasExplicitRecordVerification =
                         typeof record.verified === "boolean";
                       const databaseCheck =
-                        linkedCheck == null
+                        linkedCheck === null
                           ? null
                           : ((domainDnsStatus?.checks ?? []).find(
                               (check) => check.key === linkedCheck

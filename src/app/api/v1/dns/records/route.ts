@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
       const recordObj = isJsonObject(record) ? record : {};
       const type =
         typeof recordObj.type === "string" ? recordObj.type : "UNKNOWN";
-      let value = "";
-      let priority = undefined;
+      let value: string;
+      let priority: number | undefined;
 
       switch (type) {
         case "A":

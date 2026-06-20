@@ -139,13 +139,15 @@ describe("API v1 proxy (campaign editor saved payload)", () => {
 
     expect(response.status).toBe(200);
     const backendCall = mockedFetch.mock.calls.find(([input]) =>
-      String(input).includes("backend.test/api/v1/templates?orgId=org_123&token=token_123")
+      String(input).includes(
+        "backend.test/api/v1/templates?orgId=org_123&token=token_123"
+      )
     );
     expect(backendCall).toBeTruthy();
 
     const [, init] = backendCall ?? [];
     const initObj = init as unknown as { headers?: Headers };
-    const headers = initObj.headers;
+    const { headers } = initObj;
     expect(headers?.get("x-org-id")).toBe("org_123");
     expect(headers?.get("authorization")).toBe("Bearer token_123");
   });

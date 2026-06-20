@@ -5,11 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import BillingSettings from "../components/billing/billing";
+import IntegrationsSettings from "../components/integrations/integrations";
 import ProfileSettings from "../components/profile/profile";
 import RewardsSettings from "../components/rewards/rewards";
 import { tabs } from "../utils";
 import CompanySettingsView from "./company-settings-view";
-import IntegrationsSettings from "../components/integrations/integrations";
 
 export default function SettingsPage() {
   const router = useRouter();

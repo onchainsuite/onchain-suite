@@ -50,8 +50,8 @@ import {
 
 import type { CampaignFormData } from "../../validations";
 import {
-  templatesService,
   type TemplateItem,
+  templatesService,
 } from "@/features/templates/templates.service";
 
 interface TemplateSelectorProps {

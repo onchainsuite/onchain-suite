@@ -13,13 +13,13 @@ import { toast } from "sonner";
 import { Button } from "@/ui/button";
 import { Form } from "@/ui/form";
 
+import { apiClient } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 import {
   getZonedDateTimeParts,
   parseTimeOfDay,
   zonedWallTimeToUtcDate,
 } from "@/lib/timezone";
-import { authClient } from "@/lib/auth-client";
-import { apiClient } from "@/lib/api-client";
 import {
   extractEmailContent,
   getSelectedOrganizationId,
@@ -32,8 +32,8 @@ import {
 } from "../../campaigns/validations";
 import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { AudienceStep } from "@/features/campaigns/components/campaign-form/audience-step";
-import { CampaignDetailsStep } from "@/features/campaigns/components/campaign-form/campaign-details-step";
 import { ConfirmationPage } from "@/features/campaigns/components/campaign-form/campaign-confirmation";
+import { CampaignDetailsStep } from "@/features/campaigns/components/campaign-form/campaign-details-step";
 import { ScheduleStep } from "@/features/campaigns/components/campaign-form/schedule-step";
 import { TemplateStep } from "@/features/campaigns/components/campaign-form/template-step";
 import {
@@ -1247,7 +1247,8 @@ export function CreateCampaignPage() {
                         <div className="flex flex-col items-end gap-2">
                           {!canLaunchCampaigns && (
                             <div className="text-right text-xs text-muted-foreground">
-                              Your role cannot launch campaigns for this organization.
+                              Your role cannot launch campaigns for this
+                              organization.
                             </div>
                           )}
                           <Button

@@ -5,12 +5,12 @@ import React from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 
 import { isJsonObject } from "@/lib/utils";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import { billingService } from "@/features/billing/billing.service";
+import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
   Dialog,
@@ -160,7 +160,7 @@ const PaymentMethod = () => {
               </p>
               <p className="mt-1 text-sm text-foreground">
                 {isOpen
-                  ? defaultMethodLabel || "No default payment method"
+                  ? (defaultMethodLabel ?? "No default payment method")
                   : "Expand to load live data"}
               </p>
             </div>

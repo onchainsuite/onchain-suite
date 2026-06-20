@@ -16,8 +16,8 @@ import {
 } from "@/lib/utils";
 
 import { campaignsService } from "@/features/campaigns/campaigns.service";
-import { templatesService } from "@/features/templates/templates.service";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { templatesService } from "@/features/templates/templates.service";
 import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export const dynamic = "force-dynamic";
@@ -289,13 +289,13 @@ export default function CampaignEditorPage() {
   const apiBaseUrlForEditor = useMemo(() => {
     if (typeof window === "undefined") return null;
     const localProxy = `${window.location.origin}/api/v1`;
-
-    let hostHostname = "";
-    try {
-      hostHostname = new URL(window.location.origin).hostname;
-    } catch {
-      hostHostname = window.location.hostname;
-    }
+    const hostHostname = (() => {
+      try {
+        return new URL(window.location.origin).hostname;
+      } catch {
+        return window.location.hostname;
+      }
+    })();
 
     if (!isLoopbackHost(hostHostname)) return localProxy;
 
@@ -647,7 +647,7 @@ export default function CampaignEditorPage() {
       window.dispatchEvent(new CustomEvent("onchain:templates-updated"));
       return createdId;
     },
-    [campaignId]
+    [campaignId, templateNameParam]
   );
 
   useEffect(() => {
@@ -993,7 +993,10 @@ export default function CampaignEditorPage() {
     return () => window.removeEventListener("message", handleMessage);
   }, [
     allowedOrigins,
+    createTemplateFromCampaign,
     editorSessionExpiresAt,
+    editorSessionQuery,
+    editorSessionQuery.refetch,
     editorSessionQuery.isSuccess,
     nextWizardUrl,
     postIframeConfig,

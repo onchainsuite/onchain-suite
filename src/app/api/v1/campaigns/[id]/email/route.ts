@@ -289,12 +289,13 @@ export async function GET(
       .clone()
       .text()
       .catch(() => "");
-    let json: unknown = null;
-    try {
-      json = text.length > 0 ? JSON.parse(text) : null;
-    } catch {
-      json = null;
-    }
+    const json: unknown = (() => {
+      try {
+        return text.length > 0 ? JSON.parse(text) : null;
+      } catch {
+        return null;
+      }
+    })();
     const extracted = extractEmailContent(json);
     // #region debug-point C:campaign-email-get-response
     reportEmailDebug(
@@ -370,12 +371,7 @@ export async function PUT(
     return res;
   }
 
-  let bodyJson: unknown = null;
-  try {
-    bodyJson = await req.json();
-  } catch {
-    bodyJson = null;
-  }
+  const bodyJson: unknown = await req.json().catch(() => null);
 
   const payload = toSavedPayload(bodyJson);
   // #region debug-point A:campaign-email-put-normalized

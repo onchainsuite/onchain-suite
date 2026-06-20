@@ -8,9 +8,10 @@ import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { extractEmailContent } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
+
+import { extractEmailContent } from "@/lib/utils";
 
 import { campaignsService } from "../../campaigns.service";
 import type { CampaignFormData } from "../../validations";

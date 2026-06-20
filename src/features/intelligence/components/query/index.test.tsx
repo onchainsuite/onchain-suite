@@ -10,8 +10,11 @@ const mocks = vi.hoisted(() => ({
     getSchema: vi.fn(),
     getQueryHistory: vi.fn(),
     getQueryStarters: vi.fn(),
+    listQueryProtocols: vi.fn(),
+    getQuerySuggestionsAnalytics: vi.fn(),
     validateQuery: vi.fn(),
     runQuery: vi.fn(),
+    queryGoldrushMcp: vi.fn(),
     getQuerySuggestions: vi.fn(),
     generateSql: vi.fn(),
     getQueryStatus: vi.fn(),
@@ -102,6 +105,7 @@ const renderQueryTab = (
   render(
     <QueryClientProvider client={queryClient}>
       <QueryTab
+        activeSurface={props?.activeSurface ?? "sql"}
         openEmailComposer={props?.openEmailComposer ?? openEmailComposer}
         setActiveTab={props?.setActiveTab ?? setActiveTab}
       />
@@ -131,9 +135,17 @@ describe("QueryTab", () => {
           description: "Find users inactive for 30 days",
           category: "Lifecycle",
           tags: ["winback"],
-          query: "SELECT wallet, email FROM users WHERE last_active_days_ago > 30;",
+          query:
+            "SELECT wallet, email FROM users WHERE last_active_days_ago > 30;",
         },
       ],
+    });
+    mocks.intelligenceService.listQueryProtocols.mockResolvedValue({
+      items: [],
+    });
+    mocks.intelligenceService.getQuerySuggestionsAnalytics.mockResolvedValue({
+      totals: {},
+      topProtocols: [],
     });
     mocks.intelligenceService.validateQuery.mockResolvedValue({
       valid: true,
@@ -177,6 +189,10 @@ describe("QueryTab", () => {
           sqlDraft: "SELECT wallet FROM users WHERE engagement_score > 80;",
         },
       ],
+    });
+    mocks.intelligenceService.queryGoldrushMcp.mockResolvedValue({
+      status: "answered",
+      answer: "No MCP response needed for this SQL test.",
     });
     mocks.intelligenceService.generateSql.mockResolvedValue({
       sql: "SELECT wallet, email FROM users WHERE engagement_score > 80;",
@@ -246,10 +262,10 @@ describe("QueryTab", () => {
   it("loads starter queries into the editor", async () => {
     renderQueryTab();
 
+    fireEvent.click(screen.getByRole("button", { name: /^Starter Queries$/i }));
     fireEvent.click(
-      screen.getByRole("button", { name: /^Starter Queries$/i })
+      await screen.findByRole("button", { name: /Dormant users/i })
     );
-    fireEvent.click(await screen.findByRole("button", { name: /Dormant users/i }));
 
     expect(screen.getByLabelText("SQL query editor")).toHaveValue(
       "SELECT wallet, email FROM users WHERE last_active_days_ago > 30;"
@@ -268,7 +284,9 @@ describe("QueryTab", () => {
         target: { value: "Find high-value inactive users" },
       }
     );
-    fireEvent.click(screen.getAllByRole("button", { name: /^Generate SQL$/i })[1]);
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /^Generate SQL$/i })[1]
+    );
 
     await screen.findByText("Generated draft");
     expect(mocks.intelligenceService.generateSql).toHaveBeenCalledWith({
@@ -286,7 +304,9 @@ describe("QueryTab", () => {
   it("opens one helper panel at a time", async () => {
     renderQueryTab();
 
-    const generateToggle = screen.getByRole("button", { name: /^Generate SQL$/i });
+    const generateToggle = screen.getByRole("button", {
+      name: /^Generate SQL$/i,
+    });
     const starterToggle = screen.getByRole("button", {
       name: /^Starter Queries$/i,
     });

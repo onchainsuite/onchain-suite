@@ -80,18 +80,21 @@ export function OrganizationSwitcher() {
     window.sessionStorage.removeItem(ORG_VERIFIED_SESSION_KEY);
   }, []);
 
-  const setSelectedOrgCookieValue = React.useCallback((orgId: string) => {
-    if (typeof document === "undefined") return;
-    document.cookie = `${ORG_SELECTION_COOKIE}=${encodeURIComponent(orgId)}; path=/; samesite=lax`;
-    setSelectedOrgCookie(orgId);
-    const verifiedOrgId =
-      typeof window !== "undefined"
-        ? window.sessionStorage.getItem(ORG_VERIFIED_SESSION_KEY)
-        : null;
-    if (verifiedOrgId && verifiedOrgId !== orgId) {
-      setVerifiedOrgId(null);
-    }
-  }, [setVerifiedOrgId]);
+  const setSelectedOrgCookieValue = React.useCallback(
+    (orgId: string) => {
+      if (typeof document === "undefined") return;
+      document.cookie = `${ORG_SELECTION_COOKIE}=${encodeURIComponent(orgId)}; path=/; samesite=lax`;
+      setSelectedOrgCookie(orgId);
+      const verifiedOrgId =
+        typeof window !== "undefined"
+          ? window.sessionStorage.getItem(ORG_VERIFIED_SESSION_KEY)
+          : null;
+      if (verifiedOrgId && verifiedOrgId !== orgId) {
+        setVerifiedOrgId(null);
+      }
+    },
+    [setVerifiedOrgId]
+  );
 
   const toOrganization = React.useCallback(
     (raw: unknown): Organization | null => {
@@ -471,7 +474,6 @@ export function OrganizationSwitcher() {
       activeOrgId,
       pickNonEmptyString,
       router,
-      selectedOrgCookie,
       session?.session?.activeOrganizationId,
       setSelectedOrgCookieValue,
       setVerifiedOrgId,
