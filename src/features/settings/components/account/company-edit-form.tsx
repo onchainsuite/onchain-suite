@@ -1,8 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Add01Icon,
+  Delete02Icon,
+  FloppyDiskIcon,
+  Loading02Icon,
+  PencilIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -360,7 +367,7 @@ export default function CompanyEditForm() {
                       }
                     }}
                   >
-                    <Plus className="h-4 w-4" />
+                    <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
                     Add chain
                   </Button>
                 </div>
@@ -473,7 +480,7 @@ export default function CompanyEditForm() {
                     })
                   }
                 >
-                  <Plus className="h-4 w-4" />
+                  <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
                   Add contract
                 </Button>
               </div>
@@ -539,7 +546,10 @@ export default function CompanyEditForm() {
                           onClick={() => removeContract(idx)}
                           aria-label="Remove contract"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <HugeiconsIcon
+                            icon={Delete02Icon}
+                            className="h-4 w-4"
+                          />
                         </Button>
                       </div>
                     </div>
@@ -565,7 +575,7 @@ export default function CompanyEditForm() {
                     className="gap-2"
                     onClick={() => appendTreasury({ address: "", label: "" })}
                   >
-                    <Plus className="h-4 w-4" />
+                    <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
                     Add
                   </Button>
                 </div>
@@ -604,7 +614,10 @@ export default function CompanyEditForm() {
                             onClick={() => removeTreasury(idx)}
                             aria-label="Remove wallet"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <HugeiconsIcon
+                              icon={Delete02Icon}
+                              className="h-4 w-4"
+                            />
                           </Button>
                         </div>
                       </div>
@@ -629,7 +642,7 @@ export default function CompanyEditForm() {
                     className="gap-2"
                     onClick={() => appendTeam({ address: "", label: "" })}
                   >
-                    <Plus className="h-4 w-4" />
+                    <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
                     Add
                   </Button>
                 </div>
@@ -668,7 +681,10 @@ export default function CompanyEditForm() {
                             onClick={() => removeTeam(idx)}
                             aria-label="Remove wallet"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <HugeiconsIcon
+                              icon={Delete02Icon}
+                              className="h-4 w-4"
+                            />
                           </Button>
                         </div>
                       </div>
@@ -691,9 +707,15 @@ export default function CompanyEditForm() {
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <HugeiconsIcon
+                    icon={Loading02Icon}
+                    className="h-4 w-4 animate-spin mr-2"
+                  />
                 ) : (
-                  <Save className="h-4 w-4 mr-2" />
+                  <HugeiconsIcon
+                    icon={FloppyDiskIcon}
+                    className="h-4 w-4 mr-2"
+                  />
                 )}
                 Save Changes
               </Button>
@@ -714,7 +736,7 @@ export default function CompanyEditForm() {
                 onClick={() => setIsEditing(true)}
                 className="gap-2"
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <HugeiconsIcon icon={PencilIcon} className="h-3.5 w-3.5" />
                 Edit
               </Button>
             </div>

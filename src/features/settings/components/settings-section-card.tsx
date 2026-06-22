@@ -1,7 +1,8 @@
 "use client";
 
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -85,7 +86,8 @@ export default function SettingsSectionCard({
                   {open ? "Collapse" : "Expand"}
                 </span>
                 <div className="rounded-full border border-border/70 bg-background/80 p-2 transition-colors group-hover:border-primary/30 group-hover:text-foreground">
-                  <ChevronDown
+                  <HugeiconsIcon
+                    icon={ArrowDown01Icon}
                     className={cn(
                       "h-4 w-4 transition-transform duration-200",
                       open ? "rotate-180" : "rotate-0"

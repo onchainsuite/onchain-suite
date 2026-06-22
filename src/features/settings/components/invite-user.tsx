@@ -1,4 +1,5 @@
-import { Loader2, Mail } from "lucide-react";
+import { Loading02Icon, Mail01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -132,9 +133,12 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <HugeiconsIcon
+                icon={Loading02Icon}
+                className="mr-2 h-4 w-4 animate-spin"
+              />
             ) : (
-              <Mail className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={Mail01Icon} className="mr-2 h-4 w-4" />
             )}
             Send invitation
           </Button>

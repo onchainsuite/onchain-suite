@@ -1,7 +1,8 @@
 "use client";
 
+import { ArrowUpDownIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
 
 import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
@@ -48,7 +49,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Campaign Name
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -80,7 +81,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Recipients
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -103,7 +104,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Open Rate
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -125,7 +126,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Click Rate
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -147,7 +148,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Created
-          <ArrowUpDown className="ml-2 h-4 w-4" />
+          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
         </Button>
       );
     },

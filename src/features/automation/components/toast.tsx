@@ -1,5 +1,7 @@
+import { AlertCircleIcon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, CheckCircle2, X } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 interface ToastProps {
   show: boolean;
@@ -28,7 +30,7 @@ export const Toast = ({ show, message, type, onClose }: ToastProps) => {
             {type === "success" ? (
               <CheckCircle2 className="h-4 w-4" />
             ) : (
-              <AlertCircle className="h-4 w-4" />
+              <HugeiconsIcon icon={AlertCircleIcon} className="h-4 w-4" />
             )}
           </div>
           <p className="text-sm font-medium">{message}</p>
@@ -36,7 +38,7 @@ export const Toast = ({ show, message, type, onClose }: ToastProps) => {
             onClick={onClose}
             className="ml-2 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <X className="h-3 w-3" />
+            <HugeiconsIcon icon={Cancel01Icon} className="h-3 w-3" />
           </button>
         </motion.div>
       )}

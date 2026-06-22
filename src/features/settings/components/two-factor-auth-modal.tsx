@@ -1,14 +1,15 @@
-import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle,
-  Check,
-  Copy,
-  Loader2,
-  Lock,
-  QrCode,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
+  AlertCircleIcon,
+  Copy01Icon,
+  Loading02Icon,
+  LockIcon,
+  QrCodeIcon,
+  Refresh01Icon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ShieldCheck } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
@@ -204,7 +205,10 @@ const TwoFactorAuthModal = ({
                     onClick={() => setStep("password")}
                     className="h-11 w-full justify-start gap-3 border-border/60 hover:bg-muted/50"
                   >
-                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                    <HugeiconsIcon
+                      icon={Refresh01Icon}
+                      className="h-4 w-4 text-muted-foreground"
+                    />
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium">
                         Reconfigure 2FA
@@ -216,7 +220,7 @@ const TwoFactorAuthModal = ({
                     onClick={() => setStep("password")}
                     className="h-11 w-full justify-start gap-3 border-border/60 hover:bg-red-50 hover:text-red-600 hover:border-red-100 dark:hover:bg-red-900/10 dark:hover:border-red-900/30 dark:hover:text-red-400 transition-colors"
                   >
-                    <Lock className="h-4 w-4" />
+                    <HugeiconsIcon icon={LockIcon} className="h-4 w-4" />
                     <span className="text-sm font-medium">Disable 2FA</span>
                   </Button>
                 </div>
@@ -233,7 +237,10 @@ const TwoFactorAuthModal = ({
               >
                 <div className="flex flex-col items-center justify-center gap-4 py-4 text-center">
                   <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/5 shadow-inner">
-                    <QrCode className="h-10 w-10 text-primary" />
+                    <HugeiconsIcon
+                      icon={QrCodeIcon}
+                      className="h-10 w-10 text-primary"
+                    />
                   </div>
                   <div className="space-y-1">
                     <h4 className="text-sm font-medium text-foreground">
@@ -276,7 +283,11 @@ const TwoFactorAuthModal = ({
                   />
                   {error && (
                     <p className="text-xs text-red-500 flex items-center gap-1.5">
-                      <AlertCircle className="h-3 w-3" /> {error}
+                      <HugeiconsIcon
+                        icon={AlertCircleIcon}
+                        className="h-3 w-3"
+                      />{" "}
+                      {error}
                     </p>
                   )}
                 </div>
@@ -294,7 +305,10 @@ const TwoFactorAuthModal = ({
                     className="h-10 min-w-[100px]"
                   >
                     {loading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <HugeiconsIcon
+                        icon={Loading02Icon}
+                        className="mr-2 h-4 w-4 animate-spin"
+                      />
                     ) : null}
                     {isEnabled ? "Disable 2FA" : "Continue"}
                   </Button>
@@ -351,7 +365,11 @@ const TwoFactorAuthModal = ({
                   />
                   {error && (
                     <p className="text-xs text-red-500 flex items-center gap-1.5 justify-center">
-                      <AlertCircle className="h-3 w-3" /> {error}
+                      <HugeiconsIcon
+                        icon={AlertCircleIcon}
+                        className="h-3 w-3"
+                      />{" "}
+                      {error}
                     </p>
                   )}
                 </div>
@@ -377,9 +395,15 @@ const TwoFactorAuthModal = ({
                     className="h-10 min-w-[100px] bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
                     {loading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <HugeiconsIcon
+                        icon={Loading02Icon}
+                        className="mr-2 h-4 w-4 animate-spin"
+                      />
                     ) : (
-                      <Check className="mr-2 h-4 w-4" />
+                      <HugeiconsIcon
+                        icon={Tick01Icon}
+                        className="mr-2 h-4 w-4"
+                      />
                     )}
                     Verify
                   </Button>
@@ -396,7 +420,7 @@ const TwoFactorAuthModal = ({
               >
                 <div className="rounded-xl bg-amber-500/10 p-4 border border-amber-500/20">
                   <h4 className="flex items-center gap-2 font-medium text-amber-900 dark:text-amber-100">
-                    <AlertCircle className="h-4 w-4" />
+                    <HugeiconsIcon icon={AlertCircleIcon} className="h-4 w-4" />
                     Save your backup codes
                   </h4>
                   <p className="mt-1 text-sm text-amber-800/80 dark:text-amber-200/80">
@@ -423,9 +447,12 @@ const TwoFactorAuthModal = ({
                     onClick={copyBackupCodes}
                   >
                     {isCopied ? (
-                      <Check className="h-4 w-4 text-emerald-500" />
+                      <HugeiconsIcon
+                        icon={Tick01Icon}
+                        className="h-4 w-4 text-emerald-500"
+                      />
                     ) : (
-                      <Copy className="h-4 w-4" />
+                      <HugeiconsIcon icon={Copy01Icon} className="h-4 w-4" />
                     )}
                   </Button>
                 </div>

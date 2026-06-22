@@ -1,6 +1,6 @@
 "use client";
-
-import { IconMenu2, IconX } from "@tabler/icons-react";
+import { Menu05Icon, XVariableIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   AnimatePresence,
   motion,
@@ -227,9 +227,17 @@ export const MobileNavToggle = ({
   onClick: () => void;
 }) => {
   return isOpen ? (
-    <IconX className="text-foreground" onClick={onClick} />
+    <HugeiconsIcon
+      icon={XVariableIcon}
+      className="text-foreground"
+      onClick={onClick}
+    />
   ) : (
-    <IconMenu2 className="text-foreground" onClick={onClick} />
+    <HugeiconsIcon
+      icon={Menu05Icon}
+      className="text-foreground"
+      onClick={onClick}
+    />
   );
 };
 

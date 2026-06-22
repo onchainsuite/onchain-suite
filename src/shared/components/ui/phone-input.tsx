@@ -1,4 +1,5 @@
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
+import { ArrowUpDownIcon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type * as React from "react";
 import * as RPNInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
@@ -88,7 +89,8 @@ const CountrySelect = ({
             country={selectedCountry}
             countryName={selectedCountry}
           />
-          <ChevronsUpDown
+          <HugeiconsIcon
+            icon={ArrowUpDownIcon}
             className={cn(
               "-mr-2 size-4 opacity-50",
               disabled ? "hidden" : "opacity-100"
@@ -141,7 +143,8 @@ const CountrySelectOption = ({
       <span className="text-foreground/50 text-sm">{`+${RPNInput.getCountryCallingCode(
         country
       )}`}</span>
-      <CheckIcon
+      <HugeiconsIcon
+        icon={Tick01Icon}
         className={`ml-auto size-4 ${
           country === selectedCountry ? "opacity-100" : "opacity-0"
         }`}

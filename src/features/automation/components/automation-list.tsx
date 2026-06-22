@@ -1,7 +1,8 @@
 "use client";
 
+import { Add01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -386,7 +387,7 @@ export const AutomationList = () => {
           href="/automations/new-id"
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Plus className="h-4 w-4" />
+          <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
           Create automation
         </Link>
       </div>

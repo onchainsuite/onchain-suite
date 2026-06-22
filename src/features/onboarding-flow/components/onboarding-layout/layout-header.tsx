@@ -1,6 +1,10 @@
 "use client";
-
-import { ChevronDown, Globe, User } from "lucide-react";
+import {
+  ArrowDown01Icon,
+  GlobeIcon,
+  UserIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Logo } from "@/components/common";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -38,9 +42,12 @@ export function LayoutHeader() {
                 size="sm"
                 className="flex items-center gap-1 px-2 sm:gap-2 sm:px-3"
               >
-                <Globe className="h-4 w-4" />
+                <HugeiconsIcon icon={GlobeIcon} className="h-4 w-4" />
                 <span className="xs:inline hidden">EN</span>
-                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                <HugeiconsIcon
+                  icon={ArrowDown01Icon}
+                  className="h-3 w-3 sm:h-4 sm:w-4"
+                />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -77,7 +84,10 @@ export function LayoutHeader() {
                     : userEmail}
                 </span>
 
-                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                <HugeiconsIcon
+                  icon={ArrowDown01Icon}
+                  className="h-3 w-3 sm:h-4 sm:w-4"
+                />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -85,7 +95,7 @@ export function LayoutHeader() {
                 {userEmail}
               </div>
               <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
+                <HugeiconsIcon icon={UserIcon} className="mr-2 h-4 w-4" />
                 Account Settings
               </DropdownMenuItem>
               <DropdownMenuItem>Sign Out</DropdownMenuItem>

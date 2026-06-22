@@ -57,6 +57,8 @@ export interface IntelligenceGoldrushRunBody {
 }
 
 export interface IntelligenceGoldrushMcpQueryBody {
+  conversationId?: string;
+  message?: string;
   prompt?: string;
   sql?: string;
   protocol?: string;
@@ -81,17 +83,129 @@ export interface IntelligenceGoldrushMcpStep {
   [key: string]: unknown;
 }
 
+export type IntelligenceGoldrushMcpStructuredResultKind =
+  | "multichain_address_activity"
+  | "multichain_balances"
+  | "multichain_transactions"
+  | "wallet_balances"
+  | "historical_wallet_balances"
+  | "native_token_balance"
+  | "erc20_token_transfers"
+  | "portfolio_value"
+  | "token_holders"
+  | "transaction"
+  | "transaction_summary"
+  | "transactions"
+  | "block_transactions"
+  | "nft_for_address"
+  | "nft_check_ownership"
+  | "token_approvals"
+  | "bitcoin_hd_wallet_balances"
+  | "bitcoin_non_hd_wallet_balances"
+  | "bitcoin_transactions"
+  | "historical_token_prices"
+  | "gas_prices"
+  | "log_events_by_address"
+  | "log_events_by_topic"
+  | "block"
+  | "block_heights"
+  | "generic_rows"
+  | "generic_object"
+  | string;
+
+export interface IntelligenceGoldrushMcpStructuredResult {
+  toolName?: string;
+  kind: IntelligenceGoldrushMcpStructuredResultKind;
+  title?: string;
+  summary?: string;
+  rows: Array<Record<string, unknown>>;
+  meta?: Record<string, unknown>;
+}
+
 export interface IntelligenceGoldrushMcpQueryResponse {
+  conversationId?: string;
   queryId?: string;
   mode?: "dynamic_agent" | "deterministic_fallback" | string;
   status?: "answered" | "needs_clarification" | string;
   answer?: string;
   question?: string;
+  structuredResult?: IntelligenceGoldrushMcpStructuredResult | null;
   rationale?: string;
   confidence?: number;
   plan?: unknown;
   steps?: IntelligenceGoldrushMcpStep[];
   execution?: unknown;
+  [key: string]: unknown;
+}
+
+export interface IntelligenceGoldrushMcpTool {
+  name: string;
+  title?: string;
+  description?: string;
+  inputSchema?: unknown;
+  outputSchema?: unknown;
+}
+
+export interface IntelligenceGoldrushMcpToolsResponse {
+  items: IntelligenceGoldrushMcpTool[];
+}
+
+export interface IntelligenceGoldrushMcpCatalogResponse {
+  tools?: Array<Record<string, unknown>>;
+  resources?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
+export interface IntelligenceGoldrushMcpResource {
+  uri: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  mimeType?: string;
+  [key: string]: unknown;
+}
+
+export interface IntelligenceGoldrushMcpResourcesResponse {
+  items: IntelligenceGoldrushMcpResource[];
+}
+
+export interface IntelligenceGoldrushMcpRunBody {
+  toolName: string;
+  arguments?: Record<string, unknown>;
+}
+
+export interface IntelligenceGoldrushMcpReadResourceBody {
+  uri: string;
+}
+
+export interface IntelligenceGoldrushMcpRunResponse {
+  toolName?: string;
+  arguments?: Record<string, unknown>;
+  isError?: boolean;
+  structuredContent?: unknown;
+  textContent?: unknown;
+  parsedText?: unknown;
+  raw?: unknown;
+  [key: string]: unknown;
+}
+
+export interface IntelligenceGoldrushMcpReadResourceResponse {
+  uri?: string;
+  textContent?: unknown;
+  parsedText?: unknown;
+  raw?: unknown;
+  [key: string]: unknown;
+}
+
+export interface IntelligenceGoldrushMcpPlanResponse {
+  intent?: string;
+  supported?: boolean;
+  protocol?: unknown;
+  requestedChains?: string[];
+  resolvedContracts?: Array<Record<string, unknown>>;
+  sources?: unknown;
+  execution?: unknown;
+  warnings?: string[];
   [key: string]: unknown;
 }
 
@@ -312,6 +426,13 @@ export type IntelligenceWalletEnrichmentMetricsResponse = Record<
   unknown
 >;
 
+export interface IntelligenceGoldrushMcpStreamEvent {
+  type?: string;
+  data?: unknown;
+}
+
+export type IntelligenceGoldrushMcpStreamTransport = "get" | "post";
+
 const pickOrgId = (orgId?: string) =>
   orgId ?? getSelectedOrganizationId() ?? null;
 
@@ -350,6 +471,114 @@ const request = async <T>(
           : (err.message ?? "Intelligence request failed");
     throw new Error(String(message), { cause: e });
   }
+};
+
+const appendUniqueSearchParams = (
+  params: URLSearchParams,
+  key: string,
+  values?: string[]
+) => {
+  if (!Array.isArray(values)) return;
+  const seen = new Set<string>();
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (trimmed.length === 0 || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    params.append(key, trimmed);
+  }
+};
+
+const buildGoldrushMcpStreamSearchParams = (
+  input: IntelligenceGoldrushMcpQueryBody
+) => {
+  const params = new URLSearchParams();
+
+  if (input.prompt) params.set("prompt", input.prompt);
+  if (input.sql) params.set("sql", input.sql);
+  if (input.protocol) params.set("protocol", input.protocol);
+  if (input.chain) params.set("chain", input.chain);
+  if (input.contractAddress) {
+    params.set("contractAddress", input.contractAddress);
+  }
+  if (input.walletAddress) params.set("walletAddress", input.walletAddress);
+  if (input.mode) params.set("mode", input.mode);
+  if (typeof input.maxSteps === "number") {
+    params.set("maxSteps", String(input.maxSteps));
+  }
+  if (typeof input.useProjectSettings === "boolean") {
+    params.set("useProjectSettings", String(input.useProjectSettings));
+  }
+  if (typeof input.useProtocolRegistry === "boolean") {
+    params.set("useProtocolRegistry", String(input.useProtocolRegistry));
+  }
+
+  appendUniqueSearchParams(params, "chains", input.chains);
+  appendUniqueSearchParams(
+    params,
+    "contractAddresses",
+    input.contractAddresses
+  );
+  appendUniqueSearchParams(params, "walletAddresses", input.walletAddresses);
+
+  if (Array.isArray(input.contracts)) {
+    for (const contract of input.contracts) {
+      const address = contract.address.trim();
+      if (address.length === 0) continue;
+      const payload: Record<string, string> = { address };
+      if (contract.chain?.trim()) payload.chain = contract.chain.trim();
+      if (contract.label?.trim()) payload.label = contract.label.trim();
+      params.append("contracts", JSON.stringify(payload));
+    }
+  }
+
+  return params;
+};
+
+const parseSseEventData = (raw: string): unknown => {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+};
+
+const toStreamEvent = (
+  eventType: string | undefined,
+  rawData: string
+): IntelligenceGoldrushMcpStreamEvent => {
+  const parsed = parseSseEventData(rawData);
+  return {
+    type:
+      eventType ??
+      (isJsonObject(parsed) && typeof parsed.type === "string"
+        ? parsed.type
+        : undefined),
+    data: parsed,
+  };
+};
+
+const MCP_STREAM_EVENT_TYPES = [
+  "started",
+  "planner_ready",
+  "resource_context",
+  "tools_discovered",
+  "step_started",
+  "decision",
+  "validation_issue",
+  "tool_call_started",
+  "tool_call_result",
+  "clarification",
+  "summarizing",
+  "answer_token",
+  "final",
+  "error",
+] as const;
+
+const createAbortError = () => {
+  if (typeof DOMException !== "undefined") {
+    return new DOMException("The SSE stream was aborted.", "AbortError");
+  }
+  return new Error("The SSE stream was aborted.");
 };
 
 export const intelligenceService = {
@@ -456,6 +685,294 @@ export const intelligenceService = {
       },
       orgId
     );
+  },
+
+  getGoldrushMcpCatalog(orgId?: string) {
+    return request<IntelligenceGoldrushMcpCatalogResponse>(
+      {
+        method: "GET",
+        url: "/intelligence/query/goldrush/mcp/catalog",
+      },
+      orgId
+    );
+  },
+
+  getGoldrushMcpTools(orgId?: string) {
+    return request<IntelligenceGoldrushMcpToolsResponse>(
+      {
+        method: "GET",
+        url: "/intelligence/query/goldrush/mcp/tools",
+      },
+      orgId
+    );
+  },
+
+  getGoldrushMcpResources(orgId?: string) {
+    return request<IntelligenceGoldrushMcpResourcesResponse>(
+      {
+        method: "GET",
+        url: "/intelligence/query/goldrush/mcp/resources",
+      },
+      orgId
+    );
+  },
+
+  readGoldrushMcpResource(
+    body: IntelligenceGoldrushMcpReadResourceBody,
+    orgId?: string
+  ) {
+    return request<IntelligenceGoldrushMcpReadResourceResponse>(
+      {
+        method: "POST",
+        url: "/intelligence/query/goldrush/mcp/resources/read",
+        data: body,
+      },
+      orgId
+    );
+  },
+
+  runGoldrushMcpTool(body: IntelligenceGoldrushMcpRunBody, orgId?: string) {
+    return request<IntelligenceGoldrushMcpRunResponse>(
+      {
+        method: "POST",
+        url: "/intelligence/query/goldrush/mcp/run",
+        data: body,
+      },
+      orgId
+    );
+  },
+
+  planGoldrushMcp(body: IntelligenceGoldrushMcpQueryBody, orgId?: string) {
+    return request<IntelligenceGoldrushMcpPlanResponse>(
+      {
+        method: "POST",
+        url: "/intelligence/query/goldrush/mcp/plan",
+        data: body,
+      },
+      orgId
+    );
+  },
+
+  selectGoldrushMcpStreamTransport(
+    body: IntelligenceGoldrushMcpQueryBody
+  ): IntelligenceGoldrushMcpStreamTransport {
+    const promptLength = body.prompt?.trim().length ?? 0;
+    const sqlLength = body.sql?.trim().length ?? 0;
+    const chainsCount = body.chains?.length ?? 0;
+    const contractAddressesCount = body.contractAddresses?.length ?? 0;
+    const walletAddressesCount = body.walletAddresses?.length ?? 0;
+    const contractsCount = body.contracts?.length ?? 0;
+
+    if (contractsCount > 0) return "post";
+    if (promptLength > 400 || sqlLength > 600) return "post";
+    if (chainsCount > 4) return "post";
+    if (contractAddressesCount > 4 || walletAddressesCount > 4) return "post";
+
+    const queryLength =
+      buildGoldrushMcpStreamSearchParams(body).toString().length;
+    return queryLength > 1400 ? "post" : "get";
+  },
+
+  buildGoldrushMcpStreamUrl(
+    body: IntelligenceGoldrushMcpQueryBody,
+    orgId?: string
+  ) {
+    const params = buildGoldrushMcpStreamSearchParams(body);
+    if (typeof orgId === "string" && orgId.trim().length > 0) {
+      params.set("orgId", orgId.trim());
+    }
+    const queryString = params.toString();
+    return queryString.length > 0
+      ? `/api/v1/intelligence/query/goldrush/mcp/query/stream?${queryString}`
+      : "/api/v1/intelligence/query/goldrush/mcp/query/stream";
+  },
+
+  async streamGoldrushMcpQueryViaFetch(
+    body: IntelligenceGoldrushMcpQueryBody,
+    options?: {
+      orgId?: string;
+      signal?: AbortSignal;
+      onEvent?: (event: IntelligenceGoldrushMcpStreamEvent) => void;
+      transport?: IntelligenceGoldrushMcpStreamTransport;
+    }
+  ) {
+    const orgId = pickOrgId(options?.orgId) ?? undefined;
+    const transport =
+      options?.transport ?? this.selectGoldrushMcpStreamTransport(body);
+    const headers: Record<string, string> = {
+      Accept: "text/event-stream",
+    };
+    if (orgId) headers["x-org-id"] = orgId;
+    if (transport === "post") {
+      headers["Content-Type"] = "application/json";
+    }
+
+    const response = await fetch(
+      this.buildGoldrushMcpStreamUrl(
+        transport === "get" ? body : {},
+        transport === "get" ? orgId : undefined
+      ),
+      {
+        method: transport === "get" ? "GET" : "POST",
+        credentials: "include",
+        headers,
+        signal: options?.signal,
+        body: transport === "post" ? JSON.stringify(body) : undefined,
+      }
+    );
+
+    if (!response.ok || !response.body) {
+      const fallback = `Intelligence stream failed (${response.status})`;
+      const text = await response.text().catch(() => "");
+      const message = text.trim().length > 0 ? text.trim() : fallback;
+      throw new Error(message);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    const emitEvent = (chunk: string) => {
+      const lines = chunk.split("\n");
+      let eventType: string | undefined;
+      const dataLines: string[] = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.length === 0 || trimmed.startsWith(":")) continue;
+        if (trimmed.startsWith("event:")) {
+          eventType = trimmed.slice("event:".length).trim() || undefined;
+          continue;
+        }
+        if (trimmed.startsWith("data:")) {
+          dataLines.push(trimmed.slice("data:".length).trim());
+        }
+      }
+
+      if (dataLines.length === 0) return;
+      options?.onEvent?.(toStreamEvent(eventType, dataLines.join("\n")));
+    };
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() ?? "";
+      events.forEach(emitEvent);
+    }
+
+    const finalChunk = buffer.trim();
+    if (finalChunk.length > 0) emitEvent(finalChunk);
+  },
+
+  async streamGoldrushMcpQueryViaEventSource(
+    body: IntelligenceGoldrushMcpQueryBody,
+    options?: {
+      orgId?: string;
+      signal?: AbortSignal;
+      onEvent?: (event: IntelligenceGoldrushMcpStreamEvent) => void;
+    }
+  ) {
+    const EventSourceCtor = globalThis.EventSource;
+    if (!EventSourceCtor) {
+      return this.streamGoldrushMcpQueryViaFetch(body, {
+        ...options,
+        transport: "get",
+      });
+    }
+
+    const orgId = pickOrgId(options?.orgId) ?? undefined;
+    const url = this.buildGoldrushMcpStreamUrl(body, orgId);
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const eventSource = new EventSourceCtor(url, { withCredentials: true });
+      const listeners = new Map<
+        string,
+        (event: MessageEvent<string>) => void
+      >();
+
+      const cleanup = () => {
+        if (options?.signal) {
+          options.signal.removeEventListener("abort", handleAbort);
+        }
+        for (const [type, handler] of listeners.entries()) {
+          eventSource.removeEventListener(type, handler as EventListener);
+        }
+        eventSource.onerror = null;
+        eventSource.close();
+      };
+
+      const settle = (callback: () => void) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        callback();
+      };
+
+      const handleAbort = () => {
+        settle(() => reject(createAbortError()));
+      };
+
+      if (options?.signal) {
+        if (options.signal.aborted) {
+          handleAbort();
+          return;
+        }
+        options.signal.addEventListener("abort", handleAbort, { once: true });
+      }
+
+      MCP_STREAM_EVENT_TYPES.forEach((type) => {
+        const handler = (event: MessageEvent<string>) => {
+          const nextEvent = toStreamEvent(type, event.data);
+          options?.onEvent?.(nextEvent);
+          if (nextEvent.type === "final") {
+            settle(resolve);
+          }
+          if (nextEvent.type === "error") {
+            settle(() => reject(new Error("Intelligence stream failed")));
+          }
+        };
+        listeners.set(type, handler);
+        eventSource.addEventListener(type, handler as EventListener);
+      });
+
+      const messageHandler = (event: MessageEvent<string>) => {
+        options?.onEvent?.(toStreamEvent(undefined, event.data));
+      };
+      listeners.set("message", messageHandler);
+      eventSource.addEventListener("message", messageHandler as EventListener);
+
+      eventSource.onerror = () => {
+        settle(() => reject(new Error("Intelligence stream failed")));
+      };
+    });
+  },
+
+  async streamGoldrushMcpQuery(
+    body: IntelligenceGoldrushMcpQueryBody,
+    options?: {
+      orgId?: string;
+      signal?: AbortSignal;
+      onEvent?: (event: IntelligenceGoldrushMcpStreamEvent) => void;
+      transport?: "auto" | IntelligenceGoldrushMcpStreamTransport;
+      preferNativeEventSource?: boolean;
+    }
+  ) {
+    const transport =
+      options?.transport && options.transport !== "auto"
+        ? options.transport
+        : this.selectGoldrushMcpStreamTransport(body);
+
+    if (transport === "get" && options?.preferNativeEventSource) {
+      return this.streamGoldrushMcpQueryViaEventSource(body, options);
+    }
+
+    return this.streamGoldrushMcpQueryViaFetch(body, {
+      ...options,
+      transport,
+    });
   },
 
   validateQuery(body: { query: string }, orgId?: string) {

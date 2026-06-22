@@ -1,7 +1,14 @@
 "use client";
 
+import {
+  CancelCircleIcon,
+  Loading02Icon,
+  Mail01Icon,
+  SentIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Loader2, Mail, Send, XCircle } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -140,11 +147,18 @@ function VerifyAccountContent() {
               )}
             >
               {status === "verifying" && (
-                <Loader2 className="h-10 w-10 animate-spin" />
+                <HugeiconsIcon
+                  icon={Loading02Icon}
+                  className="h-10 w-10 animate-spin"
+                />
               )}
               {status === "success" && <CheckCircle2 className="h-10 w-10" />}
-              {status === "error" && <XCircle className="h-10 w-10" />}
-              {status === "pending" && <Mail className="h-10 w-10" />}
+              {status === "error" && (
+                <HugeiconsIcon icon={CancelCircleIcon} className="h-10 w-10" />
+              )}
+              {status === "pending" && (
+                <HugeiconsIcon icon={Mail01Icon} className="h-10 w-10" />
+              )}
             </div>
           </div>
           <CardTitle className="text-3xl font-light tracking-tight text-(--brand-oxford-blue) dark:text-foreground">
@@ -187,9 +201,12 @@ function VerifyAccountContent() {
                 className="w-full h-12 bg-(--brand-blue) hover:bg-(--brand-blue)/90 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all duration-300"
               >
                 {resending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <HugeiconsIcon
+                    icon={Loading02Icon}
+                    className="mr-2 h-4 w-4 animate-spin"
+                  />
                 ) : (
-                  <Send className="mr-2 h-4 w-4" />
+                  <HugeiconsIcon icon={SentIcon} className="mr-2 h-4 w-4" />
                 )}
                 Resend Verification Email
               </Button>
@@ -215,9 +232,12 @@ function VerifyAccountContent() {
                 className="w-full h-12 bg-(--brand-blue) hover:bg-(--brand-blue)/90 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all duration-300"
               >
                 {resending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <HugeiconsIcon
+                    icon={Loading02Icon}
+                    className="mr-2 h-4 w-4 animate-spin"
+                  />
                 ) : (
-                  <Send className="mr-2 h-4 w-4" />
+                  <HugeiconsIcon icon={SentIcon} className="mr-2 h-4 w-4" />
                 )}
                 Resend Verification Email
               </Button>
@@ -245,7 +265,10 @@ export function VerifyAccountView() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <HugeiconsIcon
+            icon={Loading02Icon}
+            className="h-8 w-8 animate-spin text-blue-600"
+          />
         </div>
       }
     >

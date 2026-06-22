@@ -1,6 +1,10 @@
 "use client";
-
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import {
+  Add01Icon,
+  ArrowUpDownIcon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
@@ -535,7 +539,10 @@ export function OrganizationSwitcher() {
           <Skeleton className="h-6 w-6 rounded-full shrink-0" />
           <Skeleton className="h-4 w-24" />
         </div>
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-40" />
+        <HugeiconsIcon
+          icon={ArrowUpDownIcon}
+          className="ml-2 h-4 w-4 shrink-0 opacity-40"
+        />
       </Button>
     );
   }
@@ -574,7 +581,10 @@ export function OrganizationSwitcher() {
               </div>
             </div>
           </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <HugeiconsIcon
+            icon={ArrowUpDownIcon}
+            className="ml-2 h-4 w-4 shrink-0 opacity-50"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -606,7 +616,8 @@ export function OrganizationSwitcher() {
                   {org.slug}
                 </div>
               </div>
-              <Check
+              <HugeiconsIcon
+                icon={Tick01Icon}
                 className={cn(
                   "ml-auto h-4 w-4 text-primary",
                   confirmedActiveOrgId === org.id ? "opacity-100" : "opacity-0"
@@ -620,7 +631,7 @@ export function OrganizationSwitcher() {
           disabled
           className="cursor-not-allowed rounded-lg px-2 py-2 opacity-50"
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <HugeiconsIcon icon={Add01Icon} className="mr-2 h-4 w-4" />
           Create Organization
         </DropdownMenuItem>
       </DropdownMenuContent>

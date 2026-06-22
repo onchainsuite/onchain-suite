@@ -1,19 +1,20 @@
 "use client";
 
 import {
+  BrainIcon,
+  DashboardCircleIcon,
+  Mail01Icon,
+  Megaphone01Icon,
+  Settings01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
   QueryClient,
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import {
-  Brain,
-  LayoutDashboard,
-  Mail,
-  Megaphone,
-  Settings,
-  Users,
-  Zap,
-} from "lucide-react";
+import { Zap } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -119,22 +120,22 @@ function DashboardLayoutInner({
     {
       label: "Dashboard",
       href: PRIVATE_ROUTES.DASHBOARD,
-      icon: <LayoutDashboard className="h-4 w-4" />,
+      icon: <HugeiconsIcon icon={DashboardCircleIcon} className="h-4 w-4" />,
     },
     {
       label: "Campaigns",
       href: PRIVATE_ROUTES.CAMPAIGNS,
-      icon: <Megaphone className="h-4 w-4" />,
+      icon: <HugeiconsIcon icon={Megaphone01Icon} className="h-4 w-4" />,
     },
     {
       label: "Audience",
       href: PRIVATE_ROUTES.AUDIENCE,
-      icon: <Users className="h-4 w-4" />,
+      icon: <HugeiconsIcon icon={UserGroupIcon} className="h-4 w-4" />,
     },
     {
       label: "Inbox",
       href: PRIVATE_ROUTES.INBOX,
-      icon: <Mail className="h-4 w-4" />,
+      icon: <HugeiconsIcon icon={Mail01Icon} className="h-4 w-4" />,
     },
     {
       label: "Automations",
@@ -144,12 +145,12 @@ function DashboardLayoutInner({
     {
       label: "Intelligence",
       href: PRIVATE_ROUTES.INTELLIGENCE,
-      icon: <Brain className="h-4 w-4" />,
+      icon: <HugeiconsIcon icon={BrainIcon} className="h-4 w-4" />,
     },
     {
       label: "Settings",
       href: PRIVATE_ROUTES.SETTINGS,
-      icon: <Settings className="h-4 w-4" />,
+      icon: <HugeiconsIcon icon={Settings01Icon} className="h-4 w-4" />,
     },
   ];
 

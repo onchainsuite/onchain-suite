@@ -1,22 +1,22 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import {
-  AlertCircle,
-  ArrowLeft,
-  ArrowRightLeft,
-  CheckCircle2,
-  Clock,
-  Coins,
-  Copy,
-  ExternalLink,
-  Eye,
-  Mail,
-  MousePointer,
-  Send,
-  Tag,
-  Target,
-} from "lucide-react";
+  AlertCircleIcon,
+  ArrowLeft01Icon,
+  Clock01Icon,
+  Coins01Icon,
+  Copy01Icon,
+  CursorPointer01Icon,
+  LinkSquare01Icon,
+  Mail01Icon,
+  SentIcon,
+  Tag01Icon,
+  Target01Icon,
+  ViewIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRightLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -54,11 +54,11 @@ const formatUsd = (value: number | undefined) => {
 
 const activityIconForType = (type: string) => {
   const t = type.toLowerCase();
-  if (t.includes("open")) return Eye;
-  if (t.includes("click")) return MousePointer;
+  if (t.includes("open")) return ViewIcon;
+  if (t.includes("click")) return CursorPointer01Icon;
   if (t.includes("tx") || t.includes("swap") || t.includes("stake"))
-    return Coins;
-  if (t.includes("tag")) return Tag;
+    return Coins01Icon;
+  if (t.includes("tag")) return Tag01Icon;
   if (t.includes("profile")) return CheckCircle2;
   return ArrowRightLeft;
 };
@@ -237,9 +237,9 @@ export function ProfileDetailPage() {
       case "verified":
         return <CheckCircle2 className="h-3 w-3" />;
       case "pending":
-        return <Clock className="h-3 w-3" />;
+        return <HugeiconsIcon icon={Clock01Icon} className="h-3 w-3" />;
       default:
-        return <AlertCircle className="h-3 w-3" />;
+        return <HugeiconsIcon icon={AlertCircleIcon} className="h-3 w-3" />;
     }
   };
 
@@ -259,7 +259,7 @@ export function ProfileDetailPage() {
             href="/audience"
             className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
             Back to Audience
           </Link>
 
@@ -328,7 +328,10 @@ export function ProfileDetailPage() {
                             {copiedWallet ? (
                               <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                             ) : (
-                              <Copy className="h-3.5 w-3.5" />
+                              <HugeiconsIcon
+                                icon={Copy01Icon}
+                                className="h-3.5 w-3.5"
+                              />
                             )}
                           </button>
                           <a
@@ -338,7 +341,10 @@ export function ProfileDetailPage() {
                             className="hover:text-foreground transition-colors"
                             aria-label="Open wallet in explorer"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <HugeiconsIcon
+                              icon={LinkSquare01Icon}
+                              className="h-3.5 w-3.5"
+                            />
                           </a>
                         </>
                       )}
@@ -348,7 +354,7 @@ export function ProfileDetailPage() {
               </div>
             </div>
             <button className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30">
-              <Mail className="h-4 w-4" />
+              <HugeiconsIcon icon={Mail01Icon} className="h-4 w-4" />
               Send Email
             </button>
           </div>
@@ -379,7 +385,10 @@ export function ProfileDetailPage() {
               <div className="rounded-2xl border border-secondary/20 bg-linear-to-br from-secondary/5 to-card p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-secondary/10">
-                    <Target className="h-4 w-4 text-secondary" />
+                    <HugeiconsIcon
+                      icon={Target01Icon}
+                      className="h-4 w-4 text-secondary"
+                    />
                   </div>
                   <h3 className="text-sm font-medium text-foreground">
                     Intelligence Segments
@@ -401,7 +410,10 @@ export function ProfileDetailPage() {
             <div className="rounded-2xl border border-primary/20 bg-linear-to-br from-primary/5 to-card p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
-                  <Coins className="h-4 w-4 text-primary" />
+                  <HugeiconsIcon
+                    icon={Coins01Icon}
+                    className="h-4 w-4 text-primary"
+                  />
                 </div>
                 <h3 className="text-sm font-medium text-foreground">
                   Contract Activity
@@ -468,7 +480,8 @@ export function ProfileDetailPage() {
                         : "bg-primary/10"
                   }`}
                 >
-                  <AlertCircle
+                  <HugeiconsIcon
+                    icon={AlertCircleIcon}
                     className={`h-4 w-4 ${
                       churnQuery.data?.risk === "high"
                         ? "text-destructive"
@@ -655,11 +668,20 @@ export function ProfileDetailPage() {
                             }`}
                           >
                             {String(emailItem.status) === "clicked" ? (
-                              <MousePointer className="h-4 w-4 text-emerald-600" />
+                              <HugeiconsIcon
+                                icon={CursorPointer01Icon}
+                                className="h-4 w-4 text-emerald-600"
+                              />
                             ) : String(emailItem.status) === "opened" ? (
-                              <Eye className="h-4 w-4 text-blue-600" />
+                              <HugeiconsIcon
+                                icon={ViewIcon}
+                                className="h-4 w-4 text-blue-600"
+                              />
                             ) : (
-                              <Send className="h-4 w-4 text-muted-foreground" />
+                              <HugeiconsIcon
+                                icon={SentIcon}
+                                className="h-4 w-4 text-muted-foreground"
+                              />
                             )}
                           </div>
                           <div className="min-w-0">
@@ -710,7 +732,10 @@ export function ProfileDetailPage() {
                       >
                         <div className="flex min-w-0 items-center gap-4">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                            <Coins className="h-4 w-4 text-primary" />
+                            <HugeiconsIcon
+                              icon={Coins01Icon}
+                              className="h-4 w-4 text-primary"
+                            />
                           </div>
                           <div className="min-w-0">
                             <p className="truncate font-medium text-foreground">

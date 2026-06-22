@@ -1,6 +1,6 @@
 "use client";
-
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -63,9 +63,15 @@ export function FeatureComparisonTable({
               <Button variant="ghost" className="text-primary">
                 {expandedFeatures ? "Show fewer features" : "View all features"}
                 {expandedFeatures ? (
-                  <ChevronUp className="ml-1 h-4 w-4" />
+                  <HugeiconsIcon
+                    icon={ArrowUp01Icon}
+                    className="ml-1 h-4 w-4"
+                  />
                 ) : (
-                  <ChevronDown className="ml-1 h-4 w-4" />
+                  <HugeiconsIcon
+                    icon={ArrowDown01Icon}
+                    className="ml-1 h-4 w-4"
+                  />
                 )}
               </Button>
             </CollapsibleTrigger>

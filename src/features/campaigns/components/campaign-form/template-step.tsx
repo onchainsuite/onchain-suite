@@ -1,7 +1,8 @@
 "use client";
 
+import { Loading02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -167,7 +168,10 @@ export function TemplateStep({
                   onClick={() => previewMutation.mutate()}
                 >
                   {previewMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <HugeiconsIcon
+                      icon={Loading02Icon}
+                      className="h-4 w-4 animate-spin"
+                    />
                   ) : (
                     "Generate preview"
                   )}
@@ -194,7 +198,10 @@ export function TemplateStep({
                     }
                   >
                     {sendTestMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <HugeiconsIcon
+                        icon={Loading02Icon}
+                        className="h-4 w-4 animate-spin"
+                      />
                     ) : (
                       "Send test"
                     )}

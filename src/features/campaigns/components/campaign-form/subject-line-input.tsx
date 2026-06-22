@@ -1,7 +1,8 @@
 "use client";
 
+import { HashtagIcon, SmileIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { type EmojiClickData, Theme } from "emoji-picker-react";
-import { Hash, Smile } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
@@ -63,7 +64,10 @@ export function SubjectLineInput({ value, onChange }: SubjectLineInputProps) {
               size="icon"
               className="h-7 w-7 rounded-lg hover:bg-muted transition-all duration-300"
             >
-              <Smile className="h-4 w-4 text-muted-foreground" />
+              <HugeiconsIcon
+                icon={SmileIcon}
+                className="h-4 w-4 text-muted-foreground"
+              />
             </Button>
           </PopoverTrigger>
           <PopoverContent
@@ -91,7 +95,10 @@ export function SubjectLineInput({ value, onChange }: SubjectLineInputProps) {
               size="icon"
               className="h-7 w-7 rounded-lg hover:bg-muted transition-all duration-300"
             >
-              <Hash className="h-4 w-4 text-muted-foreground" />
+              <HugeiconsIcon
+                icon={HashtagIcon}
+                className="h-4 w-4 text-muted-foreground"
+              />
             </Button>
           </PopoverTrigger>
           <PopoverContent

@@ -1,4 +1,5 @@
-import { X } from "lucide-react";
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +25,7 @@ export function SecurityBanner({ onRemove }: { onRemove: () => void }) {
           className="text-white hover:bg-white/10"
           onClick={onRemove}
         >
-          <X className="h-4 w-4" />
+          <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
         </Button>
       </div>
     </div>

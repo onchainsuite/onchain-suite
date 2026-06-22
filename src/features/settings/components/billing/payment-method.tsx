@@ -1,6 +1,7 @@
+import { CreditCardIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { CreditCard } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 
@@ -149,7 +150,7 @@ const PaymentMethod = () => {
       <SettingsSectionCard
         title="Payment methods"
         description="Manage the cards and crypto methods used for billing."
-        icon={<CreditCard className="h-5 w-5" />}
+        icon={<HugeiconsIcon icon={CreditCardIcon} className="h-5 w-5" />}
         badge={`${methods.length} method${methods.length === 1 ? "" : "s"} saved`}
         onOpenChange={setIsOpen}
         collapsedPreview={

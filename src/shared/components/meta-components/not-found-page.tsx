@@ -1,7 +1,15 @@
 "use client";
 
+import {
+  ArrowLeft01Icon,
+  GlobeIcon,
+  Home01Icon,
+  Search01Icon,
+  SparklesIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion, useAnimation } from "framer-motion";
-import { ArrowLeft, Globe, Home, Search, Sparkles, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -77,7 +85,7 @@ export default function NotFoundPage() {
             The page you&apos;re looking for doesn&apos;t exist.
           </p>
           <Button size="lg">
-            <Home className="mr-2 h-5 w-5" />
+            <HugeiconsIcon icon={Home01Icon} className="mr-2 h-5 w-5" />
             Back to Home
           </Button>
         </div>
@@ -259,9 +267,9 @@ export default function NotFoundPage() {
             className="mb-8 flex items-center justify-center space-x-4 sm:mb-12 sm:space-x-8"
           >
             {[
-              { icon: Sparkles, delay: 0 },
+              { icon: SparklesIcon, delay: 0 },
               { icon: Zap, delay: 0.2 },
-              { icon: Globe, delay: 0.4 },
+              { icon: GlobeIcon, delay: 0.4 },
             ].map(({ icon: Icon, delay }) => (
               <motion.div
                 key={uuidv4()}
@@ -289,7 +297,10 @@ export default function NotFoundPage() {
                 size={isMobile ? "default" : "lg"}
                 className="group w-full px-6 py-4 text-base font-semibold sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
               >
-                <Home className="mr-2 h-4 w-4 transition-transform group-hover:scale-110 sm:h-5 sm:w-5" />
+                <HugeiconsIcon
+                  icon={Home01Icon}
+                  className="mr-2 h-4 w-4 transition-transform group-hover:scale-110 sm:h-5 sm:w-5"
+                />
                 Back to Home
               </Button>
             </Link>
@@ -299,7 +310,10 @@ export default function NotFoundPage() {
                 size={isMobile ? "default" : "lg"}
                 className="group w-full px-6 py-4 text-base font-semibold sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
               >
-                <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1 sm:h-5 sm:w-5" />
+                <HugeiconsIcon
+                  icon={ArrowLeft01Icon}
+                  className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1 sm:h-5 sm:w-5"
+                />
                 Go Back
               </Button>
             </Link>
@@ -316,7 +330,10 @@ export default function NotFoundPage() {
               Or search for what you&apos;re looking for:
             </p>
             <div className="relative">
-              <Search className="text-muted-foreground absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 transform sm:h-5 sm:w-5" />
+              <HugeiconsIcon
+                icon={Search01Icon}
+                className="text-muted-foreground absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 transform sm:h-5 sm:w-5"
+              />
               <input
                 type="text"
                 placeholder="Search features, docs, help..."

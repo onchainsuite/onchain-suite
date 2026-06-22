@@ -1,13 +1,14 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Archive,
-  Check,
-  Clock,
-  Paperclip,
-  Search,
-  Send,
-  Star,
-} from "lucide-react";
+  ArchiveIcon,
+  AttachmentIcon,
+  Clock01Icon,
+  Search01Icon,
+  SentIcon,
+  StarIcon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { type RefObject } from "react";
 
 import { inboxService } from "../inbox.service";
@@ -73,7 +74,10 @@ const EmailListPanel = ({
       {/* Search + Folder Tabs / Bulk Actions */}
       <div className="border-b border-border p-3">
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <HugeiconsIcon
+            icon={Search01Icon}
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             ref={searchInputRef}
             type="text"
@@ -103,21 +107,21 @@ const EmailListPanel = ({
                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 title="Send Email"
               >
-                <Send className="h-3.5 w-3.5" />
+                <HugeiconsIcon icon={SentIcon} className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-amber-400"
                 title="Star"
               >
-                <Star className="h-3.5 w-3.5" />
+                <HugeiconsIcon icon={StarIcon} className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
                 className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-blue-400"
                 title="Archive"
               >
-                <Archive className="h-3.5 w-3.5" />
+                <HugeiconsIcon icon={ArchiveIcon} className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
@@ -125,7 +129,7 @@ const EmailListPanel = ({
                 className="ml-auto rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted"
                 title="Clear selection"
               >
-                <Check className="h-4 w-4" />
+                <HugeiconsIcon icon={Tick01Icon} className="h-4 w-4" />
               </button>
             </div>
           ) : (
@@ -165,7 +169,11 @@ const EmailListPanel = ({
         {isLoading ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <Send className="h-5 w-5" aria-hidden="true" />
+              <HugeiconsIcon
+                icon={SentIcon}
+                className="h-5 w-5"
+                aria-hidden="true"
+              />
             </div>
             <h3 className="mt-4 text-lg font-semibold text-foreground">
               Loading…
@@ -174,7 +182,11 @@ const EmailListPanel = ({
         ) : threads.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <Send className="h-5 w-5" aria-hidden="true" />
+              <HugeiconsIcon
+                icon={SentIcon}
+                className="h-5 w-5"
+                aria-hidden="true"
+              />
             </div>
             <h3 className="mt-4 text-lg font-semibold text-foreground">
               No messages
@@ -253,10 +265,16 @@ const EmailListPanel = ({
                   </div>
                   <div className="flex items-center gap-2">
                     {thread.hasAttachment && (
-                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                      <HugeiconsIcon
+                        icon={AttachmentIcon}
+                        className="h-3.5 w-3.5 text-muted-foreground"
+                      />
                     )}
                     {thread.starred && (
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                      <HugeiconsIcon
+                        icon={StarIcon}
+                        className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                      />
                     )}
                     <span className="text-xs text-muted-foreground">
                       {thread.updatedAt
@@ -289,7 +307,10 @@ const EmailListPanel = ({
                       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-primary"
                       title="Archive"
                     >
-                      <Archive className="h-3.5 w-3.5" />
+                      <HugeiconsIcon
+                        icon={ArchiveIcon}
+                        className="h-3.5 w-3.5"
+                      />
                     </button>
                     <button
                       onClick={(e) => {
@@ -299,7 +320,7 @@ const EmailListPanel = ({
                       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-400"
                       title="Star"
                     >
-                      <Star className="h-3.5 w-3.5" />
+                      <HugeiconsIcon icon={StarIcon} className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -308,7 +329,10 @@ const EmailListPanel = ({
                       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-blue-400"
                       title="Snooze"
                     >
-                      <Clock className="h-3.5 w-3.5" />
+                      <HugeiconsIcon
+                        icon={Clock01Icon}
+                        className="h-3.5 w-3.5"
+                      />
                     </button>
                   </div>
                 </div>

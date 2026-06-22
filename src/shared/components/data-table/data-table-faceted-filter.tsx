@@ -1,5 +1,6 @@
+import { FilterIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { Column } from "@tanstack/react-table";
-import { Filter } from "lucide-react";
 
 import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
@@ -36,7 +37,8 @@ export const DataTableFacetedFilter = <TData, TValue>({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" className="capitalize">
-          <Filter
+          <HugeiconsIcon
+            icon={FilterIcon}
             className="-ms-1 me-2 opacity-60"
             size={16}
             strokeWidth={2}

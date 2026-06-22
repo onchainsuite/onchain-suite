@@ -1,8 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  ArrowRight01Icon,
+  CheckmarkCircle01Icon,
+  Shield01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, CheckCircle, Shield } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -78,7 +83,7 @@ export function ResetPasswordForm({
           transition={{ duration: 0.4 }}
         >
           <AuthHeader
-            icon={Shield}
+            icon={Shield01Icon}
             title="Reset your password"
             subtitle="Create a new secure password for your R3tain account"
           />
@@ -123,7 +128,10 @@ export function ResetPasswordForm({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20"
           >
-            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+            <HugeiconsIcon
+              icon={CheckmarkCircle01Icon}
+              className="h-8 w-8 text-green-600 dark:text-green-400"
+            />
           </motion.div>
 
           <h1 className="mb-2 text-2xl font-bold">
@@ -147,7 +155,10 @@ export function ResetPasswordForm({
 
           <Button onClick={onPasswordReset} className="group h-12 w-full">
             Continue to Sign In
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
+            />
           </Button>
         </motion.div>
       )}

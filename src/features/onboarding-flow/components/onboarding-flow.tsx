@@ -1,7 +1,13 @@
 "use client";
 
+import {
+  ArrowRight01Icon,
+  ChampionIcon,
+  Clock01Icon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Clock, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -201,7 +207,10 @@ export function OnboardingFlow() {
             </div>
             {progress && (
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <HugeiconsIcon
+                  icon={Clock01Icon}
+                  className="h-4 w-4 text-muted-foreground"
+                />
                 <span className="text-sm text-muted-foreground">
                   {progress.totalTimeFormatted} spent
                 </span>
@@ -244,7 +253,7 @@ export function OnboardingFlow() {
                 }`}
               >
                 {index < currentStepIndex ? (
-                  <Check className="h-3 w-3" />
+                  <HugeiconsIcon icon={Tick01Icon} className="h-3 w-3" />
                 ) : (
                   index + 1
                 )}
@@ -292,7 +301,7 @@ function WelcomeStep({ onComplete }: OnboardingStepProps) {
   return (
     <div className="space-y-6 text-center">
       <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-        <Trophy className="h-8 w-8 text-primary" />
+        <HugeiconsIcon icon={ChampionIcon} className="h-8 w-8 text-primary" />
       </div>
       <div>
         <h3 className="text-xl font-semibold mb-2">Welcome to R3tain!</h3>
@@ -303,7 +312,7 @@ function WelcomeStep({ onComplete }: OnboardingStepProps) {
       </div>
       <Button onClick={() => onComplete()} className="w-full">
         Let&apos;s Get Started
-        <ArrowRight className="ml-2 h-4 w-4" />
+        <HugeiconsIcon icon={ArrowRight01Icon} className="ml-2 h-4 w-4" />
       </Button>
     </div>
   );
@@ -371,7 +380,7 @@ function CompleteStep({ onComplete }: OnboardingStepProps) {
   return (
     <div className="space-y-6 text-center">
       <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-        <Check className="h-8 w-8 text-green-600" />
+        <HugeiconsIcon icon={Tick01Icon} className="h-8 w-8 text-green-600" />
       </div>
       <div>
         <h3 className="text-xl font-semibold mb-2">You&apos;re All Set!</h3>
@@ -382,7 +391,7 @@ function CompleteStep({ onComplete }: OnboardingStepProps) {
       </div>
       <Button onClick={() => onComplete()} className="w-full">
         Go to Dashboard
-        <ArrowRight className="ml-2 h-4 w-4" />
+        <HugeiconsIcon icon={ArrowRight01Icon} className="ml-2 h-4 w-4" />
       </Button>
     </div>
   );

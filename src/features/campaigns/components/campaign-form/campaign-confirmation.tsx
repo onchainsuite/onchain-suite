@@ -1,13 +1,13 @@
 "use client";
-
 import {
-  ArrowRight,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Mail,
-  Sparkles,
-} from "lucide-react";
+  ArrowRight01Icon,
+  Calendar01Icon,
+  CheckmarkCircle01Icon,
+  Clock01Icon,
+  Mail01Icon,
+  SparklesIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -93,9 +93,18 @@ export function ConfirmationPage({
         />
         {mounted && (
           <>
-            <Sparkles className="absolute top-38 left-38 w-6 h-6 text-primary/20 animate-pulse" />
-            <Sparkles className="absolute bottom-48 right-40 w-4 h-4 text-primary/20 animate-pulse delay-300" />
-            <Sparkles className="absolute top-64 right-64 w-5 h-5 text-primary/20 animate-pulse delay-700" />
+            <HugeiconsIcon
+              icon={SparklesIcon}
+              className="absolute top-38 left-38 w-6 h-6 text-primary/20 animate-pulse"
+            />
+            <HugeiconsIcon
+              icon={SparklesIcon}
+              className="absolute bottom-48 right-40 w-4 h-4 text-primary/20 animate-pulse delay-300"
+            />
+            <HugeiconsIcon
+              icon={SparklesIcon}
+              className="absolute top-64 right-64 w-5 h-5 text-primary/20 animate-pulse delay-700"
+            />
           </>
         )}
       </div>
@@ -109,9 +118,15 @@ export function ConfirmationPage({
             <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
             <div className="relative bg-primary rounded-full p-6">
               {isScheduled ? (
-                <Calendar className="w-8 h-8 text-primary-foreground animate-bounce-in" />
+                <HugeiconsIcon
+                  icon={Calendar01Icon}
+                  className="w-8 h-8 text-primary-foreground animate-bounce-in"
+                />
               ) : (
-                <CheckCircle className="w-8 h-8 text-primary-foreground animate-bounce-in" />
+                <HugeiconsIcon
+                  icon={CheckmarkCircle01Icon}
+                  className="w-8 h-8 text-primary-foreground animate-bounce-in"
+                />
               )}
             </div>
           </div>
@@ -142,7 +157,10 @@ export function ConfirmationPage({
                 <>
                   <div className="flex items-start gap-4">
                     <div className="bg-primary/10 rounded-lg p-3 mt-0.5">
-                      <Clock className="w-5 h-5 text-primary" />
+                      <HugeiconsIcon
+                        icon={Clock01Icon}
+                        className="w-5 h-5 text-primary"
+                      />
                     </div>
                     <div className="flex-1">
                       <div className="font-semibold text-foreground mb-1">
@@ -158,7 +176,10 @@ export function ConfirmationPage({
                   {timezone && (
                     <div className="flex items-start gap-4">
                       <div className="bg-primary/10 rounded-lg p-3 mt-0.5">
-                        <Mail className="w-5 h-5 text-primary" />
+                        <HugeiconsIcon
+                          icon={Mail01Icon}
+                          className="w-5 h-5 text-primary"
+                        />
                       </div>
                       <div className="flex-1">
                         <div className="font-semibold text-foreground mb-1">
@@ -172,7 +193,10 @@ export function ConfirmationPage({
               ) : (
                 <div className="flex items-start gap-4">
                   <div className="bg-primary/10 rounded-lg p-3 mt-0.5">
-                    <Mail className="w-5 h-5 text-primary" />
+                    <HugeiconsIcon
+                      icon={Mail01Icon}
+                      className="w-5 h-5 text-primary"
+                    />
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-foreground mb-1">
@@ -218,7 +242,10 @@ export function ConfirmationPage({
             <Button asChild size="lg" className="flex-1 group">
               <Link href={PRIVATE_ROUTES.DASHBOARD}>
                 View Dashboard
-                <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <HugeiconsIcon
+                  icon={ArrowRight01Icon}
+                  className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1"
+                />
               </Link>
             </Button>
             <Button

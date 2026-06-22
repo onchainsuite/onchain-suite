@@ -1,22 +1,23 @@
 "use client";
 
 import {
-  Bell,
-  Calendar,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  CreditCard,
-  Database,
-  FileText,
-  Mail,
-  Settings,
-  Sparkles,
-  Target,
-  Users,
-  Workflow,
-  Zap,
-} from "lucide-react";
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Calendar01Icon,
+  CreditCardIcon,
+  DatabaseIcon,
+  FileAttachmentIcon,
+  Mail01Icon,
+  Notification01Icon,
+  Settings01Icon,
+  SparklesIcon,
+  Target01Icon,
+  Tick01Icon,
+  UserGroupIcon,
+  WorkflowCircle01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -29,7 +30,7 @@ const tasks = [
     title: "Connect email",
     description: "Sync your emails for fast follow-ups and a single inbox.",
     completed: true,
-    icon: Mail,
+    icon: <HugeiconsIcon icon={Mail01Icon} className="h-6 w-6" />,
     href: "/inbox",
     cta: "Open inbox",
   },
@@ -37,7 +38,7 @@ const tasks = [
     title: "Connect calendar",
     description: "Connect your calendar to track meetings and stay organized.",
     completed: true,
-    icon: Calendar,
+    icon: <HugeiconsIcon icon={Calendar01Icon} className="h-6 w-6" />,
     href: "/settings",
     cta: "Open settings",
   },
@@ -46,7 +47,7 @@ const tasks = [
     description:
       "Tell us how your team sells and your brand's tone. Get smarter suggestions and a setup that fits your style.",
     completed: false,
-    icon: Sparkles,
+    icon: <HugeiconsIcon icon={SparklesIcon} className="h-6 w-6" />,
     href: "/onboarding",
     cta: "Personalize",
   },
@@ -54,7 +55,7 @@ const tasks = [
     title: "Invite team members",
     description: "Add your team to collaborate on deals and share insights.",
     completed: false,
-    icon: Users,
+    icon: <HugeiconsIcon icon={UserGroupIcon} className="h-6 w-6" />,
     href: "/settings",
     cta: "Invite",
   },
@@ -62,7 +63,7 @@ const tasks = [
     title: "Import contacts",
     description: "Bring in your existing contacts to get started faster.",
     completed: false,
-    icon: FileText,
+    icon: <HugeiconsIcon icon={FileAttachmentIcon} className="h-6 w-6" />,
     href: "/audience/import-export",
     cta: "Import",
   },
@@ -70,7 +71,7 @@ const tasks = [
     title: "Set up billing",
     description: "Configure payment methods and billing preferences.",
     completed: false,
-    icon: CreditCard,
+    icon: <HugeiconsIcon icon={CreditCardIcon} className="h-6 w-6" />,
     href: "/settings",
     cta: "Set up",
   },
@@ -78,7 +79,7 @@ const tasks = [
     title: "Configure integrations",
     description: "Connect your favorite tools and automate workflows.",
     completed: false,
-    icon: Settings,
+    icon: <HugeiconsIcon icon={Settings01Icon} className="h-6 w-6" />,
     href: "/settings",
     cta: "Configure",
   },
@@ -86,7 +87,7 @@ const tasks = [
     title: "Set up database",
     description: "Organize your data with custom fields and pipelines.",
     completed: false,
-    icon: Database,
+    icon: <HugeiconsIcon icon={DatabaseIcon} className="h-6 w-6" />,
     href: "/audience",
     cta: "Open audience",
   },
@@ -94,7 +95,7 @@ const tasks = [
     title: "Enable automations",
     description: "Automate repetitive tasks and save time.",
     completed: false,
-    icon: Zap,
+    icon: <Zap className="h-6 w-6" />,
     href: "/automations",
     cta: "Open automations",
   },
@@ -102,7 +103,7 @@ const tasks = [
     title: "Configure notifications",
     description: "Stay updated with customized alert preferences.",
     completed: false,
-    icon: Bell,
+    icon: <HugeiconsIcon icon={Notification01Icon} className="h-6 w-6" />,
     href: "/settings",
     cta: "Configure",
   },
@@ -110,7 +111,7 @@ const tasks = [
     title: "Set sales goals",
     description: "Define targets and track your team's performance.",
     completed: false,
-    icon: Target,
+    icon: <HugeiconsIcon icon={Target01Icon} className="h-6 w-6" />,
     href: "/intelligence/analytics",
     cta: "Open analytics",
   },
@@ -118,7 +119,7 @@ const tasks = [
     title: "Create workflows",
     description: "Build custom processes to streamline your sales pipeline.",
     completed: false,
-    icon: Workflow,
+    icon: <HugeiconsIcon icon={WorkflowCircle01Icon} className="h-6 w-6" />,
     href: "/automations",
     cta: "Create",
   },
@@ -204,7 +205,7 @@ export function GetStartedSection() {
             className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-lg bg-transparent text-muted-foreground transition-all hover:bg-accent/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
             aria-label="Previous step"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           </button>
           <button
             onClick={goToNext}
@@ -212,7 +213,7 @@ export function GetStartedSection() {
             className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-lg bg-transparent text-muted-foreground transition-all hover:bg-accent/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
             aria-label="Next step"
           >
-            <ChevronRight className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -232,7 +233,6 @@ export function GetStartedSection() {
               <div key={pageIndex} className="min-w-full p-4 md:p-8">
                 <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
                   {pageTasks.map((task) => {
-                    const Icon = task.icon;
                     return (
                       <Link
                         key={task.title}
@@ -251,9 +251,12 @@ export function GetStartedSection() {
                           }`}
                         >
                           {task.completed ? (
-                            <Check className="h-6 w-6" />
+                            <HugeiconsIcon
+                              icon={Tick01Icon}
+                              className="h-6 w-6"
+                            />
                           ) : (
-                            <Icon className="h-6 w-6" />
+                            task.icon
                           )}
                         </div>
                         <h3 className="mb-2 text-base font-semibold text-foreground">

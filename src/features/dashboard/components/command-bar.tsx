@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowUp, Loader2, Mic, Search, Volume2, VolumeX } from "lucide-react";
+import {
+  ArrowUp01Icon,
+  Loading02Icon,
+  Mic01Icon,
+  Search01Icon,
+  VolumeMute01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -268,7 +276,10 @@ export function CommandBar() {
   return (
     <div className="relative mx-auto w-full max-w-3xl">
       <div className="relative flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-ring">
-        <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
+        <HugeiconsIcon
+          icon={Search01Icon}
+          className="h-5 w-5 shrink-0 text-muted-foreground"
+        />
         <input
           ref={inputRef}
           type="text"
@@ -292,7 +303,10 @@ export function CommandBar() {
           onClick={toggleListening}
           aria-label={listening ? "Stop voice input" : "Voice input"}
         >
-          <Mic className={listening ? "h-5 w-5 text-primary" : "h-5 w-5"} />
+          <HugeiconsIcon
+            icon={Mic01Icon}
+            className={listening ? "h-5 w-5 text-primary" : "h-5 w-5"}
+          />
         </Button>
         <Button
           type="button"
@@ -308,7 +322,7 @@ export function CommandBar() {
           {voiceEnabled ? (
             <Volume2 className="h-5 w-5" />
           ) : (
-            <VolumeX className="h-5 w-5" />
+            <HugeiconsIcon icon={VolumeMute01Icon} className="h-5 w-5" />
           )}
         </Button>
         <Button
@@ -320,9 +334,12 @@ export function CommandBar() {
           disabled={loading || query.trim().length === 0}
         >
           {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+            <HugeiconsIcon
+              icon={Loading02Icon}
+              className="h-5 w-5 animate-spin"
+            />
           ) : (
-            <ArrowUp className="h-5 w-5" />
+            <HugeiconsIcon icon={ArrowUp01Icon} className="h-5 w-5" />
           )}
         </Button>
       </div>

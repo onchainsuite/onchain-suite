@@ -1,7 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/ui/button";
@@ -108,7 +109,7 @@ export function BusinessGoalStep({
               onClick={onBack}
               className="flex items-center gap-2"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
               Back
             </Button>
             <div className="flex items-center gap-3">

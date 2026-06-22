@@ -1,7 +1,8 @@
 "use client";
 
+import { CheckmarkCircle01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { CheckCircle } from "lucide-react";
 import { useMemo } from "react";
 import { v4 as uuidV4 } from "uuid";
 
@@ -86,7 +87,8 @@ export function PasswordStrengthIndicator({
                 req.met ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <CheckCircle
+              <HugeiconsIcon
+                icon={CheckmarkCircle01Icon}
                 className={`mr-2 h-3 w-3 ${
                   req.met ? "text-primary" : "text-muted-foreground/50"
                 }`}

@@ -1,5 +1,6 @@
+import { SparklesIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
 import React from "react";
 
 const FloatingSparkles = () => {
@@ -33,7 +34,8 @@ const FloatingSparkles = () => {
               top: "50%",
             }}
           >
-            <Sparkles
+            <HugeiconsIcon
+              icon={SparklesIcon}
               className="h-4 w-4 text-primary"
               style={{ opacity: 0.5 }}
             />

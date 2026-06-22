@@ -1,6 +1,6 @@
 "use client";
-
-import { Moon, Sun } from "lucide-react";
+import { MoonIcon, Sun01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
@@ -28,10 +28,12 @@ export function ThemeModeToggle() {
       size="icon"
       className="text-muted-foreground hover:bg-muted hover:text-foreground"
     >
-      <Sun
+      <HugeiconsIcon
+        icon={Sun01Icon}
         className={`h-[1.2rem] w-[1.2rem] transition-all ${isDark ? "scale-0 rotate-90" : "scale-100 rotate-0"}`}
       />
-      <Moon
+      <HugeiconsIcon
+        icon={MoonIcon}
         className={`absolute h-[1.2rem] w-[1.2rem] transition-all ${isDark ? "scale-100 rotate-0" : "scale-0 -rotate-90"}`}
       />
       <span className="sr-only">Toggle theme</span>

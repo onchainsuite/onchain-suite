@@ -1,7 +1,8 @@
 "use client";
 
+import { Mail01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Mail } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -62,7 +63,11 @@ const Conversation = ({
       <div className="flex flex-1 items-center justify-center bg-card/50 px-6">
         <div className="w-full max-w-md rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-            <Mail className="h-5 w-5" aria-hidden="true" />
+            <HugeiconsIcon
+              icon={Mail01Icon}
+              className="h-5 w-5"
+              aria-hidden="true"
+            />
           </div>
           <div className="mt-4 text-lg font-semibold text-foreground">
             Select a message

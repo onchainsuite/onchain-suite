@@ -1,7 +1,9 @@
 "use client";
 
+import { Loading02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import type { IconType } from "react-icons";
 import { FcGoogle } from "react-icons/fc";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +21,12 @@ const oauthProviders = [
     color: "text-red-500",
     bg: "hover:bg-red-50 dark:hover:bg-red-950/20",
   },
-];
+] satisfies Array<{
+  name: string;
+  icon: IconType;
+  color: string;
+  bg: string;
+}>;
 
 export function OAuthButtons({
   onOAuthSignIn,
@@ -33,37 +40,44 @@ export function OAuthButtons({
       transition={{ duration: 0.5, delay }}
       className="space-y-3"
     >
-      {oauthProviders.map((provider, index) => (
-        <motion.div
-          key={provider.name}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: delay + 0.1 + index * 0.1 }}
-        >
-          <Button
-            variant="outline"
-            className={`h-12 w-full ${provider.bg} group transition-all duration-200 ${
-              isLoading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            onClick={() => onOAuthSignIn(provider.name)}
-            disabled={isLoading}
+      {oauthProviders.map((provider, index) => {
+        const ProviderIcon = provider.icon;
+
+        return (
+          <motion.div
+            key={provider.name}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: delay + 0.1 + index * 0.1 }}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-3 h-5 w-5 animate-spin text-gray-500" />
-                Signing in...
-              </>
-            ) : (
-              <>
-                <provider.icon
-                  className={`mr-3 h-5 w-5 ${provider.color} transition-transform group-hover:scale-110`}
-                />
-                Continue with {provider.name}
-              </>
-            )}
-          </Button>
-        </motion.div>
-      ))}
+            <Button
+              variant="outline"
+              className={`h-12 w-full ${provider.bg} group transition-all duration-200 ${
+                isLoading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              onClick={() => onOAuthSignIn(provider.name)}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <HugeiconsIcon
+                    icon={Loading02Icon}
+                    className="mr-3 h-5 w-5 animate-spin text-gray-500"
+                  />
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <ProviderIcon
+                    className={`mr-3 h-5 w-5 ${provider.color} transition-transform group-hover:scale-110`}
+                  />
+                  Continue with {provider.name}
+                </>
+              )}
+            </Button>
+          </motion.div>
+        );
+      })}
     </motion.div>
   );
 }

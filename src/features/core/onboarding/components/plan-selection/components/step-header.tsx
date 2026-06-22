@@ -1,6 +1,6 @@
 "use client";
-
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
 
@@ -16,7 +16,7 @@ export function StepHeader({ onBack }: StepHeaderProps) {
         onClick={onBack}
         className="mb-4 flex items-center gap-2"
       >
-        <ChevronLeft className="h-4 w-4" />
+        <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
         Back
       </Button>
       <h1 className="text-foreground mb-2 text-2xl font-bold sm:text-3xl">

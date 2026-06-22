@@ -1,4 +1,10 @@
-import { Archive, Check, Send, Star } from "lucide-react";
+import {
+  ArchiveIcon,
+  SentIcon,
+  StarIcon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import React from "react";
 
 interface FloatingBulkProps {
@@ -22,26 +28,26 @@ const FloatingBulk = ({
         className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
         title="Send Email"
       >
-        <Send className="h-4 w-4" />
+        <HugeiconsIcon icon={SentIcon} className="h-4 w-4" />
       </button>
       <button
         className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-secondary"
         title="Star"
       >
-        <Star className="h-4 w-4" />
+        <HugeiconsIcon icon={StarIcon} className="h-4 w-4" />
       </button>
       <button
         className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-secondary"
         title="Archive"
       >
-        <Archive className="h-4 w-4" />
+        <HugeiconsIcon icon={ArchiveIcon} className="h-4 w-4" />
       </button>
       <button
         onClick={() => setSelectedThreadIds([])}
         className="ml-auto rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted"
         title="Clear selection"
       >
-        <Check className="h-4 w-4" />
+        <HugeiconsIcon icon={Tick01Icon} className="h-4 w-4" />
       </button>
     </div>
   );

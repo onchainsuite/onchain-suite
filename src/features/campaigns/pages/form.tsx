@@ -1,8 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Clock01Icon,
+  Loading02Icon,
+  SentIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Clock, Loader2, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -30,16 +37,19 @@ import {
   type CampaignFormData,
   campaignFormSchema,
 } from "../../campaigns/validations";
+import { audienceService } from "@/features/audience/audience.service";
 import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { AudienceStep } from "@/features/campaigns/components/campaign-form/audience-step";
 import { ConfirmationPage } from "@/features/campaigns/components/campaign-form/campaign-confirmation";
 import { CampaignDetailsStep } from "@/features/campaigns/components/campaign-form/campaign-details-step";
 import { ScheduleStep } from "@/features/campaigns/components/campaign-form/schedule-step";
 import { TemplateStep } from "@/features/campaigns/components/campaign-form/template-step";
+import { partitionAudienceSelection } from "@/features/campaigns/lib/audience";
+import type { List, Segment } from "@/features/campaigns/types";
 import {
-  CAMPAIGN_LISTS,
-  CAMPAIGN_SEGMENTS,
-} from "@/features/campaigns/constants";
+  type IntelligenceSegment,
+  intelligenceService,
+} from "@/features/intelligence/intelligence.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { useActiveTimezone } from "@/shared/hooks/client/use-timezones";
 
@@ -145,6 +155,61 @@ const pickBooleanLike = (...values: unknown[]) => {
     }
   }
   return undefined;
+};
+
+const toCampaignSegment = (value: unknown): Segment | null => {
+  if (!isJsonObject(value)) return null;
+  const id = pickString(value.id);
+  const name = pickString(value.name, value.title, value.label);
+  if (!id || !name) return null;
+
+  return {
+    id,
+    name,
+    count:
+      typeof value.count === "number"
+        ? value.count
+        : typeof value.totalProfiles === "number"
+          ? value.totalProfiles
+          : 0,
+    starred: Boolean(value.starred ?? value.isStarred ?? false),
+  };
+};
+
+const toCampaignList = (value: unknown): List | null => {
+  if (!isJsonObject(value)) return null;
+  const id = pickString(value.id);
+  if (!id) return null;
+
+  const name =
+    pickString(
+      value.name,
+      value.fullName,
+      value.email,
+      value.wallet,
+      value.walletAddress
+    ) ?? id;
+
+  return {
+    id,
+    name,
+    count: 1,
+    starred: false,
+  };
+};
+
+const normalizeIntelligenceSegments = (
+  payload: unknown
+): IntelligenceSegment[] => {
+  const root = unwrapData(payload);
+  if (Array.isArray(root)) return root as IntelligenceSegment[];
+  if (isJsonObject(root) && Array.isArray(root.items)) {
+    return root.items as IntelligenceSegment[];
+  }
+  if (isJsonObject(root) && Array.isArray(root.data)) {
+    return root.data as IntelligenceSegment[];
+  }
+  return [];
 };
 
 const resolveSenderStatus = (
@@ -475,7 +540,10 @@ function CampaignPreviewStep({
               onClick={() => previewMutation.mutate()}
             >
               {previewMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <HugeiconsIcon
+                  icon={Loading02Icon}
+                  className="h-4 w-4 animate-spin"
+                />
               ) : (
                 "Generate preview"
               )}
@@ -495,7 +563,10 @@ function CampaignPreviewStep({
                 />
               ) : previewMutation.isPending ? (
                 <div className="flex h-full items-center justify-center gap-2 bg-card text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <HugeiconsIcon
+                    icon={Loading02Icon}
+                    className="h-4 w-4 animate-spin"
+                  />
                   Generating preview…
                 </div>
               ) : (
@@ -649,6 +720,36 @@ export function CreateCampaignPage() {
               : null,
       });
     },
+  });
+
+  const audienceSegmentsQuery = useQuery({
+    queryKey: ["intelligence", "segments", "campaign-form"],
+    queryFn: async () => {
+      const response = await intelligenceService.listSegments({ limit: 100 });
+      const items = normalizeIntelligenceSegments(response);
+      return items
+        .map(toCampaignSegment)
+        .filter((item): item is Segment => !!item);
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
+  });
+
+  const audienceUsersQuery = useQuery({
+    queryKey: ["audience", "profiles", "campaign-form"],
+    queryFn: async () => {
+      const response = await audienceService.listProfiles({
+        page: 1,
+        limit: 100,
+        include: "wallets,tags,health,lastAction",
+      });
+      const items = toArray(response);
+      return items.map(toCampaignList).filter((item): item is List => !!item);
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
   });
 
   const verifiedSenderIdentities = useMemo(
@@ -1028,13 +1129,9 @@ export function CreateCampaignPage() {
 
       if (currentStep === 2) {
         const data = form.getValues();
-        const listIdSet = new Set(CAMPAIGN_LISTS.map((l) => l.id));
-        const segmentIdSet = new Set(CAMPAIGN_SEGMENTS.map((s) => s.id));
-        const listIds = data.selectedAudiences.filter((id) =>
-          listIdSet.has(id)
-        );
-        const segmentIds = data.selectedAudiences.filter((id) =>
-          segmentIdSet.has(id)
+        const { listIds, segmentIds } = partitionAudienceSelection(
+          data.selectedAudiences,
+          audienceSegmentsQuery.data ?? []
         );
 
         await campaignsService.setAudience(campaignId, { listIds, segmentIds });
@@ -1166,7 +1263,10 @@ export function CreateCampaignPage() {
                 size="sm"
                 className="rounded-xl transition-all duration-300"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <HugeiconsIcon
+                  icon={ArrowLeft01Icon}
+                  className="mr-2 h-4 w-4"
+                />
                 Back to campaigns
               </Button>
             </Link>
@@ -1214,7 +1314,26 @@ export function CreateCampaignPage() {
                     </div>
                   )}
                   {currentStep === 1 && <CampaignDetailsStep form={form} />}
-                  {currentStep === 2 && <AudienceStep form={form} />}
+                  {currentStep === 2 && (
+                    <AudienceStep
+                      form={form}
+                      campaignId={campaignId}
+                      canSync={
+                        Boolean(campaignId) &&
+                        hasHydratedCampaign &&
+                        !isHydratingCampaign &&
+                        !isBootstrappingCampaign
+                      }
+                      lists={audienceUsersQuery.data ?? []}
+                      segments={audienceSegmentsQuery.data ?? []}
+                      segmentsLoading={audienceSegmentsQuery.isLoading}
+                      segmentsError={
+                        audienceSegmentsQuery.error instanceof Error
+                          ? audienceSegmentsQuery.error.message
+                          : null
+                      }
+                    />
+                  )}
                   {currentStep === 3 && (
                     <TemplateStep
                       form={form}
@@ -1239,7 +1358,10 @@ export function CreateCampaignPage() {
                         disabled={currentStep === 1}
                         className="rounded-xl transition-all duration-300 disabled:opacity-50"
                       >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <HugeiconsIcon
+                          icon={ArrowLeft01Icon}
+                          className="mr-2 h-4 w-4"
+                        />
                         Back
                       </Button>
 
@@ -1264,9 +1386,15 @@ export function CreateCampaignPage() {
                               ? "Send Campaign Now"
                               : "Schedule Campaign"}
                             {sendOption === "now" ? (
-                              <Send className="ml-2 h-4 w-4" />
+                              <HugeiconsIcon
+                                icon={SentIcon}
+                                className="ml-2 h-4 w-4"
+                              />
                             ) : (
-                              <Clock className="ml-2 h-4 w-4" />
+                              <HugeiconsIcon
+                                icon={Clock01Icon}
+                                className="ml-2 h-4 w-4"
+                              />
                             )}
                           </Button>
                         </div>
@@ -1278,7 +1406,10 @@ export function CreateCampaignPage() {
                           className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
                         >
                           Continue
-                          <ArrowRight className="ml-2 h-4 w-4" />
+                          <HugeiconsIcon
+                            icon={ArrowRight01Icon}
+                            className="ml-2 h-4 w-4"
+                          />
                         </Button>
                       )}
                     </div>
@@ -1294,7 +1425,10 @@ export function CreateCampaignPage() {
                         disabled={isBootstrappingCampaign}
                         className="rounded-xl transition-all duration-300"
                       >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        <HugeiconsIcon
+                          icon={ArrowLeft01Icon}
+                          className="mr-2 h-4 w-4"
+                        />
                         Back
                       </Button>
 
@@ -1305,7 +1439,10 @@ export function CreateCampaignPage() {
                         className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
                       >
                         Continue
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        <HugeiconsIcon
+                          icon={ArrowRight01Icon}
+                          className="ml-2 h-4 w-4"
+                        />
                       </Button>
                     </div>
                   )}

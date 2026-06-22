@@ -1,5 +1,6 @@
+import { Add01Icon, Layout01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { Layout, Plus } from "lucide-react";
 
 import { type Template } from "@/features/automation/types";
 
@@ -13,7 +14,11 @@ export const TemplatesList = ({ templates, onApply }: TemplatesListProps) => {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-          <Layout className="h-5 w-5" aria-hidden="true" />
+          <HugeiconsIcon
+            icon={Layout01Icon}
+            className="h-5 w-5"
+            aria-hidden="true"
+          />
         </div>
         <h3 className="mt-4 text-lg font-semibold text-foreground">
           No templates yet
@@ -36,7 +41,10 @@ export const TemplatesList = ({ templates, onApply }: TemplatesListProps) => {
         >
           <div className="mb-4 flex items-start justify-between">
             <div className="rounded-lg bg-secondary p-2">
-              <Layout className="h-5 w-5 text-muted-foreground" />
+              <HugeiconsIcon
+                icon={Layout01Icon}
+                className="h-5 w-5 text-muted-foreground"
+              />
             </div>
             <div className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
               {template.category}
@@ -53,7 +61,7 @@ export const TemplatesList = ({ templates, onApply }: TemplatesListProps) => {
               className="flex items-center gap-1 font-medium text-primary hover:text-primary/90"
               onClick={() => onApply(template)}
             >
-              <Plus className="h-3 w-3" />
+              <HugeiconsIcon icon={Add01Icon} className="h-3 w-3" />
               Use template
             </button>
           </div>

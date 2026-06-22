@@ -1,8 +1,15 @@
 "use client";
 
+import {
+  Copy01Icon,
+  Shield01Icon,
+  Tick01Icon,
+  ViewIcon,
+  ViewOffIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Check, Copy, Eye, EyeOff, Shield } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -536,7 +543,7 @@ const InAppIntegration = () => {
       <SettingsSectionCard
         title="In-app push"
         description="Configure SDK keys, approved origins, and test delivery."
-        icon={<Shield className="h-5 w-5" />}
+        icon={<HugeiconsIcon icon={Shield01Icon} className="h-5 w-5" />}
         badge={
           orgId
             ? `Active sessions: ${statusQuery.isLoading ? "Loading…" : (status.sessionCount ?? "—")}`
@@ -695,9 +702,12 @@ const InAppIntegration = () => {
                         type="button"
                       >
                         {showPublishable ? (
-                          <EyeOff className="h-4 w-4" />
+                          <HugeiconsIcon
+                            icon={ViewOffIcon}
+                            className="h-4 w-4"
+                          />
                         ) : (
-                          <Eye className="h-4 w-4" />
+                          <HugeiconsIcon icon={ViewIcon} className="h-4 w-4" />
                         )}
                       </Button>
                     </div>
@@ -727,9 +737,15 @@ const InAppIntegration = () => {
                             type="button"
                           >
                             {copiedKey === "pk" ? (
-                              <Check className="h-4 w-4 text-primary" />
+                              <HugeiconsIcon
+                                icon={Tick01Icon}
+                                className="h-4 w-4 text-primary"
+                              />
                             ) : (
-                              <Copy className="h-4 w-4" />
+                              <HugeiconsIcon
+                                icon={Copy01Icon}
+                                className="h-4 w-4"
+                              />
                             )}
                           </Button>
                         </div>
@@ -768,9 +784,15 @@ const InAppIntegration = () => {
                             type="button"
                           >
                             {copiedKey === "pk" ? (
-                              <Check className="h-4 w-4 text-primary" />
+                              <HugeiconsIcon
+                                icon={Tick01Icon}
+                                className="h-4 w-4 text-primary"
+                              />
                             ) : (
-                              <Copy className="h-4 w-4" />
+                              <HugeiconsIcon
+                                icon={Copy01Icon}
+                                className="h-4 w-4"
+                              />
                             )}
                           </Button>
                         </div>
@@ -1157,9 +1179,12 @@ const InAppIntegration = () => {
                     aria-label="Copy new secret token"
                   >
                     {copiedKey === "sk" ? (
-                      <Check className="h-4 w-4 text-primary" />
+                      <HugeiconsIcon
+                        icon={Tick01Icon}
+                        className="h-4 w-4 text-primary"
+                      />
                     ) : (
-                      <Copy className="h-4 w-4" />
+                      <HugeiconsIcon icon={Copy01Icon} className="h-4 w-4" />
                     )}
                   </Button>
                 </div>

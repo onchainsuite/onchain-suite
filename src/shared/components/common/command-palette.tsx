@@ -1,6 +1,13 @@
 "use client";
 
 import {
+  Mail01Icon,
+  Search01Icon,
+  Settings01Icon,
+  SparklesIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
   Command,
   CommandEmpty,
   CommandGroup,
@@ -10,7 +17,6 @@ import {
   CommandSeparator,
 } from "@kmenu/react";
 import { fuzzyFilter } from "kmenu";
-import { Mail, Search, Settings, Sparkles } from "lucide-react";
 import Link from "next/link";
 import {
   createContext,
@@ -68,13 +74,37 @@ export function useCommandPalette() {
 function iconFor(option: PaletteOption) {
   switch (option.icon) {
     case "mail":
-      return <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />;
+      return (
+        <HugeiconsIcon
+          icon={Mail01Icon}
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden="true"
+        />
+      );
     case "settings":
-      return <Settings className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />;
+      return (
+        <HugeiconsIcon
+          icon={Settings01Icon}
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden="true"
+        />
+      );
     case "sparkles":
-      return <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />;
+      return (
+        <HugeiconsIcon
+          icon={SparklesIcon}
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden="true"
+        />
+      );
     default:
-      return <Search className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />;
+      return (
+        <HugeiconsIcon
+          icon={Search01Icon}
+          className="h-3.5 w-3.5 shrink-0"
+          aria-hidden="true"
+        />
+      );
   }
 }
 
@@ -399,7 +429,8 @@ export function CommandPaletteProvider({
           >
             <div className="border-b border-border/60 bg-muted/10 px-3 py-2">
               <div className="flex items-center gap-2">
-                <Search
+                <HugeiconsIcon
+                  icon={Search01Icon}
                   className="h-4 w-4 shrink-0 text-muted-foreground"
                   aria-hidden="true"
                 />

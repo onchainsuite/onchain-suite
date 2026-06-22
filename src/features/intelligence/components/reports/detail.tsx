@@ -1,16 +1,17 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft,
-  Calendar,
-  Eye,
-  Loader2,
-  MousePointer,
-  RefreshCw,
-  TrendingUp,
-  Users,
-} from "lucide-react";
+  AnalyticsUpIcon,
+  ArrowLeft01Icon,
+  Calendar01Icon,
+  CursorPointer01Icon,
+  Loading02Icon,
+  Refresh01Icon,
+  UserGroupIcon,
+  ViewIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
@@ -133,13 +134,13 @@ export function ReportDetailPage() {
           href="/intelligence"
           className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-secondary"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-5 w-5" />
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
+              <HugeiconsIcon icon={Calendar01Icon} className="h-4 w-4" />
               {sentDate}
             </span>
             <span>•</span>
@@ -154,9 +155,12 @@ export function ReportDetailPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50"
           >
             {refreshMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <HugeiconsIcon
+                icon={Loading02Icon}
+                className="h-4 w-4 animate-spin"
+              />
             ) : (
-              <RefreshCw className="h-4 w-4" />
+              <HugeiconsIcon icon={Refresh01Icon} className="h-4 w-4" />
             )}
             Refresh
           </button>
@@ -169,7 +173,10 @@ export function ReportDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Recipients
             </h3>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={UserGroupIcon}
+              className="h-4 w-4 text-muted-foreground"
+            />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold">
@@ -182,7 +189,10 @@ export function ReportDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Open Rate
             </h3>
-            <Eye className="h-4 w-4 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={ViewIcon}
+              className="h-4 w-4 text-muted-foreground"
+            />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-secondary">
@@ -195,7 +205,10 @@ export function ReportDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Click Rate
             </h3>
-            <MousePointer className="h-4 w-4 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={CursorPointer01Icon}
+              className="h-4 w-4 text-muted-foreground"
+            />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold">{clickRate}%</span>
@@ -206,7 +219,10 @@ export function ReportDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Revenue
             </h3>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={AnalyticsUpIcon}
+              className="h-4 w-4 text-muted-foreground"
+            />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-primary">{revenue}</span>

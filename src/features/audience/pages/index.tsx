@@ -1,26 +1,25 @@
 "use client";
 
+import {
+  ArrowDown01Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  ArrowUp01Icon,
+  ArrowUpDownIcon,
+  BrainIcon,
+  Cancel01Icon,
+  Copy01Icon,
+  Delete02Icon,
+  Download01Icon,
+  Refresh01Icon,
+  Search01Icon,
+  SparklesIcon,
+  UserAdd01Icon,
+  ViewIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  ArrowUpDown,
-  Brain,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Download,
-  Eye,
-  RefreshCw,
-  Search,
-  Sparkles,
-  Trash2,
-  UserPlus,
-  X,
-} from "lucide-react";
 import Link from "next/link";
 import React, { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -579,14 +578,14 @@ export function AudiencePages(): ReactElement {
                   }}
                   className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all ${showCerebra ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600" : "border-border bg-card text-muted-foreground hover:bg-secondary"}`}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <HugeiconsIcon icon={SparklesIcon} className="h-4 w-4" />
                   <span>Cerebra</span>
                 </button>
                 <Link
                   href="/audience/import-export"
                   className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-all hover:bg-accent/90 hover:shadow-lg hover:shadow-accent/20"
                 >
-                  <UserPlus className="h-4 w-4" />
+                  <HugeiconsIcon icon={UserAdd01Icon} className="h-4 w-4" />
                   Add Profile
                 </Link>
               </div>
@@ -613,7 +612,8 @@ export function AudiencePages(): ReactElement {
                       onClick={handleRefreshCerebra}
                       className="absolute right-6 top-6 p-2 text-muted-foreground transition-colors hover:text-foreground"
                     >
-                      <RefreshCw
+                      <HugeiconsIcon
+                        icon={Refresh01Icon}
                         className={`h-4 w-4 ${isRefreshSpinning ? "animate-spin" : ""}`}
                       />
                     </button>
@@ -682,7 +682,10 @@ export function AudiencePages(): ReactElement {
                           </span>
                           <button className="group/btn inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 px-4 py-2 text-sm font-medium text-emerald-600 transition-all hover:bg-emerald-500/10">
                             Create Automation
-                            <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
+                            <HugeiconsIcon
+                              icon={ArrowRight01Icon}
+                              className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5"
+                            />
                           </button>
                         </div>
                       </motion.div>
@@ -727,7 +730,10 @@ export function AudiencePages(): ReactElement {
                   <>
                     <div className="mx-2 mb-6 flex items-center justify-between rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 md:mx-0">
                       <div className="flex items-center gap-3">
-                        <Brain className="h-5 w-5 text-indigo-500" />
+                        <HugeiconsIcon
+                          icon={BrainIcon}
+                          className="h-5 w-5 text-indigo-500"
+                        />
                         <p className="text-sm text-foreground">
                           <span className="font-medium">
                             Advanced segmentation
@@ -743,14 +749,20 @@ export function AudiencePages(): ReactElement {
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-500 hover:text-indigo-600 transition-colors"
                       >
                         Go to Intelligence
-                        <ArrowRight className="h-4 w-4" />
+                        <HugeiconsIcon
+                          icon={ArrowRight01Icon}
+                          className="h-4 w-4"
+                        />
                       </Link>
                     </div>
 
                     {/* Search and Filters */}
                     <div className="mx-2 mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mx-0">
                       <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <HugeiconsIcon
+                          icon={Search01Icon}
+                          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                        />
                         <input
                           type="text"
                           placeholder="Search profiles..."
@@ -775,7 +787,8 @@ export function AudiencePages(): ReactElement {
                                       ? "Pending"
                                       : "Unverified"}
                               </span>
-                              <ChevronDown
+                              <HugeiconsIcon
+                                icon={ArrowDown01Icon}
                                 className="h-4 w-4 text-muted-foreground"
                                 aria-hidden="true"
                               />
@@ -828,7 +841,8 @@ export function AudiencePages(): ReactElement {
                                       ? "Cooling"
                                       : "Cold"}
                               </span>
-                              <ChevronDown
+                              <HugeiconsIcon
+                                icon={ArrowDown01Icon}
                                 className="h-4 w-4 text-muted-foreground"
                                 aria-hidden="true"
                               />
@@ -877,7 +891,8 @@ export function AudiencePages(): ReactElement {
                                       ? "Active Trader"
                                       : "NFT Collector"}
                               </span>
-                              <ChevronDown
+                              <HugeiconsIcon
+                                icon={ArrowDown01Icon}
                                 className="h-4 w-4 text-muted-foreground"
                                 aria-hidden="true"
                               />
@@ -920,7 +935,11 @@ export function AudiencePages(): ReactElement {
                     {totalItems === 0 ? (
                       <div className="mx-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center md:mx-0">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-                          <UserPlus className="h-5 w-5" aria-hidden="true" />
+                          <HugeiconsIcon
+                            icon={UserAdd01Icon}
+                            className="h-5 w-5"
+                            aria-hidden="true"
+                          />
                         </div>
                         <h2 className="mt-4 text-lg font-semibold text-foreground">
                           No profiles yet
@@ -933,7 +952,11 @@ export function AudiencePages(): ReactElement {
                           href="/audience/import-export"
                           className="mt-6 inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
                         >
-                          <UserPlus className="h-4 w-4" aria-hidden="true" />
+                          <HugeiconsIcon
+                            icon={UserAdd01Icon}
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          />
                           Add Profile
                         </Link>
                       </div>
@@ -963,12 +986,21 @@ export function AudiencePages(): ReactElement {
                                     Profile
                                     {sortField === "name" ? (
                                       sortDirection === "asc" ? (
-                                        <ArrowUp className="h-3 w-3" />
+                                        <HugeiconsIcon
+                                          icon={ArrowUp01Icon}
+                                          className="h-3 w-3"
+                                        />
                                       ) : (
-                                        <ArrowDown className="h-3 w-3" />
+                                        <HugeiconsIcon
+                                          icon={ArrowDown01Icon}
+                                          className="h-3 w-3"
+                                        />
                                       )
                                     ) : (
-                                      <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                      <HugeiconsIcon
+                                        icon={ArrowUpDownIcon}
+                                        className="h-3 w-3 opacity-50"
+                                      />
                                     )}
                                   </button>
                                 </th>
@@ -990,12 +1022,21 @@ export function AudiencePages(): ReactElement {
                                     Health
                                     {sortField === "healthScore" ? (
                                       sortDirection === "asc" ? (
-                                        <ArrowUp className="h-3 w-3" />
+                                        <HugeiconsIcon
+                                          icon={ArrowUp01Icon}
+                                          className="h-3 w-3"
+                                        />
                                       ) : (
-                                        <ArrowDown className="h-3 w-3" />
+                                        <HugeiconsIcon
+                                          icon={ArrowDown01Icon}
+                                          className="h-3 w-3"
+                                        />
                                       )
                                     ) : (
-                                      <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                      <HugeiconsIcon
+                                        icon={ArrowUpDownIcon}
+                                        className="h-3 w-3 opacity-50"
+                                      />
                                     )}
                                   </button>
                                 </th>
@@ -1007,12 +1048,21 @@ export function AudiencePages(): ReactElement {
                                     Last Action
                                     {sortField === "lastAction" ? (
                                       sortDirection === "asc" ? (
-                                        <ArrowUp className="h-3 w-3" />
+                                        <HugeiconsIcon
+                                          icon={ArrowUp01Icon}
+                                          className="h-3 w-3"
+                                        />
                                       ) : (
-                                        <ArrowDown className="h-3 w-3" />
+                                        <HugeiconsIcon
+                                          icon={ArrowDown01Icon}
+                                          className="h-3 w-3"
+                                        />
                                       )
                                     ) : (
-                                      <ArrowUpDown className="h-3 w-3 opacity-50" />
+                                      <HugeiconsIcon
+                                        icon={ArrowUpDownIcon}
+                                        className="h-3 w-3 opacity-50"
+                                      />
                                     )}
                                   </button>
                                 </th>
@@ -1148,7 +1198,10 @@ export function AudiencePages(): ReactElement {
                                             }}
                                             aria-label="Copy wallet address"
                                           >
-                                            <Copy className="h-3.5 w-3.5" />
+                                            <HugeiconsIcon
+                                              icon={Copy01Icon}
+                                              className="h-3.5 w-3.5"
+                                            />
                                           </button>
                                         )}
                                       </div>
@@ -1310,7 +1363,10 @@ export function AudiencePages(): ReactElement {
                                               </h4>
                                               <div className="space-y-2 text-sm">
                                                 <div className="flex items-center gap-2">
-                                                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                                                  <HugeiconsIcon
+                                                    icon={ViewIcon}
+                                                    className="h-3.5 w-3.5 text-muted-foreground"
+                                                  />
                                                   <span className="text-foreground">
                                                     {profile.lastAction.label
                                                       .length > 0
@@ -1414,7 +1470,10 @@ export function AudiencePages(): ReactElement {
                               disabled={currentPage === 1}
                               className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <ChevronLeft className="h-4 w-4" />
+                              <HugeiconsIcon
+                                icon={ArrowLeft01Icon}
+                                className="h-4 w-4"
+                              />
                             </button>
                             <div className="flex items-center gap-1">
                               {Array.from(
@@ -1451,7 +1510,10 @@ export function AudiencePages(): ReactElement {
                               disabled={currentPage === totalPages}
                               className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <ChevronRight className="h-4 w-4" />
+                              <HugeiconsIcon
+                                icon={ArrowRight01Icon}
+                                className="h-4 w-4"
+                              />
                             </button>
                           </div>
                         </div>
@@ -1476,7 +1538,10 @@ export function AudiencePages(): ReactElement {
                               onClick={handleBulkExport}
                               className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                             >
-                              <Download className="h-4 w-4" />
+                              <HugeiconsIcon
+                                icon={Download01Icon}
+                                className="h-4 w-4"
+                              />
                               Export
                             </button>
                             <AlertDialog>
@@ -1486,7 +1551,10 @@ export function AudiencePages(): ReactElement {
                                   disabled={deleteProfilesMutation.isPending}
                                   className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-500/10"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <HugeiconsIcon
+                                    icon={Delete02Icon}
+                                    className="h-4 w-4"
+                                  />
                                   {deleteProfilesMutation.isPending
                                     ? "Deleting..."
                                     : "Delete"}
@@ -1516,7 +1584,10 @@ export function AudiencePages(): ReactElement {
                               onClick={() => setSelectedIds([])}
                               className="p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                             >
-                              <X className="h-4 w-4" />
+                              <HugeiconsIcon
+                                icon={Cancel01Icon}
+                                className="h-4 w-4"
+                              />
                             </button>
                           </div>
                         </motion.div>

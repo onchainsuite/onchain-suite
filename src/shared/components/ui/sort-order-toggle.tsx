@@ -1,6 +1,6 @@
 "use client";
-
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
 
@@ -28,9 +28,9 @@ export function SortOrderToggle({
       title={`Sort ${order === "asc" ? "ascending" : "descending"}`}
     >
       {order === "asc" ? (
-        <ArrowUp className="h-4 w-4" />
+        <HugeiconsIcon icon={ArrowUp01Icon} className="h-4 w-4" />
       ) : (
-        <ArrowDown className="h-4 w-4" />
+        <HugeiconsIcon icon={ArrowDown01Icon} className="h-4 w-4" />
       )}
     </Button>
   );

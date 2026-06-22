@@ -92,6 +92,25 @@ export type AutomationsCreateResponse = {
   status: "draft" | string;
 };
 
+export type AutomationBuilderResponse = {
+  automationId?: string;
+  status?: string;
+  triggerSpec?: unknown;
+  version?: number | string;
+  nodes?: unknown[];
+  edges?: unknown[];
+  updatedAt?: string;
+  draftSavedAt?: string;
+  builderWarnings?: unknown[];
+  [key: string]: unknown;
+};
+
+export type AutomationRuntimeTriggerResponse = {
+  matchedAutomations?: number;
+  entries?: number;
+  [key: string]: unknown;
+};
+
 export type AutomationStatusUpdateBody = {
   status: "active" | "paused" | "draft" | "archived" | string;
 };
@@ -215,7 +234,7 @@ export const automationService = {
   },
 
   getBuilder(automationId: string, orgId?: string) {
-    return request<Record<string, unknown>>(
+    return request<AutomationBuilderResponse>(
       { method: "GET", url: `/automations/${automationId}/builder` },
       orgId
     );
@@ -226,7 +245,7 @@ export const automationService = {
     body: Record<string, unknown>,
     orgId?: string
   ) {
-    return request<Record<string, unknown>>(
+    return request<AutomationBuilderResponse>(
       {
         method: "PUT",
         url: `/automations/${automationId}/builder`,
@@ -241,7 +260,7 @@ export const automationService = {
     body: Record<string, unknown>,
     orgId?: string
   ) {
-    return request<Record<string, unknown>>(
+    return request<AutomationBuilderResponse>(
       {
         method: "PUT",
         url: `/automations/${automationId}/builder/draft`,
@@ -269,8 +288,15 @@ export const automationService = {
   },
 
   discardBuilder(automationId: string, orgId?: string) {
-    return request<Record<string, unknown>>(
+    return request<AutomationBuilderResponse>(
       { method: "POST", url: `/automations/${automationId}/builder/discard` },
+      orgId
+    );
+  },
+
+  resetBuilder(automationId: string, orgId?: string) {
+    return request<AutomationBuilderResponse>(
+      { method: "POST", url: `/automations/${automationId}/builder/reset` },
       orgId
     );
   },
@@ -310,6 +336,13 @@ export const automationService = {
     );
   },
 
+  listBuilderEmailTemplates(orgId?: string) {
+    return request<{ items?: unknown[] } | unknown[]>(
+      { method: "GET", url: "/automations/builder/email-templates" },
+      orgId
+    );
+  },
+
   previewAutomation(
     automationId: string,
     body: Record<string, unknown>,
@@ -319,6 +352,92 @@ export const automationService = {
       {
         method: "POST",
         url: `/automations/${automationId}/preview`,
+        data: body,
+      },
+      orgId
+    );
+  },
+
+  triggerSegmentEntered(
+    body: {
+      segmentId: string;
+      contactId?: string;
+      email?: string;
+      walletAddress?: string;
+      sourceEventId?: string;
+      payload?: Record<string, unknown>;
+    },
+    orgId?: string
+  ) {
+    return request<AutomationRuntimeTriggerResponse>(
+      {
+        method: "POST",
+        url: "/automations/runtime/triggers/segment-entered",
+        data: body,
+      },
+      orgId
+    );
+  },
+
+  triggerOnchainEvent(
+    body: {
+      chain: string;
+      event: string;
+      walletAddress?: string;
+      contractAddress?: string;
+      txHash?: string;
+      sourceEventId?: string;
+      payload?: Record<string, unknown>;
+    },
+    orgId?: string
+  ) {
+    return request<AutomationRuntimeTriggerResponse>(
+      {
+        method: "POST",
+        url: "/automations/runtime/triggers/onchain-event",
+        data: body,
+      },
+      orgId
+    );
+  },
+
+  triggerEmailOpened(
+    body: {
+      campaignId?: string;
+      deliveryId?: string;
+      contactId?: string;
+      email?: string;
+      walletAddress?: string;
+      sourceEventId?: string;
+      payload?: Record<string, unknown>;
+    },
+    orgId?: string
+  ) {
+    return request<AutomationRuntimeTriggerResponse>(
+      {
+        method: "POST",
+        url: "/automations/runtime/triggers/email-opened",
+        data: body,
+      },
+      orgId
+    );
+  },
+
+  triggerHealthThreshold(
+    body: {
+      score: number;
+      contactId?: string;
+      email?: string;
+      walletAddress?: string;
+      sourceEventId?: string;
+      payload?: Record<string, unknown>;
+    },
+    orgId?: string
+  ) {
+    return request<AutomationRuntimeTriggerResponse>(
+      {
+        method: "POST",
+        url: "/automations/runtime/triggers/health-threshold",
         data: body,
       },
       orgId

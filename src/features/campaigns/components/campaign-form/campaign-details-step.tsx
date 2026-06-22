@@ -1,6 +1,12 @@
 "use client";
-
-import { Mail, MessageSquare, Send, TrendingUp, Users } from "lucide-react";
+import {
+  AnalyticsUpIcon,
+  Mail01Icon,
+  Message01Icon,
+  SentIcon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -27,19 +33,19 @@ const CAMPAIGN_TYPE_OPTIONS = [
     id: "email-blast",
     title: "Email Blast",
     description: "Send one-off campaigns or manage a batch of emails",
-    icon: Mail,
+    icon: Mail01Icon,
   },
   {
     id: "drip-campaign",
     title: "Drip campaign",
     description: "Send messages at specific intervals in a specific audience",
-    icon: TrendingUp,
+    icon: AnalyticsUpIcon,
   },
   {
     id: "smart-sending",
     title: "Smart campaign",
     description: "Reach users across channels (in-app and social messaging)",
-    icon: Users,
+    icon: UserGroupIcon,
   },
 ];
 
@@ -124,7 +130,10 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <item.icon className="h-4 w-4 text-muted-foreground" />
+                        <HugeiconsIcon
+                          icon={item.icon}
+                          className="h-4 w-4 text-muted-foreground"
+                        />
                         <Label
                           htmlFor={item.id}
                           className="font-medium text-foreground cursor-pointer"
@@ -156,7 +165,7 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <Send className="h-4 w-4" />
+                    <HugeiconsIcon icon={SentIcon} className="h-4 w-4" />
                     In-app Push
                   </button>
                   <button
@@ -168,7 +177,7 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <MessageSquare className="h-4 w-4" />
+                    <HugeiconsIcon icon={Message01Icon} className="h-4 w-4" />
                     Telegram
                   </button>
                   <button
@@ -180,7 +189,7 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <MessageSquare className="h-4 w-4" />
+                    <HugeiconsIcon icon={Message01Icon} className="h-4 w-4" />
                     Discord
                   </button>
                   <button
@@ -192,7 +201,7 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <MessageSquare className="h-4 w-4" />X
+                    <HugeiconsIcon icon={Message01Icon} className="h-4 w-4" />X
                   </button>
                 </div>
                 <FormDescription className="mt-3">

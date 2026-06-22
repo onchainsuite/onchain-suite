@@ -1,5 +1,6 @@
+import { LayoutThreeColumnIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { Table } from "@tanstack/react-table";
-import { Columns3 } from "lucide-react";
 
 import { Button } from "@/ui/button";
 import {
@@ -21,7 +22,8 @@ export const DataColumnVisibility = <TData,>({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline">
-          <Columns3
+          <HugeiconsIcon
+            icon={LayoutThreeColumnIcon}
             className="-ms-1 me-2 opacity-60"
             size={16}
             strokeWidth={2}

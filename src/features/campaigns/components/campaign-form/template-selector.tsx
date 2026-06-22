@@ -1,18 +1,19 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  Check,
-  FileText,
-  Grid3x3,
-  LayoutList,
-  Loader2,
-  MoreVertical,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
+  Add01Icon,
+  Delete02Icon,
+  FileAttachmentIcon,
+  Grid02Icon,
+  ListViewIcon,
+  Loading02Icon,
+  MoreVerticalIcon,
+  PencilIcon,
+  Search01Icon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -112,7 +113,11 @@ function TemplatesEmptyState({
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
       <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-        <FileText className="h-5 w-5" aria-hidden="true" />
+        <HugeiconsIcon
+          icon={FileAttachmentIcon}
+          className="h-5 w-5"
+          aria-hidden="true"
+        />
       </div>
       <h3 className="mt-4 text-lg font-semibold text-foreground">{title}</h3>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
@@ -125,7 +130,11 @@ function TemplatesEmptyState({
             onClick={onCreate}
             className="w-full rounded-xl"
           >
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            <HugeiconsIcon
+              icon={Add01Icon}
+              className="mr-2 h-4 w-4"
+              aria-hidden="true"
+            />
             Create first template
           </Button>
         </div>
@@ -372,7 +381,7 @@ export function TemplateSelector({
             }}
             className="w-full rounded-xl bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary/90 sm:w-auto"
           >
-            <Plus className="h-4 w-4" />
+            <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
             Create
           </Button>
         </div>
@@ -401,7 +410,10 @@ export function TemplateSelector({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <HugeiconsIcon
+            icon={Search01Icon}
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+          />
           <Input
             placeholder="Search"
             value={templateSearch}
@@ -420,7 +432,7 @@ export function TemplateSelector({
                 viewMode === "grid" && "bg-background shadow-sm"
               )}
             >
-              <Grid3x3 className="h-4 w-4" />
+              <HugeiconsIcon icon={Grid02Icon} className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -431,7 +443,7 @@ export function TemplateSelector({
                 viewMode === "list" && "bg-background shadow-sm"
               )}
             >
-              <LayoutList className="h-4 w-4" />
+              <HugeiconsIcon icon={ListViewIcon} className="h-4 w-4" />
             </Button>
           </div>
           <Select
@@ -565,7 +577,10 @@ export function TemplateSelector({
                       )}
                       {selectedTemplate === temp.id ? (
                         <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
-                          <Check className="h-4 w-4 text-primary-foreground" />
+                          <HugeiconsIcon
+                            icon={Tick01Icon}
+                            className="h-4 w-4 text-primary-foreground"
+                          />
                         </div>
                       ) : null}
                     </div>
@@ -584,7 +599,10 @@ export function TemplateSelector({
                             className="h-8 w-8 rounded-lg"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <MoreVertical className="h-4 w-4" />
+                            <HugeiconsIcon
+                              icon={MoreVerticalIcon}
+                              className="h-4 w-4"
+                            />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -678,7 +696,10 @@ export function TemplateSelector({
                   )}
                   {selectedTemplate === temp.id ? (
                     <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
-                      <Check className="h-4 w-4 text-primary-foreground" />
+                      <HugeiconsIcon
+                        icon={Tick01Icon}
+                        className="h-4 w-4 text-primary-foreground"
+                      />
                     </div>
                   ) : null}
                 </div>
@@ -698,7 +719,10 @@ export function TemplateSelector({
                         className="h-8 w-8 rounded-lg"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <MoreVertical className="h-4 w-4" />
+                        <HugeiconsIcon
+                          icon={MoreVerticalIcon}
+                          className="h-4 w-4"
+                        />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -720,7 +744,10 @@ export function TemplateSelector({
                               setRenameOpen(true);
                             }}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <HugeiconsIcon
+                              icon={PencilIcon}
+                              className="h-4 w-4"
+                            />
                             Rename
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -730,7 +757,10 @@ export function TemplateSelector({
                               deleteMutation.mutate(temp.id);
                             }}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <HugeiconsIcon
+                              icon={Delete02Icon}
+                              className="h-4 w-4"
+                            />
                             Delete
                           </DropdownMenuItem>
                         </>
@@ -752,7 +782,10 @@ export function TemplateSelector({
           <div className="h-[70vh] overflow-hidden rounded-xl border border-border bg-white">
             {previewLoading ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon
+                  icon={Loading02Icon}
+                  className="mr-2 h-4 w-4 animate-spin"
+                />
                 Loading preview…
               </div>
             ) : previewHtml.trim().length > 0 ? (
@@ -860,7 +893,10 @@ export function TemplateSelector({
               }}
             >
               {renameMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <HugeiconsIcon
+                  icon={Loading02Icon}
+                  className="h-4 w-4 animate-spin"
+                />
               ) : (
                 "Save"
               )}

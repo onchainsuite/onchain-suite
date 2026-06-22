@@ -1,19 +1,20 @@
 "use client";
 
-import { motion } from "framer-motion";
 import {
-  AlertCircle,
-  ArrowLeft,
-  CheckCircle2,
-  Clock,
-  Link2,
-  Mail,
-  Plus,
-  RefreshCw,
-  RotateCcw,
-  Search,
-  Wallet,
-} from "lucide-react";
+  Add01Icon,
+  AlertCircleIcon,
+  ArrowLeft01Icon,
+  Clock01Icon,
+  Link02Icon,
+  Mail01Icon,
+  Refresh01Icon,
+  RotateLeft01Icon,
+  Search01Icon,
+  Wallet01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { motion } from "framer-motion";
+import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -80,11 +81,26 @@ export default function SynthesisPage() {
       case "completed":
         return <CheckCircle2 className="h-4 w-4 text-primary" />;
       case "processing":
-        return <RefreshCw className="h-4 w-4 animate-spin text-secondary" />;
+        return (
+          <HugeiconsIcon
+            icon={Refresh01Icon}
+            className="h-4 w-4 animate-spin text-secondary"
+          />
+        );
       case "pending":
-        return <Clock className="h-4 w-4 text-amber-500" />;
+        return (
+          <HugeiconsIcon
+            icon={Clock01Icon}
+            className="h-4 w-4 text-amber-500"
+          />
+        );
       default:
-        return <AlertCircle className="h-4 w-4 text-destructive" />;
+        return (
+          <HugeiconsIcon
+            icon={AlertCircleIcon}
+            className="h-4 w-4 text-destructive"
+          />
+        );
     }
   };
 
@@ -134,7 +150,7 @@ export default function SynthesisPage() {
             href="/audience"
             className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
             Back to Audience
           </Link>
 
@@ -154,7 +170,8 @@ export default function SynthesisPage() {
                 disabled={isRerunning}
                 className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
               >
-                <RotateCcw
+                <HugeiconsIcon
+                  icon={RotateLeft01Icon}
                   className={`h-4 w-4 ${isRerunning ? "animate-spin" : ""}`}
                 />
                 <span className="hidden sm:inline">
@@ -162,7 +179,7 @@ export default function SynthesisPage() {
                 </span>
               </button>
               <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                <Plus className="h-4 w-4" />
+                <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
                 <span className="hidden sm:inline">New Synthesis</span>
               </button>
             </div>
@@ -200,7 +217,10 @@ export default function SynthesisPage() {
         {/* Search and Filter */}
         <div className="mx-2 mb-6 flex flex-col gap-3 sm:flex-row sm:items-center md:mx-0">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={Search01Icon}
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               placeholder="Search by email or wallet..."
@@ -241,7 +261,10 @@ export default function SynthesisPage() {
               <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                    <Mail className="h-5 w-5 text-primary" />
+                    <HugeiconsIcon
+                      icon={Mail01Icon}
+                      className="h-5 w-5 text-primary"
+                    />
                   </div>
                   <div>
                     <p className="font-medium text-foreground">{item.email}</p>
@@ -249,11 +272,17 @@ export default function SynthesisPage() {
                   </div>
                 </div>
 
-                <Link2 className="hidden h-4 w-4 text-muted-foreground sm:block" />
+                <HugeiconsIcon
+                  icon={Link02Icon}
+                  className="hidden h-4 w-4 text-muted-foreground sm:block"
+                />
 
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                    <Wallet className="h-5 w-5 text-muted-foreground" />
+                    <HugeiconsIcon
+                      icon={Wallet01Icon}
+                      className="h-5 w-5 text-muted-foreground"
+                    />
                   </div>
                   <code className="rounded bg-muted px-2 py-1 text-sm text-foreground">
                     {item.wallet}
@@ -280,7 +309,10 @@ export default function SynthesisPage() {
 
         {filteredQueue.length === 0 && (
           <div className="mx-2 flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 md:mx-0">
-            <Link2 className="mb-4 h-12 w-12 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={Link02Icon}
+              className="mb-4 h-12 w-12 text-muted-foreground"
+            />
             <p className="text-lg font-medium text-foreground">
               No synthesis jobs found
             </p>

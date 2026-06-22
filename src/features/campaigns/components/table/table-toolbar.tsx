@@ -1,7 +1,11 @@
 "use client";
 
+import {
+  Search01Icon,
+  SlidersHorizontalIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { Table } from "@tanstack/react-table";
-import { Search, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/ui/button";
 import {
@@ -32,7 +36,10 @@ export function TableToolbar({ table }: TableToolbarProps) {
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-1 items-center gap-2">
         <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <HugeiconsIcon
+            icon={Search01Icon}
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
           <Input
             placeholder="Search campaigns..."
             value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
@@ -72,7 +79,10 @@ export function TableToolbar({ table }: TableToolbarProps) {
             variant="outline"
             className="h-10 rounded-xl border-border bg-transparent"
           >
-            <SlidersHorizontal className="mr-2 h-4 w-4" />
+            <HugeiconsIcon
+              icon={SlidersHorizontalIcon}
+              className="mr-2 h-4 w-4"
+            />
             View
           </Button>
         </DropdownMenuTrigger>

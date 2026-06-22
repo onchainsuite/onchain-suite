@@ -1,6 +1,6 @@
 "use client";
-
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/ui/button";
 import { CardDescription, CardHeader, CardTitle } from "@/ui/card";
@@ -36,7 +36,7 @@ export function CalendarHeader({
             onClick={onPreviousMonth}
             className="h-9 w-9 rounded-xl transition-all duration-300 bg-transparent"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
@@ -44,7 +44,7 @@ export function CalendarHeader({
             onClick={onNextMonth}
             className="h-9 w-9 rounded-xl transition-all duration-300 bg-transparent"
           >
-            <ChevronRight className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
           </Button>
         </div>
       </div>

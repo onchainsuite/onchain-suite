@@ -1,6 +1,7 @@
+import { Download01Icon, Invoice01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Download, ReceiptText } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -89,7 +90,7 @@ const InvoiceHistory = () => {
       <SettingsSectionCard
         title="Invoices"
         description="View and download your billing history."
-        icon={<ReceiptText className="h-5 w-5" />}
+        icon={<HugeiconsIcon icon={Invoice01Icon} className="h-5 w-5" />}
         badge={`${items.length} invoice${items.length === 1 ? "" : "s"} available`}
         onOpenChange={setIsOpen}
         collapsedPreview={
@@ -185,7 +186,10 @@ const InvoiceHistory = () => {
                         )
                       }
                     >
-                      <Download className="h-4 w-4" />
+                      <HugeiconsIcon
+                        icon={Download01Icon}
+                        className="h-4 w-4"
+                      />
                     </Button>
                   </div>
                 </motion.div>

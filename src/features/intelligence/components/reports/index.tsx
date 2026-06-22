@@ -1,20 +1,21 @@
 "use client";
 
+import {
+  AnalyticsDownIcon,
+  AnalyticsUpIcon,
+  ArrowDown01Icon,
+  BotIcon,
+  Calendar01Icon,
+  Mail01Icon,
+  Search01Icon,
+  SentIcon,
+  SparklesIcon,
+  ViewIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Bot,
-  Calendar,
-  ChevronDown,
-  Eye,
-  Mail,
-  Search,
-  Send,
-  Sparkles,
-  TrendingDown,
-  TrendingUp,
-  Zap,
-} from "lucide-react";
+import { Zap } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -269,7 +270,10 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <HugeiconsIcon
+            icon={Search01Icon}
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             type="text"
             placeholder="Search reports..."
@@ -282,14 +286,16 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className={filterTriggerClassName}>
-                <Calendar
+                <HugeiconsIcon
+                  icon={Calendar01Icon}
                   className="h-4 w-4 text-muted-foreground"
                   aria-hidden="true"
                 />
                 <span>
                   {reportDateRange === "30d" ? "Last 30 days" : "All time"}
                 </span>
-                <ChevronDown
+                <HugeiconsIcon
+                  icon={ArrowDown01Icon}
                   className="h-4 w-4 text-muted-foreground"
                   aria-hidden="true"
                 />
@@ -326,7 +332,8 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                       ? "Email"
                       : "Automation"}
                 </span>
-                <ChevronDown
+                <HugeiconsIcon
+                  icon={ArrowDown01Icon}
                   className="h-4 w-4 text-muted-foreground"
                   aria-hidden="true"
                 />
@@ -366,7 +373,8 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                         ? "Completed"
                         : "Paused"}
                 </span>
-                <ChevronDown
+                <HugeiconsIcon
+                  icon={ArrowDown01Icon}
                   className="h-4 w-4 text-muted-foreground"
                   aria-hidden="true"
                 />
@@ -404,7 +412,11 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
         {reportsQuery.isFetching ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <Send className="h-5 w-5" aria-hidden="true" />
+              <HugeiconsIcon
+                icon={SentIcon}
+                className="h-5 w-5"
+                aria-hidden="true"
+              />
             </div>
             <h3 className="mt-4 text-lg font-semibold text-foreground">
               Loading reports…
@@ -413,7 +425,11 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
         ) : filteredReports.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <Send className="h-5 w-5" aria-hidden="true" />
+              <HugeiconsIcon
+                icon={SentIcon}
+                className="h-5 w-5"
+                aria-hidden="true"
+              />
             </div>
             <h3 className="mt-4 text-lg font-semibold text-foreground">
               No intelligence reports yet
@@ -432,7 +448,11 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
               onClick={() => setActiveTab("query")}
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              <HugeiconsIcon
+                icon={SparklesIcon}
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
               Run a query
             </button>
           </div>
@@ -486,9 +506,12 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                           }`}
                         >
                           {report.type === "email" ? (
-                            <Mail className="h-4 w-4" />
+                            <HugeiconsIcon
+                              icon={Mail01Icon}
+                              className="h-4 w-4"
+                            />
                           ) : (
-                            <Bot className="h-4 w-4" />
+                            <HugeiconsIcon icon={BotIcon} className="h-4 w-4" />
                           )}
                         </div>
                         <div>
@@ -575,9 +598,15 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                           {report.revenueChange}
                         </span>
                         {report.revenueChange.includes("+") ? (
-                          <TrendingUp className="h-3.5 w-3.5 text-secondary" />
+                          <HugeiconsIcon
+                            icon={AnalyticsUpIcon}
+                            className="h-3.5 w-3.5 text-secondary"
+                          />
                         ) : (
-                          <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                          <HugeiconsIcon
+                            icon={AnalyticsDownIcon}
+                            className="h-3.5 w-3.5 text-destructive"
+                          />
                         )}
                       </div>
                     </td>
@@ -586,7 +615,10 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                         href={`/intelligence/reports/${report.id}`}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_12px_rgba(var(--primary),0.4)]"
                       >
-                        <Eye className="h-3.5 w-3.5" />
+                        <HugeiconsIcon
+                          icon={ViewIcon}
+                          className="h-3.5 w-3.5"
+                        />
                         View Report
                       </Link>
                     </td>
@@ -614,9 +646,12 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                         }`}
                       >
                         {report.type === "email" ? (
-                          <Mail className="h-5 w-5" />
+                          <HugeiconsIcon
+                            icon={Mail01Icon}
+                            className="h-5 w-5"
+                          />
                         ) : (
-                          <Bot className="h-5 w-5" />
+                          <HugeiconsIcon icon={BotIcon} className="h-5 w-5" />
                         )}
                       </div>
                       <div>
@@ -658,7 +693,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                     href={`/intelligence/reports/${report.id}`}
                     className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
                   >
-                    <Eye className="h-4 w-4" />
+                    <HugeiconsIcon icon={ViewIcon} className="h-4 w-4" />
                     View Report
                   </Link>
                 </motion.div>

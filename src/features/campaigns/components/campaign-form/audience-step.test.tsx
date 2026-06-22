@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Form } from "@/components/ui/form";
 
+import type { List, Segment } from "../../../campaigns/types";
 import type { CampaignFormData } from "../../validations";
 import { AudienceStep } from "./audience-step";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
@@ -30,6 +31,11 @@ vi.mock("./audience-selector", () => ({
   AudienceSelector: () => <div data-testid="audience-selector" />,
 }));
 
+const mockLists: List[] = [];
+const mockSegments: Segment[] = [
+  { id: "new-subscribers", name: "New Subscribers", count: 42, starred: true },
+];
+
 function Wrapper() {
   const form = useForm<CampaignFormData, unknown, CampaignFormData>({
     defaultValues: {
@@ -52,7 +58,7 @@ function Wrapper() {
 
   return (
     <Form {...form}>
-      <AudienceStep form={form} />
+      <AudienceStep form={form} lists={mockLists} segments={mockSegments} />
     </Form>
   );
 }
@@ -90,5 +96,21 @@ describe("AudienceStep links", () => {
       "href",
       `${PRIVATE_ROUTES.SETTINGS}?tab=account`
     );
+  });
+
+  it("explains that recipients come from audience users or intelligence segments", () => {
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <Wrapper />
+      </QueryClientProvider>
+    );
+
+    expect(
+      screen.getByText(/audience users created in the Audience section/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/segments created in Intelligence/i)
+    ).toBeInTheDocument();
   });
 });

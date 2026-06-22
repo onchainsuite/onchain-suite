@@ -1,6 +1,6 @@
 "use client";
-
-import { X } from "lucide-react";
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type React from "react";
 import { useEffect } from "react";
 
@@ -80,7 +80,7 @@ export function CustomModal({
               onClick={onClose}
               className="h-8 w-8"
             >
-              <X className="h-4 w-4" />
+              <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
             </Button>
           </div>
           <div className="scrollbar-thin flex-1 overflow-y-auto p-4">
@@ -120,7 +120,7 @@ export function CustomModal({
             onClick={onClose}
             className="h-8 w-8"
           >
-            <X className="h-4 w-4" />
+            <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
           </Button>
         </div>
         <div className="scrollbar-thin flex-1 overflow-y-auto p-6">

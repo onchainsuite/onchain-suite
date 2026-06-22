@@ -1,4 +1,12 @@
-import { Clock, GitBranch, Mail, Tag, Users, Wallet } from "lucide-react";
+import {
+  Clock01Icon,
+  GitBranchIcon,
+  Mail01Icon,
+  Tag01Icon,
+  UserGroupIcon,
+  Wallet01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import React from "react";
 
 import type { AutomationTemplate, HelpResource } from "../types";
@@ -94,21 +102,25 @@ export const triggerNodes = [
     type: "onchain",
     label: "On-chain Event",
     description: "When your users interact with a contract",
-    icon: <Wallet className="h-5 w-5 text-primary" />,
+    icon: (
+      <HugeiconsIcon icon={Wallet01Icon} className="h-5 w-5 text-primary" />
+    ),
     color: "emerald",
   },
   {
     type: "email_opened",
     label: "Email Opened",
     description: "When your user opens an email",
-    icon: <Mail className="h-5 w-5 text-primary" />,
+    icon: <HugeiconsIcon icon={Mail01Icon} className="h-5 w-5 text-primary" />,
     color: "emerald",
   },
   {
     type: "segment_entered",
     label: "Segment Entered",
     description: "When user joins a segment",
-    icon: <Users className="h-5 w-5 text-primary" />,
+    icon: (
+      <HugeiconsIcon icon={UserGroupIcon} className="h-5 w-5 text-primary" />
+    ),
     color: "emerald",
   },
 ];
@@ -247,28 +259,36 @@ export const actionNodes = [
     type: "send_email",
     label: "Send Email",
     description: "Send an email to the user",
-    icon: <Mail className="h-5 w-5 text-indigo-500" />,
+    icon: (
+      <HugeiconsIcon icon={Mail01Icon} className="h-5 w-5 text-indigo-500" />
+    ),
     color: "indigo",
   },
   {
     type: "wait",
     label: "Wait",
     description: "Wait for a period of time",
-    icon: <Clock className="h-5 w-5 text-amber-500" />,
+    icon: (
+      <HugeiconsIcon icon={Clock01Icon} className="h-5 w-5 text-amber-500" />
+    ),
     color: "amber",
   },
   {
     type: "branch",
     label: "Branch",
     description: "Split based on condition",
-    icon: <GitBranch className="h-5 w-5 text-violet-500" />,
+    icon: (
+      <HugeiconsIcon icon={GitBranchIcon} className="h-5 w-5 text-violet-500" />
+    ),
     color: "violet",
   },
   {
     type: "add_tag",
     label: "Add Tag",
     description: "Add a tag to the user",
-    icon: <Tag className="h-5 w-5 text-indigo-500" />,
+    icon: (
+      <HugeiconsIcon icon={Tag01Icon} className="h-5 w-5 text-indigo-500" />
+    ),
     color: "indigo",
   },
 ];

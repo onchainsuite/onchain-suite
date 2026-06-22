@@ -1,7 +1,13 @@
 "use client";
 
+import {
+  Calendar01Icon,
+  Clock01Icon,
+  InformationCircleIcon,
+  SentIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { format } from "date-fns";
-import { CalendarIcon, Clock, Info, Send } from "lucide-react";
 import { useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -105,7 +111,10 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-                          <Send className="h-5 w-5 text-primary" />
+                          <HugeiconsIcon
+                            icon={SentIcon}
+                            className="h-5 w-5 text-primary"
+                          />
                         </div>
                         <div>
                           <Label
@@ -148,7 +157,10 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-                          <Clock className="h-5 w-5 text-primary" />
+                          <HugeiconsIcon
+                            icon={Clock01Icon}
+                            className="h-5 w-5 text-primary"
+                          />
                         </div>
                         <div>
                           <Label
@@ -190,7 +202,10 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                                           {field.value
                                             ? format(field.value, "MMM d, yyyy")
                                             : "Select date"}
-                                          <CalendarIcon className="h-4 w-4 opacity-50" />
+                                          <HugeiconsIcon
+                                            icon={Calendar01Icon}
+                                            className="h-4 w-4 opacity-50"
+                                          />
                                         </Button>
                                       </FormControl>
                                     </PopoverTrigger>
@@ -260,7 +275,10 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                           {/* Schedule Summary */}
                           {scheduleDate && scheduleSummary && (
                             <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border border-border animate-in fade-in duration-300">
-                              <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                              <HugeiconsIcon
+                                icon={InformationCircleIcon}
+                                className="h-5 w-5 text-primary shrink-0 mt-0.5"
+                              />
                               <div className="flex-1 space-y-1">
                                 <p className="text-sm font-medium text-foreground">
                                   Your campaign will be sent on:

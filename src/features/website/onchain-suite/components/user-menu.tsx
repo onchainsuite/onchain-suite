@@ -1,6 +1,11 @@
 "use client";
-
-import { LayoutDashboard, LogOut, Settings, User } from "lucide-react";
+import {
+  DashboardCircleIcon,
+  Logout01Icon,
+  Settings01Icon,
+  UserIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -54,11 +59,11 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem>
-          <User className="mr-2 h-4 w-4" />
+          <HugeiconsIcon icon={UserIcon} className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
+          <HugeiconsIcon icon={Settings01Icon} className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -66,7 +71,7 @@ export function UserMenu() {
           onClick={signOut}
           className="text-destructive focus:text-destructive"
         >
-          <LogOut className="mr-2 h-4 w-4" />
+          <HugeiconsIcon icon={Logout01Icon} className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -77,7 +82,7 @@ export function UserMenu() {
 export function DashboardButton({ onClick }: { onClick: () => void }) {
   return (
     <Button variant="default" className="gap-2" onClick={onClick}>
-      <LayoutDashboard className="h-4 w-4" />
+      <HugeiconsIcon icon={DashboardCircleIcon} className="h-4 w-4" />
       Dashboard
     </Button>
   );

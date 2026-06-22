@@ -1,7 +1,8 @@
 "use client";
 
+import { GiftIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { Gift } from "lucide-react";
 
 import { fadeInUp } from "../../utils";
 import FloatingSparkles from "./floating-sparkles";
@@ -21,7 +22,7 @@ export default function RewardsSettings() {
       <SettingsSectionCard
         title="Rewards"
         description="Track upcoming rewards and join the launch waitlist."
-        icon={<Gift className="h-5 w-5" />}
+        icon={<HugeiconsIcon icon={GiftIcon} className="h-5 w-5" />}
         badge="Coming soon"
       >
         <div className="relative flex flex-col items-center justify-center py-10 text-center lg:py-16">

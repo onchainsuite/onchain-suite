@@ -167,6 +167,16 @@ export interface AudienceProfileContractActivity {
   txCount: number;
 }
 
+export interface AudienceSegment {
+  id: string;
+  name: string;
+  count?: number;
+  starred?: boolean;
+  criteria?: unknown;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
 const pickOrgId = (orgId?: string) =>
   orgId ?? getSelectedOrganizationId() ?? null;
 
@@ -207,6 +217,14 @@ const request = async <T>(
   }
 };
 
+const extractItems = <T>(payload: unknown): T[] => {
+  const root = extractData<unknown>(payload);
+  if (Array.isArray(root)) return root as T[];
+  if (isJsonObject(root) && Array.isArray(root.items)) return root.items as T[];
+  if (isJsonObject(root) && Array.isArray(root.data)) return root.data as T[];
+  return [];
+};
+
 export const audienceService = {
   getOverview(orgId?: string) {
     return request<AudienceOverview>(
@@ -221,6 +239,22 @@ export const audienceService = {
       | { data?: AudienceProfile[]; meta?: unknown }
       | AudienceProfile[]
     >({ method: "GET", url: "/audience/profiles", params }, orgId);
+  },
+
+  listSegments(params?: { q?: string; limit?: number }, orgId?: string) {
+    return request<
+      | { items?: AudienceSegment[]; data?: AudienceSegment[] }
+      | AudienceSegment[]
+    >({ method: "GET", url: "/audience/segments", params }, orgId).then((res) =>
+      extractItems<AudienceSegment>(res)
+    );
+  },
+
+  createSegment(body: { name: string; criteria?: unknown }, orgId?: string) {
+    return request<AudienceSegment>(
+      { method: "POST", url: "/audience/segments", data: body },
+      orgId
+    );
   },
 
   createProfile(body: Record<string, unknown>, orgId?: string) {

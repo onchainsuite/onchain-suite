@@ -1,6 +1,11 @@
 "use client";
-
-import { Check, ChevronsUpDown, Globe, RefreshCw } from "lucide-react";
+import {
+  ArrowUpDownIcon,
+  GlobeIcon,
+  Refresh01Icon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useMemo, useState } from "react";
 import type { Country } from "react-country-state-city/dist/esm/types";
 
@@ -87,7 +92,7 @@ export function CountrySelect({
     }
     return (
       <div className="flex items-center gap-2">
-        <Globe className="h-4 w-4" />
+        <HugeiconsIcon icon={GlobeIcon} className="h-4 w-4" />
         <span>{placeholder}</span>
       </div>
     );
@@ -116,7 +121,10 @@ export function CountrySelect({
           )}
         >
           {buttonContent}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <HugeiconsIcon
+            icon={ArrowUpDownIcon}
+            className="ml-2 h-4 w-4 shrink-0 opacity-50"
+          />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -145,7 +153,10 @@ export function CountrySelect({
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="mr-2 h-3 w-3" />
+                      <HugeiconsIcon
+                        icon={Refresh01Icon}
+                        className="mr-2 h-3 w-3"
+                      />
                       Retry
                     </>
                   )}
@@ -164,7 +175,8 @@ export function CountrySelect({
                     >
                       <span className="text-lg">{country.flag}</span>
                       <span className="truncate">{country.name}</span>
-                      <Check
+                      <HugeiconsIcon
+                        icon={Tick01Icon}
                         className={cn(
                           "ml-auto h-4 w-4 shrink-0",
                           value === country.name ? "opacity-100" : "opacity-0"

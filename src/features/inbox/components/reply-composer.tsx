@@ -1,4 +1,5 @@
-import { Paperclip, Send } from "lucide-react";
+import { AttachmentIcon, SentIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import React from "react";
 
 interface ReplyComposerProps {
@@ -38,7 +39,7 @@ const ReplyComposer = ({
           <div className="mt-2 flex items-center justify-between">
             <div className="flex items-center gap-1">
               <button className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted">
-                <Paperclip className="h-4 w-4" />
+                <HugeiconsIcon icon={AttachmentIcon} className="h-4 w-4" />
               </button>
               <button
                 onClick={generateAIReply}
@@ -56,7 +57,7 @@ const ReplyComposer = ({
           disabled={disabled}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
-          <Send className="h-4 w-4" />
+          <HugeiconsIcon icon={SentIcon} className="h-4 w-4" />
         </button>
       </div>
     </div>

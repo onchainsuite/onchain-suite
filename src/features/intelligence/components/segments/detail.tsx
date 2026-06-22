@@ -1,7 +1,14 @@
 "use client";
 
+import {
+  AnalyticsUpIcon,
+  ArrowLeft01Icon,
+  Loading02Icon,
+  Refresh01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, RefreshCw, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -153,7 +160,7 @@ export function SegmentDetailPage() {
           href="/intelligence"
           className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-secondary"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-5 w-5" />
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{segmentName}</h1>
@@ -167,9 +174,12 @@ export function SegmentDetailPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50"
           >
             {refreshMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <HugeiconsIcon
+                icon={Loading02Icon}
+                className="h-4 w-4 animate-spin"
+              />
             ) : (
-              <RefreshCw className="h-4 w-4" />
+              <HugeiconsIcon icon={Refresh01Icon} className="h-4 w-4" />
             )}
             Refresh
           </button>
@@ -182,7 +192,10 @@ export function SegmentDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Profiles
             </h3>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={UserGroupIcon}
+              className="h-4 w-4 text-muted-foreground"
+            />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold">{size.toLocaleString()}</span>
@@ -193,7 +206,10 @@ export function SegmentDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Revenue
             </h3>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={AnalyticsUpIcon}
+              className="h-4 w-4 text-muted-foreground"
+            />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-primary">
@@ -226,7 +242,10 @@ export function SegmentDetailPage() {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {updateMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <HugeiconsIcon
+                icon={Loading02Icon}
+                className="h-4 w-4 animate-spin"
+              />
             ) : null}
             Save
           </button>

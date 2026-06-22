@@ -1,4 +1,6 @@
-import { Layers, TrendingUp, Zap } from "lucide-react";
+import { AnalyticsUpIcon, Layers01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Zap } from "lucide-react";
 
 interface AutomationStatsProps {
   stats: {
@@ -18,21 +20,27 @@ export const AutomationStats = ({ stats }: AutomationStatsProps) => {
         <span className="text-xs text-muted-foreground">active</span>
       </div>
       <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card px-3 py-1.5">
-        <Layers className="h-4 w-4 text-primary" />
+        <HugeiconsIcon icon={Layers01Icon} className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium">
           {stats.entries.toLocaleString()}
         </span>
         <span className="text-xs text-muted-foreground">entries</span>
       </div>
       <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card px-3 py-1.5">
-        <TrendingUp className="h-4 w-4 text-primary" />
+        <HugeiconsIcon
+          icon={AnalyticsUpIcon}
+          className="h-4 w-4 text-primary"
+        />
         <span className="text-sm font-medium">
           {stats.conversions.toLocaleString()}
         </span>
         <span className="text-xs text-muted-foreground">conversions</span>
       </div>
       <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card px-3 py-1.5">
-        <TrendingUp className="h-4 w-4 text-primary" />
+        <HugeiconsIcon
+          icon={AnalyticsUpIcon}
+          className="h-4 w-4 text-primary"
+        />
         <span className="text-sm font-medium text-primary">
           +${(stats.revenue / 1000).toFixed(0)}k
         </span>

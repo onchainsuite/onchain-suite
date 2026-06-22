@@ -177,6 +177,17 @@ const reportSettingsProfileBillingDebug = (
   }).catch(() => undefined);
 };
 
+const reportMcpQueryDebug = (
+  stage: "request" | "response" | "error",
+  data: Record<string, unknown>
+) => {
+  console.warn("[api] intelligence/mcp/query", {
+    at: new Date().toISOString(),
+    stage,
+    ...data,
+  });
+};
+
 const extractTokenFromCookie = (cookieHeader: string): string | null => {
   const pairs = cookieHeader
     .split(";")
@@ -1819,6 +1830,7 @@ const forward = async (
 ) => {
   const cors = getCorsHeaders(req);
   const method = (overrideMethod ?? req.method).toUpperCase();
+  const startedAt = Date.now();
 
   const audienceImportExport = await handleAudienceImportExport(
     req,
@@ -1842,6 +1854,9 @@ const forward = async (
 
   const url = new URL(req.url);
   const targetUrl = `${getBackendBaseUrl()}/${path.join("/")}${url.search}`;
+  const joinedPath = path.join("/");
+  const isGoldrushMcpQueryPath =
+    method === "POST" && joinedPath === "intelligence/query/goldrush/mcp/query";
 
   const headers = new Headers(req.headers);
   headers.delete("host");
@@ -1904,6 +1919,24 @@ const forward = async (
       }
       return res;
     }
+  }
+
+  if (isGoldrushMcpQueryPath) {
+    const bodyPreview =
+      body && body.byteLength > 0
+        ? new TextDecoder().decode(body).slice(0, 500)
+        : "";
+    reportMcpQueryDebug("request", {
+      method,
+      path: joinedPath,
+      targetUrl,
+      hasAuthorization: headers.has("authorization"),
+      hasApiKey: headers.has("x-api-key"),
+      hasOrgId: headers.has("x-org-id"),
+      orgId: headers.get("x-org-id"),
+      bodyLength: body?.byteLength ?? 0,
+      bodyPreview,
+    });
   }
 
   const isCampaignEditorSaved =
@@ -2014,6 +2047,23 @@ const forward = async (
       body,
       cache: "no-store",
     });
+    if (isGoldrushMcpQueryPath) {
+      const upstreamPreview = await upstream
+        .clone()
+        .text()
+        .then((text) => text.slice(0, 1000))
+        .catch(() => "");
+      reportMcpQueryDebug("response", {
+        method,
+        path: joinedPath,
+        targetUrl,
+        ok: upstream.ok,
+        status: upstream.status,
+        latencyMs: Date.now() - startedAt,
+        contentType: upstream.headers.get("content-type"),
+        bodyPreview: upstreamPreview,
+      });
+    }
     if (isSettingsBillingPath) {
       // #region debug-point C:billing-proxy-response
       reportSettingsProfileBillingDebug(
@@ -2032,6 +2082,15 @@ const forward = async (
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : "Upstream request failed";
+    if (isGoldrushMcpQueryPath) {
+      reportMcpQueryDebug("error", {
+        method,
+        path: joinedPath,
+        targetUrl,
+        latencyMs: Date.now() - startedAt,
+        message,
+      });
+    }
     const res = NextResponse.json(
       {
         success: false,

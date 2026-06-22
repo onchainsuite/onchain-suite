@@ -1,6 +1,6 @@
 "use client";
-
-import { ChevronDown } from "lucide-react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +50,7 @@ export function SplitButton({
             size={size}
             className="bg-background hover:bg-muted/50 border-border rounded-l-none border-l px-2 py-2 transition-colors"
           >
-            <ChevronDown className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowDown01Icon} className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">

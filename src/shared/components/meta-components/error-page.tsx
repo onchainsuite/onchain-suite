@@ -1,8 +1,15 @@
 /* eslint-disable no-alert */
 "use client";
 
+import {
+  Alert01Icon,
+  Bug01Icon,
+  Home01Icon,
+  Mail01Icon,
+  Refresh01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion, useAnimation } from "framer-motion";
-import { AlertTriangle, Bug, Home, Mail, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { FloatingParticle, FloatingSymbol } from "@/components/common";
@@ -104,7 +111,10 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
         {/* Floating warning symbols */}
         <FloatingSymbol>
-          <AlertTriangle className="text-destructive/30 h-6 w-6" />
+          <HugeiconsIcon
+            icon={Alert01Icon}
+            className="text-destructive/30 h-6 w-6"
+          />
         </FloatingSymbol>
       </div>
 
@@ -122,7 +132,10 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
               className="relative mx-auto mb-6 h-32 w-32"
             >
               <div className="from-destructive/20 to-destructive/10 border-destructive/30 relative flex h-full w-full items-center justify-center overflow-hidden rounded-3xl border-2 bg-linear-to-r">
-                <Bug className="text-destructive h-16 w-16" />
+                <HugeiconsIcon
+                  icon={Bug01Icon}
+                  className="text-destructive h-16 w-16"
+                />
 
                 {/* Glitch effect */}
                 <motion.div
@@ -221,7 +234,8 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                 disabled={isRetrying}
                 className="group px-8 py-6 text-lg font-semibold"
               >
-                <RefreshCw
+                <HugeiconsIcon
+                  icon={Refresh01Icon}
                   className={`mr-2 h-5 w-5 ${isRetrying ? "animate-spin" : "group-hover:rotate-180"} transition-transform duration-300`}
                 />
                 {isRetrying ? "Retrying..." : "Try Again"}
@@ -232,7 +246,10 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
               size="lg"
               className="group px-8 py-6 text-lg font-semibold"
             >
-              <Home className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+              <HugeiconsIcon
+                icon={Home01Icon}
+                className="mr-2 h-5 w-5 transition-transform group-hover:scale-110"
+              />
               Back to Home
             </Button>
             <Button
@@ -241,7 +258,10 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
               onClick={handleReportError}
               className="group px-8 py-6 text-lg font-semibold"
             >
-              <Mail className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+              <HugeiconsIcon
+                icon={Mail01Icon}
+                className="mr-2 h-5 w-5 transition-transform group-hover:scale-110"
+              />
               Report Issue
             </Button>
           </motion.div>

@@ -1,18 +1,18 @@
 "use client";
 
+import {
+  AlertCircleIcon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Cancel01Icon,
+  FileAttachmentIcon,
+  Tick01Icon,
+  Upload01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  AlertCircle,
-  ArrowLeft,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  FileJson,
-  FileText,
-  Upload,
-  X,
-} from "lucide-react";
+import { CheckCircle2, FileJson } from "lucide-react";
 import Link from "next/link";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
@@ -641,7 +641,7 @@ export default function ImportExportPage() {
             href="/audience"
             className="mb-6 inline-flex items-center gap-2 text-sm text-(--color-text-muted) transition-colors hover:text-(--color-text)"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
             Back to Audience
           </Link>
 
@@ -715,7 +715,10 @@ export default function ImportExportPage() {
                           }`}
                         >
                           {isCompleted ? (
-                            <Check className="h-4 w-4" />
+                            <HugeiconsIcon
+                              icon={Tick01Icon}
+                              className="h-4 w-4"
+                            />
                           ) : (
                             index + 1
                           )}
@@ -774,7 +777,10 @@ export default function ImportExportPage() {
                     }`}
                   >
                     <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                      <Upload className="h-8 w-8 text-primary" />
+                      <HugeiconsIcon
+                        icon={Upload01Icon}
+                        className="h-8 w-8 text-primary"
+                      />
                     </div>
                     <p className="text-lg font-medium">
                       Drop files here or click to upload
@@ -820,7 +826,10 @@ export default function ImportExportPage() {
                               {item.format === "json" ? (
                                 <FileJson className="h-5 w-5 text-(--color-text-muted)" />
                               ) : (
-                                <FileText className="h-5 w-5 text-(--color-text-muted)" />
+                                <HugeiconsIcon
+                                  icon={FileAttachmentIcon}
+                                  className="h-5 w-5 text-(--color-text-muted)"
+                                />
                               )}
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-medium">
@@ -842,7 +851,10 @@ export default function ImportExportPage() {
                             {item.status === "completed" ? (
                               <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
                             ) : item.status === "failed" ? (
-                              <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+                              <HugeiconsIcon
+                                icon={AlertCircleIcon}
+                                className="h-5 w-5 shrink-0 text-destructive"
+                              />
                             ) : (
                               <div className="h-5 w-5 shrink-0 rounded-full bg-primary/10" />
                             )}
@@ -863,7 +875,10 @@ export default function ImportExportPage() {
                       className="group flex items-center gap-4 rounded-2xl border border-(--color-border) bg-(--color-card) p-6 text-left transition-all hover:border-primary/50 hover:bg-primary/5 disabled:opacity-50"
                     >
                       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-(--color-elevated) transition-colors group-hover:bg-primary/10">
-                        <FileText className="h-6 w-6 text-(--color-text-muted) transition-colors group-hover:text-primary" />
+                        <HugeiconsIcon
+                          icon={FileAttachmentIcon}
+                          className="h-6 w-6 text-(--color-text-muted) transition-colors group-hover:text-primary"
+                        />
                       </div>
                       <div>
                         <p className="font-medium">Export as CSV</p>
@@ -972,7 +987,10 @@ export default function ImportExportPage() {
                               {item.format === "json" ? (
                                 <FileJson className="h-5 w-5 text-(--color-text-muted)" />
                               ) : (
-                                <FileText className="h-5 w-5 text-(--color-text-muted)" />
+                                <HugeiconsIcon
+                                  icon={FileAttachmentIcon}
+                                  className="h-5 w-5 text-(--color-text-muted)"
+                                />
                               )}
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-medium">
@@ -990,7 +1008,10 @@ export default function ImportExportPage() {
                             {item.status === "completed" ? (
                               <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
                             ) : item.status === "failed" ? (
-                              <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+                              <HugeiconsIcon
+                                icon={AlertCircleIcon}
+                                className="h-5 w-5 shrink-0 text-destructive"
+                              />
                             ) : (
                               <div className="h-5 w-5 shrink-0 rounded-full bg-primary/10" />
                             )}
@@ -1024,7 +1045,7 @@ export default function ImportExportPage() {
                   onClick={resetImport}
                   className="rounded-xl p-2 text-(--color-text-muted) transition-colors hover:bg-(--color-card)"
                 >
-                  <X className="h-5 w-5" />
+                  <HugeiconsIcon icon={Cancel01Icon} className="h-5 w-5" />
                 </button>
               </div>
 
@@ -1044,7 +1065,10 @@ export default function ImportExportPage() {
                       {selectedImportFormat === "json" ? (
                         <FileJson className="h-5 w-5 text-(--color-text-muted)" />
                       ) : (
-                        <FileText className="h-5 w-5 text-(--color-text-muted)" />
+                        <HugeiconsIcon
+                          icon={FileAttachmentIcon}
+                          className="h-5 w-5 text-(--color-text-muted)"
+                        />
                       )}
                     </div>
                   </div>
@@ -1076,7 +1100,10 @@ export default function ImportExportPage() {
                           {column.sample.length > 2 && "..."}
                         </p>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-(--color-text-muted) shrink-0" />
+                      <HugeiconsIcon
+                        icon={ArrowRight01Icon}
+                        className="h-5 w-5 text-(--color-text-muted) shrink-0"
+                      />
                       <div className="w-48 shrink-0">
                         <select
                           value={column.mappedTo}
@@ -1092,7 +1119,10 @@ export default function ImportExportPage() {
                       </div>
                       <div className="w-6 shrink-0">
                         {column.mappedTo && (
-                          <Check className="h-5 w-5 text-primary" />
+                          <HugeiconsIcon
+                            icon={Tick01Icon}
+                            className="h-5 w-5 text-primary"
+                          />
                         )}
                       </div>
                     </div>

@@ -1,17 +1,18 @@
 "use client";
 
-import { motion, useAnimation } from "framer-motion";
 import {
-  ArrowRight,
-  CheckCircle,
-  Clock,
-  Key,
-  Lock,
-  Mail,
-  Phone,
-  Shield,
-  User,
-} from "lucide-react";
+  ArrowRight01Icon,
+  Call02Icon,
+  CheckmarkCircle01Icon,
+  Clock01Icon,
+  Key01Icon,
+  LockIcon,
+  Mail01Icon,
+  Shield01Icon,
+  UserIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { motion, useAnimation } from "framer-motion";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
@@ -46,17 +47,17 @@ export default function UnauthorizedPage() {
 
   const authSteps = [
     {
-      icon: User,
+      icon: UserIcon,
       title: "Identity Verification",
       description: "Confirm your identity with our security team",
     },
     {
-      icon: Shield,
+      icon: Shield01Icon,
       title: "Permission Review",
       description: "We'll review your access requirements",
     },
     {
-      icon: CheckCircle,
+      icon: CheckmarkCircle01Icon,
       title: "Access Granted",
       description: "Get full access to authorized features",
     },
@@ -64,7 +65,7 @@ export default function UnauthorizedPage() {
 
   const contactMethods = [
     {
-      icon: Mail,
+      icon: Mail01Icon,
       title: "Email Support",
       description: "Get help via email",
       action: "support@r3tain.com",
@@ -72,7 +73,7 @@ export default function UnauthorizedPage() {
       bg: "bg-blue-500/10 border-blue-500/20",
     },
     {
-      icon: Phone,
+      icon: Call02Icon,
       title: "Phone Support",
       description: "Speak with our team",
       action: "+1 (555) 123-4567",
@@ -80,7 +81,7 @@ export default function UnauthorizedPage() {
       bg: "bg-green-500/10 border-green-500/20",
     },
     {
-      icon: Clock,
+      icon: Clock01Icon,
       title: "Live Chat",
       description: "Available 24/7",
       action: "Start Chat",
@@ -151,11 +152,23 @@ export default function UnauthorizedPage() {
         <FloatingSymbol>
           {Array.from({ length: 12 }).map((_, i) =>
             i % 3 === 0 ? (
-              <Lock key={uuidv4()} className="h-4 w-4 text-orange-500/30" />
+              <HugeiconsIcon
+                icon={LockIcon}
+                key={uuidv4()}
+                className="h-4 w-4 text-orange-500/30"
+              />
             ) : i % 3 === 1 ? (
-              <Shield key={uuidv4()} className="h-4 w-4 text-orange-500/30" />
+              <HugeiconsIcon
+                icon={Shield01Icon}
+                key={uuidv4()}
+                className="h-4 w-4 text-orange-500/30"
+              />
             ) : (
-              <Key key={uuidv4()} className="h-4 w-4 text-orange-500/30" />
+              <HugeiconsIcon
+                icon={Key01Icon}
+                key={uuidv4()}
+                className="h-4 w-4 text-orange-500/30"
+              />
             )
           )}
         </FloatingSymbol>
@@ -175,7 +188,10 @@ export default function UnauthorizedPage() {
               className="relative mx-auto mb-6 h-32 w-32"
             >
               <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-orange-500/30 bg-linear-to-r from-orange-500/20 to-orange-500/10">
-                <Shield className="h-16 w-16 text-orange-500" />
+                <HugeiconsIcon
+                  icon={Shield01Icon}
+                  className="h-16 w-16 text-orange-500"
+                />
 
                 {/* Rotating lock overlay */}
                 <motion.div
@@ -189,7 +205,10 @@ export default function UnauthorizedPage() {
                     ease: "linear",
                   }}
                 >
-                  <Lock className="h-6 w-6 text-orange-600/60" />
+                  <HugeiconsIcon
+                    icon={LockIcon}
+                    className="h-6 w-6 text-orange-600/60"
+                  />
                 </motion.div>
 
                 {/* Security scan lines */}
@@ -292,7 +311,7 @@ export default function UnauthorizedPage() {
               transition={{ duration: 0.6, delay: 0.6 }}
               className="mb-8 inline-flex items-center gap-3 rounded-xl border border-orange-500/20 bg-orange-500/10 px-6 py-3 text-orange-700 dark:text-orange-400"
             >
-              <Shield className="h-5 w-5" />
+              <HugeiconsIcon icon={Shield01Icon} className="h-5 w-5" />
               <span className="font-medium">Secure Access Portal</span>
             </motion.div>
           </motion.div>
@@ -325,7 +344,10 @@ export default function UnauthorizedPage() {
                     {index + 1}
                   </div>
 
-                  <step.icon className="mx-auto mb-4 h-8 w-8 text-orange-500" />
+                  <HugeiconsIcon
+                    icon={step.icon}
+                    className="mx-auto mb-4 h-8 w-8 text-orange-500"
+                  />
                   <h4 className="mb-2 font-semibold">{step.title}</h4>
                   <p className="text-muted-foreground text-sm">
                     {step.description}
@@ -351,16 +373,25 @@ export default function UnauthorizedPage() {
             className="mb-12 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
             <Button size="lg" className="group px-8 py-6 text-lg font-semibold">
-              <Key className="mr-2 h-5 w-5 transition-transform group-hover:rotate-12" />
+              <HugeiconsIcon
+                icon={Key01Icon}
+                className="mr-2 h-5 w-5 transition-transform group-hover:rotate-12"
+              />
               Sign In
-              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <HugeiconsIcon
+                icon={ArrowRight01Icon}
+                className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1"
+              />
             </Button>
             <Button
               variant="outline"
               size="lg"
               className="group px-8 py-6 text-lg font-semibold"
             >
-              <User className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+              <HugeiconsIcon
+                icon={UserIcon}
+                className="mr-2 h-5 w-5 transition-transform group-hover:scale-110"
+              />
               Create Account
             </Button>
           </motion.div>
@@ -385,7 +416,8 @@ export default function UnauthorizedPage() {
                   whileHover={{ scale: 1.05, y: -3 }}
                   className={`rounded-xl border p-4 ${method.bg} group cursor-pointer transition-all duration-300`}
                 >
-                  <method.icon
+                  <HugeiconsIcon
+                    icon={method.icon}
                     className={`h-6 w-6 ${method.color} mx-auto mb-3 transition-transform group-hover:scale-110`}
                   />
                   <h4 className="mb-1 font-medium">{method.title}</h4>
@@ -410,23 +442,38 @@ export default function UnauthorizedPage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {/* Security Features */}
               <div className="bg-card border-border rounded-xl border p-6">
-                <Shield className="text-primary mb-4 h-8 w-8" />
+                <HugeiconsIcon
+                  icon={Shield01Icon}
+                  className="text-primary mb-4 h-8 w-8"
+                />
                 <h4 className="mb-3 font-semibold">Enterprise Security</h4>
                 <ul className="text-muted-foreground space-y-2 text-sm">
                   <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <HugeiconsIcon
+                      icon={CheckmarkCircle01Icon}
+                      className="h-4 w-4 text-green-500"
+                    />
                     Multi-factor authentication
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <HugeiconsIcon
+                      icon={CheckmarkCircle01Icon}
+                      className="h-4 w-4 text-green-500"
+                    />
                     End-to-end encryption
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <HugeiconsIcon
+                      icon={CheckmarkCircle01Icon}
+                      className="h-4 w-4 text-green-500"
+                    />
                     SOC 2 Type II compliant
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <HugeiconsIcon
+                      icon={CheckmarkCircle01Icon}
+                      className="h-4 w-4 text-green-500"
+                    />
                     Regular security audits
                   </li>
                 </ul>
@@ -434,7 +481,10 @@ export default function UnauthorizedPage() {
 
               {/* Access Information */}
               <div className="bg-card border-border rounded-xl border p-6">
-                <Key className="mb-4 h-8 w-8 text-orange-500" />
+                <HugeiconsIcon
+                  icon={Key01Icon}
+                  className="mb-4 h-8 w-8 text-orange-500"
+                />
                 <h4 className="mb-3 font-semibold">Access Levels</h4>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between">

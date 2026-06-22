@@ -1,4 +1,5 @@
-import { Loader2, Lock } from "lucide-react";
+import { Loading02Icon, LockIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -103,9 +104,12 @@ const ChangePassword = ({ open, onOpenChange }: ChangePasswordProps) => {
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <HugeiconsIcon
+                icon={Loading02Icon}
+                className="mr-2 h-4 w-4 animate-spin"
+              />
             ) : (
-              <Lock className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={LockIcon} className="mr-2 h-4 w-4" />
             )}
             Update password
           </Button>

@@ -1,4 +1,5 @@
-import { Info, Star } from "lucide-react";
+import { InformationCircleIcon, StarIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Badge } from "@/ui/badge";
 import {
@@ -26,14 +27,17 @@ export function FeatureRow({ feature, plans, index }: FeatureRowProps) {
         <span className="text-sm font-medium">{feature.name}</span>
         {feature.beta && (
           <Badge variant="outline" className="px-1 py-0 text-xs">
-            <Star className="mr-1 h-3 w-3" />
+            <HugeiconsIcon icon={StarIcon} className="mr-1 h-3 w-3" />
             Beta
           </Badge>
         )}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="text-muted-foreground hover:text-foreground h-3 w-3 cursor-help" />
+              <HugeiconsIcon
+                icon={InformationCircleIcon}
+                className="text-muted-foreground hover:text-foreground h-3 w-3 cursor-help"
+              />
             </TooltipTrigger>
             <TooltipContent side="right" className="max-w-xs">
               <p className="text-sm">{feature.tooltip}</p>

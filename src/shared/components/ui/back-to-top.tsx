@@ -1,6 +1,6 @@
 "use client";
-
-import { ArrowUp } from "lucide-react";
+import { ArrowUp01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/ui/button";
@@ -36,7 +36,7 @@ export const BackToTop = () => {
           className="animate-fade-in fixed right-8 bottom-8 z-50 rounded-full shadow-lg transition-transform hover:scale-110"
           onClick={scrollToTop}
         >
-          <ArrowUp className="h-5 w-5" />
+          <HugeiconsIcon icon={ArrowUp01Icon} className="h-5 w-5" />
         </Button>
       )}
     </>

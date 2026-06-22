@@ -1,4 +1,5 @@
-import { RefreshCw } from "lucide-react";
+import { Refresh01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { cn } from "@/lib/utils";
 
@@ -18,7 +19,8 @@ export const ErrorDisplay = ({
   isFetching: boolean;
 }) => (
   <div className="flex items-center gap-2">
-    <RefreshCw
+    <HugeiconsIcon
+      icon={Refresh01Icon}
       className={cn("h-4 w-4 cursor-pointer", isFetching && "animate-spin")}
       onClick={onRetry}
     />

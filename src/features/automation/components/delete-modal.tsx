@@ -1,5 +1,6 @@
+import { Alert01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Loader2 } from "lucide-react";
 
 import { type Automation } from "@/features/automation/types";
 
@@ -28,7 +29,7 @@ export const DeleteModal = ({
         className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl"
       >
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-          <AlertTriangle className="h-6 w-6" />
+          <HugeiconsIcon icon={Alert01Icon} className="h-6 w-6" />
         </div>
         <h3 className="text-lg font-semibold text-foreground">
           Delete Automation?
@@ -51,7 +52,10 @@ export const DeleteModal = ({
           >
             {isDeleting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <HugeiconsIcon
+                  icon={Loading02Icon}
+                  className="h-4 w-4 animate-spin"
+                />
                 Deleting...
               </>
             ) : (

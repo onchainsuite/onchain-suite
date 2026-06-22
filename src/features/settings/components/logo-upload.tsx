@@ -1,6 +1,8 @@
+import { Loading02Icon, Upload01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { CheckCircle2, Loader2, Upload } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import React, { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
@@ -268,7 +270,10 @@ const LogoUpload = ({
                 </div>
               ) : (
                 <>
-                  <Upload className="h-10 w-10 text-(--brand-oxford-blue)/50 dark:text-(--brand-alice-blue)/50" />
+                  <HugeiconsIcon
+                    icon={Upload01Icon}
+                    className="h-10 w-10 text-(--brand-oxford-blue)/50 dark:text-(--brand-alice-blue)/50"
+                  />
                   <p className="mt-4 text-sm font-medium text-(--brand-oxford-blue) dark:text-(--brand-alice-blue)">
                     Drop your file here, or browse
                   </p>
@@ -319,7 +324,10 @@ const LogoUpload = ({
             className="bg-(--brand-blue) text-white hover:bg-(--brand-blue)/30"
           >
             {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <HugeiconsIcon
+                icon={Loading02Icon}
+                className="mr-2 h-4 w-4 animate-spin"
+              />
             ) : (
               "Upload logo"
             )}

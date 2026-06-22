@@ -1,5 +1,6 @@
+import { Loading02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -102,7 +103,12 @@ const ColorPicker = ({
             disabled={saving}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {saving ? (
+              <HugeiconsIcon
+                icon={Loading02Icon}
+                className="mr-2 h-4 w-4 animate-spin"
+              />
+            ) : null}
             Save color
           </Button>
         </DialogFooter>

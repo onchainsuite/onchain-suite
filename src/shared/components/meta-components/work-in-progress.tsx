@@ -1,20 +1,20 @@
 "use client";
 
-import { motion, useAnimation } from "framer-motion";
 import {
-  ArrowLeft,
-  Bell,
-  Code,
-  Cog,
-  Hammer,
-  Lightbulb,
-  Mail,
-  Rocket,
-  Settings,
-  Sparkles,
-  Wrench,
-  Zap,
-} from "lucide-react";
+  ArrowLeft01Icon,
+  BulbIcon,
+  CodeIcon,
+  HammerIcon,
+  Mail01Icon,
+  Notification01Icon,
+  RocketIcon,
+  Settings01Icon,
+  SparklesIcon,
+  Wrench01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { motion, useAnimation } from "framer-motion";
+import { Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -48,14 +48,14 @@ export default function WorkInProgressPage({
   useEffect(() => {
     // Generate floating icons
     const icons = [
-      Code,
-      Cog,
-      Hammer,
-      Lightbulb,
-      Rocket,
-      Settings,
-      Sparkles,
-      Wrench,
+      CodeIcon,
+      Settings01Icon,
+      HammerIcon,
+      BulbIcon,
+      RocketIcon,
+      Settings01Icon,
+      SparklesIcon,
+      Wrench01Icon,
       Zap,
     ];
     const newFloatingIcons = [...Array(12)].map((_, i) => ({
@@ -227,7 +227,10 @@ export default function WorkInProgressPage({
                 ease: "linear",
               }}
             >
-              <Cog className="text-primary/60 h-16 w-16" />
+              <HugeiconsIcon
+                icon={Settings01Icon}
+                className="text-primary/60 h-16 w-16"
+              />
             </motion.div>
 
             <motion.div
@@ -239,7 +242,10 @@ export default function WorkInProgressPage({
                 ease: "linear",
               }}
             >
-              <Settings className="text-primary/40 h-12 w-12" />
+              <HugeiconsIcon
+                icon={Settings01Icon}
+                className="text-primary/40 h-12 w-12"
+              />
             </motion.div>
 
             {/* Central Rocket */}
@@ -256,7 +262,10 @@ export default function WorkInProgressPage({
               }}
             >
               <div className="relative">
-                <Rocket className="text-primary h-20 w-20" />
+                <HugeiconsIcon
+                  icon={RocketIcon}
+                  className="text-primary h-20 w-20"
+                />
                 {/* Rocket Trail */}
                 <motion.div
                   className="absolute -bottom-2 left-1/2 -translate-x-1/2 transform"
@@ -269,7 +278,10 @@ export default function WorkInProgressPage({
                     repeat: Number.POSITIVE_INFINITY,
                   }}
                 >
-                  <Sparkles className="h-8 w-8 text-yellow-500/60" />
+                  <HugeiconsIcon
+                    icon={SparklesIcon}
+                    className="h-8 w-8 text-yellow-500/60"
+                  />
                 </motion.div>
               </div>
             </motion.div>
@@ -286,7 +298,10 @@ export default function WorkInProgressPage({
                 ease: "easeInOut",
               }}
             >
-              <Hammer className="text-primary/50 h-10 w-10" />
+              <HugeiconsIcon
+                icon={HammerIcon}
+                className="text-primary/50 h-10 w-10"
+              />
             </motion.div>
 
             <motion.div
@@ -301,7 +316,10 @@ export default function WorkInProgressPage({
                 delay: 1,
               }}
             >
-              <Wrench className="text-primary/50 h-8 w-8" />
+              <HugeiconsIcon
+                icon={Wrench01Icon}
+                className="text-primary/50 h-8 w-8"
+              />
             </motion.div>
 
             {/* Progress Particles */}
@@ -453,7 +471,10 @@ export default function WorkInProgressPage({
                       required
                     />
                     <Button type="submit" className="sm:w-auto">
-                      <Bell className="mr-2 h-4 w-4" />
+                      <HugeiconsIcon
+                        icon={Notification01Icon}
+                        className="mr-2 h-4 w-4"
+                      />
                       Notify Me
                     </Button>
                   </div>
@@ -469,7 +490,10 @@ export default function WorkInProgressPage({
                   transition={{ duration: 0.5 }}
                 >
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-                    <Mail className="h-6 w-6 text-green-500" />
+                    <HugeiconsIcon
+                      icon={Mail01Icon}
+                      className="h-6 w-6 text-green-500"
+                    />
                   </div>
                   <p className="font-medium text-green-600">
                     You&apos;re all set!
@@ -491,14 +515,17 @@ export default function WorkInProgressPage({
             >
               <Button asChild variant="outline" size="lg">
                 <Link href="/">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <HugeiconsIcon
+                    icon={ArrowLeft01Icon}
+                    className="mr-2 h-4 w-4"
+                  />
                   Back to Home
                 </Link>
               </Button>
 
               <Button asChild size="lg">
                 <Link href="/features">
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <HugeiconsIcon icon={SparklesIcon} className="mr-2 h-4 w-4" />
                   Explore Features
                 </Link>
               </Button>

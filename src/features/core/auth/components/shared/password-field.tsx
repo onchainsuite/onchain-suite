@@ -1,6 +1,6 @@
 "use client";
-
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { LockIcon, ViewIcon, ViewOffIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
 
@@ -39,7 +39,10 @@ export function PasswordField<T extends FieldValues>({
           <FormLabel>{label}</FormLabel>
           <FormControl>
             <div className="relative">
-              <Lock className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+              <HugeiconsIcon
+                icon={LockIcon}
+                className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform"
+              />
               <Input
                 {...field}
                 type={showPassword ? "text" : "password"}
@@ -52,9 +55,9 @@ export function PasswordField<T extends FieldValues>({
                 className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 transform transition-colors"
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
+                  <HugeiconsIcon icon={ViewOffIcon} className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-4 w-4" />
+                  <HugeiconsIcon icon={ViewIcon} className="h-4 w-4" />
                 )}
               </button>
             </div>

@@ -1,7 +1,15 @@
 "use client";
 
+import {
+  AlertCircleIcon,
+  Home01Icon,
+  Key01Icon,
+  LockIcon,
+  Mail01Icon,
+  Shield01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion, useAnimation } from "framer-motion";
-import { AlertCircle, Home, Key, Lock, Mail, Shield } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -75,7 +83,10 @@ export default function ForbiddenPage() {
 
         {/* Floating lock symbols */}
         <FloatingSymbol elementNo={8}>
-          <Lock className="h-5 w-5 text-yellow-500/30" />
+          <HugeiconsIcon
+            icon={LockIcon}
+            className="h-5 w-5 text-yellow-500/30"
+          />
         </FloatingSymbol>
       </div>
 
@@ -93,7 +104,10 @@ export default function ForbiddenPage() {
               className="relative mx-auto mb-6 h-32 w-32"
             >
               <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-yellow-500/30 bg-linear-to-r from-yellow-500/20 to-yellow-500/10">
-                <Shield className="h-16 w-16 text-yellow-500" />
+                <HugeiconsIcon
+                  icon={Shield01Icon}
+                  className="h-16 w-16 text-yellow-500"
+                />
 
                 {/* Lock overlay */}
                 <motion.div
@@ -107,7 +121,10 @@ export default function ForbiddenPage() {
                     ease: "easeInOut",
                   }}
                 >
-                  <Lock className="h-8 w-8 text-yellow-600" />
+                  <HugeiconsIcon
+                    icon={LockIcon}
+                    className="h-8 w-8 text-yellow-600"
+                  />
                 </motion.div>
               </div>
 
@@ -163,7 +180,7 @@ export default function ForbiddenPage() {
               transition={{ duration: 0.6, delay: 0.6 }}
               className="inline-flex items-center gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/10 px-6 py-3 text-yellow-700 dark:text-yellow-400"
             >
-              <AlertCircle className="h-5 w-5" />
+              <HugeiconsIcon icon={AlertCircleIcon} className="h-5 w-5" />
               <span className="font-medium">Authentication Required</span>
             </motion.div>
           </motion.div>
@@ -177,21 +194,21 @@ export default function ForbiddenPage() {
           >
             {[
               {
-                icon: Shield,
+                icon: Shield01Icon,
                 title: "Secure Access",
                 description: "Protected by enterprise-grade security",
                 color: "text-blue-500",
                 bg: "bg-blue-500/10 border-blue-500/20",
               },
               {
-                icon: Key,
+                icon: Key01Icon,
                 title: "Authentication",
                 description: "Valid credentials required",
                 color: "text-green-500",
                 bg: "bg-green-500/10 border-green-500/20",
               },
               {
-                icon: Lock,
+                icon: LockIcon,
                 title: "Encryption",
                 description: "Data protected with AES-256",
                 color: "text-purple-500",
@@ -206,7 +223,8 @@ export default function ForbiddenPage() {
                 whileHover={{ scale: 1.05, y: -5 }}
                 className={`rounded-xl border p-6 ${feature.bg} transition-all duration-300`}
               >
-                <feature.icon
+                <HugeiconsIcon
+                  icon={feature.icon}
                   className={`h-8 w-8 ${feature.color} mx-auto mb-3`}
                 />
                 <h3 className="mb-2 font-semibold">{feature.title}</h3>
@@ -230,7 +248,10 @@ export default function ForbiddenPage() {
               className="group px-8 py-6 text-lg font-semibold"
             >
               <Link href={AUTH_ROUTES.LOGIN}>
-                <Key className="mr-2 h-5 w-5 transition-transform group-hover:rotate-12" />
+                <HugeiconsIcon
+                  icon={Key01Icon}
+                  className="mr-2 h-5 w-5 transition-transform group-hover:rotate-12"
+                />
                 Sign In
               </Link>
             </Button>
@@ -241,7 +262,10 @@ export default function ForbiddenPage() {
               className="group px-8 py-6 text-lg font-semibold"
             >
               <Link href="/">
-                <Home className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                <HugeiconsIcon
+                  icon={Home01Icon}
+                  className="mr-2 h-5 w-5 transition-transform group-hover:scale-110"
+                />
                 Back to Home
               </Link>
             </Button>
@@ -250,7 +274,10 @@ export default function ForbiddenPage() {
               size="lg"
               className="group px-8 py-6 text-lg font-semibold"
             >
-              <Mail className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+              <HugeiconsIcon
+                icon={Mail01Icon}
+                className="mr-2 h-5 w-5 transition-transform group-hover:scale-110"
+              />
               Request Access
             </Button>
           </motion.div>

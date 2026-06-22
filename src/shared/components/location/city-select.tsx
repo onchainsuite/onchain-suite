@@ -1,12 +1,12 @@
 "use client";
-
 import {
-  Building2,
-  Check,
-  ChevronsUpDown,
-  Plus,
-  RefreshCw,
-} from "lucide-react";
+  Add01Icon,
+  ArrowUpDownIcon,
+  Building02Icon,
+  Refresh01Icon,
+  Tick01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { City } from "react-country-state-city/dist/esm/types";
 
@@ -133,7 +133,7 @@ export function CitySelect({
 
     return (
       <div className="flex items-center gap-2">
-        <Building2 className="h-4 w-4" />
+        <HugeiconsIcon icon={Building02Icon} className="h-4 w-4" />
         <span className="truncate">{value}</span>
         {isCustomCity && (
           <span className="text-muted-foreground text-xs">(Custom)</span>
@@ -151,7 +151,7 @@ export function CitySelect({
     }
     return (
       <div className="flex items-center gap-2">
-        <Building2 className="h-4 w-4" />
+        <HugeiconsIcon icon={Building02Icon} className="h-4 w-4" />
         <span>{getPlaceholderText}</span>
       </div>
     );
@@ -173,7 +173,10 @@ export function CitySelect({
           )}
         >
           {buttonContent}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <HugeiconsIcon
+            icon={ArrowUpDownIcon}
+            className="ml-2 h-4 w-4 shrink-0 opacity-50"
+          />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -206,7 +209,10 @@ export function CitySelect({
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="mr-2 h-3 w-3" />
+                      <HugeiconsIcon
+                        icon={Refresh01Icon}
+                        className="mr-2 h-3 w-3"
+                      />
                       Retry
                     </>
                   )}
@@ -228,7 +234,7 @@ export function CitySelect({
                       onSelect={handleCustomInput}
                       className="flex items-center gap-2"
                     >
-                      <Plus className="h-4 w-4" />
+                      <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
                       <span className="truncate">
                         Add &quot;{searchValue}&quot;
                       </span>
@@ -250,9 +256,13 @@ export function CitySelect({
                         onSelect={() => handleSelect(city)}
                         className="flex items-center gap-2"
                       >
-                        <Building2 className="h-4 w-4" />
+                        <HugeiconsIcon
+                          icon={Building02Icon}
+                          className="h-4 w-4"
+                        />
                         <span className="truncate">{city.name}</span>
-                        <Check
+                        <HugeiconsIcon
+                          icon={Tick01Icon}
                           className={cn(
                             "ml-auto h-4 w-4 shrink-0",
                             value === city.name ? "opacity-100" : "opacity-0"

@@ -1,7 +1,14 @@
 "use client";
 
+import {
+  Add01Icon,
+  BrainIcon,
+  Delete02Icon,
+  Search01Icon,
+  SentIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Brain, Plus, Search, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -124,7 +131,10 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
       <div className="flex-1 space-y-4">
         <div className="flex items-center justify-between">
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <HugeiconsIcon
+              icon={Search01Icon}
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               placeholder="Search segments..."
@@ -137,7 +147,7 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
             href="/intelligence/segments/create"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg"
           >
-            <Plus className="h-4 w-4" />
+            <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
             New segment
           </Link>
         </div>
@@ -157,7 +167,11 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
           {(segmentsQuery.data?.length ?? 0) === 0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-                <Brain className="h-5 w-5" aria-hidden="true" />
+                <HugeiconsIcon
+                  icon={BrainIcon}
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                />
               </div>
               <h3 className="mt-4 text-lg font-semibold text-foreground">
                 No segments yet
@@ -172,7 +186,7 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
                   href="/intelligence/segments/create"
                   className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  <Plus className="h-4 w-4" />
+                  <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
                   New segment
                 </Link>
               )}
@@ -210,7 +224,7 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <Brain className="h-4 w-4" />
+                          <HugeiconsIcon icon={BrainIcon} className="h-4 w-4" />
                         </div>
                         <div>
                           <Link
@@ -263,7 +277,10 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
                             disabled={deleteMutation.isPending}
                             className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <HugeiconsIcon
+                              icon={Delete02Icon}
+                              className="h-4 w-4"
+                            />
                           </button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -318,7 +335,7 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
                 onClick={() => openEmailComposer(null)}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg"
               >
-                <Send className="h-4 w-4" />
+                <HugeiconsIcon icon={SentIcon} className="h-4 w-4" />
                 Send Campaign
               </button>
             </div>

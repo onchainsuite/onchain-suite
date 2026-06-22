@@ -1,7 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
+import { Alert01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useForm } from "react-hook-form";
 
 import { CheckboxFormField, InputFormField } from "@/components/form-fields";
@@ -44,7 +45,10 @@ export function PersonalInfoStep({
 
       {hasErrors && (
         <Alert className="mb-6 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <HugeiconsIcon
+            icon={Alert01Icon}
+            className="h-4 w-4 text-red-600 dark:text-red-400"
+          />
           <AlertDescription className="text-red-800 dark:text-red-200">
             There{" "}
             {Object.keys(form.formState.errors).length === 1 ? "is" : "are"}{" "}

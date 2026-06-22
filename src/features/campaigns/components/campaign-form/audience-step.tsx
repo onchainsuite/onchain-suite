@@ -1,7 +1,14 @@
 "use client";
 
-import { Info, TrendingUp, Users } from "lucide-react";
+import {
+  AnalyticsUpIcon,
+  InformationCircleIcon,
+  Loading02Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import {
@@ -16,28 +23,131 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 import {
-  CAMPAIGN_LISTS,
-  CAMPAIGN_SEGMENTS,
-} from "../../../campaigns/constants";
+  type CampaignAudienceEstimate,
+  campaignsService,
+} from "../../campaigns.service";
+import {
+  getEstimatedRecipientsFromSelection,
+  partitionAudienceSelection,
+} from "../../lib/audience";
+import type { List, Segment } from "../../types";
 import type { CampaignFormData } from "../../validations";
 import { AudienceSelector } from "./audience-selector";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface AudienceStepProps {
   form: UseFormReturn<CampaignFormData>;
+  campaignId?: string | null;
+  canSync?: boolean;
+  lists?: List[];
+  segments?: Segment[];
+  segmentsLoading?: boolean;
+  segmentsError?: string | null;
 }
 
-export function AudienceStep({ form }: AudienceStepProps) {
+const getEstimatedRecipientsValue = (estimate: CampaignAudienceEstimate) => {
+  if (typeof estimate.estimatedRecipients === "number") {
+    return estimate.estimatedRecipients;
+  }
+  if (typeof estimate.recipients === "number") {
+    return estimate.recipients;
+  }
+  return null;
+};
+
+export function AudienceStep({
+  form,
+  campaignId,
+  canSync = false,
+  lists = [],
+  segments = [],
+  segmentsLoading = false,
+  segmentsError,
+}: AudienceStepProps) {
   const UTM_HELP_URL =
     "https://support.google.com/analytics/answer/1033863?hl=en";
   const accountSettingsHref = `${PRIVATE_ROUTES.SETTINGS}?tab=account`;
   const selectedAudiences = form.watch("selectedAudiences");
+  const smartSending = form.watch("smartSending");
+  const trackingParameters = form.watch("trackingParameters");
+  const [estimatedRecipients, setEstimatedRecipients] = useState<number | null>(
+    null
+  );
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncSequenceRef = useRef(0);
 
-  const estimatedRecipients = selectedAudiences.reduce((total, id) => {
-    const list = CAMPAIGN_LISTS.find((l) => l.id === id);
-    const segment = CAMPAIGN_SEGMENTS.find((s) => s.id === id);
-    return total + (list?.count ?? segment?.count ?? 0);
-  }, 0);
+  const selectedSegmentIds = useMemo(
+    () => new Set(segments.map((segment) => segment.id)),
+    [segments]
+  );
+  const localEstimatedRecipients = useMemo(
+    () =>
+      getEstimatedRecipientsFromSelection(selectedAudiences, lists, segments),
+    [lists, segments, selectedAudiences]
+  );
+  const unresolvedSelectionCount = useMemo(
+    () =>
+      selectedAudiences.filter(
+        (selectedId) =>
+          !lists.some((list) => list.id === selectedId) &&
+          !selectedSegmentIds.has(selectedId)
+      ).length,
+    [lists, selectedAudiences, selectedSegmentIds]
+  );
+
+  useEffect(() => {
+    if (!campaignId || !canSync) return;
+
+    const currentSequence = syncSequenceRef.current + 1;
+    syncSequenceRef.current = currentSequence;
+    setIsSyncing(true);
+    setSyncError(null);
+
+    const timeout = window.setTimeout(() => {
+      const { listIds, segmentIds } = partitionAudienceSelection(
+        selectedAudiences,
+        segments
+      );
+
+      Promise.all([
+        campaignsService.setAudience(campaignId, { listIds, segmentIds }),
+        campaignsService.updateTracking(campaignId, {
+          smartSending: Boolean(smartSending),
+          trackingParameters: Boolean(trackingParameters),
+        }),
+      ])
+        .then(() => campaignsService.estimateAudience(campaignId))
+        .then((estimate) => {
+          if (syncSequenceRef.current !== currentSequence) return;
+          setEstimatedRecipients(getEstimatedRecipientsValue(estimate));
+        })
+        .catch((error) => {
+          if (syncSequenceRef.current !== currentSequence) return;
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Failed to sync audience settings";
+          setSyncError(message);
+        })
+        .finally(() => {
+          if (syncSequenceRef.current !== currentSequence) return;
+          setIsSyncing(false);
+        });
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    campaignId,
+    canSync,
+    segments,
+    selectedAudiences,
+    smartSending,
+    trackingParameters,
+  ]);
+
+  const displayedEstimatedRecipients =
+    estimatedRecipients ?? localEstimatedRecipients;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 p-6 md:p-8 lg:p-10">
@@ -54,18 +164,28 @@ export function AudienceStep({ form }: AudienceStepProps) {
       <div className="space-y-6 p-6 bg-muted/30 rounded-2xl border border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-foreground" />
+            <HugeiconsIcon
+              icon={UserGroupIcon}
+              className="h-5 w-5 text-foreground"
+            />
             <h3 className="text-xl font-semibold text-foreground">Audience</h3>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-border bg-background">
-              <span className="text-sm font-semibold">
-                {estimatedRecipients}
-              </span>
+              {isSyncing ? (
+                <HugeiconsIcon
+                  icon={Loading02Icon}
+                  className="h-4 w-4 animate-spin"
+                />
+              ) : (
+                <span className="text-sm font-semibold">
+                  {displayedEstimatedRecipients}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1">
               <span className="text-sm font-medium">Estimated recipients</span>
-              <Info className="h-4 w-4" />
+              <HugeiconsIcon icon={InformationCircleIcon} className="h-4 w-4" />
             </div>
           </div>
         </div>
@@ -80,12 +200,16 @@ export function AudienceStep({ form }: AudienceStepProps) {
                 <AudienceSelector
                   value={field.value}
                   onChange={field.onChange}
+                  lists={lists}
+                  segments={segments}
+                  isSegmentsLoading={segmentsLoading}
+                  unresolvedSelectionCount={unresolvedSelectionCount}
                 />
               </FormControl>
               <FormDescription>
-                Links in this campaign will include audience tracking
-                information, called UTM parameters. This allows bounce tracking
-                within third-party analytics tools such as Google Analytics.{" "}
+                Choose audience users created in the Audience section or saved
+                segments created in Intelligence to populate campaign
+                recipients.{" "}
                 <a
                   href={UTM_HELP_URL}
                   target="_blank"
@@ -96,6 +220,16 @@ export function AudienceStep({ form }: AudienceStepProps) {
                 </a>
                 .
               </FormDescription>
+              {segmentsError ? (
+                <p className="text-sm text-amber-400">
+                  Failed to load saved segments: {segmentsError}
+                </p>
+              ) : null}
+              {syncError ? (
+                <p className="text-sm text-amber-400">
+                  Failed to sync audience settings: {syncError}
+                </p>
+              ) : null}
               <FormMessage />
             </FormItem>
           )}
@@ -147,7 +281,10 @@ export function AudienceStep({ form }: AudienceStepProps) {
       {/* Tracking Section */}
       <div className="space-y-4 p-6 bg-muted/30 rounded-2xl border border-border">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-foreground" />
+          <HugeiconsIcon
+            icon={AnalyticsUpIcon}
+            className="h-5 w-5 text-foreground"
+          />
           <h3 className="text-xl font-semibold text-foreground">Tracking</h3>
         </div>
 

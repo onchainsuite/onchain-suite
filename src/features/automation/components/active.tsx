@@ -1,15 +1,16 @@
-import { motion } from "framer-motion";
 import {
-  ArrowUpRight,
-  Copy,
-  FileText,
-  MoreHorizontal,
-  Pause,
-  Play,
-  Plus,
-  Trash2,
-  Zap,
-} from "lucide-react";
+  Add01Icon,
+  ArrowUpRight01Icon,
+  Copy01Icon,
+  Delete02Icon,
+  FileAttachmentIcon,
+  MoreHorizontalIcon,
+  PauseIcon,
+  PlayIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { motion } from "framer-motion";
+import { Zap } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -93,7 +94,10 @@ export const ActiveAutomationsList = ({
                   {automation.trigger.type === "onchain" ? (
                     <Zap className="h-3 w-3" />
                   ) : (
-                    <FileText className="h-3 w-3" />
+                    <HugeiconsIcon
+                      icon={FileAttachmentIcon}
+                      className="h-3 w-3"
+                    />
                   )}
                   {automation.trigger.contract ?? automation.trigger.event}
                 </span>
@@ -107,9 +111,9 @@ export const ActiveAutomationsList = ({
                   }`}
                 >
                   {automation.status === "active" ? (
-                    <Play className="h-3 w-3" />
+                    <HugeiconsIcon icon={PlayIcon} className="h-3 w-3" />
                   ) : (
-                    <Pause className="h-3 w-3" />
+                    <HugeiconsIcon icon={PauseIcon} className="h-3 w-3" />
                   )}
                   {automation.status}
                 </span>
@@ -136,7 +140,10 @@ export const ActiveAutomationsList = ({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-                      <MoreHorizontal className="h-4 w-4" />
+                      <HugeiconsIcon
+                        icon={MoreHorizontalIcon}
+                        className="h-4 w-4"
+                      />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -145,7 +152,10 @@ export const ActiveAutomationsList = ({
                         href={`/automations/${automation.id}`}
                         className="flex items-center gap-2"
                       >
-                        <ArrowUpRight className="h-4 w-4" />
+                        <HugeiconsIcon
+                          icon={ArrowUpRight01Icon}
+                          className="h-4 w-4"
+                        />
                         View details
                       </Link>
                     </DropdownMenuItem>
@@ -155,12 +165,12 @@ export const ActiveAutomationsList = ({
                     >
                       {automation.status === "active" ? (
                         <>
-                          <Pause className="h-4 w-4" />
+                          <HugeiconsIcon icon={PauseIcon} className="h-4 w-4" />
                           Pause
                         </>
                       ) : (
                         <>
-                          <Play className="h-4 w-4" />
+                          <HugeiconsIcon icon={PlayIcon} className="h-4 w-4" />
                           Resume
                         </>
                       )}
@@ -169,14 +179,14 @@ export const ActiveAutomationsList = ({
                       onClick={() => onDuplicate(automation)}
                       className="flex items-center gap-2"
                     >
-                      <Copy className="h-4 w-4" />
+                      <HugeiconsIcon icon={Copy01Icon} className="h-4 w-4" />
                       Duplicate
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => onDelete(automation)}
                       className="flex items-center gap-2 text-destructive focus:text-destructive"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -205,7 +215,11 @@ export const ActiveAutomationsList = ({
               href="/automations/new-id"
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <Plus className="h-4 w-4" aria-hidden="true" />
+              <HugeiconsIcon
+                icon={Add01Icon}
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
               Create automation
             </Link>
           )}

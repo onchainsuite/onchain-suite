@@ -1,4 +1,5 @@
-import { Circle } from "lucide-react";
+import { CircleIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Badge } from "@/ui/badge";
 
@@ -70,7 +71,8 @@ export function CalendarDayCell({
         {/* Mobile: Show dots */}
         <div className="flex gap-1 sm:hidden">
           {campaigns.slice(0, 3).map((campaign) => (
-            <Circle
+            <HugeiconsIcon
+              icon={CircleIcon}
               key={campaign.id}
               className={cn(
                 "h-2 w-2 fill-current",
@@ -88,7 +90,8 @@ export function CalendarDayCell({
               className="group relative rounded-lg bg-muted/80 p-1.5 text-xs transition-all duration-300 hover:bg-muted"
             >
               <div className="flex items-center gap-1">
-                <Circle
+                <HugeiconsIcon
+                  icon={CircleIcon}
                   className={cn(
                     "h-2 w-2 fill-current shrink-0",
                     getCampaignStatusColor(campaign.status)

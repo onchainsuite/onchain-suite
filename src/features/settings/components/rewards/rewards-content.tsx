@@ -1,5 +1,6 @@
+import { GiftIcon, Mail01Icon, SparklesIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { Gift, Mail, Sparkles } from "lucide-react";
 import React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,10 @@ const RewardsContent = () => {
         transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
         className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-primary/10 to-primary/20 lg:h-24 lg:w-24"
       >
-        <Gift className="h-10 w-10 text-primary lg:h-12 lg:w-12" />
+        <HugeiconsIcon
+          icon={GiftIcon}
+          className="h-10 w-10 text-primary lg:h-12 lg:w-12"
+        />
         <motion.div
           className="absolute -right-1 -top-1"
           animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
@@ -23,7 +27,7 @@ const RewardsContent = () => {
             repeatDelay: 1,
           }}
         >
-          <Sparkles className="h-5 w-5 text-primary" />
+          <HugeiconsIcon icon={SparklesIcon} className="h-5 w-5 text-primary" />
         </motion.div>
       </motion.div>
 
@@ -52,7 +56,7 @@ const RewardsContent = () => {
         whileTap={{ scale: 0.98 }}
       >
         <Button className="mt-8 h-11 bg-primary px-8 text-primary-foreground transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/10">
-          <Mail className="mr-2 h-4 w-4" />
+          <HugeiconsIcon icon={Mail01Icon} className="mr-2 h-4 w-4" />
           Notify me
         </Button>
       </motion.div>

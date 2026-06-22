@@ -1,7 +1,8 @@
 "use client";
 
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -1029,7 +1030,10 @@ export default function CampaignEditorPage() {
                 onClick={() => router.push(backUrl)}
                 disabled={isConfirmingSave || isSavingTemplate}
               >
-                <ArrowLeft className="mr-1 h-4 w-4" />
+                <HugeiconsIcon
+                  icon={ArrowLeft01Icon}
+                  className="mr-1 h-4 w-4"
+                />
                 Back
               </Button>
 

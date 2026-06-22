@@ -1,12 +1,12 @@
-import { flexRender } from "@tanstack/react-table";
 import {
-  ArrowLeftToLine,
-  ArrowRightToLine,
-  ChevronDown,
-  ChevronUp,
-  Ellipsis,
-  PinOff,
-} from "lucide-react";
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  MoreHorizontalIcon,
+  PinOffIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { flexRender } from "@tanstack/react-table";
+import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
 
 import { Button } from "@/ui/button";
 import {
@@ -86,7 +86,8 @@ const DataTableTitleHeader = <TData, TValue>({
           {/* Sorting Indicators */}
           {{
             asc: (
-              <ChevronUp
+              <HugeiconsIcon
+                icon={ArrowUp01Icon}
                 className="shrink-0 opacity-60"
                 size={16}
                 strokeWidth={2}
@@ -94,7 +95,8 @@ const DataTableTitleHeader = <TData, TValue>({
               />
             ),
             desc: (
-              <ChevronDown
+              <HugeiconsIcon
+                icon={ArrowDown01Icon}
                 className="shrink-0 opacity-60"
                 size={16}
                 strokeWidth={2}
@@ -115,7 +117,8 @@ const DataTableTitleHeader = <TData, TValue>({
               aria-label={`Unpin ${column.columnDef.header as string} column`}
               title={`Unpin ${column.columnDef.header as string} column`}
             >
-              <PinOff
+              <HugeiconsIcon
+                icon={PinOffIcon}
                 className="opacity-60"
                 size={16}
                 strokeWidth={2}
@@ -132,7 +135,8 @@ const DataTableTitleHeader = <TData, TValue>({
                   aria-label={`Pin options for ${column.id} column`}
                   title={`Pin options for ${column.id} column`}
                 >
-                  <Ellipsis
+                  <HugeiconsIcon
+                    icon={MoreHorizontalIcon}
                     className="opacity-60"
                     size={16}
                     strokeWidth={2}

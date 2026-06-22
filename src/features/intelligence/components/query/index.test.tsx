@@ -11,6 +11,12 @@ const mocks = vi.hoisted(() => ({
     getQueryHistory: vi.fn(),
     getQueryStarters: vi.fn(),
     listQueryProtocols: vi.fn(),
+    getGoldrushMcpCatalog: vi.fn(),
+    getGoldrushMcpTools: vi.fn(),
+    getGoldrushMcpResources: vi.fn(),
+    readGoldrushMcpResource: vi.fn(),
+    planGoldrushMcp: vi.fn(),
+    streamGoldrushMcpQuery: vi.fn(),
     getQuerySuggestionsAnalytics: vi.fn(),
     validateQuery: vi.fn(),
     runQuery: vi.fn(),
@@ -57,6 +63,35 @@ vi.mock("@/ui/input", () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
     <input {...props} />
   ),
+}));
+
+vi.mock("@/ui/popover", () => ({
+  Popover: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  PopoverTrigger: ({
+    children,
+  }: {
+    children?: ReactNode;
+    asChild?: boolean;
+  }) => <div>{children}</div>,
+  PopoverContent: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
+
+vi.mock("@/ui/tooltip", () => ({
+  Tooltip: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  TooltipTrigger: ({
+    children,
+  }: {
+    children?: ReactNode;
+    asChild?: boolean;
+  }) => <div>{children}</div>,
+  TooltipContent: ({
+    children,
+  }: {
+    children?: ReactNode;
+    sideOffset?: number;
+  }) => <div>{children}</div>,
 }));
 
 vi.mock("@/ui/dialog", () => ({
@@ -143,6 +178,31 @@ describe("QueryTab", () => {
     mocks.intelligenceService.listQueryProtocols.mockResolvedValue({
       items: [],
     });
+    mocks.intelligenceService.getGoldrushMcpCatalog.mockResolvedValue({
+      tools: [{ name: "multichain_balances" }],
+      resources: [{ uri: "config://supported-chains" }],
+    });
+    mocks.intelligenceService.getGoldrushMcpTools.mockResolvedValue({
+      items: [{ name: "multichain_balances", title: "Multichain balances" }],
+    });
+    mocks.intelligenceService.getGoldrushMcpResources.mockResolvedValue({
+      items: [
+        { uri: "config://supported-chains", title: "Supported Chains" },
+        { uri: "registry://protocols", title: "Protocol Registry" },
+      ],
+    });
+    mocks.intelligenceService.readGoldrushMcpResource.mockResolvedValue({
+      parsedText: {
+        chains: ["eth-mainnet", "solana-mainnet"],
+      },
+    });
+    mocks.intelligenceService.planGoldrushMcp.mockResolvedValue({
+      requestedChains: ["eth-mainnet", "base-mainnet", "solana-mainnet"],
+      execution: { mode: "dynamic_agent" },
+    });
+    mocks.intelligenceService.streamGoldrushMcpQuery.mockResolvedValue(
+      undefined
+    );
     mocks.intelligenceService.getQuerySuggestionsAnalytics.mockResolvedValue({
       totals: {},
       topProtocols: [],
@@ -328,5 +388,340 @@ describe("QueryTab", () => {
         "Find dormant high-value users with email addresses"
       )
     ).not.toBeInTheDocument();
+  });
+
+  it("shows multichain MCP coverage in the default chat workspace", async () => {
+    renderQueryTab({ activeSurface: "chat" });
+
+    expect(await screen.findByLabelText("MCP chat input")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Send$/i })).toBeInTheDocument();
+    expect(screen.queryByText(/Live agent activity/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Live tools/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Live resources/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Supported chains/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Ethereum, Base, Arbitrum +3")).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /Find the most active wallets interacting across Ethereum, Base, and Solana this week/i
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      mocks.intelligenceService.getGoldrushMcpCatalog
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.intelligenceService.getGoldrushMcpTools
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.intelligenceService.getGoldrushMcpResources
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.intelligenceService.readGoldrushMcpResource
+    ).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Solana$/i })[0]);
+
+    expect(screen.queryAllByText("Ethereum, Base, Arbitrum +3")).toHaveLength(
+      0
+    );
+  });
+
+  it("submits the current MCP prompt and falls back to durable MCP query when streaming times out", async () => {
+    mocks.intelligenceService.streamGoldrushMcpQuery.mockImplementationOnce(
+      async (
+        _body: { prompt?: string },
+        options?: {
+          onEvent?: (event: { type?: string; data?: unknown }) => void;
+        }
+      ) => {
+        options?.onEvent?.({
+          type: "started",
+          data: {
+            conversationId: "conv_123",
+            message: "GoldRush MCP agent started",
+          },
+        });
+        throw new Error("GoldRush MCP session startup timed out after 15000ms");
+      }
+    );
+    mocks.intelligenceService.queryGoldrushMcp.mockResolvedValueOnce({
+      conversationId: "conv_123",
+      status: "answered",
+      answer: "Answer for Find the top wallets on this token",
+      rationale:
+        "Used the durable MCP conversation endpoint after stream recovery.",
+    });
+
+    renderQueryTab({ activeSurface: "chat" });
+
+    fireEvent.change(screen.getByLabelText("MCP chat input"), {
+      target: { value: "Find the top wallets on this token" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    await waitFor(() => {
+      expect(
+        mocks.intelligenceService.streamGoldrushMcpQuery
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "Find the top wallets on this token",
+          prompt: "Find the top wallets on this token",
+        }),
+        expect.any(Object)
+      );
+    });
+
+    await waitFor(() => {
+      expect(mocks.intelligenceService.queryGoldrushMcp).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversationId: undefined,
+          message: "Find the top wallets on this token",
+          prompt: "Find the top wallets on this token",
+        })
+      );
+    });
+
+    expect(
+      (
+        await screen.findAllByText(
+          "Answer for Find the top wallets on this token"
+        )
+      ).length
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByText(
+        /GoldRush MCP session startup timed out after 15000ms/i
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a copyable bug report when the MCP query fails", async () => {
+    mocks.intelligenceService.streamGoldrushMcpQuery.mockImplementationOnce(
+      async (
+        _body: { prompt?: string },
+        options?: {
+          onEvent?: (event: { type?: string; data?: unknown }) => void;
+        }
+      ) => {
+        options?.onEvent?.({
+          type: "started",
+          data: {
+            conversationId: "conv_bug_123",
+            message: "GoldRush MCP agent started",
+          },
+        });
+        throw new Error("GoldRush MCP session startup timed out after 15000ms");
+      }
+    );
+    mocks.intelligenceService.queryGoldrushMcp.mockRejectedValueOnce({
+      message: "Upstream GoldRush MCP query failed",
+      response: {
+        status: 502,
+        data: {
+          requestId: "req_bug_123",
+          message: "Upstream GoldRush MCP query failed",
+        },
+      },
+    });
+
+    renderQueryTab({ activeSurface: "chat" });
+
+    fireEvent.change(screen.getByLabelText("MCP chat input"), {
+      target: { value: "Find the top wallets on this token" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    expect(
+      await screen.findByText(
+        /I couldn't complete that MCP request\. Please try again or refine the prompt\./i
+      )
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/Bug report/i)).toBeInTheDocument();
+    expect(screen.getByText("502")).toBeInTheDocument();
+    expect(screen.getByText("req_bug_123")).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Upstream GoldRush MCP query failed/i).length
+    ).toBeGreaterThan(0);
+  });
+
+  it("renders token holder structured results with the deterministic MCP renderer", async () => {
+    mocks.intelligenceService.queryGoldrushMcp.mockResolvedValueOnce({
+      conversationId: "conv_holders",
+      status: "answered",
+      answer: "Here are the biggest holders right now.",
+      structuredResult: {
+        kind: "token_holders",
+        title: "Top token holders",
+        rows: [
+          {
+            holder: "Treasury Alpha",
+            balance: 1250000,
+            share: 0.52,
+            chain: "Base",
+          },
+          {
+            holder: "Whale Beta",
+            balance: 760000,
+            share: 0.21,
+            chain: "Ethereum",
+          },
+        ],
+      },
+    });
+
+    renderQueryTab({ activeSurface: "chat" });
+
+    fireEvent.change(screen.getByLabelText("MCP chat input"), {
+      target: { value: "Show me the biggest holders" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    expect(await screen.findByText("Top token holders")).toBeInTheDocument();
+    expect(screen.getByText("Ranked holders")).toBeInTheDocument();
+    expect(screen.getAllByText("Treasury Alpha").length).toBeGreaterThan(0);
+    expect(screen.getByText("52.0%")).toBeInTheDocument();
+  });
+
+  it("renders wallet balance structured results as balance cards", async () => {
+    mocks.intelligenceService.queryGoldrushMcp.mockResolvedValueOnce({
+      conversationId: "conv_balances",
+      status: "answered",
+      structuredResult: {
+        kind: "wallet_balances",
+        title: "Wallet balances",
+        rows: [
+          {
+            symbol: "ETH",
+            balance: "12.45",
+            value_usd: 31250,
+            chain: "Ethereum",
+          },
+          { symbol: "USDC", balance: "40000", value_usd: 40000, chain: "Base" },
+        ],
+      },
+    });
+
+    renderQueryTab({ activeSurface: "chat" });
+
+    fireEvent.change(screen.getByLabelText("MCP chat input"), {
+      target: { value: "Show wallet balances" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    expect(await screen.findByText("Wallet balances")).toBeInTheDocument();
+    expect(screen.getAllByText("Balance").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("USDC").length).toBeGreaterThan(0);
+    expect(screen.getByText("$40,000")).toBeInTheDocument();
+  });
+
+  it("renders transaction structured results as a transaction list", async () => {
+    mocks.intelligenceService.queryGoldrushMcp.mockResolvedValueOnce({
+      conversationId: "conv_transactions",
+      status: "answered",
+      structuredResult: {
+        kind: "transactions",
+        title: "Recent transactions",
+        rows: [
+          {
+            method: "Swap",
+            hash: "0x12345678",
+            from: "Treasury Alpha",
+            to: "Pool 42",
+            value_usd: 18250,
+            chain: "Base",
+            timestamp: "2026-06-20T12:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    renderQueryTab({ activeSurface: "chat" });
+
+    fireEvent.change(screen.getByLabelText("MCP chat input"), {
+      target: { value: "Show me recent transactions" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    expect(await screen.findByText("Recent transactions")).toBeInTheDocument();
+    expect(screen.getAllByText("Swap").length).toBeGreaterThan(0);
+    expect(screen.getByText("Treasury Alpha")).toBeInTheDocument();
+    expect(screen.getByText("Pool 42")).toBeInTheDocument();
+  });
+
+  it("renders gas price structured results as fee cards", async () => {
+    mocks.intelligenceService.queryGoldrushMcp.mockResolvedValueOnce({
+      conversationId: "conv_gas",
+      status: "answered",
+      structuredResult: {
+        kind: "gas_prices",
+        title: "Network gas prices",
+        rows: [
+          {
+            chain: "Ethereum",
+            slow: "12 gwei",
+            standard: "16 gwei",
+            fast: "21 gwei",
+            base_fee: "14 gwei",
+          },
+        ],
+      },
+    });
+
+    renderQueryTab({ activeSurface: "chat" });
+
+    fireEvent.change(screen.getByLabelText("MCP chat input"), {
+      target: { value: "Show gas prices" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    expect(await screen.findByText("Network gas prices")).toBeInTheDocument();
+    expect(screen.getAllByText("Ethereum").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Fast").length).toBeGreaterThan(0);
+    expect(screen.getByText("21 gwei")).toBeInTheDocument();
+  });
+
+  it("renders clarification questions and keeps the same conversation for follow-up replies", async () => {
+    mocks.intelligenceService.queryGoldrushMcp
+      .mockResolvedValueOnce({
+        conversationId: "conv_clarify",
+        status: "needs_clarification",
+        question: "Which chain should I check?",
+      })
+      .mockResolvedValueOnce({
+        conversationId: "conv_clarify",
+        status: "answered",
+        answer: "I'll use Base for this thread.",
+      });
+
+    renderQueryTab({ activeSurface: "chat" });
+
+    fireEvent.change(screen.getByLabelText("MCP chat input"), {
+      target: { value: "Find the top holders" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    expect(
+      await screen.findByText("Which chain should I check?")
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("MCP chat input"), {
+      target: { value: "Base" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Send$/i }));
+
+    await waitFor(() => {
+      expect(
+        mocks.intelligenceService.queryGoldrushMcp
+      ).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          conversationId: "conv_clarify",
+          message: "Base",
+          prompt: "Base",
+        })
+      );
+    });
+
+    expect(
+      await screen.findByText("I'll use Base for this thread.")
+    ).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
-import { ChevronDown } from "lucide-react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "@/ui/button";
@@ -41,7 +42,7 @@ export function ReusableDropdownMenu({
       <DropdownMenuTrigger asChild>
         <Button variant={triggerVariant}>
           {triggerText}
-          <ChevronDown className="ml-2 h-4 w-4" />
+          <HugeiconsIcon icon={ArrowDown01Icon} className="ml-2 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className={contentWidth}>

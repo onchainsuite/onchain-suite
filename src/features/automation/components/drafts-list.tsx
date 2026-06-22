@@ -1,5 +1,10 @@
+import {
+  ArrowUpRight01Icon,
+  FileAttachmentIcon,
+  MoreHorizontalIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, FileText, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -21,7 +26,11 @@ export const DraftsList = ({ drafts, onDelete }: DraftsListProps) => {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-          <FileText className="h-5 w-5" aria-hidden="true" />
+          <HugeiconsIcon
+            icon={FileAttachmentIcon}
+            className="h-5 w-5"
+            aria-hidden="true"
+          />
         </div>
         <h3 className="mt-4 text-lg font-semibold text-foreground">
           No drafts yet
@@ -44,12 +53,18 @@ export const DraftsList = ({ drafts, onDelete }: DraftsListProps) => {
         >
           <div className="mb-4 flex items-start justify-between">
             <div className="rounded-lg bg-secondary p-2">
-              <FileText className="h-5 w-5 text-muted-foreground" />
+              <HugeiconsIcon
+                icon={FileAttachmentIcon}
+                className="h-5 w-5 text-muted-foreground"
+              />
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground opacity-0 group-hover:opacity-100">
-                  <MoreHorizontal className="h-4 w-4" />
+                  <HugeiconsIcon
+                    icon={MoreHorizontalIcon}
+                    className="h-4 w-4"
+                  />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -73,7 +88,7 @@ export const DraftsList = ({ drafts, onDelete }: DraftsListProps) => {
               className="flex items-center gap-1 font-medium text-primary hover:text-primary/90"
             >
               Continue editing
-              <ArrowUpRight className="h-3 w-3" />
+              <HugeiconsIcon icon={ArrowUpRight01Icon} className="h-3 w-3" />
             </Link>
           </div>
         </motion.div>

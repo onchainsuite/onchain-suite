@@ -1,4 +1,5 @@
-import { Search } from "lucide-react";
+import { Search01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 interface AutomationTabsProps {
   activeTab: string;
@@ -52,7 +53,10 @@ export const AutomationTabs = ({
         ))}
       </div>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <HugeiconsIcon
+          icon={Search01Icon}
+          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
         <input
           type="text"
           placeholder="Search automations..."
