@@ -2,7 +2,6 @@
 
 import {
   Add01Icon,
-  ArrowDown01Icon,
   ArrowUp01Icon,
   Cancel01Icon,
   CodeIcon,
@@ -18,7 +17,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/ui/button";
@@ -36,6 +35,8 @@ import {
   type IntelligenceGoldrushMcpStructuredResult,
   intelligenceService,
 } from "../../intelligence.service";
+import { McpTypingIndicator } from "./mcp-typing-indicator";
+import { SqlBlockchainLoader } from "./sql-blockchain-loader";
 
 const DEFAULT_SQL_QUERY = "";
 
@@ -533,19 +534,6 @@ const buildMatrixFrame = (rows = 10, columns = 30) =>
     }).join("")
   );
 
-const getStreamToneClassName = (tone: StreamActivityEntry["tone"]) => {
-  switch (tone) {
-    case "success":
-      return "border-primary/25 bg-primary/10 text-primary";
-    case "warning":
-      return "border-amber-400/25 bg-amber-400/10 text-amber-200";
-    case "error":
-      return "border-red-400/25 bg-red-400/10 text-red-200";
-    default:
-      return "border-white/10 bg-white/[0.04] text-foreground/88";
-  }
-};
-
 const getFallbackReasoningActivity = (
   recovering: boolean
 ): StreamActivityEntry[] => [
@@ -572,204 +560,6 @@ const getFallbackReasoningActivity = (
     tone: recovering ? "warning" : "success",
   },
 ];
-
-function MatrixReasoningPanel({
-  activity,
-  recovering,
-  prompt,
-  protocol,
-  coverageLabel,
-}: {
-  activity: StreamActivityEntry[];
-  recovering: boolean;
-  prompt: string;
-  protocol: string;
-  coverageLabel: string;
-}) {
-  const [matrixFrame, setMatrixFrame] = useState(() => buildMatrixFrame());
-  const prefersReducedMotion =
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  useEffect(() => {
-    setMatrixFrame(buildMatrixFrame());
-    if (prefersReducedMotion) return;
-
-    const interval = window.setInterval(() => {
-      setMatrixFrame(buildMatrixFrame());
-    }, 170);
-
-    return () => window.clearInterval(interval);
-  }, [activity.length, prefersReducedMotion, prompt, recovering]);
-
-  const timeline =
-    activity.length > 0
-      ? activity.slice(-4).reverse()
-      : getFallbackReasoningActivity(recovering);
-  const [latest] = timeline;
-  const promptPreview =
-    prompt.trim().length > 0
-      ? prompt.trim()
-      : "Preparing the next MCP move from your live prompt.";
-  const keyedMatrixFrame = useMemo(
-    () => createStableLineKeys(matrixFrame, "matrix-line"),
-    [matrixFrame]
-  );
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-[30px] border border-primary/15 bg-[linear-gradient(180deg,rgba(8,13,25,0.98),rgba(4,8,17,0.98))] shadow-[0_32px_110px_-56px_rgba(66,118,255,0.7)]"
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_24%,transparent_76%,rgba(255,255,255,0.02)),radial-gradient(circle_at_top_left,rgba(96,129,255,0.22),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(52,102,255,0.16),transparent_38%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(122,140,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(122,140,255,0.12)_1px,transparent_1px)] [background-size:26px_26px]" />
-
-      <div className="relative grid gap-5 p-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.2fr)]">
-        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(11,18,34,0.94),rgba(7,12,24,0.96))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.2em] text-primary/85">
-                Onchain Suite
-              </div>
-              <div className="mt-1 text-sm font-medium text-foreground">
-                Live MCP reasoning lattice
-              </div>
-            </div>
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-primary">
-              {recovering ? "Recovery" : "Reasoning"}
-            </span>
-          </div>
-
-          <div className="mt-4 overflow-hidden rounded-[24px] border border-primary/15 bg-[#060c18] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-            <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-primary/70">
-              <span>Signal matrix</span>
-              <span>
-                {prefersReducedMotion ? "Static frame" : "Live frame"}
-              </span>
-            </div>
-            <div className="space-y-1 font-mono text-[11px] leading-5 text-primary/85">
-              {keyedMatrixFrame.map(({ key, line }, index) => (
-                <div
-                  key={key}
-                  className="truncate opacity-90"
-                  style={{ opacity: 1 - index * 0.06 }}
-                >
-                  {line}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Protocol focus
-              </div>
-              <div className="mt-2 text-sm font-medium text-foreground">
-                {protocol}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Coverage
-              </div>
-              <div className="mt-2 text-sm font-medium text-foreground">
-                {coverageLabel}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(12,18,33,0.88),rgba(8,13,26,0.88))] p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-primary">
-                {latest?.label ?? "Reasoning"}
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                MCP in progress
-              </span>
-            </div>
-            <p className="mt-3 text-base font-medium leading-7 text-foreground">
-              {latest?.detail ??
-                "The assistant is establishing the cleanest onchain route before returning the final structured result."}
-            </p>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Prompt trace: {promptPreview}
-            </p>
-          </div>
-
-          <div className="grid gap-3">
-            {timeline.map((entry, index) => (
-              <div
-                key={entry.id}
-                className="grid gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[auto_minmax(0,1fr)]"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">
-                    {String(index + 1).padStart(2, "0")}
-                  </div>
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-sm font-medium text-foreground">
-                      {entry.label}
-                    </div>
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] ${getStreamToneClassName(
-                        entry.tone
-                      )}`}
-                    >
-                      {entry.tone === "default" ? "Running" : entry.tone}
-                    </span>
-                  </div>
-                  {entry.detail ? (
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      {entry.detail}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                What it is doing
-              </div>
-              <div className="mt-2 text-sm font-medium leading-6 text-foreground">
-                {latest?.label ?? "Mapping the right MCP route"}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                How it happened
-              </div>
-              <div className="mt-2 text-sm font-medium leading-6 text-foreground">
-                Live stream events, planner context, and durable query execution
-                are being merged into one reply path.
-              </div>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Result path
-              </div>
-              <div className="mt-2 text-sm font-medium leading-6 text-foreground">
-                {recovering
-                  ? "Using the durable endpoint as the final answer source after stream recovery."
-                  : "Waiting for the authoritative MCP answer so the renderer can lock to a stable result shape."}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
 const isStructuredResult = (
   value: unknown
@@ -927,9 +717,7 @@ export function QueryTab({
   const [chatPrompt, setChatPrompt] = useState("");
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [openHelperTab, setOpenHelperTab] = useState<
-    "generate" | "starters" | null
-  >(null);
+  const chatThreadEndRef = useRef<HTMLDivElement | null>(null);
   const [protocolSearch, setProtocolSearch] = useState("");
   const [selectedProtocolId, setSelectedProtocolId] = useState("");
   const [activeConversationId, setActiveConversationId] = useState<
@@ -1435,6 +1223,13 @@ export function QueryTab({
     [mcpMutation]
   );
 
+  useEffect(() => {
+    if (activeSurface !== "chat") return;
+    const node = chatThreadEndRef.current;
+    if (!node || typeof node.scrollIntoView !== "function") return;
+    node.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [activeSurface, chatMessages.length, mcpMutation.isPending]);
+
   const suggestionsMutation = useMutation({
     mutationFn: async () => {
       if (trimmedAssistantPrompt.length === 0) {
@@ -1596,6 +1391,11 @@ export function QueryTab({
     status === "running" ||
     statusQuery.isFetching;
 
+  const isSqlRunning =
+    runMutation.isPending ||
+    (!mcpMutation.isPending &&
+      (status === "running" || statusQuery.isFetching));
+
   const rows = useMemo(() => {
     const raw = resultsQuery.data?.rows ?? latestRunData?.rows ?? [];
     const arr = Array.isArray(raw) ? raw : [];
@@ -1647,14 +1447,6 @@ export function QueryTab({
     typeof topProtocols[0]?.name === "string"
       ? String(topProtocols[0].name)
       : (selectedProtocol?.name ?? "Any protocol");
-  const pendingThoughts = useMemo(
-    () =>
-      streamActivity
-        .map((entry) => entry.detail ?? entry.label)
-        .filter((entry, index, items) => items.indexOf(entry) === index)
-        .slice(-3),
-    [streamActivity]
-  );
   const reasoningTimeline = useMemo(
     () =>
       streamActivity.length > 0
@@ -2291,10 +2083,6 @@ export function QueryTab({
     [mcpMutation, runMutation, validateMutation]
   );
 
-  const toggleHelperTab = useCallback((tab: "generate" | "starters") => {
-    setOpenHelperTab((current) => (current === tab ? null : tab));
-  }, []);
-
   return (
     <div className="space-y-4">
       {activeSurface === "chat" ? (
@@ -2312,30 +2100,18 @@ export function QueryTab({
                     />
                   </div>
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-primary/80">
-                      Onchain Suite
-                    </div>
                     <div className="mt-1 text-sm font-medium text-foreground">
                       Intelligence Chat
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Futuristic MCP workspace for deterministic onchain answers
-                    </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-primary">
-                    {chainCoverageLabel}
-                  </span>
-                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                    Focus {activeTopProtocol}
-                  </span>
-                  {activeConversationId ? (
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                {activeConversationId ? (
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                       Thread {truncateMiddle(activeConversationId, 6, 4)}
                     </span>
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-2">
@@ -2359,9 +2135,20 @@ export function QueryTab({
                         className="w-[360px] rounded-2xl border-border/70 bg-card/95 p-4 backdrop-blur"
                       >
                         <div className="space-y-4">
-                          <div>
-                            <div className="text-sm font-medium text-foreground">
-                              MCP settings
+                          <div className="flex items-center gap-2.5 border-b border-border/60 pb-3">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                              <HugeiconsIcon
+                                icon={Settings02Icon}
+                                className="h-4 w-4"
+                              />
+                            </span>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-foreground">
+                                MCP agent settings
+                              </div>
+                              <div className="truncate text-xs text-muted-foreground">
+                                {chainCoverageLabel} · Focus {activeTopProtocol}
+                              </div>
                             </div>
                           </div>
 
@@ -2407,7 +2194,7 @@ export function QueryTab({
                             </div>
                           </div>
 
-                          <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="grid gap-3 border-border/60 pt-4 sm:grid-cols-2">
                             <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                               Sector
                               <select
@@ -2435,7 +2222,7 @@ export function QueryTab({
                             </div>
                           </div>
 
-                          <div className="space-y-3">
+                          <div className="space-y-3 border-t border-border/60 pt-4">
                             <div className="space-y-2">
                               <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                                 Mode
@@ -2542,7 +2329,7 @@ export function QueryTab({
                             ) : null}
                           </div>
 
-                          <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
                             <div className="rounded-xl border border-border/60 bg-background/70 p-3">
                               <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                                 Tracked
@@ -2581,439 +2368,374 @@ export function QueryTab({
               </div>
             </div>
 
-            <div className="overflow-y-auto px-5 py-5">
-              <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
-                {mcpMutation.isPending ? (
-                  <MatrixReasoningPanel
-                    activity={reasoningTimeline}
-                    recovering={streamFallbackUsed}
-                    prompt={lastSubmittedChatPrompt}
-                    protocol={activeTopProtocol}
-                    coverageLabel={chainCoverageLabel}
-                  />
-                ) : null}
+            <div className="overflow-y-auto px-5 py-6">
+              <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
                 {chatMessages.length > 0 ? (
-                  chatMessages.map((message) =>
-                    message.role === "user" ? (
-                      <div key={message.id} className="flex justify-end">
-                        <div className="max-w-[78%] rounded-[28px_28px_12px_28px] border border-primary/20 bg-[linear-gradient(180deg,rgba(92,112,255,0.28),rgba(66,88,224,0.4))] px-4 py-3 text-sm text-primary-foreground shadow-[0_22px_60px_-28px_rgba(86,112,255,0.7)] backdrop-blur">
-                          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary-foreground/75">
-                            You
-                          </div>
-                          <div className="mt-1 leading-6">
-                            {message.content}
+                  <>
+                    {chatMessages.map((message) =>
+                      message.role === "user" ? (
+                        <div key={message.id} className="flex justify-end">
+                          <div className="max-w-[78%] rounded-[28px_28px_12px_28px] border border-primary/20 bg-[linear-gradient(180deg,rgba(92,112,255,0.28),rgba(66,88,224,0.4))] px-4 py-3 text-sm text-primary-foreground shadow-[0_22px_60px_-28px_rgba(86,112,255,0.7)] backdrop-blur">
+                            <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary-foreground/75">
+                              You
+                            </div>
+                            <div className="mt-1 leading-6">
+                              {message.content}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div key={message.id} className="flex justify-start">
-                        <div className="flex max-w-[92%] items-end gap-3">
-                          <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[18px] border text-xs font-semibold ${
-                              message.kind === "error"
-                                ? "border-red-400/25 bg-red-400/10 text-red-300"
-                                : "border-primary/20 bg-primary/10 text-primary"
-                            }`}
-                          >
-                            {message.kind === "error" ? "!" : "AI"}
-                          </div>
-                          <div className="overflow-hidden rounded-[28px_28px_28px_12px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,21,38,0.98),rgba(8,13,26,0.98))] shadow-[0_28px_90px_-46px_rgba(45,102,255,0.5)]">
-                            <div className="flex flex-wrap items-center gap-2 border-b border-white/8 px-5 py-4">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                                <HugeiconsIcon
-                                  icon={SparklesIcon}
-                                  className="h-4 w-4"
-                                />
-                              </div>
-                              <div className="text-sm font-medium text-foreground">
-                                {message.kind === "question"
-                                  ? "GoldRush MCP needs one detail"
-                                  : message.kind === "error"
-                                    ? "GoldRush MCP hit an error"
-                                    : "GoldRush MCP replied"}
-                              </div>
-                              {typeof message.confidence === "number" ? (
-                                <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
-                                  Confidence{" "}
-                                  {Math.round(message.confidence * 100)}%
-                                </span>
-                              ) : null}
-                              {message.queryReady ? (
-                                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-300">
-                                  Query ready
-                                </span>
-                              ) : null}
+                      ) : (
+                        <div key={message.id} className="flex justify-start">
+                          <div className="flex max-w-[92%] items-end gap-3">
+                            <div
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[18px] border text-xs font-semibold ${
+                                message.kind === "error"
+                                  ? "border-red-400/25 bg-red-400/10 text-red-300"
+                                  : "border-primary/20 bg-primary/10 text-primary"
+                              }`}
+                            >
+                              {message.kind === "error" ? "!" : "AI"}
                             </div>
+                            <div className="overflow-hidden rounded-[28px_28px_28px_12px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,21,38,0.98),rgba(8,13,26,0.98))] shadow-[0_28px_90px_-46px_rgba(45,102,255,0.5)]">
+                              <div className="flex flex-wrap items-center gap-2 border-b border-white/8 px-5 py-4">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                                  <HugeiconsIcon
+                                    icon={SparklesIcon}
+                                    className="h-4 w-4"
+                                  />
+                                </div>
+                                <div className="text-sm font-medium text-foreground">
+                                  {message.kind === "question"
+                                    ? "I needs one detail"
+                                    : message.kind === "error"
+                                      ? "I hit an error"
+                                      : "I replied"}
+                                </div>
+                                {typeof message.confidence === "number" ? (
+                                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
+                                    Confidence{" "}
+                                    {Math.round(message.confidence * 100)}%
+                                  </span>
+                                ) : null}
+                                {message.queryReady ? (
+                                  <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-300">
+                                    Query ready
+                                  </span>
+                                ) : null}
+                              </div>
 
-                            <div className="space-y-5 px-5 py-5">
-                              {message.structuredResult ? (
-                                <div className="space-y-4">
-                                  <div className="rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(59,89,220,0.12),rgba(16,22,39,0.38))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                                    <div className="flex flex-wrap items-center justify-between gap-3">
-                                      <div>
-                                        <div className="text-[11px] uppercase tracking-[0.16em] text-primary/80">
-                                          Stable UI contract
-                                        </div>
-                                        <div className="mt-1 text-sm font-medium text-foreground">
-                                          {message.structuredResult.title ??
-                                            prettifyColumnLabel(
+                              <div className="space-y-5 px-5 py-5">
+                                {message.structuredResult ? (
+                                  <div className="space-y-4">
+                                    <div className="rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(59,89,220,0.12),rgba(16,22,39,0.38))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                                      <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div>
+                                          <div className="text-[11px] uppercase tracking-[0.16em] text-primary/80">
+                                            Stable UI contract
+                                          </div>
+                                          <div className="mt-1 text-sm font-medium text-foreground">
+                                            {message.structuredResult.title ??
+                                              prettifyColumnLabel(
+                                                message.structuredResult.kind
+                                              )}
+                                          </div>
+                                          <div className="mt-1 text-xs text-muted-foreground">
+                                            Stable renderer:{" "}
+                                            {prettifyColumnLabel(
                                               message.structuredResult.kind
                                             )}
+                                          </div>
                                         </div>
-                                        <div className="mt-1 text-xs text-muted-foreground">
-                                          Stable renderer:{" "}
-                                          {prettifyColumnLabel(
-                                            message.structuredResult.kind
-                                          )}
-                                        </div>
+                                        <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
+                                          {message.structuredResult.rows.length.toLocaleString()}{" "}
+                                          rows
+                                        </span>
                                       </div>
-                                      <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
-                                        {message.structuredResult.rows.length.toLocaleString()}{" "}
-                                        rows
-                                      </span>
-                                    </div>
-                                    {message.content.trim().length > 0 ? (
-                                      <p className="mt-3 text-sm leading-6 text-foreground/90">
-                                        {message.content}
-                                      </p>
-                                    ) : message.structuredResult.summary ? (
-                                      <p className="mt-3 text-sm leading-6 text-foreground/90">
-                                        {message.structuredResult.summary}
-                                      </p>
-                                    ) : null}
-                                  </div>
-
-                                  {renderStructuredResult(
-                                    message.structuredResult
-                                  )}
-
-                                  {message.queryReady
-                                    ? renderConversionActions()
-                                    : null}
-                                </div>
-                              ) : message.content.trim().length > 0 ? (
-                                <div className="text-[15px] leading-7 text-foreground/95">
-                                  {message.content}
-                                </div>
-                              ) : null}
-
-                              {message.rationale ? (
-                                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                                  <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                                    Reasoning frame
-                                  </div>
-                                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                    {message.rationale}
-                                  </p>
-                                </div>
-                              ) : null}
-
-                              {message.kind === "error" &&
-                              message.errorReport ? (
-                                <div className="rounded-[24px] border border-red-400/20 bg-red-400/5 p-4">
-                                  <div className="flex items-center justify-between gap-3">
-                                    <div className="text-[11px] uppercase tracking-[0.16em] text-red-200/90">
-                                      Bug report
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const report = message.errorReport;
-                                        if (!report) return;
-                                        navigator.clipboard
-                                          .writeText(
-                                            formatMcpFailureReport(report)
-                                          )
-                                          .catch(() => {
-                                            // Copy failure should not block the visible bug report.
-                                          });
-                                        toast.success("Bug details copied");
-                                      }}
-                                      className="inline-flex items-center gap-1 rounded-full border border-red-400/20 bg-red-400/10 px-2.5 py-1 text-[11px] font-medium text-red-100 transition-colors hover:bg-red-400/15"
-                                    >
-                                      <HugeiconsIcon
-                                        icon={Copy01Icon}
-                                        className="h-3.5 w-3.5"
-                                      />
-                                      Copy
-                                    </button>
-                                  </div>
-                                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                    <div>
-                                      <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
-                                        Status
-                                      </div>
-                                      <div className="mt-1 text-sm text-red-50">
-                                        {message.errorReport.statusCode ??
-                                          "Unknown"}
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
-                                        Time
-                                      </div>
-                                      <div className="mt-1 text-sm text-red-50">
-                                        {message.errorReport.at}
-                                      </div>
-                                    </div>
-                                    {message.errorReport.requestId ? (
-                                      <div>
-                                        <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
-                                          Request ID
-                                        </div>
-                                        <div className="mt-1 break-all font-mono text-xs text-red-50">
-                                          {message.errorReport.requestId}
-                                        </div>
-                                      </div>
-                                    ) : null}
-                                    {message.errorReport.conversationId ? (
-                                      <div>
-                                        <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
-                                          Conversation ID
-                                        </div>
-                                        <div className="mt-1 break-all font-mono text-xs text-red-50">
-                                          {message.errorReport.conversationId}
-                                        </div>
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                  <div className="mt-3">
-                                    <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
-                                      Failure
-                                    </div>
-                                    <div className="mt-1 text-sm leading-6 text-red-50">
-                                      {message.errorReport.message}
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : null}
-
-                              {Array.isArray(message.toolSteps) &&
-                              message.toolSteps.length > 0 ? (
-                                <div className="grid gap-3 md:grid-cols-2">
-                                  {message.toolSteps.map((step, index) => (
-                                    <div
-                                      key={
-                                        step.title ??
-                                        step.toolName ??
-                                        step.description ??
-                                        "tool-step"
-                                      }
-                                      className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
-                                          {index + 1}
-                                        </div>
-                                        <div className="text-sm font-medium text-foreground">
-                                          {step.title ??
-                                            step.toolName ??
-                                            `Step ${index + 1}`}
-                                        </div>
-                                      </div>
-                                      {step.description ? (
-                                        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                                          {step.description}
+                                      {message.content.trim().length > 0 ? (
+                                        <p className="mt-3 text-sm leading-6 text-foreground/90">
+                                          {message.content}
+                                        </p>
+                                      ) : message.structuredResult.summary ? (
+                                        <p className="mt-3 text-sm leading-6 text-foreground/90">
+                                          {message.structuredResult.summary}
                                         </p>
                                       ) : null}
                                     </div>
-                                  ))}
-                                </div>
-                              ) : null}
 
-                              <div className="grid gap-3 md:grid-cols-2">
-                                <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
-                                  <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                                    Execution mode
+                                    {renderStructuredResult(
+                                      message.structuredResult
+                                    )}
+
+                                    {message.queryReady
+                                      ? renderConversionActions()
+                                      : null}
                                   </div>
-                                  <div className="mt-2 text-sm font-medium text-foreground">
+                                ) : message.content.trim().length > 0 ? (
+                                  <div className="text-[15px] leading-7 text-foreground/95">
+                                    {message.content}
+                                  </div>
+                                ) : null}
+
+                                {message.rationale ? (
+                                  <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                                    <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                                      Reasoning frame
+                                    </div>
+                                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                                      {message.rationale}
+                                    </p>
+                                  </div>
+                                ) : null}
+
+                                {message.kind === "error" &&
+                                message.errorReport ? (
+                                  <div className="rounded-[24px] border border-red-400/20 bg-red-400/5 p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="text-[11px] uppercase tracking-[0.16em] text-red-200/90">
+                                        Bug report
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const report = message.errorReport;
+                                          if (!report) return;
+                                          navigator.clipboard
+                                            .writeText(
+                                              formatMcpFailureReport(report)
+                                            )
+                                            .catch(() => {
+                                              // Copy failure should not block the visible bug report.
+                                            });
+                                          toast.success("Bug details copied");
+                                        }}
+                                        className="inline-flex items-center gap-1 rounded-full border border-red-400/20 bg-red-400/10 px-2.5 py-1 text-[11px] font-medium text-red-100 transition-colors hover:bg-red-400/15"
+                                      >
+                                        <HugeiconsIcon
+                                          icon={Copy01Icon}
+                                          className="h-3.5 w-3.5"
+                                        />
+                                        Copy
+                                      </button>
+                                    </div>
+                                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                      <div>
+                                        <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
+                                          Status
+                                        </div>
+                                        <div className="mt-1 text-sm text-red-50">
+                                          {message.errorReport.statusCode ??
+                                            "Unknown"}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
+                                          Time
+                                        </div>
+                                        <div className="mt-1 text-sm text-red-50">
+                                          {message.errorReport.at}
+                                        </div>
+                                      </div>
+                                      {message.errorReport.requestId ? (
+                                        <div>
+                                          <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
+                                            Request ID
+                                          </div>
+                                          <div className="mt-1 break-all font-mono text-xs text-red-50">
+                                            {message.errorReport.requestId}
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                      {message.errorReport.conversationId ? (
+                                        <div>
+                                          <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
+                                            Conversation ID
+                                          </div>
+                                          <div className="mt-1 break-all font-mono text-xs text-red-50">
+                                            {message.errorReport.conversationId}
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                    <div className="mt-3">
+                                      <div className="text-[11px] uppercase tracking-[0.14em] text-red-200/70">
+                                        Failure
+                                      </div>
+                                      <div className="mt-1 text-sm leading-6 text-red-50">
+                                        {message.errorReport.message}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {Array.isArray(message.toolSteps) &&
+                                message.toolSteps.length > 0 ? (
+                                  <div className="grid gap-3 md:grid-cols-2">
+                                    {message.toolSteps.map((step, index) => (
+                                      <div
+                                        key={
+                                          step.title ??
+                                          step.toolName ??
+                                          step.description ??
+                                          "tool-step"
+                                        }
+                                        className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+                                            {index + 1}
+                                          </div>
+                                          <div className="text-sm font-medium text-foreground">
+                                            {step.title ??
+                                              step.toolName ??
+                                              `Step ${index + 1}`}
+                                          </div>
+                                        </div>
+                                        {step.description ? (
+                                          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                                            {step.description}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+
+                                <div className="flex flex-wrap items-center gap-2 border-t border-white/8 pt-3 text-[11px] text-muted-foreground">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                                    <Zap className="h-3 w-3 text-primary" />
                                     {message.mode === "deterministic_fallback"
                                       ? "Deterministic fallback"
                                       : "Dynamic MCP routing"}
-                                  </div>
-                                </div>
-                                <div
-                                  className={`rounded-[22px] border p-4 ${
-                                    message.queryReady
-                                      ? "border-primary/20 bg-primary/8"
-                                      : "border-white/10 bg-white/[0.03]"
-                                  }`}
-                                >
-                                  <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                                    Next action
-                                  </div>
-                                  <div className="mt-2 text-sm font-medium text-foreground">
-                                    {message.queryReady
-                                      ? "Create a report, campaign, or segment from the live result set below."
-                                      : message.kind === "question"
-                                        ? "Reply in this same thread so the MCP agent can continue with the saved conversation."
-                                        : "Refine the prompt or switch to SQL if you want tighter control."}
-                                  </div>
+                                  </span>
+                                  {message.queryReady ? (
+                                    <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-primary">
+                                      Turn into report, campaign, or segment
+                                      below
+                                    </span>
+                                  ) : message.kind === "question" ? (
+                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                                      Reply below to continue this thread
+                                    </span>
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )
-                  )
+                      )
+                    )}
+                    {mcpMutation.isPending ? (
+                      <McpTypingIndicator
+                        activity={reasoningTimeline}
+                        recovering={streamFallbackUsed}
+                      />
+                    ) : null}
+                  </>
                 ) : (
-                  <div className="grid gap-4 rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,16,29,0.98),rgba(7,11,21,0.98))] px-6 py-7 shadow-[0_34px_90px_-48px_rgba(45,102,255,0.46)] lg:grid-cols-[minmax(0,1.25fr)_minmax(260px,0.75fr)]">
-                    <div className="max-w-2xl">
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-primary/80">
-                        Start with a natural request
-                      </div>
-                      <div className="mt-3 max-w-xl text-2xl font-medium tracking-[-0.03em] text-foreground">
-                        Ask Onchain Suite what matters onchain, and let MCP
-                        decide the cleanest route.
-                      </div>
-                      <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-                        Trace token holders, compare chain activity, explain
-                        wallet cohorts, or surface activation opportunities. The
-                        assistant streams reasoning, then lands on a stable
-                        structured result.
-                      </p>
-                      <div className="mt-5 flex flex-wrap gap-2">
-                        {[
-                          "Top holders by token",
-                          "Wallet balances across chains",
-                          "Recent transactions by wallet",
-                          "Current gas snapshots",
-                        ].map((chip) => (
-                          <span
-                            key={chip}
-                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-muted-foreground"
-                          >
-                            {chip}
-                          </span>
-                        ))}
-                      </div>
+                  <div className="flex flex-col items-center px-4 py-10 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-[0_20px_50px_-28px_rgba(86,112,255,0.8)]">
+                      <HugeiconsIcon icon={SparklesIcon} className="h-6 w-6" />
                     </div>
-                    <div className="grid gap-3">
-                      <div className="rounded-[24px] border border-primary/15 bg-primary/[0.08] p-4">
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-primary/80">
-                          Chain coverage
-                        </div>
-                        <div className="mt-2 text-lg font-medium text-foreground">
-                          {chainCoverageLabel}
-                        </div>
-                      </div>
-                      <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                          Protocol focus
-                        </div>
-                        <div className="mt-2 text-lg font-medium text-foreground">
-                          {activeTopProtocol}
-                        </div>
-                      </div>
-                      <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#050913] p-4">
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-primary/75">
-                          Matrix preview
-                        </div>
-                        <div className="mt-3 space-y-1 font-mono text-[11px] leading-5 text-primary/80">
-                          {createStableLineKeys(
-                            buildMatrixFrame(5, 24),
-                            "empty-matrix"
-                          ).map(({ key, line }) => (
-                            <div key={key}>{line}</div>
-                          ))}
-                        </div>
+                    <h2 className="mt-5 max-w-md text-xl font-medium tracking-[-0.02em] text-foreground">
+                      Ask anything about onchain activity
+                    </h2>
+                    <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                      Trace token holders, compare wallets, analyze gas, or
+                      explain protocol activity. The agent streams its
+                      reasoning, then returns a clean, structured answer.
+                    </p>
+
+                    <div className="mt-6 grid w-full max-w-xl gap-2.5 sm:grid-cols-2">
+                      {[
+                        {
+                          title: "Top holders by token",
+                          prompt:
+                            "Show me the top 10 holders for this token contract.",
+                        },
+                        {
+                          title: "Wallet balances across chains",
+                          prompt:
+                            "Compare this wallet's balances across EVM and Solana.",
+                        },
+                        {
+                          title: "Recent transactions by wallet",
+                          prompt:
+                            "List the most recent transactions for this wallet.",
+                        },
+                        {
+                          title: "Current gas snapshots",
+                          prompt:
+                            "What are the current gas prices across major chains?",
+                        },
+                      ].map((chip) => (
+                        <button
+                          key={chip.title}
+                          type="button"
+                          onClick={() => submitChatPrompt(chip.prompt)}
+                          className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-primary/30 hover:bg-primary/[0.06]"
+                        >
+                          <span>{chip.title}</span>
+                          <HugeiconsIcon
+                            icon={ArrowUp01Icon}
+                            className="h-4 w-4 rotate-45 text-muted-foreground transition-colors group-hover:text-primary"
+                          />
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 w-full max-w-xl overflow-hidden rounded-xl border border-white/10 bg-[#050913] px-3 py-2">
+                      <div className="ocs-anim-hash-flicker truncate font-mono text-[10px] leading-5 tracking-[0.12em] text-primary/60">
+                        {createStableLineKeys(
+                          buildMatrixFrame(1, 60),
+                          "empty-matrix"
+                        )
+                          .map(({ line }) => line)
+                          .join("")}
                       </div>
                     </div>
                   </div>
                 )}
+                <div ref={chatThreadEndRef} />
               </div>
             </div>
 
             <div className="border-t border-white/8 px-5 py-4 backdrop-blur">
               <div className="mx-auto flex w-full max-w-4xl flex-col gap-3">
-                {queryId ? (
-                  <div className="rounded-[24px] border border-primary/20 bg-primary/[0.08] px-4 py-3 text-sm text-foreground">
-                    MCP resolved to a saved query result. Keep chatting, or use
-                    the actions below to turn it into a report, campaign, or
-                    segment.
-                  </div>
-                ) : null}
-                <div className="rounded-[30px] border border-primary/15 bg-[linear-gradient(180deg,rgba(8,14,26,0.98),rgba(4,8,17,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_28px_70px_-40px_rgba(45,102,255,0.46)]">
-                  <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-primary/80">
-                        Compose prompt
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        One thread, one deterministic MCP answer path
-                      </div>
-                    </div>
-                    <div className="text-right text-[11px] text-muted-foreground">
-                      Enter to send
-                      <div>Shift + Enter for a new line</div>
-                    </div>
-                  </div>
-                  <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                    <div className="min-w-0">
-                      <label
-                        htmlFor="mcp-chat-input"
-                        className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground"
-                      >
-                        Message
-                      </label>
-                      <textarea
-                        id="mcp-chat-input"
-                        aria-label="MCP chat input"
-                        value={chatPrompt}
-                        onChange={(e) => setChatPrompt(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            if (mcpMutation.isPending) {
-                              return;
-                            }
-                            submitChatPrompt(chatPrompt);
-                          }
-                        }}
-                        className="mt-2 min-h-[120px] w-full resize-none rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/30"
-                        placeholder="Trace token holders, compare wallet behavior, analyze gas, or explain protocol activity across chains."
+                <div className="flex items-end gap-2 rounded-[24px] border border-white/12 bg-white/[0.04] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/25">
+                  <textarea
+                    id="mcp-chat-input"
+                    aria-label="MCP chat input"
+                    value={chatPrompt}
+                    onChange={(e) => setChatPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (mcpMutation.isPending) return;
+                        submitChatPrompt(chatPrompt);
+                      }
+                    }}
+                    rows={1}
+                    className="max-h-44 min-h-[44px] w-full resize-none bg-transparent px-3 py-2.5 text-sm leading-6 text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                    placeholder="Ask anything about onchain activity…"
+                  />
+                  <Button
+                    type="button"
+                    aria-label="Send"
+                    onClick={() => submitChatPrompt(chatPrompt)}
+                    disabled={
+                      mcpMutation.isPending || chatPrompt.trim().length === 0
+                    }
+                    className="h-11 w-11 shrink-0 rounded-full bg-[linear-gradient(135deg,#5c70ff,#4258e0)] p-0 shadow-[0_14px_34px_-16px_rgba(86,112,255,0.9)] transition-all hover:shadow-[0_18px_40px_-14px_rgba(86,112,255,1)]"
+                  >
+                    {mcpMutation.isPending ? (
+                      <HugeiconsIcon
+                        icon={Loading02Icon}
+                        className="h-4 w-4 animate-spin"
                       />
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">
-                          Focus {activeTopProtocol}
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-muted-foreground">
-                          Coverage {chainCoverageLabel}
-                        </span>
-                        {pendingThoughts.length > 0 ? (
-                          <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] text-primary">
-                            {pendingThoughts[pendingThoughts.length - 1]}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-end">
-                      <Button
-                        type="button"
-                        aria-label="Send"
-                        onClick={() => submitChatPrompt(chatPrompt)}
-                        disabled={
-                          mcpMutation.isPending ||
-                          chatPrompt.trim().length === 0
-                        }
-                        className="h-14 rounded-[22px] px-6 shadow-[0_22px_50px_-24px_rgba(86,112,255,0.75)]"
-                      >
-                        {mcpMutation.isPending ? (
-                          <HugeiconsIcon
-                            icon={Loading02Icon}
-                            className="mr-2 h-4 w-4 animate-spin"
-                          />
-                        ) : (
-                          <HugeiconsIcon
-                            icon={ArrowUp01Icon}
-                            className="mr-2 h-4 w-4"
-                          />
-                        )}
-                        {mcpMutation.isPending ? "Routing MCP" : "Send to MCP"}
-                      </Button>
-                    </div>
-                  </div>
+                    ) : (
+                      <HugeiconsIcon icon={ArrowUp01Icon} className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -3021,28 +2743,202 @@ export function QueryTab({
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b border-border/70 bg-muted/30 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <HugeiconsIcon
-                  icon={CodeIcon}
-                  className="h-4 w-4 text-primary"
-                />
-                <span className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  SQL Query
+          <div className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-[linear-gradient(180deg,rgba(8,13,25,0.98),rgba(4,8,17,0.98))] shadow-[0_28px_80px_-48px_rgba(66,118,255,0.75)] transition-shadow focus-within:shadow-[0_28px_90px_-40px_rgba(66,118,255,0.9)]">
+            {/* ambient glow */}
+            <div className="ocs-anim-float-glow pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-primary/25 blur-3xl" />
+            {/* editor window header */}
+            <div className="relative flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5" aria-hidden="true">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
                 </span>
+                <div className="flex items-center gap-2">
+                  <HugeiconsIcon
+                    icon={CodeIcon}
+                    className="h-4 w-4 text-primary"
+                  />
+                  <span className="font-mono text-xs text-primary/90">
+                    query.sql
+                  </span>
+                </div>
               </div>
               <div className="flex items-center gap-2">
+                <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-slate-400 md:inline">
+                  Postgres · org-scoped
+                </span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="AI SQL assistant"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/25"
+                    >
+                      <HugeiconsIcon
+                        icon={SparklesIcon}
+                        className="h-3.5 w-3.5"
+                      />
+                      AI assist
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="end"
+                    className="w-[420px] rounded-2xl border-border/70 bg-card/95 p-4 backdrop-blur"
+                  >
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <HugeiconsIcon
+                            icon={SparklesIcon}
+                            className="h-4 w-4 text-primary"
+                          />
+                          AI SQL assistant
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Describe what you want — generate SQL, get ideas, or
+                          start from a template.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <textarea
+                          value={assistantPrompt}
+                          onChange={(e) => setAssistantPrompt(e.target.value)}
+                          placeholder="e.g. Find dormant high-value wallets that have an email on file"
+                          className="min-h-[70px] w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => generateSqlMutation.mutate()}
+                            disabled={
+                              generateSqlMutation.isPending ||
+                              trimmedAssistantPrompt.length === 0
+                            }
+                            className="flex-1"
+                          >
+                            {generateSqlMutation.isPending ? (
+                              <HugeiconsIcon
+                                icon={Loading02Icon}
+                                className="mr-2 h-4 w-4 animate-spin"
+                              />
+                            ) : (
+                              <HugeiconsIcon
+                                icon={SparklesIcon}
+                                className="mr-2 h-4 w-4"
+                              />
+                            )}
+                            Generate SQL
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => suggestionsMutation.mutate()}
+                            disabled={
+                              suggestionsMutation.isPending ||
+                              trimmedAssistantPrompt.length === 0
+                            }
+                          >
+                            {suggestionsMutation.isPending ? (
+                              <HugeiconsIcon
+                                icon={Loading02Icon}
+                                className="h-4 w-4 animate-spin"
+                              />
+                            ) : (
+                              "Ideas"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {generateSqlMutation.data?.sql ? (
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                          {generateSqlMutation.data.explanation ? (
+                            <p className="text-xs leading-5 text-muted-foreground">
+                              {generateSqlMutation.data.explanation}
+                            </p>
+                          ) : null}
+                          <pre className="mt-2 max-h-32 overflow-auto rounded-md bg-background p-2 font-mono text-[11px] leading-5 text-foreground">
+                            {generateSqlMutation.data.sql}
+                          </pre>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() =>
+                              loadSqlIntoEditor(
+                                generateSqlMutation.data?.sql ?? ""
+                              )
+                            }
+                          >
+                            Use this SQL
+                          </Button>
+                        </div>
+                      ) : null}
+
+                      {suggestionItems.length > 0 ? (
+                        <div className="space-y-2">
+                          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                            Suggestions
+                          </div>
+                          {suggestionItems.map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() =>
+                                s.sqlDraft
+                                  ? loadSqlIntoEditor(s.sqlDraft, s.id)
+                                  : setAssistantPrompt(s.prompt ?? s.title)
+                              }
+                              className="w-full rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/30 hover:bg-muted/40"
+                            >
+                              <div className="text-sm font-medium text-foreground">
+                                {s.title}
+                              </div>
+                              {s.reason ? (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {s.reason}
+                                </p>
+                              ) : null}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {starters.length > 0 ? (
+                        <div className="space-y-2">
+                          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                            Starter queries
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {starters.slice(0, 6).map((starter) => (
+                              <button
+                                key={starter.id}
+                                type="button"
+                                onClick={() => loadSqlIntoEditor(starter.query)}
+                                className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                              >
+                                {starter.title}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <button
                   onClick={() => navigator.clipboard.writeText(sqlQuery)}
-                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-slate-100"
+                  aria-label="Copy SQL"
                 >
                   <HugeiconsIcon icon={Copy01Icon} className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => validateMutation.mutate()}
                   disabled={validateMutation.isPending}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/60 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-slate-100 transition-colors hover:bg-white/10 disabled:opacity-50"
                 >
                   {validateMutation.isPending ? (
                     <HugeiconsIcon
@@ -3057,7 +2953,7 @@ export function QueryTab({
                 <button
                   onClick={() => runMutation.mutate()}
                   disabled={isQueryRunning}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-[0_12px_30px_-12px_rgba(86,112,255,0.9)] transition-all hover:bg-primary/90 hover:shadow-[0_16px_36px_-12px_rgba(86,112,255,1)] disabled:opacity-50"
                 >
                   {isQueryRunning ? (
                     <HugeiconsIcon
@@ -3071,367 +2967,37 @@ export function QueryTab({
                 </button>
               </div>
             </div>
-            <div className="border-b border-border/60 bg-background/80 px-4 py-2 text-xs text-muted-foreground">
-              Write a SQL query and run it against your organization data.
-            </div>
-            <textarea
-              aria-label="SQL query editor"
-              value={sqlQuery}
-              onChange={(e) => setSqlQuery(e.target.value)}
-              className="h-[260px] w-full resize-none bg-background px-4 py-4 font-mono text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
-              placeholder={`SELECT\n  wallet,\n  email\nFROM users\nLIMIT 50;`}
-              spellCheck={false}
-            />
-          </div>
-
-          <div className="rounded-2xl border border-border/70 bg-card shadow-sm">
-            <div className="border-b border-border/70 px-4 py-3">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  aria-expanded={openHelperTab === "generate"}
-                  aria-controls="generate-sql-panel"
-                  onClick={() => toggleHelperTab("generate")}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                    openHelperTab === "generate"
-                      ? "border-primary/40 bg-primary/10 text-foreground"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  }`}
-                >
-                  <HugeiconsIcon icon={SparklesIcon} className="h-4 w-4" />
-                  Generate SQL
-                  {openHelperTab === "generate" ? (
-                    <HugeiconsIcon icon={ArrowUp01Icon} className="h-4 w-4" />
-                  ) : (
-                    <HugeiconsIcon icon={ArrowDown01Icon} className="h-4 w-4" />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  aria-expanded={openHelperTab === "starters"}
-                  aria-controls="starter-queries-panel"
-                  onClick={() => toggleHelperTab("starters")}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                    openHelperTab === "starters"
-                      ? "border-primary/40 bg-primary/10 text-foreground"
-                      : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  }`}
-                >
-                  <HugeiconsIcon icon={CodeIcon} className="h-4 w-4" />
-                  Starter Queries
-                  {openHelperTab === "starters" ? (
-                    <HugeiconsIcon icon={ArrowUp01Icon} className="h-4 w-4" />
-                  ) : (
-                    <HugeiconsIcon icon={ArrowDown01Icon} className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Open a helper only when you need ideas or a starting point.
-              </p>
-            </div>
-
-            {openHelperTab === "generate" ? (
-              <div id="generate-sql-panel" className="p-4">
-                <p className="text-sm text-muted-foreground">
-                  Describe the audience or behavior you want to find, then
-                  review the generated SQL before running it.
-                </p>
-                <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
-                  <Input
-                    value={protocolSearch}
-                    onChange={(e) => setProtocolSearch(e.target.value)}
-                    placeholder="Search protocol registry"
+            {/* editor body */}
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-0 opacity-[0.13] [background-image:linear-gradient(rgba(122,140,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(122,140,255,0.18)_1px,transparent_1px)] [background-size:22px_22px]" />
+              {/* blockchain chain accent gutter */}
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex w-9 flex-col items-center justify-start gap-3 border-r border-white/5 bg-white/[0.02] py-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="h-1.5 w-1.5 rounded-full bg-primary/40"
                   />
-                  <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                    Sector
-                    <select
-                      value={selectedSector}
-                      onChange={(e) =>
-                        setSelectedSector(
-                          e.target.value as (typeof SUGGESTION_SECTORS)[number]
-                        )
-                      }
-                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-normal tracking-normal text-foreground focus:outline-none"
-                    >
-                      {SUGGESTION_SECTORS.map((sector) => (
-                        <option key={sector} value={sector}>
-                          {sector.replace("_", " ")}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                    Coverage
-                    <div className="flex h-10 items-center rounded-lg border border-border bg-background px-3 text-sm font-normal tracking-normal text-foreground">
-                      {chainCoverageLabel}
-                    </div>
-                  </label>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {MCP_CHAIN_OPTIONS.map((chain) => (
-                    <button
-                      key={chain.id}
-                      type="button"
-                      onClick={() => toggleChainSelection(chain.id)}
-                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                        selectedChainSet.has(chain.id)
-                          ? "border-primary/40 bg-primary/10 text-foreground"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                      }`}
-                    >
-                      {chain.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedProtocolId("")}
-                    className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                      selectedProtocolId.length === 0
-                        ? "border-primary/40 bg-primary/10 text-foreground"
-                        : "border-border bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                    }`}
-                  >
-                    Any protocol
-                  </button>
-                  {protocols.slice(0, 6).map((protocol) => (
-                    <button
-                      key={protocol.id}
-                      type="button"
-                      onClick={() => setSelectedProtocolId(protocol.id)}
-                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                        selectedProtocolId === protocol.id
-                          ? "border-primary/40 bg-primary/10 text-foreground"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                      }`}
-                    >
-                      {protocol.name}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-border/70 bg-background/80 p-3 text-sm">
-                    <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Suggestions tracked
-                    </div>
-                    <div className="mt-2 text-xl font-semibold text-foreground">
-                      {typeof suggestionTotals.selected === "number"
-                        ? suggestionTotals.selected.toLocaleString()
-                        : "—"}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-background/80 p-3 text-sm">
-                    <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Suggestions executed
-                    </div>
-                    <div className="mt-2 text-xl font-semibold text-foreground">
-                      {typeof suggestionTotals.executed === "number"
-                        ? suggestionTotals.executed.toLocaleString()
-                        : "—"}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-background/80 p-3 text-sm">
-                    <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Top protocol
-                    </div>
-                    <div className="mt-2 text-sm font-medium text-foreground">
-                      {typeof topProtocols[0]?.name === "string"
-                        ? String(topProtocols[0].name)
-                        : (selectedProtocol?.name ?? "—")}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-col gap-2 lg:flex-row">
-                  <Input
-                    value={assistantPrompt}
-                    onChange={(e) => setAssistantPrompt(e.target.value)}
-                    placeholder="Find dormant high-value users with email addresses"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => suggestionsMutation.mutate()}
-                    disabled={suggestionsMutation.isPending}
-                  >
-                    {suggestionsMutation.isPending ? (
-                      <HugeiconsIcon
-                        icon={Loading02Icon}
-                        className="mr-2 h-4 w-4 animate-spin"
-                      />
-                    ) : null}
-                    Get ideas
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => generateSqlMutation.mutate()}
-                    disabled={generateSqlMutation.isPending}
-                  >
-                    {generateSqlMutation.isPending ? (
-                      <HugeiconsIcon
-                        icon={Loading02Icon}
-                        className="mr-2 h-4 w-4 animate-spin"
-                      />
-                    ) : null}
-                    Generate SQL
-                  </Button>
-                </div>
-
-                {generateSqlMutation.data ? (
-                  <div className="mt-4 rounded-xl border border-border/70 bg-background/80 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-medium text-foreground">
-                          Generated draft
-                        </div>
-                        {generateSqlMutation.data.explanation ? (
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {generateSqlMutation.data.explanation}
-                          </p>
-                        ) : null}
-                      </div>
-                      {generateSqlMutation.data.sql ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            loadSqlIntoEditor(
-                              generateSqlMutation.data?.sql ?? ""
-                            )
-                          }
-                        >
-                          Use in editor
-                        </Button>
-                      ) : null}
-                    </div>
-                    {generateSqlMutation.data.sql ? (
-                      <pre className="mt-3 overflow-x-auto rounded-lg border border-border/60 bg-card p-3 font-mono text-xs text-foreground">
-                        {generateSqlMutation.data.sql}
-                      </pre>
-                    ) : null}
-                    {Array.isArray(generateSqlMutation.data.warnings) &&
-                    generateSqlMutation.data.warnings.length > 0 ? (
-                      <ul className="mt-3 list-disc pl-5 text-xs text-muted-foreground">
-                        {generateSqlMutation.data.warnings.map((warning) => (
-                          <li key={warning}>{warning}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {suggestionItems.length > 0 ? (
-                  <div className="mt-4 space-y-3">
-                    {suggestionItems.map((suggestion) => (
-                      <div
-                        key={suggestion.id}
-                        className="rounded-xl border border-border/70 bg-background/80 p-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-medium text-foreground">
-                              {suggestion.title}
-                            </div>
-                            {suggestion.reason ? (
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {suggestion.reason}
-                              </p>
-                            ) : null}
-                          </div>
-                          {suggestion.sqlDraft ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() =>
-                                loadSqlIntoEditor(
-                                  suggestion.sqlDraft ?? "",
-                                  suggestion.id
-                                )
-                              }
-                            >
-                              Use draft
-                            </Button>
-                          ) : null}
-                        </div>
-                        {Array.isArray(suggestion.tags) &&
-                        suggestion.tags.length > 0 ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {suggestion.tags.slice(0, 4).map((tag) => (
-                              <span
-                                key={tag}
-                                className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
+                ))}
               </div>
-            ) : null}
-
-            {openHelperTab === "starters" ? (
-              <div id="starter-queries-panel" className="p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-medium text-foreground">
-                      Starter queries
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Start from a saved SQL pattern and adapt it to your needs.
-                    </p>
-                  </div>
-                  {startersQuery.isFetching ? (
-                    <HugeiconsIcon
-                      icon={Loading02Icon}
-                      className="h-4 w-4 animate-spin text-muted-foreground"
-                    />
-                  ) : null}
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  {starters.length > 0 ? (
-                    starters.map((starter) => (
-                      <button
-                        key={starter.id}
-                        type="button"
-                        className="w-full rounded-xl border border-border/70 bg-background/80 p-4 text-left transition-colors hover:bg-muted/40"
-                        onClick={() => loadSqlIntoEditor(starter.query)}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-medium text-foreground">
-                              {starter.title}
-                            </div>
-                            {starter.description ? (
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {starter.description}
-                              </p>
-                            ) : null}
-                          </div>
-                          {starter.category ? (
-                            <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-                              {starter.category}
-                            </span>
-                          ) : null}
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-border/70 bg-background/50 p-4 text-sm text-muted-foreground">
-                      No starter queries available yet.
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : null}
+              <textarea
+                aria-label="SQL query editor"
+                value={sqlQuery}
+                onChange={(e) => setSqlQuery(e.target.value)}
+                className="relative z-10 h-[260px] w-full resize-none bg-transparent py-4 pl-12 pr-4 font-mono text-sm leading-6 text-sky-50 caret-primary placeholder:text-slate-500 focus:outline-none"
+                placeholder={`SELECT\n  wallet,\n  email\nFROM users\nLIMIT 50;`}
+                spellCheck={false}
+              />
+            </div>
+            {/* footer */}
+            <div className="relative flex items-center justify-between border-t border-white/10 px-4 py-2 text-[11px] text-slate-400">
+              <span>Read-only SELECT against your organization data.</span>
+              <span className="font-mono">
+                {sqlQuery.length === 0
+                  ? "0 lines"
+                  : `${sqlQuery.split("\n").length} lines`}{" "}
+                · {sqlQuery.length} chars
+              </span>
+            </div>
           </div>
         </>
       )}
@@ -3461,7 +3027,9 @@ export function QueryTab({
         </div>
       ) : null}
 
-      {hasRunQuery && (
+      {isSqlRunning ? <SqlBlockchainLoader query={sqlQuery} /> : null}
+
+      {hasRunQuery && !isSqlRunning && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -3648,7 +3216,8 @@ export function QueryTab({
         </motion.div>
       )}
 
-      {(historyQuery.data?.length ?? 0) > 0 ? (
+      {(hasRunQuery || chatMessages.length > 0) &&
+      (historyQuery.data?.length ?? 0) > 0 ? (
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="mb-2 text-sm font-medium text-foreground">
             Recent queries

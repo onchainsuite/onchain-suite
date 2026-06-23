@@ -38,10 +38,10 @@ export const ActiveAutomationsList = ({
   onDelete,
 }: ActiveAutomationsListProps) => {
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-border bg-muted/30">
+          <tr className="border-b border-border bg-gradient-to-r from-muted/50 to-muted/20">
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Name
             </th>
@@ -106,12 +106,15 @@ export const ActiveAutomationsList = ({
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                     automation.status === "active"
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       : "bg-secondary text-secondary-foreground"
                   }`}
                 >
                   {automation.status === "active" ? (
-                    <HugeiconsIcon icon={PlayIcon} className="h-3 w-3" />
+                    <span className="relative flex h-2 w-2">
+                      <span className="ocs-anim-think-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400/70" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                    </span>
                   ) : (
                     <HugeiconsIcon icon={PauseIcon} className="h-3 w-3" />
                   )}

@@ -3,6 +3,7 @@
 import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -18,10 +19,16 @@ import {
 import { ActiveAutomationsList } from "./active";
 import { DeleteModal } from "./delete-modal";
 import { DraftsList } from "./drafts-list";
+import { ProtocolTemplatesList } from "./protocol-templates-list";
 import { AutomationStats } from "./stats";
 import { AutomationTabs } from "./tabs";
 import { TemplatesList } from "./templates-list";
 import { Toast } from "./toast";
+import {
+  buildProtocolAutomation,
+  type ProtocolTemplate,
+  protocolTemplates,
+} from "@/features/automation/data/protocol-templates";
 import {
   type Automation,
   type Draft,
@@ -315,6 +322,36 @@ export const AutomationList = () => {
     },
   });
 
+  const applyProtocolTemplateMutation = useMutation({
+    mutationFn: async (template: ProtocolTemplate) => {
+      const body = buildProtocolAutomation(template, Date.now());
+      return automationService.createAutomation(body);
+    },
+    onSuccess: async (res) => {
+      await queryClient.invalidateQueries({ queryKey: ["automations"] });
+      const automationId =
+        typeof (res as { automationId?: unknown }).automationId === "string"
+          ? (res as { automationId: string }).automationId
+          : null;
+      if (automationId) {
+        window.location.href = `/automations/${automationId}`;
+        return;
+      }
+      setToast({
+        show: true,
+        message: "Automation created from template",
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 3000);
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to create from template";
+      setToast({ show: true, message, type: "error" });
+      setTimeout(() => setToast(null), 3000);
+    },
+  });
+
   const applyTemplateMutation = useMutation({
     mutationFn: async (templateId: string) => {
       await automationService.getTemplate(templateId);
@@ -374,22 +411,30 @@ export const AutomationList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Automations
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Trigger personalized flows based on your users&apos; signals.
-          </p>
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-primary/25 to-secondary/15 opacity-70 blur-3xl" />
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary/25 to-secondary/15 text-primary">
+              <Zap className="h-5 w-5" />
+            </span>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Automations
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Trigger personalized flows based on your users&apos; onchain signals.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/automations/new-id"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-[0_14px_34px_-16px_rgba(86,112,255,0.9)] transition-all hover:bg-primary/90 hover:shadow-[0_18px_40px_-14px_rgba(86,112,255,1)]"
+          >
+            <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
+            Create automation
+          </Link>
         </div>
-        <Link
-          href="/automations/new-id"
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
-          Create automation
-        </Link>
       </div>
 
       <AutomationStats stats={stats} />
@@ -414,9 +459,9 @@ export const AutomationList = () => {
                 ? countsQuery.data.drafts
                 : drafts.length,
             templates:
-              typeof countsQuery.data?.templates === "number"
+              (typeof countsQuery.data?.templates === "number"
                 ? countsQuery.data.templates
-                : undefined,
+                : (templatesQuery.data?.length ?? 0)) + protocolTemplates.length,
           }}
         />
 
@@ -502,11 +547,28 @@ export const AutomationList = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="templates" className="space-y-4">
-          <TemplatesList
-            templates={templatesQuery.data ?? []}
-            onApply={(template) => applyTemplateMutation.mutate(template.id)}
+        <TabsContent value="templates" className="space-y-8">
+          <ProtocolTemplatesList
+            onApply={(template) =>
+              applyProtocolTemplateMutation.mutate(template)
+            }
+            applyingId={
+              applyProtocolTemplateMutation.isPending
+                ? (applyProtocolTemplateMutation.variables?.id ?? null)
+                : null
+            }
           />
+          {(templatesQuery.data?.length ?? 0) > 0 ? (
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                Saved templates
+              </h2>
+              <TemplatesList
+                templates={templatesQuery.data ?? []}
+                onApply={(template) => applyTemplateMutation.mutate(template.id)}
+              />
+            </div>
+          ) : null}
         </TabsContent>
       </Tabs>
 

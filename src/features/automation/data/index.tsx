@@ -3,7 +3,6 @@ import {
   GitBranchIcon,
   Mail01Icon,
   Tag01Icon,
-  UserGroupIcon,
   Wallet01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -104,22 +103,6 @@ export const triggerNodes = [
     description: "When your users interact with a contract",
     icon: (
       <HugeiconsIcon icon={Wallet01Icon} className="h-5 w-5 text-primary" />
-    ),
-    color: "emerald",
-  },
-  {
-    type: "email_opened",
-    label: "Email Opened",
-    description: "When your user opens an email",
-    icon: <HugeiconsIcon icon={Mail01Icon} className="h-5 w-5 text-primary" />,
-    color: "emerald",
-  },
-  {
-    type: "segment_entered",
-    label: "Segment Entered",
-    description: "When user joins a segment",
-    icon: (
-      <HugeiconsIcon icon={UserGroupIcon} className="h-5 w-5 text-primary" />
     ),
     color: "emerald",
   },

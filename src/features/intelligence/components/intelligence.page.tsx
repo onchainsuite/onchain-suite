@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  AnalyticsUpIcon,
+  CodeIcon,
+  Message01Icon,
+  UserGroupIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 
@@ -114,22 +121,38 @@ export default function IntelligencePage() {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <TabsList className="rounded-xl border border-border bg-card p-1">
-          <TabsTrigger value="chat" className="rounded-lg">
+        <TabsList className="h-auto gap-1 rounded-2xl border border-border bg-card p-1.5">
+          <TabsTrigger
+            value="chat"
+            className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
+          >
+            <HugeiconsIcon icon={Message01Icon} className="h-4 w-4" />
             Chat
           </TabsTrigger>
-          <TabsTrigger value="sql" className="rounded-lg">
+          <TabsTrigger
+            value="sql"
+            className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
+          >
+            <HugeiconsIcon icon={CodeIcon} className="h-4 w-4" />
             SQL
           </TabsTrigger>
-          <TabsTrigger value="segments" className="rounded-lg">
+          <TabsTrigger
+            value="segments"
+            className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
+          >
+            <HugeiconsIcon icon={UserGroupIcon} className="h-4 w-4" />
             Segments
-            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground data-[state=active]:bg-primary-foreground/20">
               {typeof segmentsMetricsQuery.data?.segmentsCount === "number"
                 ? segmentsMetricsQuery.data.segmentsCount
                 : "—"}
             </span>
           </TabsTrigger>
-          <TabsTrigger value="reports" className="rounded-lg">
+          <TabsTrigger
+            value="reports"
+            className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
+          >
+            <HugeiconsIcon icon={AnalyticsUpIcon} className="h-4 w-4" />
             Reports
           </TabsTrigger>
         </TabsList>

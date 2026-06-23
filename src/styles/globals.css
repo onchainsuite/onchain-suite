@@ -272,3 +272,147 @@ body {
     animation: none;
   }
 }
+
+/* ── Intelligence loaders: MCP matrix + SQL blockchain ───────────────── */
+
+/* Matrix rain falling columns */
+@keyframes ocs-matrix-fall {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(220%);
+    opacity: 0;
+  }
+}
+
+/* Sweeping scan line */
+@keyframes ocs-scan {
+  0% {
+    transform: translateY(-120%);
+  }
+  100% {
+    transform: translateY(820%);
+  }
+}
+
+/* Pulsing thinking dot */
+@keyframes ocs-think-pulse {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Blockchain block being mined/sealed */
+@keyframes ocs-block-seal {
+  0% {
+    transform: translateY(8px) scale(0.85);
+    opacity: 0;
+    filter: blur(2px);
+  }
+  60% {
+    transform: translateY(0) scale(1.04);
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Energy flowing along the chain connector */
+@keyframes ocs-chain-flow {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Hash characters shuffling */
+@keyframes ocs-hash-flicker {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Soft floating glow */
+@keyframes ocs-float-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+/* Progress sheen across a bar */
+@keyframes ocs-sheen {
+  0% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+.ocs-anim-matrix-fall {
+  animation: ocs-matrix-fall linear infinite;
+}
+.ocs-anim-scan {
+  animation: ocs-scan 2.6s linear infinite;
+}
+.ocs-anim-think-pulse {
+  animation: ocs-think-pulse 1.1s ease-in-out infinite;
+}
+.ocs-anim-block-seal {
+  animation: ocs-block-seal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ocs-anim-chain-flow {
+  background-size: 200% 100%;
+  animation: ocs-chain-flow 1.4s linear infinite;
+}
+.ocs-anim-hash-flicker {
+  animation: ocs-hash-flicker 0.9s ease-in-out infinite;
+}
+.ocs-anim-float-glow {
+  animation: ocs-float-glow 3s ease-in-out infinite;
+}
+.ocs-anim-sheen {
+  animation: ocs-sheen 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocs-anim-matrix-fall,
+  .ocs-anim-scan,
+  .ocs-anim-think-pulse,
+  .ocs-anim-block-seal,
+  .ocs-anim-chain-flow,
+  .ocs-anim-hash-flicker,
+  .ocs-anim-float-glow,
+  .ocs-anim-sheen {
+    animation: none;
+  }
+}

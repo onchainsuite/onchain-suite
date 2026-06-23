@@ -186,12 +186,12 @@ type BuilderSchemaField = {
 };
 
 const PROPERTY_LABEL_CLASS =
-  "text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400";
+  "text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground";
 
 const PROPERTY_INPUT_CLASS =
-  "w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-400/40 focus:outline-none";
+  "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30";
 
-const PROPERTY_HINT_CLASS = "text-[11px] leading-5 text-slate-500";
+const PROPERTY_HINT_CLASS = "text-[11px] leading-5 text-muted-foreground";
 
 const INTERNAL_SCHEMA_KEYS = new Set([
   "label",
@@ -1269,16 +1269,16 @@ const CreateAutomationContent = () => {
       }}
       initial="initial"
       animate="animate"
-      className="flex h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[28px] border border-sky-500/10 bg-slate-950 shadow-[0_24px_80px_rgba(2,6,23,0.45)]"
+      className="flex h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-sm md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-8rem)]"
     >
       <Confetti show={!showConfetti} />
 
       {/* Header */}
-      <header className="flex h-20 items-center justify-between border-b border-sky-500/10 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_42%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] px-6">
+      <header className="flex h-20 items-center justify-between border-b border-border bg-gradient-to-b from-primary/5 to-transparent px-6">
         <div className="flex items-center gap-4">
           <Link
             href="/automations"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-sky-500/15 bg-slate-900/70 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           </Link>
@@ -1290,14 +1290,14 @@ const CreateAutomationContent = () => {
                 onChange={(e) =>
                   setAutomationData({ ...automationData, name: e.target.value })
                 }
-                className="bg-transparent text-sm font-semibold tracking-tight text-white focus:outline-none"
+                className="rounded-md bg-transparent px-1 text-sm font-semibold tracking-tight text-foreground transition-colors hover:bg-muted/50 focus:bg-muted/50 focus:outline-none"
               />
-              <span className="flex items-center gap-1 rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-sky-200">
+              <span className="flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-primary">
                 <CheckCircle2 className="h-3 w-3" />
                 {draftSaveMutation.isPending ? "Autosaving" : "Builder Ready"}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
               <span>
                 Last edited{" "}
                 {typeof (
@@ -1309,11 +1309,11 @@ const CreateAutomationContent = () => {
                     )
                   : automationData.createdAt}
               </span>
-              <span className="text-slate-600">/</span>
+              <span className="text-border">/</span>
               <span>{builderNodeCount} nodes</span>
-              <span className="text-slate-600">/</span>
+              <span className="text-border">/</span>
               <span>{builderConnectionCount} links</span>
-              <span className="text-slate-600">/</span>
+              <span className="text-border">/</span>
               <span>{builderErrorCount} validation issues</span>
             </div>
           </div>
@@ -1321,7 +1321,7 @@ const CreateAutomationContent = () => {
 
         <div className="flex items-center gap-3">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-[220px] grid-cols-2 border border-sky-500/10 bg-slate-900/70">
+            <TabsList className="grid w-[220px] grid-cols-2 border border-border bg-muted/60">
               <TabsTrigger value="builder" className="text-xs">
                 Builder
               </TabsTrigger>
@@ -1331,12 +1331,12 @@ const CreateAutomationContent = () => {
             </TabsList>
           </Tabs>
 
-          <div className="h-6 w-px bg-slate-800" />
+          <div className="h-6 w-px bg-border" />
 
           {!isNew && (
             <button
               type="button"
-              className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
               onClick={() => previewMutation.mutate()}
               disabled={previewMutation.isPending}
             >
@@ -1347,7 +1347,7 @@ const CreateAutomationContent = () => {
           {!isNew && automationData.status === "draft" && (
             <button
               type="button"
-              className="flex items-center gap-2 rounded-xl bg-sky-500 px-3 py-2 text-xs font-medium text-slate-950 transition-colors hover:bg-sky-400 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               onClick={() => publishMutation.mutate()}
               disabled={publishMutation.isPending}
             >
@@ -1364,7 +1364,7 @@ const CreateAutomationContent = () => {
           {!isNew ? (
             <button
               type="button"
-              className="flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-400/15 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/15 disabled:opacity-50 dark:text-amber-300"
               onClick={() => resetMutation.mutate()}
               disabled={resetMutation.isPending}
             >
@@ -1381,7 +1381,7 @@ const CreateAutomationContent = () => {
           ) : null}
 
           <button
-            className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+            className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => {
               if (isNew) {
                 setNodes([]);
@@ -1397,7 +1397,7 @@ const CreateAutomationContent = () => {
             {isNew ? "Clear Draft" : "Discard Draft"}
           </button>
           <button
-            className="flex items-center gap-2 rounded-xl bg-sky-500 px-3 py-2 text-xs font-medium text-slate-950 transition-colors hover:bg-sky-400 disabled:opacity-80"
+            className="flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)] transition-colors hover:bg-primary/90 disabled:opacity-80"
             onClick={handleSave}
             disabled={isSaving}
           >
@@ -1527,18 +1527,18 @@ const CreateAutomationContent = () => {
             </AnimatePresence>
 
             {/* Canvas Area */}
-            <div className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.14),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.96),rgba(15,23,42,0.92))]">
+            <div className="relative flex-1 overflow-hidden bg-gradient-to-b from-muted/40 to-background">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] flex items-center justify-between px-6 py-4">
-                <div className="rounded-full border border-sky-500/15 bg-slate-950/75 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-sky-200 backdrop-blur">
+                <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-primary backdrop-blur">
                   Automation Graph
                 </div>
-                <div className="rounded-full border border-slate-800 bg-slate-950/75 px-3 py-1 text-[11px] text-slate-400 backdrop-blur">
+                <div className="hidden rounded-full border border-border bg-card/75 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur sm:block">
                   Connect triggers to waits, branches, and actions
                 </div>
               </div>
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="absolute left-4 top-16 z-10 flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-950/80 text-slate-300 shadow-lg transition-colors hover:bg-slate-900 hover:text-white"
+                className="absolute left-4 top-16 z-10 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-md transition-colors hover:bg-muted hover:text-foreground"
               >
                 {sidebarOpen ? (
                   <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
@@ -1572,21 +1572,21 @@ const CreateAutomationContent = () => {
                 fitView
               >
                 <Background
-                  color="rgba(148,163,184,0.16)"
+                  color="rgba(120,130,160,0.18)"
                   gap={24}
                   size={1.2}
                 />
-                <Controls className="border-slate-800 bg-slate-950/80 text-slate-200" />
+                <Controls className="overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-sm [&_button]:border-border [&_button]:bg-card [&_button]:text-foreground [&_button:hover]:bg-muted" />
                 <MiniMap
-                  className="border border-slate-800 bg-slate-950/80"
-                  maskColor="rgba(15, 23, 42, 0.35)"
+                  className="rounded-lg border border-border bg-card"
+                  maskColor="rgba(120,130,160,0.18)"
                 />
               </ReactFlow>
 
               {!isNew && builderQuery.isLoading ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/50 px-6 backdrop-blur-[2px]">
-                  <div className="rounded-2xl border border-sky-500/10 bg-slate-950/95 px-5 py-4 shadow-xl">
-                    <div className="flex items-center gap-3 text-sm text-slate-100">
+                  <div className="rounded-2xl border border-border bg-card px-5 py-4 shadow-xl">
+                    <div className="flex items-center gap-3 text-sm text-foreground">
                       <HugeiconsIcon
                         icon={Loading02Icon}
                         className="h-4 w-4 animate-spin text-primary"
@@ -1599,14 +1599,14 @@ const CreateAutomationContent = () => {
 
               {nodes.length === 0 ? (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
-                  <div className="pointer-events-auto w-full max-w-lg rounded-[28px] border border-sky-500/10 bg-slate-950/90 p-7 text-center shadow-[0_32px_80px_rgba(15,23,42,0.45)] backdrop-blur-xl">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-400/10 text-sky-200">
+                  <div className="pointer-events-auto w-full max-w-lg rounded-[28px] border border-border bg-card p-7 text-center shadow-[0_32px_80px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
                       <HugeiconsIcon icon={Orbit01Icon} className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 text-lg font-semibold tracking-tight text-white">
+                    <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">
                       Start from a clean canvas
                     </h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
                       Add your first trigger to begin this automation, or drag
                       triggers and actions from the left panel onto the canvas.
                     </p>
@@ -1621,14 +1621,14 @@ const CreateAutomationContent = () => {
                           }
                           addNode(firstTrigger.type, firstTrigger.label);
                         }}
-                        className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-sky-400"
+                        className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                       >
                         Add first trigger
                       </button>
                       <button
                         type="button"
                         onClick={() => setSidebarOpen(true)}
-                        className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
+                        className="rounded-xl border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                       >
                         Browse blocks
                       </button>
@@ -1640,13 +1640,13 @@ const CreateAutomationContent = () => {
               {/* Node Selector for Placeholders */}
               {showNodeSelector.show && (
                 <div
-                  className="absolute z-20 w-64 rounded-2xl border border-sky-500/10 bg-slate-950/95 p-2 shadow-2xl backdrop-blur"
+                  className="absolute z-20 w-64 rounded-2xl border border-border bg-card p-2 shadow-2xl backdrop-blur"
                   style={{
                     left: showNodeSelector.x + 250, // Offset from node
                     top: showNodeSelector.y,
                   }}
                 >
-                  <p className="mb-2 px-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                  <p className="mb-2 px-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                     Add Action
                   </p>
                   <div className="space-y-1">
@@ -1654,7 +1654,7 @@ const CreateAutomationContent = () => {
                       <button
                         key={node.type}
                         onClick={() => addNode(node.type, node.label)}
-                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-900"
+                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                       >
                         <div className="scale-75">{node.icon}</div>
                         <span>{node.label}</span>
@@ -1673,15 +1673,15 @@ const CreateAutomationContent = () => {
                     initial={{ x: 320, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: 320, opacity: 0 }}
-                    className="w-80 border-l border-sky-500/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] p-6"
+                    className="w-80 border-l border-border bg-card p-6"
                   >
                     <div className="mb-6 flex items-center justify-between">
-                      <h3 className="font-semibold tracking-tight text-white">
+                      <h3 className="font-semibold tracking-tight text-foreground">
                         Properties
                       </h3>
                       <button
                         onClick={() => setSelectedNode(null)}
-                        className="rounded-full p-1 text-slate-400 hover:bg-slate-900 hover:text-white"
+                        className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
                         <HugeiconsIcon
                           icon={Cancel01Icon}
@@ -1757,13 +1757,13 @@ const CreateAutomationContent = () => {
                             </select>
                           </div>
                           {!isNew ? (
-                            <div className="rounded-2xl border border-sky-500/10 bg-sky-400/5 p-3.5">
+                            <div className="rounded-2xl border border-primary/15 bg-primary/5 p-3.5">
                               <div className="flex items-center justify-between gap-3">
                                 <div>
-                                  <div className="text-xs font-medium text-slate-100">
+                                  <div className="text-xs font-medium text-foreground">
                                     Test runtime trigger
                                   </div>
-                                  <div className="mt-1 text-[11px] leading-5 text-slate-400">
+                                  <div className="mt-1 text-[11px] leading-5 text-muted-foreground">
                                     Sends a preview event through the backend
                                     runtime ingestion endpoint for this trigger
                                     type.
@@ -1775,7 +1775,7 @@ const CreateAutomationContent = () => {
                                     runtimeTriggerMutation.mutate()
                                   }
                                   disabled={runtimeTriggerMutation.isPending}
-                                  className="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-medium text-slate-100 transition-colors hover:bg-slate-900 disabled:opacity-50"
+                                  className="shrink-0 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                                 >
                                   {runtimeTriggerMutation.isPending
                                     ? "Sending..."
@@ -1821,31 +1821,31 @@ const CreateAutomationContent = () => {
                           selectedTemplate?.source ? (
                             <div className="flex flex-wrap gap-2">
                               {selectedTemplate?.category ? (
-                                <span className="rounded-full border border-slate-800 bg-slate-950 px-2.5 py-1 text-[11px] text-slate-400">
+                                <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
                                   {selectedTemplate.category}
                                 </span>
                               ) : null}
                               {"source" in (selectedTemplate ?? {}) &&
                               typeof selectedTemplate?.source === "string" &&
                               selectedTemplate.source.length > 0 ? (
-                                <span className="rounded-full border border-sky-500/20 bg-sky-400/10 px-2.5 py-1 text-[11px] text-sky-200">
+                                <span className="rounded-full border border-sky-500/20 bg-primary/10 px-2.5 py-1 text-[11px] text-primary">
                                   {selectedTemplate.source}
                                 </span>
                               ) : null}
                             </div>
                           ) : null}
-                          <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
-                            <p className="mb-2 text-xs font-medium text-slate-400">
+                          <div className="rounded-2xl border border-border bg-card p-3">
+                            <p className="mb-2 text-xs font-medium text-muted-foreground">
                               Preview
                             </p>
                             <div className="space-y-1">
-                              <p className="text-xs font-medium text-slate-100">
+                              <p className="text-xs font-medium text-foreground">
                                 Subject:{" "}
                                 {(selectedTemplate?.subject ??
                                   asString(selectedNodeData.subject)) ||
                                   "Select a template"}
                               </p>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-muted-foreground">
                                 {(selectedTemplate?.previewText ??
                                   asString(selectedNodeData.previewText)) ||
                                   "Template preview text will appear here."}
@@ -1858,13 +1858,13 @@ const CreateAutomationContent = () => {
                       {selectedNodeSchemaQuery.isFetching ||
                       selectedNodeSchemaFields.length > 0 ||
                       selectedNodeSchemaQuery.error instanceof Error ? (
-                        <div className="space-y-4 rounded-[20px] border border-slate-800 bg-slate-950/70 p-4">
+                        <div className="space-y-4 rounded-[20px] border border-border bg-card p-4">
                           <div className="flex items-center justify-between gap-3">
                             <div>
-                              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-sky-200">
+                              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
                                 Backend Config
                               </div>
-                              <div className="mt-1 text-[11px] leading-5 text-slate-500">
+                              <div className="mt-1 text-[11px] leading-5 text-muted-foreground">
                                 Powered by the automation trigger/action schema
                                 endpoint.
                               </div>
@@ -1938,11 +1938,11 @@ const CreateAutomationContent = () => {
                               return (
                                 <label
                                   key={field.key}
-                                  className="flex items-start gap-3 rounded-2xl border border-slate-800 bg-slate-950 px-3 py-3"
+                                  className="flex items-start gap-3 rounded-2xl border border-border bg-background px-3 py-3"
                                 >
                                   <input
                                     type="checkbox"
-                                    className="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-400"
+                                    className="mt-1 h-4 w-4 rounded border-border bg-background text-primary"
                                     checked={asBoolean(rawValue)}
                                     onChange={(e) =>
                                       updateSchemaFieldValue(
@@ -1952,11 +1952,11 @@ const CreateAutomationContent = () => {
                                     }
                                   />
                                   <span className="space-y-1">
-                                    <span className="block text-sm font-medium text-slate-100">
+                                    <span className="block text-sm font-medium text-foreground">
                                       {field.label}
                                     </span>
                                     {field.description ? (
-                                      <span className="block text-[11px] leading-5 text-slate-500">
+                                      <span className="block text-[11px] leading-5 text-muted-foreground">
                                         {field.description}
                                       </span>
                                     ) : null}
@@ -2104,36 +2104,36 @@ const CreateAutomationContent = () => {
 
                       {/* Stats */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
-                          <div className="rounded-full bg-sky-400/10 p-2">
+                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+                          <div className="rounded-full bg-primary/10 p-2">
                             <CheckCircle2 className="h-4 w-4 text-sky-300" />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-slate-100">
+                            <div className="text-sm font-medium text-foreground">
                               Total Conversions
                             </div>
-                            <div className="text-2xl font-bold text-white">
+                            <div className="text-2xl font-bold text-foreground">
                               {asNumber(selectedNodeStats.conversions)}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
-                          <div className="rounded-full bg-sky-400/10 p-2">
+                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+                          <div className="rounded-full bg-primary/10 p-2">
                             <HugeiconsIcon
                               icon={UserGroupIcon}
                               className="h-4 w-4 text-sky-300"
                             />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-slate-100">
+                            <div className="text-sm font-medium text-foreground">
                               Active Users
                             </div>
-                            <div className="text-2xl font-bold text-white">
+                            <div className="text-2xl font-bold text-foreground">
                               {asNumber(selectedNodeStats.active)}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
+                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
                           <div className="rounded-full bg-violet-400/10 p-2">
                             <HugeiconsIcon
                               icon={Target01Icon}
@@ -2141,23 +2141,23 @@ const CreateAutomationContent = () => {
                             />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-slate-100">
+                            <div className="text-sm font-medium text-foreground">
                               Click Rate
                             </div>
-                            <div className="text-2xl font-bold text-white">
+                            <div className="text-2xl font-bold text-foreground">
                               {asNumber(selectedNodeStats.clickRate)}%
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
+                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
                           <div className="rounded-full bg-emerald-400/10 p-2">
                             <DollarSign className="h-4 w-4 text-emerald-300" />
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-slate-100">
+                            <div className="text-sm font-medium text-foreground">
                               Revenue
                             </div>
-                            <div className="text-2xl font-bold text-white">
+                            <div className="text-2xl font-bold text-foreground">
                               ${asNumber(selectedNodeStats.revenue)}
                             </div>
                           </div>
@@ -2165,7 +2165,7 @@ const CreateAutomationContent = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="border-t border-slate-800 pt-6">
+                      <div className="border-t border-border pt-6">
                         <button
                           onClick={() => {
                             setNodes((nds) =>
@@ -2308,18 +2308,18 @@ const CreateAutomationContent = () => {
                           </defs>
                           <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="#e2e8f0"
+                            stroke="var(--border)"
                             vertical={false}
                           />
                           <XAxis
                             dataKey="date"
-                            stroke="#94a3b8"
+                            stroke="var(--muted-foreground)"
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}
                           />
                           <YAxis
-                            stroke="#94a3b8"
+                            stroke="var(--muted-foreground)"
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}

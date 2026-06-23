@@ -319,10 +319,12 @@ describe("QueryTab", () => {
     expect(setActiveTab).toHaveBeenCalledWith("reports");
   });
 
-  it("loads starter queries into the editor", async () => {
+  it("loads starter queries into the editor via the AI assistant", async () => {
     renderQueryTab();
 
-    fireEvent.click(screen.getByRole("button", { name: /^Starter Queries$/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /AI SQL assistant/i })
+    );
     fireEvent.click(
       await screen.findByRole("button", { name: /Dormant users/i })
     );
@@ -332,62 +334,49 @@ describe("QueryTab", () => {
     );
   });
 
-  it("generates SQL from a prompt and applies the draft to the editor", async () => {
+  it("generates SQL from a prompt and applies it to the editor", async () => {
     renderQueryTab();
 
-    fireEvent.click(screen.getByRole("button", { name: /^Generate SQL$/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /AI SQL assistant/i })
+    );
     fireEvent.change(
-      screen.getByPlaceholderText(
-        "Find dormant high-value users with email addresses"
-      ),
+      await screen.findByPlaceholderText(/Find dormant high-value wallets/i),
       {
         target: { value: "Find high-value inactive users" },
       }
     );
-    fireEvent.click(
-      screen.getAllByRole("button", { name: /^Generate SQL$/i })[1]
-    );
+    fireEvent.click(screen.getByRole("button", { name: /^Generate SQL$/i }));
 
-    await screen.findByText("Generated draft");
+    await screen.findByRole("button", { name: /use this sql/i });
     expect(mocks.intelligenceService.generateSql).toHaveBeenCalledWith({
       prompt: "Find high-value inactive users",
       mode: "best",
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /use in editor/i }));
+    fireEvent.click(screen.getByRole("button", { name: /use this sql/i }));
 
     expect(screen.getByLabelText("SQL query editor")).toHaveValue(
       "SELECT wallet, email FROM users WHERE engagement_score > 80;"
     );
   });
 
-  it("opens one helper panel at a time", async () => {
+  it("surfaces generate input and starter queries together in the AI assistant", async () => {
     renderQueryTab();
 
-    const generateToggle = screen.getByRole("button", {
-      name: /^Generate SQL$/i,
-    });
-    const starterToggle = screen.getByRole("button", {
-      name: /^Starter Queries$/i,
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /AI SQL assistant/i })
+    );
 
-    expect(screen.queryByText("Generated draft")).not.toBeInTheDocument();
-    expect(screen.queryByText("Starter queries")).not.toBeInTheDocument();
-
-    fireEvent.click(generateToggle);
     expect(
-      screen.getByPlaceholderText(
-        "Find dormant high-value users with email addresses"
-      )
+      await screen.findByPlaceholderText(/Find dormant high-value wallets/i)
     ).toBeInTheDocument();
-
-    fireEvent.click(starterToggle);
-    expect(screen.getByText("Starter queries")).toBeInTheDocument();
     expect(
-      screen.queryByPlaceholderText(
-        "Find dormant high-value users with email addresses"
-      )
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /^Generate SQL$/i })
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /Dormant users/i })
+    ).toBeInTheDocument();
   });
 
   it("shows multichain MCP coverage in the default chat workspace", async () => {
