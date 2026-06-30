@@ -1,12 +1,11 @@
 "use client";
 import {
-  AnalyticsUpIcon,
-  Mail01Icon,
-  Message01Icon,
-  SentIcon,
+  ArrowTrendingUpIcon,
+  ChatBubbleLeftRightIcon,
+  EnvelopeIcon,
+  PaperAirplaneIcon,
   UserGroupIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import { useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
@@ -33,13 +32,13 @@ const CAMPAIGN_TYPE_OPTIONS = [
     id: "email-blast",
     title: "Email Blast",
     description: "Send one-off campaigns or manage a batch of emails",
-    icon: Mail01Icon,
+    icon: EnvelopeIcon,
   },
   {
     id: "drip-campaign",
     title: "Drip campaign",
     description: "Send messages at specific intervals in a specific audience",
-    icon: AnalyticsUpIcon,
+    icon: ArrowTrendingUpIcon,
   },
   {
     id: "smart-sending",
@@ -106,47 +105,50 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                 value={field.value}
                 className="space-y-3"
               >
-                {CAMPAIGN_TYPE_OPTIONS.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`relative flex items-start space-x-3 rounded-xl border-2 p-4 cursor-pointer transition-all duration-300 ease-in-out hover:bg-muted/50 ${
-                      field.value === item.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-background hover:border-muted-foreground/30"
-                    }`}
-                    onClick={() => field.onChange(item.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        field.onChange(item.id);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <RadioGroupItem
-                      value={item.id}
-                      id={item.id}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <HugeiconsIcon
-                          icon={item.icon}
-                          className="h-4 w-4 text-muted-foreground"
-                        />
-                        <Label
-                          htmlFor={item.id}
-                          className="font-medium text-foreground cursor-pointer"
-                        >
-                          {item.title}
-                        </Label>
+                {CAMPAIGN_TYPE_OPTIONS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`relative flex items-start space-x-3 rounded-xl border-2 p-4 cursor-pointer transition-all duration-300 ease-in-out hover:bg-muted/50 ${
+                        field.value === item.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-background hover:border-muted-foreground/30"
+                      }`}
+                      onClick={() => field.onChange(item.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          field.onChange(item.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <RadioGroupItem
+                        value={item.id}
+                        id={item.id}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Icon
+                            aria-hidden="true"
+                            className="h-4 w-4 text-muted-foreground"
+                          />
+                          <Label
+                            htmlFor={item.id}
+                            className="font-medium text-foreground cursor-pointer"
+                          >
+                            {item.title}
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {item.description}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {item.description}
-                      </p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </RadioGroup>
             </FormControl>
 
@@ -165,7 +167,7 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <HugeiconsIcon icon={SentIcon} className="h-4 w-4" />
+                    <PaperAirplaneIcon aria-hidden="true" className="h-4 w-4" />
                     In-app Push
                   </button>
                   <button
@@ -177,7 +179,10 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <HugeiconsIcon icon={Message01Icon} className="h-4 w-4" />
+                    <ChatBubbleLeftRightIcon
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                    />
                     Telegram
                   </button>
                   <button
@@ -189,7 +194,10 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <HugeiconsIcon icon={Message01Icon} className="h-4 w-4" />
+                    <ChatBubbleLeftRightIcon
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                    />
                     Discord
                   </button>
                   <button
@@ -201,7 +209,11 @@ export function CampaignDetailsStep({ form }: CampaignDetailsStepProps) {
                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
                     }`}
                   >
-                    <HugeiconsIcon icon={Message01Icon} className="h-4 w-4" />X
+                    <ChatBubbleLeftRightIcon
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                    />
+                    X
                   </button>
                 </div>
                 <FormDescription className="mt-3">

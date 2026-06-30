@@ -1,7 +1,6 @@
 "use client";
 
-import { Calendar01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { CalendarIcon } from "@heroicons/react/24/outline";
 import { eachMonthOfInterval, endOfYear, format, startOfYear } from "date-fns";
 import * as React from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -105,7 +104,7 @@ export function DatePicker({
             !date && "text-muted-foreground"
           )}
         >
-          <HugeiconsIcon icon={Calendar01Icon} className="mr-2 h-4 w-4" />
+          <CalendarIcon className="mr-2 h-4 w-4" aria-hidden="true" />
           {date ? format(date, "PPP") : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>

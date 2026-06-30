@@ -1,8 +1,8 @@
 "use client";
 
+import { EnvelopeIcon, UserIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Mail, User } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -142,7 +142,7 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
                 name="firstName"
                 placeholder="First name"
                 label="First Name"
-                icon={User}
+                icon={UserIcon}
                 required
               />
 
@@ -151,7 +151,7 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
                 name="lastName"
                 placeholder="Last name"
                 label="Last Name"
-                icon={User}
+                icon={UserIcon}
                 required
               />
             </div>
@@ -160,7 +160,7 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
               form={form}
               name="email"
               placeholder="Email"
-              icon={Mail}
+              icon={EnvelopeIcon}
               type="email"
               label="Email Address"
               required

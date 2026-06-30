@@ -1,13 +1,12 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ArrowLeft01Icon,
-  CheckmarkCircle01Icon,
-  Clock01Icon,
-  Mail01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  EnvelopeIcon,
+} from "@heroicons/react/24/outline";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -118,7 +117,7 @@ export function ForgotPasswordForm({
           transition={{ duration: 0.4 }}
         >
           <AuthHeader
-            icon={Mail01Icon}
+            icon={EnvelopeIcon}
             title="Forgot your password?"
             subtitle="No worries! Enter your email and we'll send you a reset link."
           />
@@ -129,7 +128,7 @@ export function ForgotPasswordForm({
                 form={form}
                 name="email"
                 placeholder="Email"
-                icon={Mail01Icon}
+                icon={EnvelopeIcon}
                 type="email"
                 label="Email Address"
                 required
@@ -146,7 +145,7 @@ export function ForgotPasswordForm({
               onClick={onSwitchToSignIn}
               className="text-muted-foreground hover:text-primary inline-flex items-center text-sm transition-colors"
             >
-              <HugeiconsIcon icon={ArrowLeft01Icon} className="mr-2 h-4 w-4" />
+              <ArrowLeftIcon aria-hidden="true" className="mr-2 h-4 w-4" />
               Back to sign in
             </button>
           </div>
@@ -166,8 +165,8 @@ export function ForgotPasswordForm({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20"
           >
-            <HugeiconsIcon
-              icon={CheckmarkCircle01Icon}
+            <CheckCircleIcon
+              aria-hidden="true"
               className="h-8 w-8 text-green-600 dark:text-green-400"
             />
           </motion.div>
@@ -207,12 +206,12 @@ export function ForgotPasswordForm({
                 />
               ) : countdown > 0 ? (
                 <>
-                  <HugeiconsIcon icon={Clock01Icon} className="mr-2 h-4 w-4" />
+                  <ClockIcon aria-hidden="true" className="mr-2 h-4 w-4" />
                   Resend in {countdown}s
                 </>
               ) : (
                 <>
-                  <HugeiconsIcon icon={Mail01Icon} className="mr-2 h-4 w-4" />
+                  <EnvelopeIcon aria-hidden="true" className="mr-2 h-4 w-4" />
                   Resend Email
                 </>
               )}
@@ -222,7 +221,7 @@ export function ForgotPasswordForm({
               onClick={onSwitchToSignIn}
               className="text-muted-foreground hover:text-primary inline-flex items-center text-sm transition-colors"
             >
-              <HugeiconsIcon icon={ArrowLeft01Icon} className="mr-2 h-4 w-4" />
+              <ArrowLeftIcon aria-hidden="true" className="mr-2 h-4 w-4" />
               Back to sign in
             </button>
           </div>

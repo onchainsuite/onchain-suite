@@ -1,5 +1,4 @@
-import { AlertCircleIcon, Delete02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ExclamationCircleIcon, TrashIcon } from "@heroicons/react/24/outline";
 import type { Table } from "@tanstack/react-table";
 
 import {
@@ -29,11 +28,8 @@ export const DataTableDeleteButton = <TData,>({
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button className="ml-auto" variant="destructive">
-            <HugeiconsIcon
-              icon={Delete02Icon}
-              className="-ms-1 me-2 opacity-60"
-              size={16}
-              strokeWidth={2}
+            <TrashIcon
+              className="-ms-1 me-2 size-4 opacity-60"
               aria-hidden="true"
             />
             Delete
@@ -48,11 +44,9 @@ export const DataTableDeleteButton = <TData,>({
               className="border-border flex size-9 shrink-0 items-center justify-center rounded-full border"
               aria-hidden="true"
             >
-              <HugeiconsIcon
-                icon={AlertCircleIcon}
-                className="opacity-80"
-                size={16}
-                strokeWidth={2}
+              <ExclamationCircleIcon
+                className="size-4 opacity-80"
+                aria-hidden="true"
               />
             </div>
             <AlertDialogHeader>

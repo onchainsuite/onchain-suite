@@ -1,5 +1,4 @@
-import { Cancel01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 import type { Feature, Plan } from "../types";
 
@@ -13,15 +12,15 @@ export function FeatureValue({ plan, feature }: FeatureValueProps) {
 
   if (value === true) {
     return (
-      <HugeiconsIcon
-        icon={Tick01Icon}
+      <CheckIcon
+        aria-hidden="true"
         className="h-4 w-4 flex-shrink-0 text-green-600"
       />
     );
   } else if (value === false) {
     return (
-      <HugeiconsIcon
-        icon={Cancel01Icon}
+      <XMarkIcon
+        aria-hidden="true"
         className="text-muted-foreground h-4 w-4 flex-shrink-0"
       />
     );
@@ -30,8 +29,8 @@ export function FeatureValue({ plan, feature }: FeatureValueProps) {
   }
 
   return (
-    <HugeiconsIcon
-      icon={Cancel01Icon}
+    <XMarkIcon
+      aria-hidden="true"
       className="text-muted-foreground h-4 w-4 flex-shrink-0"
     />
   );

@@ -1,14 +1,13 @@
 "use client";
 
 import {
-  AnalyticsUpIcon,
-  BarChartIcon,
-  Shield01Icon,
-  Target01Icon,
+  ArrowTrendingUpIcon,
+  BoltIcon,
+  ChartBarIcon,
+  FlagIcon,
+  ShieldCheckIcon,
   UserGroupIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Zap } from "lucide-react";
+} from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 
 import { AnimatedTabs } from "@/ui/animated-tabs";
@@ -40,26 +39,26 @@ export function ProductsSection() {
           description="Email marketing tool designed specifically to enhance user retention through personalized, behavior-triggered communication deeply integrated with blockchain analytics."
           features={[
             {
-              icon: <HugeiconsIcon icon={Target01Icon} className="h-5 w-5" />,
+              icon: <FlagIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Advanced Personalization",
               description:
                 "Email segmentation based on user activities off and on chain, wallet transactions, and behavioral patterns",
             },
             {
-              icon: <Zap className="h-5 w-5" />,
+              icon: <BoltIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Behavioral Automation",
               description:
                 "Real-time triggered emails based on precise on-chain events like liquidity changes and NFT transactions",
             },
             {
-              icon: <HugeiconsIcon icon={BarChartIcon} className="h-5 w-5" />,
+              icon: <ChartBarIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Integrated Analytics",
               description:
                 "Real-time performance analytics directly integrated, providing instant feedback on campaign effectiveness",
             },
             {
               icon: (
-                <HugeiconsIcon icon={AnalyticsUpIcon} className="h-5 w-5" />
+                <ArrowTrendingUpIcon aria-hidden="true" className="h-5 w-5" />
               ),
               title: "Retention Focus",
               description:
@@ -81,26 +80,26 @@ export function ProductsSection() {
           features={[
             {
               icon: (
-                <HugeiconsIcon icon={AnalyticsUpIcon} className="h-5 w-5" />
+                <ArrowTrendingUpIcon aria-hidden="true" className="h-5 w-5" />
               ),
               title: "AI-Driven Insights",
               description:
                 "Predicts churn risks and identifies high-value users with real-time metrics like engagement scores",
             },
             {
-              icon: <HugeiconsIcon icon={BarChartIcon} className="h-5 w-5" />,
+              icon: <ChartBarIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Customizable Dashboards",
               description:
                 "Simplifies on-chain data into marketer-friendly visuals highlighting retention signals",
             },
             {
-              icon: <Zap className="h-5 w-5" />,
+              icon: <BoltIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Seamless R3tain Integration",
               description:
                 "Directly feeds insights into R3tain for automated, personalized email campaigns",
             },
             {
-              icon: <HugeiconsIcon icon={Target01Icon} className="h-5 w-5" />,
+              icon: <FlagIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Cross-Chain Support",
               description:
                 "Analyzes activity across major blockchains including Ethereum, Solana, and Base",
@@ -120,25 +119,25 @@ export function ProductsSection() {
           description="Core authentication and data management platform enabling Web3 platforms to seamlessly integrate marketing and analytics with privacy-preserving user onboarding."
           features={[
             {
-              icon: <Zap className="h-5 w-5" />,
+              icon: <BoltIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Seamless Integration",
               description:
                 "Simplifies embedding OnchainSuite tools for developers with SDK and API suite",
             },
             {
-              icon: <HugeiconsIcon icon={Shield01Icon} className="h-5 w-5" />,
+              icon: <ShieldCheckIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Flexible Authentication",
               description:
                 "Enables login via email or wallet with zero-knowledge hashing for privacy",
             },
             {
-              icon: <HugeiconsIcon icon={UserGroupIcon} className="h-5 w-5" />,
+              icon: <UserGroupIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Profile Enrichment",
               description:
                 "Unifies user data including email, wallet, socials, and IP for analytics",
             },
             {
-              icon: <HugeiconsIcon icon={Target01Icon} className="h-5 w-5" />,
+              icon: <FlagIcon aria-hidden="true" className="h-5 w-5" />,
               title: "Multi-Chain Support",
               description:
                 "Supports EVM chains like Ethereum and Polygon, plus non-EVM like Solana",

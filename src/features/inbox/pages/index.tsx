@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -9,6 +10,7 @@ import FloatingBulk from "../components/floating-bulk";
 import { folders } from "../data";
 import { connectInboxSocket, inboxService } from "../inbox.service";
 import { type InboxThreadListItem } from "../types";
+import { PageHeader } from "@/shared/components/page/page-header";
 
 export function InboxPages() {
   const [selectedFolder, setSelectedFolder] = useState("All");
@@ -221,23 +223,27 @@ export function InboxPages() {
   }, [unreadCount]);
 
   return (
-    <div className="flex h-full min-h-[calc(100vh-8rem)] bg-background text-foreground">
-      <main className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold">Inbox</h1>
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                {unreadCount} unread
-              </span>
-            )}
-          </div>
-        </div>
+    <div className="flex h-[calc(100vh-8rem)] flex-col space-y-4">
+      <PageHeader
+        title="Inbox"
+        description="Manage replies and notifications from your campaigns."
+        actions={
+          unreadCount > 0 ? (
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              {unreadCount} unread
+            </span>
+          ) : null
+        }
+      />
 
-        {/* 2-Panel Layout */}
-        <div className="flex flex-1 overflow-hidden relative">
-          {/* Email List Panel */}
+      {/* Two-pane: stacked on mobile, side-by-side on lg */}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card">
+        {/* List pane — hidden on mobile when a thread is open */}
+        <div
+          className={`min-h-0 w-full shrink-0 border-border lg:flex lg:w-80 lg:border-r ${
+            selectedThreadId ? "hidden lg:flex" : "flex"
+          }`}
+        >
           <EmailListPanel
             threads={threads}
             isLoading={threadsQuery.isFetching}
@@ -256,19 +262,35 @@ export function InboxPages() {
             focusedIndex={focusedIndex}
             setSelectedThreadIds={setSelectedThreadIds}
           />
+        </div>
 
-          {/* Right Panel - Conversation */}
+        {/* Reading pane — full-width on mobile when a thread is open */}
+        <div
+          className={`min-h-0 flex-1 flex-col ${
+            selectedThreadId ? "flex" : "hidden lg:flex"
+          }`}
+        >
+          {selectedThreadId ? (
+            <button
+              type="button"
+              onClick={() => setSelectedThreadId(null)}
+              className="flex items-center gap-2 border-b border-border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+            >
+              <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+              Back to inbox
+            </button>
+          ) : null}
           <ConversationPanel
             selectedThreadId={selectedThreadId}
             selectedThread={threadDetailQuery.data ?? selectedThread}
           />
-
-          <FloatingBulk
-            selectedThreadIds={selectedThreadIds}
-            setSelectedThreadIds={setSelectedThreadIds}
-          />
         </div>
-      </main>
+
+        <FloatingBulk
+          selectedThreadIds={selectedThreadIds}
+          setSelectedThreadIds={setSelectedThreadIds}
+        />
+      </div>
     </div>
   );
 }

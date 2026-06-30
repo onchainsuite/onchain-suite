@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  Calendar01Icon,
-  Clock01Icon,
+  CalendarIcon,
+  ClockIcon,
   InformationCircleIcon,
-  SentIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  PaperAirplaneIcon,
+} from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import { useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -69,13 +68,18 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
 
   return (
     <div className="space-y-8 p-6 md:p-8 lg:p-10 animate-in fade-in duration-500">
-      <div className="space-y-2">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-          Schedule your campaign
-        </h2>
-        <p className="text-base text-muted-foreground text-pretty">
-          Choose when to send your campaign to your audience
-        </p>
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary ring-1 ring-primary/20">
+          <CalendarIcon className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div className="space-y-1">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
+            Schedule your campaign
+          </h2>
+          <p className="text-base text-muted-foreground text-pretty">
+            Choose when to send your campaign to your audience
+          </p>
+        </div>
       </div>
 
       <FormField
@@ -110,12 +114,10 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                     />
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-                          <HugeiconsIcon
-                            icon={SentIcon}
-                            className="h-5 w-5 text-primary"
-                          />
-                        </div>
+                        <PaperAirplaneIcon
+                          aria-hidden="true"
+                          className="h-5 w-5 text-primary"
+                        />
                         <div>
                           <Label
                             htmlFor="send-now"
@@ -156,12 +158,10 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                     />
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-                          <HugeiconsIcon
-                            icon={Clock01Icon}
-                            className="h-5 w-5 text-primary"
-                          />
-                        </div>
+                        <ClockIcon
+                          aria-hidden="true"
+                          className="h-5 w-5 text-primary"
+                        />
                         <div>
                           <Label
                             htmlFor="schedule-later"
@@ -202,8 +202,8 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                                           {field.value
                                             ? format(field.value, "MMM d, yyyy")
                                             : "Select date"}
-                                          <HugeiconsIcon
-                                            icon={Calendar01Icon}
+                                          <CalendarIcon
+                                            aria-hidden="true"
                                             className="h-4 w-4 opacity-50"
                                           />
                                         </Button>
@@ -275,8 +275,8 @@ export function ScheduleStep({ form }: ScheduleStepProps) {
                           {/* Schedule Summary */}
                           {scheduleDate && scheduleSummary && (
                             <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/50 border border-border animate-in fade-in duration-300">
-                              <HugeiconsIcon
-                                icon={InformationCircleIcon}
+                              <InformationCircleIcon
+                                aria-hidden="true"
                                 className="h-5 w-5 text-primary shrink-0 mt-0.5"
                               />
                               <div className="flex-1 space-y-1">

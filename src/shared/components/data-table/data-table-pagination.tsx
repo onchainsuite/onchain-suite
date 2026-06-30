@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  ArrowLeft01Icon,
-  ArrowLeftDoubleIcon,
-  ArrowRight01Icon,
-  ArrowRightDoubleIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 import type { Table } from "@tanstack/react-table";
 
 import { Button } from "@/ui/button";
@@ -96,12 +95,7 @@ export const DataTablePagination = <TData,>({
                 disabled={!table.getCanPreviousPage()}
                 aria-label="Go to first page"
               >
-                <HugeiconsIcon
-                  icon={ArrowLeftDoubleIcon}
-                  size={16}
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
+                <ChevronDoubleLeftIcon className="size-4" aria-hidden="true" />
               </Button>
             </PaginationItem>
             {/* Previous page button */}
@@ -114,12 +108,7 @@ export const DataTablePagination = <TData,>({
                 disabled={!table.getCanPreviousPage()}
                 aria-label="Go to previous page"
               >
-                <HugeiconsIcon
-                  icon={ArrowLeft01Icon}
-                  size={16}
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
+                <ChevronLeftIcon className="size-4" aria-hidden="true" />
               </Button>
             </PaginationItem>
             {/* Next page button */}
@@ -132,12 +121,7 @@ export const DataTablePagination = <TData,>({
                 disabled={!table.getCanNextPage()}
                 aria-label="Go to next page"
               >
-                <HugeiconsIcon
-                  icon={ArrowRight01Icon}
-                  size={16}
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
+                <ChevronRightIcon className="size-4" aria-hidden="true" />
               </Button>
             </PaginationItem>
             {/* Last page button */}
@@ -150,12 +134,7 @@ export const DataTablePagination = <TData,>({
                 disabled={!table.getCanNextPage()}
                 aria-label="Go to last page"
               >
-                <HugeiconsIcon
-                  icon={ArrowRightDoubleIcon}
-                  size={16}
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
+                <ChevronDoubleRightIcon className="size-4" aria-hidden="true" />
               </Button>
             </PaginationItem>
           </PaginationContent>

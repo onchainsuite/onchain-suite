@@ -1,13 +1,12 @@
 "use client";
 import {
-  ArrowRight01Icon,
-  Calendar01Icon,
-  CheckmarkCircle01Icon,
-  Clock01Icon,
-  Mail01Icon,
+  ArrowRightIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  EnvelopeIcon,
   SparklesIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -93,16 +92,16 @@ export function ConfirmationPage({
         />
         {mounted && (
           <>
-            <HugeiconsIcon
-              icon={SparklesIcon}
+            <SparklesIcon
+              aria-hidden="true"
               className="absolute top-38 left-38 w-6 h-6 text-primary/20 animate-pulse"
             />
-            <HugeiconsIcon
-              icon={SparklesIcon}
+            <SparklesIcon
+              aria-hidden="true"
               className="absolute bottom-48 right-40 w-4 h-4 text-primary/20 animate-pulse delay-300"
             />
-            <HugeiconsIcon
-              icon={SparklesIcon}
+            <SparklesIcon
+              aria-hidden="true"
               className="absolute top-64 right-64 w-5 h-5 text-primary/20 animate-pulse delay-700"
             />
           </>
@@ -118,13 +117,13 @@ export function ConfirmationPage({
             <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
             <div className="relative bg-primary rounded-full p-6">
               {isScheduled ? (
-                <HugeiconsIcon
-                  icon={Calendar01Icon}
+                <CalendarIcon
+                  aria-hidden="true"
                   className="w-8 h-8 text-primary-foreground animate-bounce-in"
                 />
               ) : (
-                <HugeiconsIcon
-                  icon={CheckmarkCircle01Icon}
+                <CheckCircleIcon
+                  aria-hidden="true"
                   className="w-8 h-8 text-primary-foreground animate-bounce-in"
                 />
               )}
@@ -156,12 +155,10 @@ export function ConfirmationPage({
               {isScheduled ? (
                 <>
                   <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 rounded-lg p-3 mt-0.5">
-                      <HugeiconsIcon
-                        icon={Clock01Icon}
-                        className="w-5 h-5 text-primary"
-                      />
-                    </div>
+                    <ClockIcon
+                      aria-hidden="true"
+                      className="w-5 h-5 text-primary mt-0.5 shrink-0"
+                    />
                     <div className="flex-1">
                       <div className="font-semibold text-foreground mb-1">
                         Scheduled Date & Time
@@ -175,12 +172,10 @@ export function ConfirmationPage({
                   </div>
                   {timezone && (
                     <div className="flex items-start gap-4">
-                      <div className="bg-primary/10 rounded-lg p-3 mt-0.5">
-                        <HugeiconsIcon
-                          icon={Mail01Icon}
-                          className="w-5 h-5 text-primary"
-                        />
-                      </div>
+                      <EnvelopeIcon
+                        aria-hidden="true"
+                        className="w-5 h-5 text-primary mt-0.5 shrink-0"
+                      />
                       <div className="flex-1">
                         <div className="font-semibold text-foreground mb-1">
                           Timezone
@@ -192,12 +187,10 @@ export function ConfirmationPage({
                 </>
               ) : (
                 <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 rounded-lg p-3 mt-0.5">
-                    <HugeiconsIcon
-                      icon={Mail01Icon}
-                      className="w-5 h-5 text-primary"
-                    />
-                  </div>
+                  <EnvelopeIcon
+                    aria-hidden="true"
+                    className="w-5 h-5 text-primary mt-0.5 shrink-0"
+                  />
                   <div className="flex-1">
                     <div className="font-semibold text-foreground mb-1">
                       Sent Time
@@ -242,8 +235,8 @@ export function ConfirmationPage({
             <Button asChild size="lg" className="flex-1 group">
               <Link href={PRIVATE_ROUTES.DASHBOARD}>
                 View Dashboard
-                <HugeiconsIcon
-                  icon={ArrowRight01Icon}
+                <ArrowRightIcon
+                  aria-hidden="true"
                   className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1"
                 />
               </Link>

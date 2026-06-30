@@ -1,7 +1,6 @@
 "use client";
 
-import { ArrowUpDownIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowsUpDownIcon } from "@heroicons/react/24/outline";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { Button } from "@/ui/button";
@@ -49,7 +48,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Campaign Name
-          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
+          <ArrowsUpDownIcon aria-hidden="true" className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -81,7 +80,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Recipients
-          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
+          <ArrowsUpDownIcon aria-hidden="true" className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -104,7 +103,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Open Rate
-          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
+          <ArrowsUpDownIcon aria-hidden="true" className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -126,7 +125,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Click Rate
-          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
+          <ArrowsUpDownIcon aria-hidden="true" className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -148,7 +147,7 @@ export const columns: ColumnDef<Campaign>[] = [
           className="-ml-4 h-8 data-[state=open]:bg-accent"
         >
           Created
-          <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
+          <ArrowsUpDownIcon aria-hidden="true" className="ml-2 h-4 w-4" />
         </Button>
       );
     },

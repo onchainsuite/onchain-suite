@@ -1,8 +1,8 @@
 "use client";
 
-import { Mail01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -60,20 +60,17 @@ const Conversation = ({
 
   if (!selectedThreadId || !selectedThread) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-card/50 px-6">
-        <div className="w-full max-w-md rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-            <HugeiconsIcon
-              icon={Mail01Icon}
-              className="h-5 w-5"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="mt-4 text-lg font-semibold text-foreground">
+      <div className="flex flex-1 items-center justify-center px-6">
+        <div className="w-full max-w-md rounded-2xl border border-dashed border-border px-6 py-10 text-center">
+          <EnvelopeIcon
+            className="mx-auto h-6 w-6 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <div className="mt-3 text-sm font-medium text-foreground">
             Select a message
           </div>
-          <div className="mt-2 text-sm text-muted-foreground">
-            Choose a conversation from the list to view the thread and reply.
+          <div className="mt-1 text-sm text-muted-foreground">
+            Choose a conversation to view the thread and reply.
           </div>
         </div>
       </div>
@@ -81,7 +78,13 @@ const Conversation = ({
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <motion.div
+      key={selectedThreadId}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+    >
       <ConversationHeader thread={selectedThread} />
       <Thread thread={selectedThread} />
       <ReplyComposer
@@ -92,7 +95,7 @@ const Conversation = ({
         onSend={() => sendMutation.mutate()}
         isSending={sendMutation.isPending}
       />
-    </div>
+    </motion.div>
   );
 };
 

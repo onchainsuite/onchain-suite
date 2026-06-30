@@ -1,20 +1,19 @@
 "use client";
 
 import {
-  ArrowLeft01Icon,
-  BulbIcon,
-  CodeIcon,
-  HammerIcon,
-  Mail01Icon,
-  Notification01Icon,
-  RocketIcon,
-  Settings01Icon,
+  ArrowLeftIcon,
+  BellIcon,
+  BoltIcon,
+  CodeBracketIcon,
+  Cog6ToothIcon,
+  EnvelopeIcon,
+  LightBulbIcon,
+  RocketLaunchIcon,
   SparklesIcon,
-  Wrench01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  WrenchIcon,
+  WrenchScrewdriverIcon,
+} from "@heroicons/react/24/outline";
 import { motion, useAnimation } from "framer-motion";
-import { Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -48,15 +47,15 @@ export default function WorkInProgressPage({
   useEffect(() => {
     // Generate floating icons
     const icons = [
-      CodeIcon,
-      Settings01Icon,
-      HammerIcon,
-      BulbIcon,
-      RocketIcon,
-      Settings01Icon,
+      CodeBracketIcon,
+      Cog6ToothIcon,
+      WrenchIcon,
+      LightBulbIcon,
+      RocketLaunchIcon,
+      Cog6ToothIcon,
       SparklesIcon,
-      Wrench01Icon,
-      Zap,
+      WrenchScrewdriverIcon,
+      BoltIcon,
     ];
     const newFloatingIcons = [...Array(12)].map((_, i) => ({
       icon: icons[i % icons.length],
@@ -227,9 +226,9 @@ export default function WorkInProgressPage({
                 ease: "linear",
               }}
             >
-              <HugeiconsIcon
-                icon={Settings01Icon}
+              <Cog6ToothIcon
                 className="text-primary/60 h-16 w-16"
+                aria-hidden="true"
               />
             </motion.div>
 
@@ -242,9 +241,9 @@ export default function WorkInProgressPage({
                 ease: "linear",
               }}
             >
-              <HugeiconsIcon
-                icon={Settings01Icon}
+              <Cog6ToothIcon
                 className="text-primary/40 h-12 w-12"
+                aria-hidden="true"
               />
             </motion.div>
 
@@ -262,9 +261,9 @@ export default function WorkInProgressPage({
               }}
             >
               <div className="relative">
-                <HugeiconsIcon
-                  icon={RocketIcon}
+                <RocketLaunchIcon
                   className="text-primary h-20 w-20"
+                  aria-hidden="true"
                 />
                 {/* Rocket Trail */}
                 <motion.div
@@ -278,9 +277,9 @@ export default function WorkInProgressPage({
                     repeat: Number.POSITIVE_INFINITY,
                   }}
                 >
-                  <HugeiconsIcon
-                    icon={SparklesIcon}
+                  <SparklesIcon
                     className="h-8 w-8 text-yellow-500/60"
+                    aria-hidden="true"
                   />
                 </motion.div>
               </div>
@@ -298,9 +297,9 @@ export default function WorkInProgressPage({
                 ease: "easeInOut",
               }}
             >
-              <HugeiconsIcon
-                icon={HammerIcon}
+              <WrenchIcon
                 className="text-primary/50 h-10 w-10"
+                aria-hidden="true"
               />
             </motion.div>
 
@@ -316,9 +315,9 @@ export default function WorkInProgressPage({
                 delay: 1,
               }}
             >
-              <HugeiconsIcon
-                icon={Wrench01Icon}
+              <WrenchScrewdriverIcon
                 className="text-primary/50 h-8 w-8"
+                aria-hidden="true"
               />
             </motion.div>
 
@@ -361,7 +360,7 @@ export default function WorkInProgressPage({
                 variant="secondary"
                 className="bg-primary/10 text-primary border-primary/20 px-4 py-2 text-sm font-medium"
               >
-                <Zap className="mr-2 h-4 w-4" />
+                <BoltIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                 Work in Progress
               </Badge>
             </motion.div>
@@ -471,10 +470,7 @@ export default function WorkInProgressPage({
                       required
                     />
                     <Button type="submit" className="sm:w-auto">
-                      <HugeiconsIcon
-                        icon={Notification01Icon}
-                        className="mr-2 h-4 w-4"
-                      />
+                      <BellIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                       Notify Me
                     </Button>
                   </div>
@@ -490,9 +486,9 @@ export default function WorkInProgressPage({
                   transition={{ duration: 0.5 }}
                 >
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
-                    <HugeiconsIcon
-                      icon={Mail01Icon}
+                    <EnvelopeIcon
                       className="h-6 w-6 text-green-500"
+                      aria-hidden="true"
                     />
                   </div>
                   <p className="font-medium text-green-600">
@@ -515,17 +511,14 @@ export default function WorkInProgressPage({
             >
               <Button asChild variant="outline" size="lg">
                 <Link href="/">
-                  <HugeiconsIcon
-                    icon={ArrowLeft01Icon}
-                    className="mr-2 h-4 w-4"
-                  />
+                  <ArrowLeftIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                   Back to Home
                 </Link>
               </Button>
 
               <Button asChild size="lg">
                 <Link href="/features">
-                  <HugeiconsIcon icon={SparklesIcon} className="mr-2 h-4 w-4" />
+                  <SparklesIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                   Explore Features
                 </Link>
               </Button>

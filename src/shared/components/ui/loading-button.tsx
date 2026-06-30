@@ -1,7 +1,7 @@
 "use client";
 
+import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import { ArrowRight, type LucideIcon } from "lucide-react";
 import type React from "react";
 
 import { Button, type ButtonProps } from "@/ui/button";
@@ -10,7 +10,7 @@ interface LoadingButtonProps extends ButtonProps {
   isLoading: boolean;
   disabled?: boolean;
   children: React.ReactNode;
-  icon?: LucideIcon;
+  icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   loadingText?: string;
 }
 
@@ -18,7 +18,7 @@ export function LoadingButton({
   isLoading,
   disabled = false,
   children,
-  icon: Icon = ArrowRight,
+  icon: Icon = ArrowRightIcon,
   className = "",
   type = "submit",
   loadingText,
@@ -41,7 +41,7 @@ export function LoadingButton({
             repeat: Number.POSITIVE_INFINITY,
             ease: "linear",
           }}
-          className="h-5 w-5 rounded-full border-2 border-white border-t-transparent"
+          className="border-primary-foreground h-5 w-5 rounded-full border-2 border-t-transparent"
         />
       ) : (
         <>

@@ -1,32 +1,26 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { type LucideIcon } from "lucide-react";
-
-import { Logo } from "@/components/common";
+import { type ComponentType, type SVGProps } from "react";
 
 interface AuthHeaderProps {
-  icon?: LucideIcon;
+  icon?: ComponentType<SVGProps<SVGSVGElement>>;
   title: string;
   subtitle: string;
   delay?: number;
 }
 
-export function AuthHeader({ title, subtitle, delay = 0.1 }: AuthHeaderProps) {
+/**
+ * Terminal auth header — mono command eyebrow, thin Outfit title, mono subtitle.
+ * Matches the landing/terminal design system.
+ */
+export function AuthHeader({ title, subtitle }: AuthHeaderProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className="mb-8 text-center"
-    >
-      <div className="mb-4 flex items-center justify-center">
-        <motion.div whileHover={{ rotate: 5, scale: 1.05 }}>
-          <Logo />
-        </motion.div>
-      </div>
-      <h1 className="mb-2 text-2xl font-bold">{title}</h1>
-      <p className="text-muted-foreground">{subtitle}</p>
-    </motion.div>
+    <div className="mb-8">
+      <span className="os-auth-eyebrow">
+        <span className="font-mono">›_</span> onchainsuite
+      </span>
+      <h1 className="os-auth-title">{title}</h1>
+      <p className="os-auth-sub">{subtitle}</p>
+    </div>
   );
 }

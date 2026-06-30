@@ -1,4 +1,4 @@
-import { Zap } from "lucide-react";
+import { BoltIcon } from "@heroicons/react/24/outline";
 import { Handle, Position } from "reactflow";
 
 import { type AutomationNodeData } from "@/features/automation/types";
@@ -10,10 +10,10 @@ interface TriggerNodeProps {
 
 export const TriggerNode = ({ data, selected }: TriggerNodeProps) => (
   <div
-    className={`min-w-[296px] rounded-2xl border bg-card p-4 shadow-sm transition-all ${
+    className={`min-w-[320px] rounded-2xl border bg-card p-5 shadow-md transition-all ${
       selected
-        ? "border-sky-500/60 ring-2 ring-sky-500/25"
-        : "border-border hover:border-sky-500/40"
+        ? "border-sky-500/60 shadow-sky-500/10 ring-2 ring-sky-500/25"
+        : "border-border hover:-translate-y-0.5 hover:border-sky-500/40 hover:shadow-lg"
     }`}
   >
     <Handle
@@ -23,7 +23,10 @@ export const TriggerNode = ({ data, selected }: TriggerNodeProps) => (
     />
     <div className="flex items-center gap-3">
       <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-sky-500/20 bg-sky-500/10">
-        <Zap className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+        <BoltIcon
+          aria-hidden="true"
+          className="h-5 w-5 text-sky-600 dark:text-sky-400"
+        />
       </div>
       <div className="flex-1">
         <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-sky-600 dark:text-sky-400">

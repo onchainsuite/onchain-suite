@@ -9,6 +9,25 @@ export interface ProjectSettingsAddressRow {
   chain?: string;
   address: string;
   label?: string;
+  icon?: string | null;
+}
+
+/**
+ * A GoldRush-supported chain from
+ * `GET /organization/project-settings/supported-chains`. The settings chain
+ * pickers must be rendered from this (single source of truth) and store the
+ * `slug`, so `PUT /organization/project-settings` never returns
+ * `UNSUPPORTED_CHAINS`.
+ */
+export interface SupportedChain {
+  slug: string;
+  label: string;
+  family: string;
+  testnet: boolean;
+  foundational?: boolean;
+  streaming?: boolean;
+  streamingChainName?: string | null;
+  aliases?: string[];
 }
 
 export interface ProjectSettingsFormData {
@@ -88,6 +107,37 @@ const normalizeAddressRows = (
       } satisfies ProjectSettingsAddressRow;
     })
     .filter((row): row is ProjectSettingsAddressRow => Boolean(row));
+};
+
+const normalizeSupportedChains = (payload: unknown): SupportedChain[] => {
+  const root = unwrapData(payload);
+  const arr =
+    isJsonObject(root) && Array.isArray(root.chains)
+      ? root.chains
+      : Array.isArray(root)
+        ? root
+        : [];
+  return arr
+    .map((entry): SupportedChain | null => {
+      if (!isJsonObject(entry)) return null;
+      const slug = pickString(entry.slug, entry.chain, entry.name);
+      if (!slug) return null;
+      return {
+        slug,
+        label: pickString(entry.label, entry.name) || slug,
+        family: pickString(entry.family) || "evm",
+        testnet: Boolean(entry.testnet),
+        foundational:
+          typeof entry.foundational === "boolean"
+            ? entry.foundational
+            : undefined,
+        streaming:
+          typeof entry.streaming === "boolean" ? entry.streaming : undefined,
+        streamingChainName: pickString(entry.streamingChainName) || null,
+        aliases: toStringArray(entry.aliases),
+      };
+    })
+    .filter((c): c is SupportedChain => Boolean(c));
 };
 
 const normalizeLegacyOrganization = (
@@ -187,40 +237,81 @@ const sanitizeRows = (
     }));
 };
 
-const toSavePayload = (values: ProjectSettingsFormData) => ({
-  projectName: pickString(values.name),
-  billingEmail: pickString(values.email),
-  phone: pickString(values.phone),
-  taxId: pickString(values.taxId),
-  address: pickString(values.address),
-  timezone: pickString(values.timezone) || "UTC",
-  tokenTicker: pickString(values.tokenTicker),
-  primaryChains: toStringArray(values.primaryChains),
-  contractAddresses: sanitizeRows(values.contractAddresses, {
-    requireChain: true,
-  }),
-  treasuryWallets: sanitizeRows(values.treasuryWallets),
-  teamWallets: sanitizeRows(values.teamWallets),
-});
+// Only the fields the backend's project-settings schema accepts. `treasuryWallets`
+// and `teamWallets` were removed server-side, and empty optional scalars (e.g.
+// "" billingEmail / phone) fail validation — so omit anything empty and always
+// send the arrays (so the user can clear them).
+const toSavePayload = (values: ProjectSettingsFormData) => {
+  const payload: Record<string, unknown> = {
+    primaryChains: toStringArray(values.primaryChains),
+    contractAddresses: sanitizeRows(values.contractAddresses, {
+      requireChain: true,
+    }),
+  };
+  const optional: Array<[string, string]> = [
+    ["projectName", pickString(values.name)],
+    ["billingEmail", pickString(values.email)],
+    ["tokenTicker", pickString(values.tokenTicker)],
+    ["phone", pickString(values.phone)],
+    ["taxId", pickString(values.taxId)],
+    ["timezone", pickString(values.timezone)],
+    ["address", pickString(values.address)],
+  ];
+  for (const [key, value] of optional) {
+    if (value.length > 0) payload[key] = value;
+  }
+  return payload;
+};
+
+const messageFromObject = (
+  obj: Record<string, unknown>
+): string | undefined => {
+  // GoldRush chain rejection
+  if (
+    obj.code === "UNSUPPORTED_CHAINS" &&
+    Array.isArray(obj.unsupportedChains)
+  ) {
+    const bad = obj.unsupportedChains
+      .filter((c): c is string => typeof c === "string")
+      .join(", ");
+    if (bad) return `Unsupported chains: ${bad}`;
+  }
+  // Nest validation: message is often a string[] of field errors
+  if (Array.isArray(obj.message)) {
+    const parts = obj.message.filter((m): m is string => typeof m === "string");
+    if (parts.length > 0) return parts.join("; ");
+  }
+  if (typeof obj.message === "string" && obj.message.trim().length > 0) {
+    return obj.message;
+  }
+  return undefined;
+};
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
   const err = error as AxiosError<unknown>;
   const data = err.response?.data;
-  const nestedError =
-    isJsonObject(data) && isJsonObject(data.error) ? data.error : undefined;
-  const message = isJsonObject(nestedError)
-    ? nestedError.message
-    : isJsonObject(data)
-      ? data.message
-      : typeof data === "string"
-        ? data
-        : err.message;
+  let message: string | undefined;
+  if (isJsonObject(data)) {
+    if (isJsonObject(data.error)) message = messageFromObject(data.error);
+    message = message ?? messageFromObject(data);
+  } else if (typeof data === "string" && data.trim().length > 0) {
+    message = data;
+  }
+  message = message ?? err.message;
   return typeof message === "string" && message.trim().length > 0
     ? message
     : fallback;
 };
 
 export const projectSettingsService = {
+  async getSupportedChains(organizationId?: string): Promise<SupportedChain[]> {
+    const response = await apiClient.get(
+      "/organization/project-settings/supported-chains",
+      { headers: getHeaders(organizationId) }
+    );
+    return normalizeSupportedChains(response.data);
+  },
+
   async getProjectSettings(organizationId?: string) {
     try {
       const response = await apiClient.get("/organization/project-settings", {
@@ -256,10 +347,10 @@ export const projectSettingsService = {
       );
       const normalized = normalizeProjectSettings(response.data);
       return {
-        ...payload,
+        ...values,
         ...normalized,
-        name: normalized.name || payload.projectName,
-        email: normalized.email || payload.billingEmail,
+        name: normalized.name || pickString(values.name),
+        email: normalized.email || pickString(values.email),
       } satisfies ProjectSettingsFormData;
     } catch (error) {
       throw new Error(

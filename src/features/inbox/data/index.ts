@@ -1,4 +1,9 @@
-import { Archive, Inbox, Mail, Star } from "lucide-react";
+import {
+  ArchiveBoxIcon,
+  EnvelopeIcon,
+  InboxIcon,
+  StarIcon,
+} from "@heroicons/react/24/outline";
 
 type Email = {
   id: number;
@@ -173,8 +178,8 @@ export const emails: Email[] = [
 ];
 
 export const folders = [
-  { name: "All", count: 12, icon: Inbox },
-  { name: "Unread", count: 2, icon: Mail },
-  { name: "Starred", count: 2, icon: Star },
-  { name: "Archived", count: 5, icon: Archive },
+  { name: "All", count: 12, icon: InboxIcon },
+  { name: "Unread", count: 2, icon: EnvelopeIcon },
+  { name: "Starred", count: 2, icon: StarIcon },
+  { name: "Archived", count: 5, icon: ArchiveBoxIcon },
 ];

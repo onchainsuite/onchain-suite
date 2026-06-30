@@ -1,0 +1,504 @@
+/* =========================================================================
+   OnchainSuite landing v2 — light "paper + electric blue" design system.
+   Faithful to the reference (index.html): accent #1727E0, paper #FAFAF8,
+   Instrument Sans + JetBrains Mono. Everything is scoped under `.ocs2`.
+   ========================================================================= */
+
+.ocs2 {
+  --acc: #1727e0;
+  --acc-h: #1320b8;
+  --acc-soft: #eaf1fb;
+  --ok: #2bc48a;
+  --ok-deep: #16a34a;
+  --paper: #fafaf8;
+  --surface: #ffffff;
+  --ink: #1a1a17;
+  --ink-2: #3a3a34;
+  --muted: #51607a;
+  --muted-2: #8a93a6;
+  --line: #dce7f5;
+  --line-2: #e3ecf8;
+
+  --r-sm: 7px;
+  --r: 11px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+
+  --shadow-sm: 0 1px 2px rgba(26, 24, 20, 0.05);
+  --shadow: 0 1px 2px rgba(26, 24, 20, 0.05), 0 18px 50px -28px rgba(26, 24, 20, 0.18);
+  --shadow-acc: 0 1px 2px rgba(0, 0, 0, 0.08),
+    0 20px 60px -30px color-mix(in oklab, #1727e0 55%, transparent);
+
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+.ocs2 ::selection {
+  background: color-mix(in oklab, var(--acc) 22%, transparent);
+  color: var(--ink);
+}
+
+.ocs2 .mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "ss01";
+}
+
+/* ----- shared layout helpers ----- */
+.ocs2 .wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+.ocs2 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--acc);
+}
+.ocs2 .eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--acc);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--acc) 16%, transparent);
+}
+
+/* ----- tone + surface helpers (cut Tailwind arbitrary-value noise) ----- */
+.ocs2 .t-ink { color: var(--ink); }
+.ocs2 .t-ink2 { color: var(--ink-2); }
+.ocs2 .t-muted { color: var(--muted); }
+.ocs2 .t-muted2 { color: var(--muted-2); }
+.ocs2 .t-acc { color: var(--acc); }
+.ocs2 .t-ok { color: var(--ok-deep); }
+.ocs2 .surface { background: var(--surface); }
+.ocs2 .surface-soft { background: color-mix(in oklab, var(--acc) 4%, var(--surface)); }
+.ocs2 .bd { border: 1px solid var(--line); }
+.ocs2 .bd-2 { border: 1px solid var(--line-2); }
+.ocs2 .rule { background: var(--line); }
+.ocs2 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ----- gradient ink ----- */
+.ocs2 .grad {
+  background: linear-gradient(100deg, var(--ink) 0%, var(--ink) 38%, var(--acc) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* all-blue gradient (light → deep) for the rotating hero phrase */
+.ocs2 .grad-blue {
+  background: linear-gradient(100deg, #3d7bff 0%, #1f5cff 45%, #1320b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ----- buttons ----- */
+.ocs2 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  padding: 13px 20px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1), background 0.18s,
+    box-shadow 0.25s, border-color 0.18s, color 0.18s;
+  text-decoration: none;
+}
+.ocs2 .btn-primary {
+  background: var(--acc);
+  color: #fff;
+  box-shadow: var(--shadow-acc);
+}
+.ocs2 .btn-primary:hover {
+  background: var(--acc-h);
+  transform: translateY(-2px);
+}
+.ocs2 .btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.ocs2 .btn-ghost:hover {
+  border-color: color-mix(in oklab, var(--acc) 40%, var(--line));
+  transform: translateY(-2px);
+  color: var(--acc);
+}
+
+/* ----- cards ----- */
+.ocs2 .card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ----- animated grid + orbs backdrop ----- */
+.ocs2 .grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--acc) 7%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--acc) 7%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+  mask-image: radial-gradient(circle at 70% 18%, #000 0%, transparent 62%);
+  -webkit-mask-image: radial-gradient(circle at 70% 18%, #000 0%, transparent 62%);
+  animation: ocs2-grid 22s linear infinite;
+  pointer-events: none;
+}
+.ocs2 .orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(60px);
+  opacity: 0.5;
+  pointer-events: none;
+  animation: ocs2-float 16s ease-in-out infinite;
+}
+
+/* ----- marquee ----- */
+.ocs2 .marquee {
+  display: flex;
+  width: max-content;
+  animation: ocs2-marquee 32s linear infinite;
+}
+.ocs2 .marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+}
+.ocs2 .marquee-pause:hover .marquee {
+  animation-play-state: paused;
+}
+
+/* ----- shimmer line under "live" pills ----- */
+.ocs2 .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ok);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--ok) 60%, transparent);
+  animation: ocs2-pulse 1.8s ease-out infinite;
+}
+
+/* ----- range slider ----- */
+.ocs2 .ocs2-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+.ocs2 .ocs2-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #fff;
+  border: 3px solid var(--acc);
+  box-shadow: 0 2px 6px rgba(26, 24, 20, 0.18);
+  transition: transform 0.15s ease;
+}
+.ocs2 .ocs2-range::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+.ocs2 .ocs2-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #fff;
+  border: 3px solid var(--acc);
+  box-shadow: 0 2px 6px rgba(26, 24, 20, 0.18);
+}
+
+/* ----- keyframes ----- */
+@keyframes ocs2-grid {
+  to {
+    background-position: 56px 56px;
+  }
+}
+@keyframes ocs2-float {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -26px, 0) scale(1.06);
+  }
+}
+@keyframes ocs2-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes ocs2-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--ok) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes ocs2-sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  60%, 100% {
+    transform: translateX(220%);
+  }
+}
+
+/* sheen sweep used on hero product window */
+.ocs2 .sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.ocs2 .sheen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, #fff 65%, transparent),
+    transparent
+  );
+  transform: translateX(-120%);
+  animation: ocs2-sheen 6.5s ease-in-out 1.2s infinite;
+}
+
+/* ----- typing caret ----- */
+.ocs2 .ocs2-caret {
+  margin-left: 1px;
+  color: var(--acc);
+  animation: ocs2-caret 0.9s step-end infinite;
+}
+@keyframes ocs2-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ----- live activity feed (vertical auto-scroll) ----- */
+.ocs2 .vfeed {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%, #000 84%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 12%, #000 84%, transparent);
+}
+.ocs2 .vfeed-track {
+  animation: ocs2-vscroll 18s linear infinite;
+}
+.ocs2 .vfeed:hover .vfeed-track {
+  animation-play-state: paused;
+}
+@keyframes ocs2-vscroll {
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+/* ----- automation flow dot ----- */
+.ocs2 .flow-line {
+  position: relative;
+  background: var(--line);
+}
+.ocs2 .flow-dot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 999px;
+  background: var(--acc);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--acc) 18%, transparent);
+  animation: ocs2-flow 2.4s ease-in-out infinite;
+}
+@keyframes ocs2-flow {
+  0% {
+    top: -4px;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+/* ----- automations flow timeline (synced, period 3.2s) ----- */
+.ocs2 .auto-conn {
+  position: relative;
+  background: var(--line);
+}
+.ocs2 .auto-dot {
+  position: absolute;
+  left: 50%;
+  margin-left: -3.5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--acc);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--acc) 18%, transparent);
+}
+.ocs2 .auto-dot-main {
+  animation: ocs2-autodot-main 3.2s linear infinite;
+}
+.ocs2 .auto-dot-branch {
+  animation: ocs2-autodot-branch 3.2s linear infinite;
+}
+.ocs2 .auto-beep {
+  animation: ocs2-beep 3.2s ease-in-out infinite;
+}
+@keyframes ocs2-autodot-main {
+  0% {
+    top: -4px;
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  24% {
+    top: 100%;
+    opacity: 1;
+  }
+  28%,
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+@keyframes ocs2-autodot-branch {
+  0%,
+  34% {
+    top: -4px;
+    opacity: 0;
+  }
+  39% {
+    opacity: 1;
+  }
+  58% {
+    top: 100%;
+    opacity: 1;
+  }
+  62%,
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+/* the 'fired' badge only flashes briefly when the dot arrives, then hides */
+@keyframes ocs2-beep {
+  0%,
+  56% {
+    opacity: 0;
+    transform: scale(0.85);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1.18);
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--ok) 24%, transparent);
+  }
+  72% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  86%,
+  100% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+/* ----- skeleton shimmer ----- */
+.ocs2 .skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--line-2);
+  border-radius: 8px;
+}
+.ocs2 .skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, #fff 55%, transparent),
+    transparent
+  );
+  animation: ocs2-skel 1.25s ease-in-out infinite;
+}
+@keyframes ocs2-skel {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocs2 .grid-bg,
+  .ocs2 .orb,
+  .ocs2 .marquee,
+  .ocs2 .live-dot,
+  .ocs2 .sheen::after,
+  .ocs2 .vfeed-track,
+  .ocs2 .flow-dot,
+  .ocs2 .auto-dot-main,
+  .ocs2 .auto-dot-branch,
+  .ocs2 .auto-beep,
+  .ocs2 .skel::after {
+    animation: none !important;
+  }
+  .ocs2 .auto-beep {
+    opacity: 1 !important;
+  }
+}

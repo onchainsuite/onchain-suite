@@ -1,5 +1,4 @@
-import { Loading02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import React, { useState } from "react";
 
@@ -104,9 +103,9 @@ const ColorPicker = ({
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {saving ? (
-              <HugeiconsIcon
-                icon={Loading02Icon}
+              <ArrowPathIcon
                 className="mr-2 h-4 w-4 animate-spin"
+                aria-hidden="true"
               />
             ) : null}
             Save color

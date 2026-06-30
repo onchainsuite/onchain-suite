@@ -23,6 +23,8 @@ export interface CampaignCalendarItem {
 export interface CampaignAudienceSelection {
   listIds: string[];
   segmentIds: string[];
+  /** Explicit profile/contact ids — backend requires the key to be an array. */
+  profileIds?: string[];
 }
 
 export interface CampaignAudienceEstimate {
@@ -338,8 +340,15 @@ export const campaignsService = {
   },
 
   setAudience(id: string, body: CampaignAudienceSelection, orgId?: string) {
+    // The backend DTO requires `profileIds` to be present as an array (of
+    // strings) even when targeting only lists/segments.
+    const payload = {
+      listIds: Array.isArray(body.listIds) ? body.listIds : [],
+      segmentIds: Array.isArray(body.segmentIds) ? body.segmentIds : [],
+      profileIds: Array.isArray(body.profileIds) ? body.profileIds : [],
+    };
     return request<{ success?: boolean }>(
-      { method: "PUT", url: `/campaigns/${id}/audience`, data: body },
+      { method: "PUT", url: `/campaigns/${id}/audience`, data: payload },
       orgId
     );
   },

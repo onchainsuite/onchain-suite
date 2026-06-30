@@ -1,10 +1,9 @@
 "use client";
 import {
-  ArrowDown01Icon,
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 import * as React from "react";
 import {
   type DayButton,
@@ -143,9 +142,9 @@ function Calendar({
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <HugeiconsIcon
-                icon={ArrowLeft01Icon}
+              <ChevronLeftIcon
                 className={cn("size-4", className)}
+                aria-hidden="true"
                 {...props}
               />
             );
@@ -153,18 +152,18 @@ function Calendar({
 
           if (orientation === "right") {
             return (
-              <HugeiconsIcon
-                icon={ArrowRight01Icon}
+              <ChevronRightIcon
                 className={cn("size-4", className)}
+                aria-hidden="true"
                 {...props}
               />
             );
           }
 
           return (
-            <HugeiconsIcon
-              icon={ArrowDown01Icon}
+            <ChevronDownIcon
               className={cn("size-4", className)}
+              aria-hidden="true"
               {...props}
             />
           );

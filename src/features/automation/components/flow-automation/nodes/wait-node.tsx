@@ -1,5 +1,4 @@
-import { Clock01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ClockIcon } from "@heroicons/react/24/outline";
 import { Handle, Position } from "reactflow";
 
 import { type AutomationNodeData } from "@/features/automation/types";
@@ -11,10 +10,10 @@ interface WaitNodeProps {
 
 export const WaitNode = ({ data, selected }: WaitNodeProps) => (
   <div
-    className={`min-w-[220px] rounded-2xl border bg-card p-4 shadow-sm transition-all ${
+    className={`min-w-[244px] rounded-2xl border bg-card p-5 shadow-md transition-all ${
       selected
-        ? "border-violet-500/60 ring-2 ring-violet-500/25"
-        : "border-border hover:border-violet-500/40"
+        ? "border-violet-500/60 shadow-violet-500/10 ring-2 ring-violet-500/25"
+        : "border-border hover:-translate-y-0.5 hover:border-violet-500/40 hover:shadow-lg"
     }`}
   >
     <Handle
@@ -29,8 +28,8 @@ export const WaitNode = ({ data, selected }: WaitNodeProps) => (
     />
     <div className="flex items-center gap-3">
       <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10">
-        <HugeiconsIcon
-          icon={Clock01Icon}
+        <ClockIcon
+          aria-hidden="true"
           className="h-5 w-5 text-violet-600 dark:text-violet-400"
         />
       </div>

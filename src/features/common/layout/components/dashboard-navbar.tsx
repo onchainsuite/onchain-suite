@@ -1,6 +1,5 @@
 "use client";
-import { LockIcon, SquareUnlock01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -179,9 +178,9 @@ export function DashboardNavbar({
             title="Lock sidebar"
           >
             {isLocked ? (
-              <HugeiconsIcon icon={LockIcon} className="h-4 w-4" />
+              <LockClosedIcon className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <HugeiconsIcon icon={SquareUnlock01Icon} className="h-4 w-4" />
+              <LockOpenIcon className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
           <div className={cn("flex items-center gap-2")}>

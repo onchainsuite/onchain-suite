@@ -1,10 +1,9 @@
 "use client";
 import {
-  ArrowDown01Icon,
-  GlobeIcon,
+  ChevronDownIcon,
+  GlobeAltIcon,
   UserIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 
 import { Logo } from "@/components/common";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -42,10 +41,10 @@ export function LayoutHeader() {
                 size="sm"
                 className="flex items-center gap-1 px-2 sm:gap-2 sm:px-3"
               >
-                <HugeiconsIcon icon={GlobeIcon} className="h-4 w-4" />
+                <GlobeAltIcon aria-hidden="true" className="h-4 w-4" />
                 <span className="xs:inline hidden">EN</span>
-                <HugeiconsIcon
-                  icon={ArrowDown01Icon}
+                <ChevronDownIcon
+                  aria-hidden="true"
                   className="h-3 w-3 sm:h-4 sm:w-4"
                 />
               </Button>
@@ -84,8 +83,8 @@ export function LayoutHeader() {
                     : userEmail}
                 </span>
 
-                <HugeiconsIcon
-                  icon={ArrowDown01Icon}
+                <ChevronDownIcon
+                  aria-hidden="true"
                   className="h-3 w-3 sm:h-4 sm:w-4"
                 />
               </Button>
@@ -95,7 +94,7 @@ export function LayoutHeader() {
                 {userEmail}
               </div>
               <DropdownMenuItem>
-                <HugeiconsIcon icon={UserIcon} className="mr-2 h-4 w-4" />
+                <UserIcon aria-hidden="true" className="mr-2 h-4 w-4" />
                 Account Settings
               </DropdownMenuItem>
               <DropdownMenuItem>Sign Out</DropdownMenuItem>

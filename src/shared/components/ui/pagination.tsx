@@ -1,9 +1,8 @@
 import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  MoreHorizontalIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  EllipsisHorizontalIcon,
+} from "@heroicons/react/24/outline";
 import * as React from "react";
 
 import { type Button, buttonVariants } from "@/components/ui/button";
@@ -82,7 +81,7 @@ function PaginationPrevious({
       className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
-      <HugeiconsIcon icon={ArrowLeft01Icon} />
+      <ChevronLeftIcon className="size-4" aria-hidden="true" />
       <span className="hidden sm:block">Previous</span>
     </PaginationLink>
   );
@@ -100,7 +99,7 @@ function PaginationNext({
       {...props}
     >
       <span className="hidden sm:block">Next</span>
-      <HugeiconsIcon icon={ArrowRight01Icon} />
+      <ChevronRightIcon className="size-4" aria-hidden="true" />
     </PaginationLink>
   );
 }
@@ -116,7 +115,7 @@ function PaginationEllipsis({
       className={cn("flex size-9 items-center justify-center", className)}
       {...props}
     >
-      <HugeiconsIcon icon={MoreHorizontalIcon} className="size-4" />
+      <EllipsisHorizontalIcon className="size-4" aria-hidden="true" />
       <span className="sr-only">More pages</span>
     </span>
   );

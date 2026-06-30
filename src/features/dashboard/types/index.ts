@@ -1,10 +1,10 @@
-import { type LucideIcon } from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
 
 export interface Activity {
   time: string;
   message: string;
   type: "r3tain" | "3ridge" | "onch3n";
-  icon: LucideIcon;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 export interface SetupData {

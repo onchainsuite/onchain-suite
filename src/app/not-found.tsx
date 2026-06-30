@@ -1,54 +1,57 @@
-"use client";
+import { ArrowLeftIcon, HomeIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
-import { useEffect, useState } from "react";
-
-import {
-  MobileOptimizedNotFound,
-  NotFoundPage,
-} from "@/components/meta-components";
-
+/**
+ * Terminal 404 — deep-navy canvas, blueprint grid, a "command not found"
+ * terminal window, and two CLI-style actions. Matches the OnchainSuite terminal
+ * design system (see design.md). Server component.
+ */
 export default function NotFound() {
-  const [isMobile, setIsMobile] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  return (
+    <div className="os-404">
+      <div className="os-404-inner">
+        <div className="os-404-glyph">404</div>
 
-  useEffect(() => {
-    setIsClient(true);
+        <div className="os-404-term">
+          <div className="os-404-term-bar">
+            <i />
+            <i />
+            <i />
+            <span>onchainsuite@node-01: ~</span>
+          </div>
+          <div className="os-404-term-body">
+            <div>
+              <span className="p">onchainsuite@node-01:~$</span> cd{" "}
+              <span className="c">{"<this-page>"}</span>
+            </div>
+            <div className="e">✗ error: route not found (exit 404)</div>
+            <div className="s">
+              the page you&apos;re looking for doesn&apos;t exist or has moved.
+            </div>
+            <div>
+              <span className="p">onchainsuite@node-01:~$</span>{" "}
+              <span className="os-404-cursor" />
+            </div>
+          </div>
+        </div>
 
-    const checkMobile = () => {
-      const mobile =
-        window.innerWidth < 768 ||
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        );
-      setIsMobile(mobile);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Show simple fallback during SSR
-  if (!isClient) {
-    return (
-      <div className="from-background to-primary/5 flex min-h-screen items-center justify-center bg-linear-to-br p-4">
-        <div className="text-center">
-          <div className="text-primary mb-4 text-6xl font-black">404</div>
-          <h1 className="mb-4 text-2xl font-bold">Page Not Found</h1>
-          <p className="text-muted-foreground">
-            The page you&apos;re looking for doesn&apos;t exist.
-          </p>
+        <div className="os-404-actions">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 border border-[#00e5ff] bg-[#00e5ff] px-6 py-3 font-mono text-sm text-[#00121a] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#80f2ff] hover:shadow-[6px_6px_0_rgba(0,229,255,0.3)]"
+          >
+            <HomeIcon className="h-4 w-4" aria-hidden="true" />
+            cd ~ (home)
+          </Link>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 border border-[rgba(0,229,255,0.25)] px-6 py-3 font-mono text-sm text-[#e8edf5] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:border-[#00e5ff] hover:text-[#00e5ff] hover:shadow-[4px_4px_0_rgba(0,229,255,0.15)]"
+          >
+            <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+            back to dashboard
+          </Link>
         </div>
       </div>
-    );
-  }
-
-  // Render mobile-optimized version for mobile devices
-  if (isMobile) {
-    return <MobileOptimizedNotFound />;
-  }
-
-  // Render full version for desktop
-  return <NotFoundPage />;
+    </div>
+  );
 }

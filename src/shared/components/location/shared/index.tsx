@@ -1,5 +1,4 @@
-import { Refresh01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
 import { cn } from "@/lib/utils";
 
@@ -19,10 +18,10 @@ export const ErrorDisplay = ({
   isFetching: boolean;
 }) => (
   <div className="flex items-center gap-2">
-    <HugeiconsIcon
-      icon={Refresh01Icon}
+    <ArrowPathIcon
       className={cn("h-4 w-4 cursor-pointer", isFetching && "animate-spin")}
       onClick={onRetry}
+      aria-hidden="true"
     />
     <span className="text-destructive">Failed to load</span>
   </div>

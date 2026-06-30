@@ -1,22 +1,23 @@
 "use client";
 
 import {
-  Add01Icon,
-  AlertCircleIcon,
-  ArrowLeft01Icon,
-  Clock01Icon,
-  Link02Icon,
-  Mail01Icon,
-  Refresh01Icon,
-  RotateLeft01Icon,
-  Search01Icon,
-  Wallet01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  ArrowUturnLeftIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  EnvelopeIcon,
+  ExclamationCircleIcon,
+  LinkIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  WalletIcon,
+} from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+
+import { PageHeader } from "@/shared/components/page/page-header";
 
 const synthesisQueue = [
   {
@@ -79,26 +80,28 @@ export default function SynthesisPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
-        return <CheckCircle2 className="h-4 w-4 text-primary" />;
+        return (
+          <CheckCircleIcon
+            className="h-4 w-4 text-primary"
+            aria-hidden="true"
+          />
+        );
       case "processing":
         return (
-          <HugeiconsIcon
-            icon={Refresh01Icon}
+          <ArrowPathIcon
             className="h-4 w-4 animate-spin text-secondary"
+            aria-hidden="true"
           />
         );
       case "pending":
         return (
-          <HugeiconsIcon
-            icon={Clock01Icon}
-            className="h-4 w-4 text-amber-500"
-          />
+          <ClockIcon className="h-4 w-4 text-amber-500" aria-hidden="true" />
         );
       default:
         return (
-          <HugeiconsIcon
-            icon={AlertCircleIcon}
+          <ExclamationCircleIcon
             className="h-4 w-4 text-destructive"
+            aria-hidden="true"
           />
         );
     }
@@ -137,191 +140,172 @@ export default function SynthesisPage() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="flex min-h-screen gap-2 bg-background p-2 md:gap-4 md:p-4"
-    >
-      <main className="flex-1 py-10">
-        {/* Header */}
-        <div className="mb-8 px-2 pt-4 md:px-0 md:pt-6">
-          <Link
-            href="/audience"
-            className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+    <div className="space-y-6">
+      <Link
+        href="/audience"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+        Back to Audience
+      </Link>
+
+      <PageHeader
+        title="Wallet-Email Synthesis"
+        description="Connect wallet addresses with email identities into unified profiles."
+        actions={
+          <>
+            <button
+              onClick={handleRerunMatching}
+              disabled={isRerunning}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+            >
+              <ArrowUturnLeftIcon
+                className={`h-4 w-4 ${isRerunning ? "animate-spin" : ""}`}
+                aria-hidden="true"
+              />
+              <span className="hidden sm:inline">
+                {isRerunning ? "Re-running..." : "Re-run matching"}
+              </span>
+            </button>
+            <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+              <PlusIcon className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">New Synthesis</span>
+            </button>
+          </>
+        }
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Total", value: stats.total, color: "text-foreground" },
+          {
+            label: "Completed",
+            value: stats.completed,
+            color: "text-primary",
+          },
+          {
+            label: "Processing",
+            value: stats.processing,
+            color: "text-secondary",
+          },
+          { label: "Failed", value: stats.failed, color: "text-destructive" },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/20"
           >
-            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
-            Back to Audience
-          </Link>
-
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-                Wallet-Email Synthesis
-              </h1>
-              <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                Connect blockchain wallet addresses with email identities to
-                create unified customer profiles.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleRerunMatching}
-                disabled={isRerunning}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-              >
-                <HugeiconsIcon
-                  icon={RotateLeft01Icon}
-                  className={`h-4 w-4 ${isRerunning ? "animate-spin" : ""}`}
-                />
-                <span className="hidden sm:inline">
-                  {isRerunning ? "Re-running..." : "Re-run matching"}
-                </span>
-              </button>
-              <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
-                <span className="hidden sm:inline">New Synthesis</span>
-              </button>
-            </div>
+            <p className="text-sm text-muted-foreground">{stat.label}</p>
+            <p className={`text-2xl font-semibold ${stat.color}`}>
+              {stat.value}
+            </p>
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Stats */}
-        <div className="mx-2 mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 md:mx-0">
-          {[
-            { label: "Total", value: stats.total, color: "text-foreground" },
-            {
-              label: "Completed",
-              value: stats.completed,
-              color: "text-primary",
-            },
-            {
-              label: "Processing",
-              value: stats.processing,
-              color: "text-secondary",
-            },
-            { label: "Failed", value: stats.failed, color: "text-destructive" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-lg border border-border bg-card p-4 shadow-md transition-all hover:shadow-lg"
+      {/* Search and Filter */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <MagnifyingGlassIcon
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <input
+            type="text"
+            placeholder="Search by email or wallet..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
+        <div className="flex gap-2">
+          {(
+            ["all", "completed", "processing", "pending", "failed"] as const
+          ).map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`rounded-lg px-3 py-2 text-sm capitalize transition-colors ${
+                filter === status
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card text-foreground hover:bg-accent"
+              }`}
             >
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <p className={`text-2xl font-semibold ${stat.color}`}>
-                {stat.value}
-              </p>
-            </div>
+              {status}
+            </button>
           ))}
         </div>
+      </div>
 
-        {/* Search and Filter */}
-        <div className="mx-2 mb-6 flex flex-col gap-3 sm:flex-row sm:items-center md:mx-0">
-          <div className="relative flex-1">
-            <HugeiconsIcon
-              icon={Search01Icon}
-              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <input
-              type="text"
-              placeholder="Search by email or wallet..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <div className="flex gap-2">
-            {(
-              ["all", "completed", "processing", "pending", "failed"] as const
-            ).map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`rounded-lg px-3 py-2 text-sm capitalize transition-colors ${
-                  filter === status
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border bg-card text-foreground hover:bg-accent"
-                }`}
-              >
-                {status}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Queue */}
-        <div className="mx-2 space-y-4 md:mx-0">
-          {filteredQueue.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 shadow-md transition-all hover:bg-emerald-500/5 hover:shadow-lg sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                    <HugeiconsIcon
-                      icon={Mail01Icon}
-                      className="h-5 w-5 text-primary"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">{item.email}</p>
-                    <p className="text-xs text-muted-foreground">{item.date}</p>
-                  </div>
-                </div>
-
-                <HugeiconsIcon
-                  icon={Link02Icon}
-                  className="hidden h-4 w-4 text-muted-foreground sm:block"
+      {/* Queue */}
+      <div className="space-y-3">
+        {filteredQueue.map((item, index) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: index * 0.04 }}
+            className="flex flex-col gap-4 rounded-xl border border-border bg-card p-6 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+              <div className="flex items-center gap-3">
+                <EnvelopeIcon
+                  className="h-5 w-5 shrink-0 text-primary"
+                  aria-hidden="true"
                 />
-
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                    <HugeiconsIcon
-                      icon={Wallet01Icon}
-                      className="h-5 w-5 text-muted-foreground"
-                    />
-                  </div>
-                  <code className="rounded bg-muted px-2 py-1 text-sm text-foreground">
-                    {item.wallet}
-                  </code>
+                <div>
+                  <p className="font-medium text-foreground">{item.email}</p>
+                  <p className="text-xs text-muted-foreground">{item.date}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                {item.matchScore && (
-                  <span className="text-sm font-medium text-green-500">
-                    {item.matchScore}% match
-                  </span>
-                )}
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium capitalize ${getStatusBadge(item.status)}`}
-                >
-                  {getStatusIcon(item.status)}
-                  {item.status}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              <LinkIcon
+                className="hidden h-4 w-4 text-muted-foreground sm:block"
+                aria-hidden="true"
+              />
 
-        {filteredQueue.length === 0 && (
-          <div className="mx-2 flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16 md:mx-0">
-            <HugeiconsIcon
-              icon={Link02Icon}
-              className="mb-4 h-12 w-12 text-muted-foreground"
-            />
-            <p className="text-lg font-medium text-foreground">
-              No synthesis jobs found
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Start a new synthesis to match wallets with emails
-            </p>
-          </div>
-        )}
-      </main>
-    </motion.div>
+              <div className="flex items-center gap-3">
+                <WalletIcon
+                  className="h-5 w-5 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <code className="rounded bg-muted px-2 py-1 text-sm text-foreground">
+                  {item.wallet}
+                </code>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {item.matchScore && (
+                <span className="text-sm font-medium text-primary">
+                  {item.matchScore}% match
+                </span>
+              )}
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium capitalize ${getStatusBadge(item.status)}`}
+              >
+                {getStatusIcon(item.status)}
+                {item.status}
+              </span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {filteredQueue.length === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
+          <LinkIcon
+            className="mb-4 h-10 w-10 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <p className="text-lg font-medium text-foreground">
+            No synthesis jobs found
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Start a new synthesis to match wallets with emails
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

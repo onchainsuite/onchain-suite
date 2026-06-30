@@ -1,6 +1,5 @@
 "use client";
-import { ArrowUp01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronUpIcon } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/ui/button";
@@ -36,7 +35,7 @@ export const BackToTop = () => {
           className="animate-fade-in fixed right-8 bottom-8 z-50 rounded-full shadow-lg transition-transform hover:scale-110"
           onClick={scrollToTop}
         >
-          <HugeiconsIcon icon={ArrowUp01Icon} className="h-5 w-5" />
+          <ChevronUpIcon className="h-5 w-5" aria-hidden="true" />
         </Button>
       )}
     </>

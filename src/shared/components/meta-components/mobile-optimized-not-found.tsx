@@ -1,11 +1,10 @@
 "use client";
 
 import {
-  ArrowLeft01Icon,
-  Home01Icon,
-  Search01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowLeftIcon,
+  HomeIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -34,7 +33,7 @@ export default function MobileOptimizedNotFound() {
           </p>
           <Link href={publicRoutes.HOME}>
             <Button className="w-full">
-              <HugeiconsIcon icon={Home01Icon} className="mr-2 h-4 w-4" />
+              <HomeIcon className="mr-2 h-4 w-4" aria-hidden="true" />
               Back to Home
             </Button>
           </Link>
@@ -108,11 +107,11 @@ export default function MobileOptimizedNotFound() {
             className="mb-8 space-y-3"
           >
             <Button size="lg" className="group w-full">
-              <HugeiconsIcon icon={Home01Icon} className="mr-2 h-4 w-4" />
+              <HomeIcon className="mr-2 h-4 w-4" aria-hidden="true" />
               Back to Home
             </Button>
             <Button variant="outline" size="lg" className="group w-full">
-              <HugeiconsIcon icon={ArrowLeft01Icon} className="mr-2 h-4 w-4" />
+              <ArrowLeftIcon className="mr-2 h-4 w-4" aria-hidden="true" />
               Go Back
             </Button>
           </motion.div>
@@ -128,9 +127,9 @@ export default function MobileOptimizedNotFound() {
               Or search for what you need:
             </p>
             <div className="relative">
-              <HugeiconsIcon
-                icon={Search01Icon}
+              <MagnifyingGlassIcon
                 className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform"
+                aria-hidden="true"
               />
               <input
                 type="text"

@@ -1,7 +1,6 @@
 "use client";
 
-import { Loading02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import type { IconType } from "react-icons";
 import { FcGoogle } from "react-icons/fc";
@@ -60,9 +59,9 @@ export function OAuthButtons({
             >
               {isLoading ? (
                 <>
-                  <HugeiconsIcon
-                    icon={Loading02Icon}
-                    className="mr-3 h-5 w-5 animate-spin text-gray-500"
+                  <ArrowPathIcon
+                    aria-hidden="true"
+                    className="text-muted-foreground mr-3 h-5 w-5 animate-spin"
                   />
                   Signing in...
                 </>

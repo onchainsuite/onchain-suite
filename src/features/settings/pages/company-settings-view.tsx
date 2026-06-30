@@ -1,20 +1,18 @@
 "use client";
 
 import {
-  Add01Icon,
-  ArrowRight01Icon,
-  ColorPickerIcon,
-  Key02Icon,
-  Loading02Icon,
-  MailAdd01Icon,
-  Refresh01Icon,
-  Tick01Icon,
+  ArrowPathIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  EnvelopeIcon,
+  GlobeAltIcon,
+  KeyIcon,
+  PlusIcon,
+  SwatchIcon,
   UserGroupIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Globe2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -821,8 +819,8 @@ const LogoTile = ({
           <div className="text-sm font-medium text-foreground">{label}</div>
           <div className="mt-1 text-xs text-muted-foreground">{spec}</div>
         </div>
-        <HugeiconsIcon
-          icon={ArrowRight01Icon}
+        <ChevronRightIcon
+          aria-hidden="true"
           className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground"
         />
       </div>
@@ -1258,7 +1256,7 @@ export default function CompanySettingsView() {
         <SettingsSectionCard
           title="Branding"
           description="Customize your brand appearance across all touchpoints."
-          icon={<HugeiconsIcon icon={ColorPickerIcon} className="h-5 w-5" />}
+          icon={<SwatchIcon aria-hidden="true" className="h-5 w-5" />}
           badge="Brand kit"
         >
           <section className="space-y-4">
@@ -1293,7 +1291,7 @@ export default function CompanySettingsView() {
         <SettingsSectionCard
           title="Sender verification"
           description="Verify domains and set up sender infrastructure for branded organization sending."
-          icon={<HugeiconsIcon icon={Key02Icon} className="h-5 w-5" />}
+          icon={<KeyIcon aria-hidden="true" className="h-5 w-5" />}
           badge={
             domainSummary.pending > 0
               ? `${domainSummary.pending} pending`
@@ -1308,7 +1306,7 @@ export default function CompanySettingsView() {
                 onClick={() => setAddDomainOpen(true)}
                 disabled={!organizationId || !canManageSenderIdentities}
               >
-                <Globe2 className="mr-2 h-4 w-4" />
+                <GlobeAltIcon aria-hidden="true" className="mr-2 h-4 w-4" />
                 Add domain
               </Button>
               <Button
@@ -1317,7 +1315,7 @@ export default function CompanySettingsView() {
                 onClick={() => setAddSenderOpen(true)}
                 disabled={!organizationId || !canManageSenderIdentities}
               >
-                <HugeiconsIcon icon={Add01Icon} className="mr-2 h-4 w-4" />
+                <PlusIcon aria-hidden="true" className="mr-2 h-4 w-4" />
                 Add sender identity
               </Button>
             </div>
@@ -1432,13 +1430,13 @@ export default function CompanySettingsView() {
                             }
                           >
                             {recheckDomainMutation.isPending ? (
-                              <HugeiconsIcon
-                                icon={Loading02Icon}
+                              <ArrowPathIcon
+                                aria-hidden="true"
                                 className="mr-2 h-3.5 w-3.5 animate-spin"
                               />
                             ) : (
-                              <HugeiconsIcon
-                                icon={Refresh01Icon}
+                              <ArrowPathIcon
+                                aria-hidden="true"
                                 className="mr-2 h-3.5 w-3.5"
                               />
                             )}
@@ -1571,13 +1569,13 @@ export default function CompanySettingsView() {
                             }
                           >
                             {recheckSenderMutation.isPending ? (
-                              <HugeiconsIcon
-                                icon={Loading02Icon}
+                              <ArrowPathIcon
+                                aria-hidden="true"
                                 className="mr-2 h-3.5 w-3.5 animate-spin"
                               />
                             ) : (
-                              <HugeiconsIcon
-                                icon={Refresh01Icon}
+                              <ArrowPathIcon
+                                aria-hidden="true"
                                 className="mr-2 h-3.5 w-3.5"
                               />
                             )}
@@ -1596,7 +1594,7 @@ export default function CompanySettingsView() {
         <SettingsSectionCard
           title="Team members"
           description="Manage team access, sender access, and member roles."
-          icon={<HugeiconsIcon icon={UserGroupIcon} className="h-5 w-5" />}
+          icon={<UserGroupIcon aria-hidden="true" className="h-5 w-5" />}
           badge={`${teamSummary.activeMembers} active members`}
         >
           <div className="space-y-5">
@@ -1704,8 +1702,8 @@ export default function CompanySettingsView() {
                           }
                         >
                           {member.twoFactorEnabled ? (
-                            <HugeiconsIcon
-                              icon={Tick01Icon}
+                            <CheckIcon
+                              aria-hidden="true"
                               className="h-3.5 w-3.5"
                             />
                           ) : member.twoFactorEnabled === null ? (
@@ -1832,12 +1830,12 @@ export default function CompanySettingsView() {
               }
             >
               {addSenderMutation.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="mr-2 h-4 w-4 animate-spin"
                 />
               ) : (
-                <HugeiconsIcon icon={MailAdd01Icon} className="mr-2 h-4 w-4" />
+                <EnvelopeIcon aria-hidden="true" className="mr-2 h-4 w-4" />
               )}
               Add sender identity
             </Button>
@@ -1880,12 +1878,12 @@ export default function CompanySettingsView() {
               }
             >
               {addDomainMutation.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="mr-2 h-4 w-4 animate-spin"
                 />
               ) : (
-                <Globe2 className="mr-2 h-4 w-4" />
+                <GlobeAltIcon aria-hidden="true" className="mr-2 h-4 w-4" />
               )}
               Add domain
             </Button>
@@ -2098,8 +2096,8 @@ export default function CompanySettingsView() {
               }}
             >
               {autoConfigureDomainDnsMutation.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="mr-2 h-4 w-4 animate-spin"
                 />
               ) : null}
@@ -2117,12 +2115,12 @@ export default function CompanySettingsView() {
               }}
             >
               {recheckDomainMutation.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="mr-2 h-4 w-4 animate-spin"
                 />
               ) : (
-                <HugeiconsIcon icon={Refresh01Icon} className="mr-2 h-4 w-4" />
+                <ArrowPathIcon aria-hidden="true" className="mr-2 h-4 w-4" />
               )}
               Recheck domain
             </Button>

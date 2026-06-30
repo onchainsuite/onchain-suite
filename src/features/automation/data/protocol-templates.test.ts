@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildProtocolAutomation,
   buildTemplateGraph,
+  type ProtocolTemplate,
   protocolTemplateFamilies,
   protocolTemplates,
   protocolTemplatesByFamily,
-  type ProtocolTemplate,
 } from "./protocol-templates";
 
 describe("protocol templates catalog", () => {
@@ -30,7 +30,9 @@ describe("protocol templates catalog", () => {
 });
 
 describe("buildTemplateGraph", () => {
-  const linear = protocolTemplates.find((t) => t.id === "bridge-welcome-series")!;
+  const linear = protocolTemplates.find(
+    (t) => t.id === "bridge-welcome-series"
+  )!;
 
   it("produces a node per linear step and connects them sequentially", () => {
     const graph = buildTemplateGraph(linear, 1);
@@ -84,7 +86,10 @@ describe("buildProtocolAutomation", () => {
 
     expect(body.name).toBe(template.name);
     expect(body.description).toBe(template.description);
-    expect(body.trigger).toMatchObject({ type: expect.any(String), event: expect.any(String) });
+    expect(body.trigger).toMatchObject({
+      type: expect.any(String),
+      event: expect.any(String),
+    });
 
     const builder = body.builder as { nodes: unknown[]; edges: unknown[] };
     expect(Array.isArray(builder.nodes)).toBe(true);

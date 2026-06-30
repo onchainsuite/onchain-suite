@@ -12,9 +12,16 @@ export type IntelligenceQueryStatus =
 export interface IntelligenceQueryRunResponse {
   queryId: string;
   status: IntelligenceQueryStatus;
-  resultSummary?: string;
+  resultSummary?: string | null;
   provider?: string;
-  columns?: Array<{ name: string; type?: string }>;
+  // Backend contract: columns are { key, label?, type? }. `name` kept for
+  // backward-compat with older responses.
+  columns?: Array<{
+    key?: string;
+    name?: string;
+    label?: string;
+    type?: string;
+  }>;
   rows?: Array<Record<string, unknown>> | unknown[];
   totalRows?: number;
   cache?: Record<string, unknown>;
@@ -426,6 +433,39 @@ export type IntelligenceWalletEnrichmentMetricsResponse = Record<
   unknown
 >;
 
+/** GoldRush credit meter — `GET /intelligence/query/credits`. */
+export interface IntelligenceCreditMeter {
+  period: string;
+  used: number;
+  limit: number;
+  remaining: number;
+  percent: number;
+  warnAt?: number;
+  status: "ok" | "warn" | "exceeded" | string;
+}
+
+/** Enrichment progress — `GET /intelligence/query/enrichment/status`. */
+export interface IntelligenceEnrichmentStatus {
+  enrichedWallets: number;
+  lastEnrichedAt: string | null;
+  queue: {
+    active: number;
+    waiting: number;
+    delayed: number;
+    completed: number;
+    failed: number;
+  } | null;
+  pending: number;
+  idle: boolean;
+}
+
+/** Result of seeding enrichment from saved contracts. */
+export interface IntelligenceEnrichProtocolResponse {
+  contracts: Array<{ chain: string; address: string; holdersEnqueued: number }>;
+  walletsEnqueued: number;
+  contactsEnqueued: number;
+}
+
 export interface IntelligenceGoldrushMcpStreamEvent {
   type?: string;
   data?: unknown;
@@ -676,12 +716,19 @@ export const intelligenceService = {
     );
   },
 
-  queryGoldrushMcp(body: IntelligenceGoldrushMcpQueryBody, orgId?: string) {
+  queryGoldrushMcp(
+    body: IntelligenceGoldrushMcpQueryBody,
+    orgId?: string,
+    options?: { signal?: AbortSignal; timeoutMs?: number }
+  ) {
     return request<IntelligenceGoldrushMcpQueryResponse>(
       {
         method: "POST",
         url: "/intelligence/query/goldrush/mcp/query",
         data: body,
+        signal: options?.signal,
+        // Hard ceiling so the agent can't spin forever with no response.
+        timeout: options?.timeoutMs ?? 120_000,
       },
       orgId
     );
@@ -742,12 +789,18 @@ export const intelligenceService = {
     );
   },
 
-  planGoldrushMcp(body: IntelligenceGoldrushMcpQueryBody, orgId?: string) {
+  planGoldrushMcp(
+    body: IntelligenceGoldrushMcpQueryBody,
+    orgId?: string,
+    options?: { signal?: AbortSignal; timeoutMs?: number }
+  ) {
     return request<IntelligenceGoldrushMcpPlanResponse>(
       {
         method: "POST",
         url: "/intelligence/query/goldrush/mcp/plan",
         data: body,
+        signal: options?.signal,
+        timeout: options?.timeoutMs ?? 60_000,
       },
       orgId
     );
@@ -1081,6 +1134,69 @@ export const intelligenceService = {
       {
         method: "GET",
         url: `/intelligence/query/enrichment/wallets/${walletAddress}`,
+      },
+      orgId
+    );
+  },
+
+  // GoldRush credit meter (MCP + enrichment consume credits; SQL does not).
+  getCredits(orgId?: string) {
+    return request<IntelligenceCreditMeter>(
+      { method: "GET", url: "/intelligence/query/credits" },
+      orgId
+    );
+  },
+
+  getEnrichmentStatus(orgId?: string) {
+    return request<IntelligenceEnrichmentStatus>(
+      { method: "GET", url: "/intelligence/query/enrichment/status" },
+      orgId
+    );
+  },
+
+  // Seed Intelligence tables from saved project-settings contracts (or the
+  // provided ones). Discovers holders + enqueues per-wallet enrichment.
+  enrichProtocol(
+    body?: {
+      contracts?: Array<{ chain?: string; address: string }>;
+      includeContacts?: boolean;
+      limitPerContract?: number;
+      forceRefresh?: boolean;
+    },
+    orgId?: string
+  ) {
+    return request<IntelligenceEnrichProtocolResponse>(
+      {
+        method: "POST",
+        url: "/intelligence/query/enrichment/protocol",
+        data: body ?? {},
+      },
+      orgId
+    );
+  },
+
+  // Enrich one wallet and briefly wait for the row to land (button flow).
+  enrichWalletAndWait(
+    body: {
+      walletAddress: string;
+      chain: string;
+      forceRefresh?: boolean;
+      timeoutMs?: number;
+      pollMs?: number;
+    },
+    orgId?: string
+  ) {
+    return request<{
+      ready: boolean;
+      jobId?: string;
+      walletAddress: string;
+      chain: string;
+      metric?: Record<string, unknown> | null;
+    }>(
+      {
+        method: "POST",
+        url: "/intelligence/query/enrichment/wallets/enqueue-and-wait",
+        data: body,
       },
       orgId
     );

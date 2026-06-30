@@ -1,5 +1,7 @@
-import { Download01Icon, Invoice01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowDownTrayIcon,
+  DocumentTextIcon,
+} from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -90,7 +92,7 @@ const InvoiceHistory = () => {
       <SettingsSectionCard
         title="Invoices"
         description="View and download your billing history."
-        icon={<HugeiconsIcon icon={Invoice01Icon} className="h-5 w-5" />}
+        icon={<DocumentTextIcon className="h-5 w-5" aria-hidden="true" />}
         badge={`${items.length} invoice${items.length === 1 ? "" : "s"} available`}
         onOpenChange={setIsOpen}
         collapsedPreview={
@@ -186,9 +188,9 @@ const InvoiceHistory = () => {
                         )
                       }
                     >
-                      <HugeiconsIcon
-                        icon={Download01Icon}
+                      <ArrowDownTrayIcon
                         className="h-4 w-4"
+                        aria-hidden="true"
                       />
                     </Button>
                   </div>

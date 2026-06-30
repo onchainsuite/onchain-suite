@@ -1,9 +1,7 @@
 "use client";
 
-import { Add01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -34,6 +32,11 @@ import {
   type Draft,
   type Template,
 } from "@/features/automation/types";
+import { PageHeader } from "@/shared/components/page/page-header";
+import {
+  StatCardsSkeleton,
+  TableSkeleton,
+} from "@/shared/components/page/page-skeleton";
 
 const asString = (v: unknown): string => (typeof v === "string" ? v : "");
 const asNumber = (v: unknown): number => {
@@ -411,33 +414,25 @@ export const AutomationList = () => {
 
   return (
     <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-primary/25 to-secondary/15 opacity-70 blur-3xl" />
-        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary/25 to-secondary/15 text-primary">
-              <Zap className="h-5 w-5" />
-            </span>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                Automations
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Trigger personalized flows based on your users&apos; onchain signals.
-              </p>
-            </div>
-          </div>
+      <PageHeader
+        title="Automations"
+        description="Trigger personalized flows from your users' onchain signals."
+        actions={
           <Link
             href="/automations/new-id"
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-[0_14px_34px_-16px_rgba(86,112,255,0.9)] transition-all hover:bg-primary/90 hover:shadow-[0_18px_40px_-14px_rgba(86,112,255,1)]"
           >
-            <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
+            <PlusIcon className="h-4 w-4" aria-hidden="true" />
             Create automation
           </Link>
-        </div>
-      </div>
+        }
+      />
 
-      <AutomationStats stats={stats} />
+      {metricsQuery.isLoading ? (
+        <StatCardsSkeleton />
+      ) : (
+        <AutomationStats stats={stats} />
+      )}
 
       <Tabs
         value={activeTab}
@@ -461,24 +456,29 @@ export const AutomationList = () => {
             templates:
               (typeof countsQuery.data?.templates === "number"
                 ? countsQuery.data.templates
-                : (templatesQuery.data?.length ?? 0)) + protocolTemplates.length,
+                : (templatesQuery.data?.length ?? 0)) +
+              protocolTemplates.length,
           }}
         />
 
         <TabsContent value="active" className="space-y-4">
-          <ActiveAutomationsList
-            automations={filteredAutomations}
-            searchQuery={searchQuery}
-            onToggleStatus={(automation) =>
-              toggleStatusMutation.mutate(automation)
-            }
-            onDuplicate={(automation) =>
-              duplicateMutation.mutate(automation.id)
-            }
-            onDelete={(automation) =>
-              setDeleteModal({ show: true, automation })
-            }
-          />
+          {itemsQuery.isLoading ? (
+            <TableSkeleton />
+          ) : (
+            <ActiveAutomationsList
+              automations={filteredAutomations}
+              searchQuery={searchQuery}
+              onToggleStatus={(automation) =>
+                toggleStatusMutation.mutate(automation)
+              }
+              onDuplicate={(automation) =>
+                duplicateMutation.mutate(automation.id)
+              }
+              onDelete={(automation) =>
+                setDeleteModal({ show: true, automation })
+              }
+            />
+          )}
           <div className="flex items-center justify-between">
             <button
               type="button"
@@ -565,7 +565,9 @@ export const AutomationList = () => {
               </h2>
               <TemplatesList
                 templates={templatesQuery.data ?? []}
-                onApply={(template) => applyTemplateMutation.mutate(template.id)}
+                onApply={(template) =>
+                  applyTemplateMutation.mutate(template.id)
+                }
               />
             </div>
           ) : null}

@@ -1,8 +1,7 @@
 "use client";
 
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { useForm } from "react-hook-form";
 
 import {
@@ -53,7 +52,8 @@ export function BusinessAddressStep({
             anti-spam laws
           </button>
           , your address will appear in the footer of every email you send with
-          R3tain. Don&apos;t have an official business address? Learn about{" "}
+          Onchain Suite. Don&apos;t have an official business address? Learn
+          about{" "}
           <button type="button" className="text-primary hover:underline">
             alternatives
           </button>
@@ -112,7 +112,7 @@ export function BusinessAddressStep({
               onClick={onBack}
               className="flex items-center gap-2"
             >
-              <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+              <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
               Back
             </Button>
             <Button type="submit" className="bg-teal-600 hover:bg-teal-700">

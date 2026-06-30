@@ -1,15 +1,14 @@
 "use client";
 
 import {
-  ArrowLeft01Icon,
-  GlobeIcon,
-  Home01Icon,
-  Search01Icon,
+  ArrowLeftIcon,
+  BoltIcon,
+  GlobeAltIcon,
+  HomeIcon,
+  MagnifyingGlassIcon,
   SparklesIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import { motion, useAnimation } from "framer-motion";
-import { Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -85,7 +84,7 @@ export default function NotFoundPage() {
             The page you&apos;re looking for doesn&apos;t exist.
           </p>
           <Button size="lg">
-            <HugeiconsIcon icon={Home01Icon} className="mr-2 h-5 w-5" />
+            <HomeIcon className="mr-2 h-5 w-5" aria-hidden="true" />
             Back to Home
           </Button>
         </div>
@@ -268,8 +267,8 @@ export default function NotFoundPage() {
           >
             {[
               { icon: SparklesIcon, delay: 0 },
-              { icon: Zap, delay: 0.2 },
-              { icon: GlobeIcon, delay: 0.4 },
+              { icon: BoltIcon, delay: 0.2 },
+              { icon: GlobeAltIcon, delay: 0.4 },
             ].map(({ icon: Icon, delay }) => (
               <motion.div
                 key={uuidv4()}
@@ -297,9 +296,9 @@ export default function NotFoundPage() {
                 size={isMobile ? "default" : "lg"}
                 className="group w-full px-6 py-4 text-base font-semibold sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
               >
-                <HugeiconsIcon
-                  icon={Home01Icon}
+                <HomeIcon
                   className="mr-2 h-4 w-4 transition-transform group-hover:scale-110 sm:h-5 sm:w-5"
+                  aria-hidden="true"
                 />
                 Back to Home
               </Button>
@@ -310,9 +309,9 @@ export default function NotFoundPage() {
                 size={isMobile ? "default" : "lg"}
                 className="group w-full px-6 py-4 text-base font-semibold sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
               >
-                <HugeiconsIcon
-                  icon={ArrowLeft01Icon}
+                <ArrowLeftIcon
                   className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1 sm:h-5 sm:w-5"
+                  aria-hidden="true"
                 />
                 Go Back
               </Button>
@@ -330,9 +329,9 @@ export default function NotFoundPage() {
               Or search for what you&apos;re looking for:
             </p>
             <div className="relative">
-              <HugeiconsIcon
-                icon={Search01Icon}
+              <MagnifyingGlassIcon
                 className="text-muted-foreground absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 transform sm:h-5 sm:w-5"
+                aria-hidden="true"
               />
               <input
                 type="text"

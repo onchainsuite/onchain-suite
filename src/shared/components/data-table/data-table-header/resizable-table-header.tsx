@@ -1,12 +1,12 @@
 import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  MoreHorizontalIcon,
-  PinOffIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  BookmarkSlashIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  EllipsisHorizontalIcon,
+} from "@heroicons/react/24/outline";
 import { flexRender } from "@tanstack/react-table";
-import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
 
 import { Button } from "@/ui/button";
 import {
@@ -86,20 +86,14 @@ const DataTableTitleHeader = <TData, TValue>({
           {/* Sorting Indicators */}
           {{
             asc: (
-              <HugeiconsIcon
-                icon={ArrowUp01Icon}
-                className="shrink-0 opacity-60"
-                size={16}
-                strokeWidth={2}
+              <ChevronUpIcon
+                className="size-4 shrink-0 opacity-60"
                 aria-hidden="true"
               />
             ),
             desc: (
-              <HugeiconsIcon
-                icon={ArrowDown01Icon}
-                className="shrink-0 opacity-60"
-                size={16}
-                strokeWidth={2}
+              <ChevronDownIcon
+                className="size-4 shrink-0 opacity-60"
                 aria-hidden="true"
               />
             ),
@@ -117,11 +111,8 @@ const DataTableTitleHeader = <TData, TValue>({
               aria-label={`Unpin ${column.columnDef.header as string} column`}
               title={`Unpin ${column.columnDef.header as string} column`}
             >
-              <HugeiconsIcon
-                icon={PinOffIcon}
-                className="opacity-60"
-                size={16}
-                strokeWidth={2}
+              <BookmarkSlashIcon
+                className="size-4 opacity-60"
                 aria-hidden="true"
               />
             </Button>
@@ -135,30 +126,23 @@ const DataTableTitleHeader = <TData, TValue>({
                   aria-label={`Pin options for ${column.id} column`}
                   title={`Pin options for ${column.id} column`}
                 >
-                  <HugeiconsIcon
-                    icon={MoreHorizontalIcon}
-                    className="opacity-60"
-                    size={16}
-                    strokeWidth={2}
+                  <EllipsisHorizontalIcon
+                    className="size-4 opacity-60"
                     aria-hidden="true"
                   />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => column.pin("left")}>
-                  <ArrowLeftToLine
-                    size={16}
-                    strokeWidth={2}
-                    className="mr-2 opacity-60"
+                  <ChevronDoubleLeftIcon
+                    className="mr-2 size-4 opacity-60"
                     aria-hidden="true"
                   />
                   Stick to left
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => column.pin("right")}>
-                  <ArrowRightToLine
-                    size={16}
-                    strokeWidth={2}
-                    className="mr-2 opacity-60"
+                  <ChevronDoubleRightIcon
+                    className="mr-2 size-4 opacity-60"
                     aria-hidden="true"
                   />
                   Stick to right

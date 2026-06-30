@@ -2,13 +2,12 @@
 "use client";
 
 import {
-  Alert01Icon,
-  Bug01Icon,
-  Home01Icon,
-  Mail01Icon,
-  Refresh01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowPathIcon,
+  BugAntIcon,
+  EnvelopeIcon,
+  ExclamationTriangleIcon,
+  HomeIcon,
+} from "@heroicons/react/24/outline";
 import { motion, useAnimation } from "framer-motion";
 import { useEffect, useState } from "react";
 
@@ -111,9 +110,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
         {/* Floating warning symbols */}
         <FloatingSymbol>
-          <HugeiconsIcon
-            icon={Alert01Icon}
+          <ExclamationTriangleIcon
             className="text-destructive/30 h-6 w-6"
+            aria-hidden="true"
           />
         </FloatingSymbol>
       </div>
@@ -132,9 +131,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
               className="relative mx-auto mb-6 h-32 w-32"
             >
               <div className="from-destructive/20 to-destructive/10 border-destructive/30 relative flex h-full w-full items-center justify-center overflow-hidden rounded-3xl border-2 bg-linear-to-r">
-                <HugeiconsIcon
-                  icon={Bug01Icon}
+                <BugAntIcon
                   className="text-destructive h-16 w-16"
+                  aria-hidden="true"
                 />
 
                 {/* Glitch effect */}
@@ -234,9 +233,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                 disabled={isRetrying}
                 className="group px-8 py-6 text-lg font-semibold"
               >
-                <HugeiconsIcon
-                  icon={Refresh01Icon}
+                <ArrowPathIcon
                   className={`mr-2 h-5 w-5 ${isRetrying ? "animate-spin" : "group-hover:rotate-180"} transition-transform duration-300`}
+                  aria-hidden="true"
                 />
                 {isRetrying ? "Retrying..." : "Try Again"}
               </Button>
@@ -246,9 +245,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
               size="lg"
               className="group px-8 py-6 text-lg font-semibold"
             >
-              <HugeiconsIcon
-                icon={Home01Icon}
+              <HomeIcon
                 className="mr-2 h-5 w-5 transition-transform group-hover:scale-110"
+                aria-hidden="true"
               />
               Back to Home
             </Button>
@@ -258,9 +257,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
               onClick={handleReportError}
               className="group px-8 py-6 text-lg font-semibold"
             >
-              <HugeiconsIcon
-                icon={Mail01Icon}
+              <EnvelopeIcon
                 className="mr-2 h-5 w-5 transition-transform group-hover:scale-110"
+                aria-hidden="true"
               />
               Report Issue
             </Button>

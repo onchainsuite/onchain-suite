@@ -1,9 +1,13 @@
-import { Mail, Sparkle, Target } from "lucide-react";
+import {
+  EnvelopeIcon,
+  FlagIcon,
+  SparklesIcon,
+} from "@heroicons/react/24/outline";
 
 const metrics = [
-  { label: "Emails", value: 0, icon: Mail },
-  { label: "Enrichment", value: 0, icon: Sparkle },
-  { label: "Qualification", value: 0, icon: Target },
+  { label: "Emails", value: 0, icon: EnvelopeIcon },
+  { label: "Enrichment", value: 0, icon: SparklesIcon },
+  { label: "Qualification", value: 0, icon: FlagIcon },
 ];
 
 export function ActivitySection() {
@@ -25,7 +29,10 @@ export function ActivitySection() {
               className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md"
             >
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-                <Icon className="h-6 w-6 text-accent-foreground" />
+                <Icon
+                  aria-hidden="true"
+                  className="h-6 w-6 text-accent-foreground"
+                />
               </div>
               <p className="text-sm font-medium text-muted-foreground">
                 {metric.label}

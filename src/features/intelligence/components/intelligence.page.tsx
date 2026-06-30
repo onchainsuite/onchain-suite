@@ -1,18 +1,19 @@
 "use client";
 
 import {
-  AnalyticsUpIcon,
-  CodeIcon,
-  Message01Icon,
+  ArrowTrendingUpIcon,
+  ChatBubbleLeftRightIcon,
+  CodeBracketIcon,
   UserGroupIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { intelligenceService } from "../intelligence.service";
+import { CreditMeter } from "./credit-meter";
+import { EnrichmentControl } from "./enrichment-control";
 import { QueryTab } from "./query";
 import { ReportsTab } from "./reports";
 import { SegmentsTab } from "./segments";
@@ -20,30 +21,9 @@ import { SegmentsTab } from "./segments";
 export default function IntelligencePage() {
   const [activeTab, setActiveTab] = useState("chat");
 
-  const metricsQuery = useQuery({
-    queryKey: ["intelligence", "metrics"],
-    queryFn: () => intelligenceService.getMetrics(),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
   const segmentsMetricsQuery = useQuery({
     queryKey: ["intelligence", "segments", "metrics"],
     queryFn: () => intelligenceService.getSegmentsMetrics(),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const reportsMetricsQuery = useQuery({
-    queryKey: ["intelligence", "reports", "metrics"],
-    queryFn: () => intelligenceService.getReportsMetrics(),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const reportsSummaryQuery = useQuery({
-    queryKey: ["intelligence", "reports", "summary"],
-    queryFn: () => intelligenceService.getReportsSummary(),
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -64,55 +44,9 @@ export default function IntelligencePage() {
             Analyze on-chain data and create targeted segments.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
-            <span className="text-muted-foreground">Score</span>{" "}
-            <span className="font-medium text-foreground">
-              {typeof metricsQuery.data?.score === "number"
-                ? metricsQuery.data.score
-                : "—"}
-            </span>
-          </div>
-          <div className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
-            <span className="text-muted-foreground">Revenue</span>{" "}
-            <span className="font-medium text-foreground">
-              {typeof metricsQuery.data?.revenuePotential === "number"
-                ? `$${metricsQuery.data.revenuePotential.toLocaleString()}`
-                : "—"}
-            </span>
-          </div>
-          <div className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
-            <span className="text-muted-foreground">Segments</span>{" "}
-            <span className="font-medium text-foreground">
-              {typeof segmentsMetricsQuery.data?.segmentsCount === "number"
-                ? segmentsMetricsQuery.data.segmentsCount.toLocaleString()
-                : "—"}
-            </span>
-          </div>
-          <div className="rounded-xl border border-border bg-card px-4 py-2 text-sm">
-            <span className="text-muted-foreground">Reports</span>{" "}
-            <span className="font-medium text-foreground">
-              {typeof (
-                reportsMetricsQuery.data as Record<string, unknown> | undefined
-              )?.reportsCount === "number"
-                ? (
-                    reportsMetricsQuery.data as { reportsCount: number }
-                  ).reportsCount.toLocaleString()
-                : typeof (
-                      reportsSummaryQuery.data as
-                        | Record<string, unknown>
-                        | undefined
-                    )?.summary === "string"
-                  ? String(
-                      (
-                        reportsSummaryQuery.data as {
-                          summary: string;
-                        }
-                      ).summary
-                    )
-                  : "—"}
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <CreditMeter />
+          <EnrichmentControl />
         </div>
       </div>
 
@@ -126,21 +60,21 @@ export default function IntelligencePage() {
             value="chat"
             className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
           >
-            <HugeiconsIcon icon={Message01Icon} className="h-4 w-4" />
+            <ChatBubbleLeftRightIcon className="h-4 w-4" aria-hidden="true" />
             Chat
           </TabsTrigger>
           <TabsTrigger
             value="sql"
             className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
           >
-            <HugeiconsIcon icon={CodeIcon} className="h-4 w-4" />
+            <CodeBracketIcon className="h-4 w-4" aria-hidden="true" />
             SQL
           </TabsTrigger>
           <TabsTrigger
             value="segments"
             className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
           >
-            <HugeiconsIcon icon={UserGroupIcon} className="h-4 w-4" />
+            <UserGroupIcon className="h-4 w-4" aria-hidden="true" />
             Segments
             <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground data-[state=active]:bg-primary-foreground/20">
               {typeof segmentsMetricsQuery.data?.segmentsCount === "number"
@@ -152,7 +86,7 @@ export default function IntelligencePage() {
             value="reports"
             className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
           >
-            <HugeiconsIcon icon={AnalyticsUpIcon} className="h-4 w-4" />
+            <ArrowTrendingUpIcon className="h-4 w-4" aria-hidden="true" />
             Reports
           </TabsTrigger>
         </TabsList>

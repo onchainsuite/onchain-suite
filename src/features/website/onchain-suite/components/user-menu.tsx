@@ -1,11 +1,10 @@
 "use client";
 import {
-  DashboardCircleIcon,
-  Logout01Icon,
-  Settings01Icon,
+  ArrowRightOnRectangleIcon,
+  Cog6ToothIcon,
+  Squares2X2Icon,
   UserIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -59,11 +58,11 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem>
-          <HugeiconsIcon icon={UserIcon} className="mr-2 h-4 w-4" />
+          <UserIcon aria-hidden="true" className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <HugeiconsIcon icon={Settings01Icon} className="mr-2 h-4 w-4" />
+          <Cog6ToothIcon aria-hidden="true" className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -71,7 +70,10 @@ export function UserMenu() {
           onClick={signOut}
           className="text-destructive focus:text-destructive"
         >
-          <HugeiconsIcon icon={Logout01Icon} className="mr-2 h-4 w-4" />
+          <ArrowRightOnRectangleIcon
+            aria-hidden="true"
+            className="mr-2 h-4 w-4"
+          />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -82,7 +84,7 @@ export function UserMenu() {
 export function DashboardButton({ onClick }: { onClick: () => void }) {
   return (
     <Button variant="default" className="gap-2" onClick={onClick}>
-      <HugeiconsIcon icon={DashboardCircleIcon} className="h-4 w-4" />
+      <Squares2X2Icon aria-hidden="true" className="h-4 w-4" />
       Dashboard
     </Button>
   );

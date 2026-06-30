@@ -1,8 +1,7 @@
 "use client";
 
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { useForm } from "react-hook-form";
 
 import { CheckboxFormField, InputFormField } from "@/components/form-fields";
@@ -45,8 +44,8 @@ export function PersonalInfoStep({
 
       {hasErrors && (
         <Alert className="mb-6 border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
-          <HugeiconsIcon
-            icon={Alert01Icon}
+          <ExclamationTriangleIcon
+            aria-hidden="true"
             className="h-4 w-4 text-red-600 dark:text-red-400"
           />
           <AlertDescription className="text-red-800 dark:text-red-200">
@@ -117,9 +116,9 @@ export function PersonalInfoStep({
             <CheckboxFormField
               form={form}
               name="marketingEmails"
-              label="I want to receive emails about R3tain and related
+              label="I want to receive emails about Onchain Suite and related
                       products, feature updates, marketing best practices, and
-                      promotions from R3tain."
+                      promotions from Onchain Suite."
             />
           </div>
 

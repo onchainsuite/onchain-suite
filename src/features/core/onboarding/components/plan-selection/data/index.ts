@@ -12,7 +12,7 @@ export const features: Feature[] = [
     name: "Users",
     key: "users",
     tooltip:
-      "The number of team members who can access and manage your R3tain account.",
+      "The number of team members who can access and manage your Onchain Suite account.",
     category: "Core Features",
   },
   {
@@ -33,7 +33,7 @@ export const features: Feature[] = [
     name: "Personalized Onboarding",
     key: "onboarding",
     tooltip:
-      "One-on-one sessions with a R3tain expert to help you set up and optimize your account.",
+      "One-on-one sessions with a Onchain Suite expert to help you set up and optimize your account.",
     category: "Support",
   },
   {
@@ -114,10 +114,10 @@ export const features: Feature[] = [
     category: "Audience Tools",
   },
   {
-    name: "Remove R3tain branding",
+    name: "Remove Onchain Suite branding",
     key: "removeBranding",
     tooltip:
-      "Remove R3tain logos and branding from your emails and landing pages for a professional look.",
+      "Remove Onchain Suite logos and branding from your emails and landing pages for a professional look.",
     category: "Branding",
   },
   {
@@ -159,7 +159,7 @@ export const features: Feature[] = [
     name: "3000+ Integrations",
     key: "integrations",
     tooltip:
-      "Connect R3tain with your favorite apps and tools to streamline your marketing workflow.",
+      "Connect Onchain Suite with your favorite apps and tools to streamline your marketing workflow.",
     category: "Integrations",
   },
   {

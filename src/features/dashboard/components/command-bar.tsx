@@ -1,14 +1,13 @@
 "use client";
 
 import {
-  ArrowUp01Icon,
-  Loading02Icon,
-  Mic01Icon,
-  Search01Icon,
-  VolumeMute01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Volume2 } from "lucide-react";
+  ArrowPathIcon,
+  ArrowUpIcon,
+  MagnifyingGlassIcon,
+  MicrophoneIcon,
+  SpeakerWaveIcon,
+  SpeakerXMarkIcon,
+} from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -276,8 +275,8 @@ export function CommandBar() {
   return (
     <div className="relative mx-auto w-full max-w-3xl">
       <div className="relative flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-ring">
-        <HugeiconsIcon
-          icon={Search01Icon}
+        <MagnifyingGlassIcon
+          aria-hidden="true"
           className="h-5 w-5 shrink-0 text-muted-foreground"
         />
         <input
@@ -303,8 +302,8 @@ export function CommandBar() {
           onClick={toggleListening}
           aria-label={listening ? "Stop voice input" : "Voice input"}
         >
-          <HugeiconsIcon
-            icon={Mic01Icon}
+          <MicrophoneIcon
+            aria-hidden="true"
             className={listening ? "h-5 w-5 text-primary" : "h-5 w-5"}
           />
         </Button>
@@ -320,9 +319,9 @@ export function CommandBar() {
           title={voiceEnabled ? "Voice output: on" : "Voice output: off"}
         >
           {voiceEnabled ? (
-            <Volume2 className="h-5 w-5" />
+            <SpeakerWaveIcon aria-hidden="true" className="h-5 w-5" />
           ) : (
-            <HugeiconsIcon icon={VolumeMute01Icon} className="h-5 w-5" />
+            <SpeakerXMarkIcon aria-hidden="true" className="h-5 w-5" />
           )}
         </Button>
         <Button
@@ -334,12 +333,12 @@ export function CommandBar() {
           disabled={loading || query.trim().length === 0}
         >
           {loading ? (
-            <HugeiconsIcon
-              icon={Loading02Icon}
+            <ArrowPathIcon
+              aria-hidden="true"
               className="h-5 w-5 animate-spin"
             />
           ) : (
-            <HugeiconsIcon icon={ArrowUp01Icon} className="h-5 w-5" />
+            <ArrowUpIcon aria-hidden="true" className="h-5 w-5" />
           )}
         </Button>
       </div>

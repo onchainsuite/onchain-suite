@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  Mail01Icon,
-  Search01Icon,
-  Settings01Icon,
+  Cog6ToothIcon,
+  EnvelopeIcon,
+  MagnifyingGlassIcon,
   SparklesIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import {
   Command,
   CommandEmpty,
@@ -75,32 +74,19 @@ function iconFor(option: PaletteOption) {
   switch (option.icon) {
     case "mail":
       return (
-        <HugeiconsIcon
-          icon={Mail01Icon}
-          className="h-3.5 w-3.5 shrink-0"
-          aria-hidden="true"
-        />
+        <EnvelopeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       );
     case "settings":
       return (
-        <HugeiconsIcon
-          icon={Settings01Icon}
-          className="h-3.5 w-3.5 shrink-0"
-          aria-hidden="true"
-        />
+        <Cog6ToothIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       );
     case "sparkles":
       return (
-        <HugeiconsIcon
-          icon={SparklesIcon}
-          className="h-3.5 w-3.5 shrink-0"
-          aria-hidden="true"
-        />
+        <SparklesIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       );
     default:
       return (
-        <HugeiconsIcon
-          icon={Search01Icon}
+        <MagnifyingGlassIcon
           className="h-3.5 w-3.5 shrink-0"
           aria-hidden="true"
         />
@@ -110,11 +96,11 @@ function iconFor(option: PaletteOption) {
 
 function Kbd({ keys }: { keys: string[] }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" aria-hidden="true">
       {keys.map((k) => (
         <kbd
           key={k}
-          className="pointer-events-none inline-flex h-4 items-center justify-center rounded border border-border/60 bg-muted/30 px-1 font-mono text-[10px] font-medium text-muted-foreground"
+          className="pointer-events-none inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-md border border-border bg-muted px-1.5 font-mono text-[10px] font-semibold text-muted-foreground shadow-[inset_0_-1px_0_rgba(0,0,0,0.08)]"
         >
           {k}
         </kbd>
@@ -416,7 +402,10 @@ export function CommandPaletteProvider({
       {children}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[520px] overflow-hidden rounded-xl border border-border/60 bg-background/90 p-0 shadow-2xl ring-1 ring-black/10 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:max-w-[520px]">
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-[600px] gap-0 overflow-hidden rounded-2xl border border-border/70 bg-background/95 p-0 shadow-[0_40px_120px_-40px_rgba(15,23,42,0.65)] ring-1 ring-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 sm:max-w-[600px]"
+        >
           <DialogHeader className="sr-only">
             <DialogTitle>Command palette</DialogTitle>
           </DialogHeader>
@@ -427,40 +416,65 @@ export function CommandPaletteProvider({
             onValueChange={setQuery}
             onSelect={(selected) => handleSelect(selected as PaletteOption)}
           >
-            <div className="border-b border-border/60 bg-muted/10 px-3 py-2">
-              <div className="flex items-center gap-2">
-                <HugeiconsIcon
-                  icon={Search01Icon}
-                  className="h-4 w-4 shrink-0 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <CommandInput
-                  placeholder="Type a command or ask AI…"
-                  aria-label="Command palette input"
-                  className="h-9 flex-1 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground/60"
-                />
-                <Kbd keys={["Esc"]} />
-              </div>
+            {/* Search row */}
+            <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3">
+              <MagnifyingGlassIcon
+                className="h-5 w-5 shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <CommandInput
+                placeholder="Search commands or ask AI anything…"
+                aria-label="Command palette input"
+                className="h-7 flex-1 bg-transparent text-[15px] font-medium text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/60"
+              />
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close command palette"
+                className="shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              >
+                Esc
+              </button>
             </div>
 
-            <ScrollArea className="max-h-fit">
-              <CommandList className="px-1 py-1">
+            <ScrollArea className="max-h-[min(60vh,420px)]">
+              <CommandList className="px-2 pb-2 pt-1.5">
                 <CommandEmpty>
-                  <div className="px-2 py-6 text-sm text-muted-foreground">
-                    No results found.
+                  <div className="flex flex-col items-center gap-1.5 px-2 py-10 text-center">
+                    <MagnifyingGlassIcon
+                      className="h-6 w-6 text-muted-foreground/40"
+                      aria-hidden="true"
+                    />
+                    <p className="text-sm font-medium text-foreground">
+                      No results found
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Press{" "}
+                      <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
+                        ↵
+                      </kbd>{" "}
+                      to ask AI instead.
+                    </p>
                   </div>
                 </CommandEmpty>
 
-                <CommandGroup heading="General">
+                <CommandGroup
+                  heading="General"
+                  className="px-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-1 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-muted-foreground"
+                >
                   {options
                     .filter((o) => o.id !== "ask-ai")
                     .map((o) => (
                       <CommandOption
                         key={o.id}
                         value={o}
-                        className="group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-foreground hover:bg-muted/30 data-[active=true]:bg-muted/40"
+                        className="group relative flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
                       >
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted/30 text-muted-foreground group-data-[active=true]:bg-muted/40">
+                        <span
+                          aria-hidden="true"
+                          className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary opacity-0 transition-opacity group-data-[active=true]:opacity-100"
+                        />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors group-data-[active=true]:border-primary/30 group-data-[active=true]:bg-primary/15 group-data-[active=true]:text-primary">
                           {iconFor(o)}
                         </div>
                         <span className="flex-1 font-medium leading-snug">
@@ -475,17 +489,24 @@ export function CommandPaletteProvider({
 
                 {options.some((o) => o.id === "ask-ai") ? (
                   <>
-                    <CommandSeparator className="my-1.5" />
-                    <CommandGroup heading="AI">
+                    <CommandSeparator className="my-2 h-px bg-border/60" />
+                    <CommandGroup
+                      heading="AI"
+                      className="px-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-muted-foreground"
+                    >
                       {options
                         .filter((o) => o.id === "ask-ai")
                         .map((o) => (
                           <CommandOption
                             key={o.id}
                             value={o}
-                            className="group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-foreground hover:bg-muted/30 data-[active=true]:bg-muted/40"
+                            className="group relative flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
                           >
-                            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted/30 text-muted-foreground group-data-[active=true]:bg-muted/40">
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary opacity-0 transition-opacity group-data-[active=true]:opacity-100"
+                            />
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
                               {iconFor(o)}
                             </div>
                             <span className="flex-1 font-medium leading-snug">
@@ -503,10 +524,14 @@ export function CommandPaletteProvider({
             </ScrollArea>
 
             {aiVisible ? (
-              <div className="border-t border-border/60 bg-muted/10 px-3 py-2">
-                <div className="space-y-1.5">
+              <div className="border-t border-border/60 bg-muted/10 px-4 py-3">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs font-medium text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <SparklesIcon
+                        className="h-3.5 w-3.5 text-primary"
+                        aria-hidden="true"
+                      />
                       AI response
                     </div>
                     <Button
@@ -525,8 +550,11 @@ export function CommandPaletteProvider({
                     </Button>
                   </div>
 
-                  <ScrollArea className="max-h-[180px] rounded-lg border border-border/60 bg-muted/20">
-                    <div className="p-2 text-[13px] leading-relaxed text-foreground">
+                  <ScrollArea className="max-h-[180px] rounded-xl border border-border/60 bg-muted/20">
+                    <div
+                      className="p-3 text-[13px] leading-relaxed text-foreground"
+                      aria-live="polite"
+                    >
                       <div className="whitespace-pre-wrap">
                         {aiError ?? (aiAnswer.length > 0 ? aiAnswer : "…")}
                       </div>
@@ -546,6 +574,27 @@ export function CommandPaletteProvider({
                 </div>
               </div>
             ) : null}
+
+            {/* Footer hints */}
+            <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5">
+                  <Kbd keys={["↑", "↓"]} />
+                  Navigate
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Kbd keys={["↵"]} />
+                  Select
+                </span>
+              </div>
+              <span className="flex items-center gap-1.5">
+                <SparklesIcon
+                  className="h-3.5 w-3.5 text-primary"
+                  aria-hidden="true"
+                />
+                Type anything to ask AI
+              </span>
+            </div>
           </Command>
         </DialogContent>
       </Dialog>

@@ -1,9 +1,8 @@
 import {
-  FloppyDiskIcon,
+  CheckIcon,
   PencilIcon,
-  Shield01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ShieldCheckIcon,
+} from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -81,7 +80,7 @@ const Security = () => {
       <SettingsSectionCard
         title="Security"
         description="Update your password and manage your sign-in protection."
-        icon={<HugeiconsIcon icon={Shield01Icon} className="h-5 w-5" />}
+        icon={<ShieldCheckIcon className="h-5 w-5" aria-hidden="true" />}
         badge={twoFactorEnabled ? "2FA enabled" : "2FA not enabled"}
         collapsedPreview={
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -188,7 +187,7 @@ const Security = () => {
                 disabled={loading}
                 className="gap-2"
               >
-                <HugeiconsIcon icon={FloppyDiskIcon} className="h-4 w-4" />
+                <CheckIcon className="h-4 w-4" aria-hidden="true" />
                 {loading ? "Updating..." : "Update password"}
               </Button>
             </div>
@@ -202,7 +201,7 @@ const Security = () => {
                 onClick={() => setIsEditing(true)}
                 className="gap-2"
               >
-                <HugeiconsIcon icon={PencilIcon} className="h-3.5 w-3.5" />
+                <PencilIcon className="h-3.5 w-3.5" aria-hidden="true" />
                 Edit
               </Button>
             </div>

@@ -12,10 +12,26 @@ const makeHash = (length = 10) =>
   ).join("");
 
 const PHASES = [
-  { key: "parse", label: "Parsing SQL", detail: "Tokenizing and validating the statement." },
-  { key: "plan", label: "Planning query", detail: "Choosing indexes and the cheapest read path." },
-  { key: "scan", label: "Scanning ledger", detail: "Streaming matching rows from org-scoped tables." },
-  { key: "seal", label: "Sealing results", detail: "Hashing the result set into a stable block." },
+  {
+    key: "parse",
+    label: "Parsing SQL",
+    detail: "Tokenizing and validating the statement.",
+  },
+  {
+    key: "plan",
+    label: "Planning query",
+    detail: "Choosing indexes and the cheapest read path.",
+  },
+  {
+    key: "scan",
+    label: "Scanning ledger",
+    detail: "Streaming matching rows from org-scoped tables.",
+  },
+  {
+    key: "seal",
+    label: "Sealing results",
+    detail: "Hashing the result set into a stable block.",
+  },
 ] as const;
 
 const usePrefersReducedMotion = () => {
@@ -102,7 +118,7 @@ export function SqlBlockchainLoader({
       role="status"
       aria-live="polite"
       aria-label="Running SQL query"
-      className={`relative overflow-hidden rounded-2xl border border-primary/15 bg-[linear-gradient(180deg,rgba(8,13,25,0.98),rgba(4,8,17,0.98))] shadow-[0_30px_90px_-50px_rgba(66,118,255,0.7)] ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-primary/15 bg-card shadow-[0_30px_90px_-50px_rgba(66,118,255,0.7)] ${className}`}
     >
       {/* grid + glow backdrop */}
       <div className="pointer-events-none absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(122,140,255,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(122,140,255,0.16)_1px,transparent_1px)] [background-size:24px_24px]" />
@@ -129,14 +145,15 @@ export function SqlBlockchainLoader({
         <div className="relative mt-5 flex items-stretch gap-0 overflow-hidden">
           {Array.from({ length: totalBlocks }).map((_, i) => {
             const isSealed = i < sealed;
-            const isActive = i === Math.min(sealed, totalBlocks - 1) && !reduced;
+            const isActive =
+              i === Math.min(sealed, totalBlocks - 1) && !reduced;
             return (
               <div key={i} className="flex flex-1 items-center">
                 <motion.div
                   className={`relative w-full rounded-lg border p-2.5 ${
                     isSealed
                       ? "border-primary/40 bg-primary/10"
-                      : "border-white/10 bg-white/[0.03]"
+                      : "border-border bg-muted/40"
                   }`}
                   animate={
                     isSealed && !reduced
@@ -171,7 +188,7 @@ export function SqlBlockchainLoader({
                   </div>
                 </motion.div>
                 {i < totalBlocks - 1 ? (
-                  <div className="relative mx-1 h-[2px] w-5 shrink-0 overflow-hidden rounded-full bg-white/10">
+                  <div className="relative mx-1 h-[2px] w-5 shrink-0 overflow-hidden rounded-full bg-muted">
                     {i < sealed ? (
                       <div className="ocs-anim-chain-flow absolute inset-0 [background-image:linear-gradient(90deg,transparent,rgba(96,129,255,0.9),transparent)]" />
                     ) : null}
@@ -183,7 +200,7 @@ export function SqlBlockchainLoader({
         </div>
 
         {/* Active phase */}
-        <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
+        <div className="mt-5 rounded-xl border border-border bg-muted/40 p-3.5">
           <div className="flex items-center gap-2">
             <span className="flex gap-1">
               {[0, 1, 2].map((d) => (
@@ -201,7 +218,7 @@ export function SqlBlockchainLoader({
           <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
             {phase.detail}
           </p>
-          <div className="mt-3 truncate rounded-md border border-white/10 bg-[#060c18] px-2.5 py-1.5 font-mono text-[11px] text-primary/80">
+          <div className="mt-3 truncate rounded-md border border-border bg-muted px-2.5 py-1.5 font-mono text-[11px] text-primary/80">
             {queryPreview}
           </div>
         </div>

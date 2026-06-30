@@ -322,9 +322,7 @@ describe("QueryTab", () => {
   it("loads starter queries into the editor via the AI assistant", async () => {
     renderQueryTab();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /AI SQL assistant/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /AI SQL assistant/i }));
     fireEvent.click(
       await screen.findByRole("button", { name: /Dormant users/i })
     );
@@ -337,9 +335,7 @@ describe("QueryTab", () => {
   it("generates SQL from a prompt and applies it to the editor", async () => {
     renderQueryTab();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /AI SQL assistant/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /AI SQL assistant/i }));
     fireEvent.change(
       await screen.findByPlaceholderText(/Find dormant high-value wallets/i),
       {
@@ -364,9 +360,7 @@ describe("QueryTab", () => {
   it("surfaces generate input and starter queries together in the AI assistant", async () => {
     renderQueryTab();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /AI SQL assistant/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /AI SQL assistant/i }));
 
     expect(
       await screen.findByPlaceholderText(/Find dormant high-value wallets/i)

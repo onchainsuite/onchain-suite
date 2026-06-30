@@ -1,5 +1,4 @@
-import { CancelCircleIcon, FilterIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { FunnelIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import type { Table } from "@tanstack/react-table";
 import type { RefObject } from "react";
 
@@ -42,12 +41,7 @@ export const DataTableSearch = <TData,>({
         aria-label={placeholder}
       />
       <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
-        <HugeiconsIcon
-          icon={FilterIcon}
-          size={16}
-          strokeWidth={2}
-          aria-hidden="true"
-        />
+        <FunnelIcon className="size-4" aria-hidden="true" />
       </div>
       {Boolean(table.getColumn(filterColumn)?.getFilterValue()) && (
         <button
@@ -61,12 +55,7 @@ export const DataTableSearch = <TData,>({
             }
           }}
         >
-          <HugeiconsIcon
-            icon={CancelCircleIcon}
-            size={16}
-            strokeWidth={2}
-            aria-hidden="true"
-          />
+          <XCircleIcon className="size-4" aria-hidden="true" />
         </button>
       )}
     </div>

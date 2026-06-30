@@ -1,18 +1,17 @@
 "use client";
 
 import {
-  Add01Icon,
-  Delete02Icon,
-  FileAttachmentIcon,
-  Grid02Icon,
-  ListViewIcon,
-  Loading02Icon,
-  MoreVerticalIcon,
+  ArrowPathIcon,
+  CheckIcon,
+  EllipsisVerticalIcon,
+  ListBulletIcon,
+  MagnifyingGlassIcon,
+  PaperClipIcon,
   PencilIcon,
-  Search01Icon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  PlusIcon,
+  Squares2X2Icon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -112,13 +111,10 @@ function TemplatesEmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-        <HugeiconsIcon
-          icon={FileAttachmentIcon}
-          className="h-5 w-5"
-          aria-hidden="true"
-        />
-      </div>
+      <PaperClipIcon
+        className="mx-auto h-8 w-8 text-muted-foreground"
+        aria-hidden="true"
+      />
       <h3 className="mt-4 text-lg font-semibold text-foreground">{title}</h3>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
         {description}
@@ -130,11 +126,7 @@ function TemplatesEmptyState({
             onClick={onCreate}
             className="w-full rounded-xl"
           >
-            <HugeiconsIcon
-              icon={Add01Icon}
-              className="mr-2 h-4 w-4"
-              aria-hidden="true"
-            />
+            <PlusIcon className="mr-2 h-4 w-4" aria-hidden="true" />
             Create first template
           </Button>
         </div>
@@ -381,7 +373,7 @@ export function TemplateSelector({
             }}
             className="w-full rounded-xl bg-primary text-primary-foreground transition-all duration-300 hover:bg-primary/90 sm:w-auto"
           >
-            <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
+            <PlusIcon aria-hidden="true" className="h-4 w-4" />
             Create
           </Button>
         </div>
@@ -410,8 +402,8 @@ export function TemplateSelector({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full flex-1">
-          <HugeiconsIcon
-            icon={Search01Icon}
+          <MagnifyingGlassIcon
+            aria-hidden="true"
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
           />
           <Input
@@ -427,23 +419,25 @@ export function TemplateSelector({
               variant="ghost"
               size="icon"
               onClick={() => setViewMode("grid")}
+              aria-label="Grid view"
               className={cn(
                 "h-8 w-8 rounded-lg transition-all duration-300",
                 viewMode === "grid" && "bg-background shadow-sm"
               )}
             >
-              <HugeiconsIcon icon={Grid02Icon} className="h-4 w-4" />
+              <Squares2X2Icon aria-hidden="true" className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setViewMode("list")}
+              aria-label="List view"
               className={cn(
                 "h-8 w-8 rounded-lg transition-all duration-300",
                 viewMode === "list" && "bg-background shadow-sm"
               )}
             >
-              <HugeiconsIcon icon={ListViewIcon} className="h-4 w-4" />
+              <ListBulletIcon aria-hidden="true" className="h-4 w-4" />
             </Button>
           </div>
           <Select
@@ -577,8 +571,8 @@ export function TemplateSelector({
                       )}
                       {selectedTemplate === temp.id ? (
                         <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
-                          <HugeiconsIcon
-                            icon={Tick01Icon}
+                          <CheckIcon
+                            aria-hidden="true"
                             className="h-4 w-4 text-primary-foreground"
                           />
                         </div>
@@ -597,10 +591,11 @@ export function TemplateSelector({
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 rounded-lg"
+                            aria-label="Template options"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <HugeiconsIcon
-                              icon={MoreVerticalIcon}
+                            <EllipsisVerticalIcon
+                              aria-hidden="true"
                               className="h-4 w-4"
                             />
                           </Button>
@@ -696,8 +691,8 @@ export function TemplateSelector({
                   )}
                   {selectedTemplate === temp.id ? (
                     <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
-                      <HugeiconsIcon
-                        icon={Tick01Icon}
+                      <CheckIcon
+                        aria-hidden="true"
                         className="h-4 w-4 text-primary-foreground"
                       />
                     </div>
@@ -717,10 +712,11 @@ export function TemplateSelector({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 rounded-lg"
+                        aria-label="Template options"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <HugeiconsIcon
-                          icon={MoreVerticalIcon}
+                        <EllipsisVerticalIcon
+                          aria-hidden="true"
                           className="h-4 w-4"
                         />
                       </Button>
@@ -744,8 +740,8 @@ export function TemplateSelector({
                               setRenameOpen(true);
                             }}
                           >
-                            <HugeiconsIcon
-                              icon={PencilIcon}
+                            <PencilIcon
+                              aria-hidden="true"
                               className="h-4 w-4"
                             />
                             Rename
@@ -757,10 +753,7 @@ export function TemplateSelector({
                               deleteMutation.mutate(temp.id);
                             }}
                           >
-                            <HugeiconsIcon
-                              icon={Delete02Icon}
-                              className="h-4 w-4"
-                            />
+                            <TrashIcon aria-hidden="true" className="h-4 w-4" />
                             Delete
                           </DropdownMenuItem>
                         </>
@@ -782,8 +775,8 @@ export function TemplateSelector({
           <div className="h-[70vh] overflow-hidden rounded-xl border border-border bg-white">
             {previewLoading ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="mr-2 h-4 w-4 animate-spin"
                 />
                 Loading preview…
@@ -893,8 +886,8 @@ export function TemplateSelector({
               }}
             >
               {renameMutation.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="h-4 w-4 animate-spin"
                 />
               ) : (

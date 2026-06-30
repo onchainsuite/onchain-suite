@@ -1,8 +1,10 @@
+const DESCRIPTION =
+  "OnchainSuite is the communication infrastructure layer for Web3 — a retention automation platform that turns on-chain behavior into automated, multi-channel messaging. Detect wallet activity, resolve identity with zero-knowledge privacy, segment audiences, and re-engage across in-app push, email, Telegram, and Discord. Native to Ethereum, Solana, Base, and Polygon.";
+
 export const SITE_CONFIG = {
-  name: "Onchain Suite",
-  url: "https://onchain-suite.vercel.app",
-  description:
-    "The first integrated communication layer built natively for Web3. Onchain Suite combines behavioral analytics, email marketing, and Web3 auth to drive user retention and engagement across blockchain ecosystems.",
+  name: "OnchainSuite",
+  url: "https://onchainsuite.com",
+  description: DESCRIPTION,
   ogImage:
     "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
   twitterImage:
@@ -17,10 +19,9 @@ export const SITE_CONFIG = {
 };
 
 export const SITE_CONFIG_META = {
-  name: "Onchain Suite",
-  url: "https://onchain-suite.vercel.app",
-  description:
-    "The first integrated communication layer built natively for Web3. Onchain Suite combines behavioral analytics, email marketing, and Web3 auth to drive user retention and engagement across blockchain ecosystems.",
+  name: "OnchainSuite",
+  url: "https://onchainsuite.com",
+  description: DESCRIPTION,
   ogImage:
     "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
   twitterImage:
@@ -29,17 +30,25 @@ export const SITE_CONFIG_META = {
 };
 
 export const KEYWORDS = [
-  "Web3 marketing",
-  "blockchain analytics",
-  "crypto email marketing",
   "Web3 retention",
+  "Web3 retention automation",
+  "Web3 CRM",
+  "onchain marketing automation",
+  "wallet-first identity",
+  "on-chain behavior triggers",
+  "blockchain marketing automation",
+  "crypto email marketing",
+  "DeFi retention",
+  "DeFi user retention",
+  "in-app push Web3",
+  "wallet messaging",
+  "zero-knowledge identity",
+  "Protocol Normalization System",
   "on-chain analytics",
   "DeFi marketing",
   "NFT marketing",
-  "Web3 CRM",
-  "blockchain user engagement",
-  "crypto retention tools",
-  "R3tain",
-  "Onch3n",
-  "3ridge",
+  "DAO marketing",
+  "churn prevention crypto",
+  "Web3 growth marketing",
+  "Ethereum Solana Base Polygon marketing",
 ];

@@ -1,8 +1,8 @@
 "use client";
 
+import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -148,7 +148,7 @@ export function SignInForm({
     <>
       <AuthHeader
         title="Welcome back"
-        subtitle="Sign in to your R3tain account"
+        subtitle="Sign in to your Onchain Suite account"
       />
 
       <GoogleOAuthButtons isLoading={isLoading} setIsLoading={setIsLoading} />
@@ -169,7 +169,7 @@ export function SignInForm({
               form={form}
               name="email"
               placeholder="Email"
-              icon={Mail}
+              icon={EnvelopeIcon}
               type="email"
               label="Email Address"
               required

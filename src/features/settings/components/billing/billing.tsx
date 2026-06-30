@@ -18,7 +18,7 @@ export default function BillingSettings() {
       animate="animate"
       exit="exit"
       transition={{ duration: 0.3 }}
-      className="space-y-16 lg:space-y-24"
+      className="space-y-6"
     >
       <PlanUsage
         optimisePlan={optimisePlan}

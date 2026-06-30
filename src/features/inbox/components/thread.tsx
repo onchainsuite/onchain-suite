@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import React from "react";
 
 import { type InboxThreadDetail, type InboxThreadListItem } from "../types";
@@ -12,7 +13,7 @@ const Thread = ({ thread }: ThreadProps) => {
       ? thread.messages
       : [];
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
       <div className="mx-auto max-w-4xl space-y-4">
         {messages.length === 0 ? (
           <div className="text-sm text-muted-foreground">Loading thread…</div>
@@ -22,8 +23,11 @@ const Thread = ({ thread }: ThreadProps) => {
               message.direction === "outbound" ||
               message.from.toLowerCase().includes("you");
             return (
-              <div
+              <motion.div
                 key={message.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
                 className={`flex ${isYou ? "justify-end" : "justify-start"}`}
               >
                 <div
@@ -66,7 +70,7 @@ const Thread = ({ thread }: ThreadProps) => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })
         )}

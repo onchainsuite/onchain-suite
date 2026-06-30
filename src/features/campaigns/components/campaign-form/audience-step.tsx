@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  AnalyticsUpIcon,
+  ArrowPathIcon,
+  ArrowTrendingUpIcon,
   InformationCircleIcon,
-  Loading02Icon,
   UserGroupIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -151,21 +150,26 @@ export function AudienceStep({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 p-6 md:p-8 lg:p-10">
-      <div className="space-y-2">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
-          Audience & Tracking
-        </h2>
-        <p className="text-base text-muted-foreground text-pretty">
-          Define who will receive your campaign and tracking settings
-        </p>
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary ring-1 ring-primary/20">
+          <UserGroupIcon className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div className="space-y-1">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
+            Audience & Tracking
+          </h2>
+          <p className="text-base text-muted-foreground text-pretty">
+            Define who will receive your campaign and tracking settings
+          </p>
+        </div>
       </div>
 
       {/* Audience Section */}
       <div className="space-y-6 p-6 bg-muted/30 rounded-2xl border border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <HugeiconsIcon
-              icon={UserGroupIcon}
+            <UserGroupIcon
+              aria-hidden="true"
               className="h-5 w-5 text-foreground"
             />
             <h3 className="text-xl font-semibold text-foreground">Audience</h3>
@@ -173,8 +177,8 @@ export function AudienceStep({
           <div className="flex items-center gap-2 text-muted-foreground">
             <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-border bg-background">
               {isSyncing ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="h-4 w-4 animate-spin"
                 />
               ) : (
@@ -185,7 +189,7 @@ export function AudienceStep({
             </div>
             <div className="flex items-center gap-1">
               <span className="text-sm font-medium">Estimated recipients</span>
-              <HugeiconsIcon icon={InformationCircleIcon} className="h-4 w-4" />
+              <InformationCircleIcon aria-hidden="true" className="h-4 w-4" />
             </div>
           </div>
         </div>
@@ -281,8 +285,8 @@ export function AudienceStep({
       {/* Tracking Section */}
       <div className="space-y-4 p-6 bg-muted/30 rounded-2xl border border-border">
         <div className="flex items-center gap-2">
-          <HugeiconsIcon
-            icon={AnalyticsUpIcon}
+          <ArrowTrendingUpIcon
+            aria-hidden="true"
             className="h-5 w-5 text-foreground"
           />
           <h3 className="text-xl font-semibold text-foreground">Tracking</h3>

@@ -1,6 +1,5 @@
 "use client";
-import { Menu05Icon, XVariableIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import {
   AnimatePresence,
   motion,
@@ -227,16 +226,16 @@ export const MobileNavToggle = ({
   onClick: () => void;
 }) => {
   return isOpen ? (
-    <HugeiconsIcon
-      icon={XVariableIcon}
+    <XMarkIcon
       className="text-foreground"
       onClick={onClick}
+      aria-hidden="true"
     />
   ) : (
-    <HugeiconsIcon
-      icon={Menu05Icon}
+    <Bars3Icon
       className="text-foreground"
       onClick={onClick}
+      aria-hidden="true"
     />
   );
 };

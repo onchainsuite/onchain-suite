@@ -1,12 +1,11 @@
 "use client";
 import {
-  Add01Icon,
-  ArrowUpDownIcon,
-  Location01Icon,
-  Refresh01Icon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowPathIcon,
+  CheckIcon,
+  ChevronUpDownIcon,
+  MapPinIcon,
+  PlusIcon,
+} from "@heroicons/react/24/outline";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { State } from "react-country-state-city/dist/esm/types";
 
@@ -125,7 +124,7 @@ export function StateSelect({
     if (value) {
       return (
         <div className="flex items-center gap-2">
-          <HugeiconsIcon icon={Location01Icon} className="h-4 w-4" />
+          <MapPinIcon className="h-4 w-4" aria-hidden="true" />
           <span className="truncate">{value}</span>
         </div>
       );
@@ -133,7 +132,7 @@ export function StateSelect({
 
     return (
       <div className="flex items-center gap-2">
-        <HugeiconsIcon icon={Location01Icon} className="h-4 w-4" />
+        <MapPinIcon className="h-4 w-4" aria-hidden="true" />
         <span>{getPlaceholderText}</span>
       </div>
     );
@@ -155,9 +154,9 @@ export function StateSelect({
           )}
         >
           {buttonContent}
-          <HugeiconsIcon
-            icon={ArrowUpDownIcon}
+          <ChevronUpDownIcon
             className="ml-2 h-4 w-4 shrink-0 opacity-50"
+            aria-hidden="true"
           />
         </Button>
       </PopoverTrigger>
@@ -191,9 +190,9 @@ export function StateSelect({
                     </>
                   ) : (
                     <>
-                      <HugeiconsIcon
-                        icon={Refresh01Icon}
+                      <ArrowPathIcon
                         className="mr-2 h-3 w-3"
+                        aria-hidden="true"
                       />
                       Retry
                     </>
@@ -216,7 +215,7 @@ export function StateSelect({
                       onSelect={handleCustomInput}
                       className="flex items-center gap-2"
                     >
-                      <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
+                      <PlusIcon className="h-4 w-4" aria-hidden="true" />
                       <span className="truncate">
                         Add &quot;{searchValue}&quot;
                       </span>
@@ -238,17 +237,14 @@ export function StateSelect({
                         onSelect={() => handleSelect(state)}
                         className="flex items-center gap-2"
                       >
-                        <HugeiconsIcon
-                          icon={Location01Icon}
-                          className="h-4 w-4"
-                        />
+                        <MapPinIcon className="h-4 w-4" aria-hidden="true" />
                         <span className="truncate">{state.name}</span>
-                        <HugeiconsIcon
-                          icon={Tick01Icon}
+                        <CheckIcon
                           className={cn(
                             "ml-auto h-4 w-4 shrink-0",
                             value === state.name ? "opacity-100" : "opacity-0"
                           )}
+                          aria-hidden="true"
                         />
                       </CommandItem>
                     ))}

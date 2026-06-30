@@ -1,7 +1,6 @@
 "use client";
 
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { type ReactNode, useState } from "react";
 
@@ -62,14 +61,14 @@ export default function SettingsSectionCard({
         <CardHeader className="p-0">
           <CollapsibleTrigger className="group w-full rounded-3xl text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/20">
             <div className="flex items-start justify-between gap-4 px-6 py-5">
-              <div className="flex min-w-0 items-start gap-4">
+              <div className="flex min-w-0 items-start gap-3">
                 {icon ? (
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <div className="mt-0.5 shrink-0 text-primary [&_svg]:h-6 [&_svg]:w-6">
                     {icon}
                   </div>
                 ) : null}
                 <div className="min-w-0">
-                  <CardTitle className="text-xl">{title}</CardTitle>
+                  <CardTitle className="text-lg">{title}</CardTitle>
                   <CardDescription className="mt-1 max-w-2xl">
                     {description}
                   </CardDescription>
@@ -86,8 +85,7 @@ export default function SettingsSectionCard({
                   {open ? "Collapse" : "Expand"}
                 </span>
                 <div className="rounded-full border border-border/70 bg-background/80 p-2 transition-colors group-hover:border-primary/30 group-hover:text-foreground">
-                  <HugeiconsIcon
-                    icon={ArrowDown01Icon}
+                  <ChevronDownIcon
                     className={cn(
                       "h-4 w-4 transition-transform duration-200",
                       open ? "rotate-180" : "rotate-0"

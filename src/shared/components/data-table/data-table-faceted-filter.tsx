@@ -1,5 +1,4 @@
-import { FilterIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { FunnelIcon } from "@heroicons/react/24/outline";
 import type { Column } from "@tanstack/react-table";
 
 import { Button } from "@/ui/button";
@@ -37,11 +36,8 @@ export const DataTableFacetedFilter = <TData, TValue>({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" className="capitalize">
-          <HugeiconsIcon
-            icon={FilterIcon}
-            className="-ms-1 me-2 opacity-60"
-            size={16}
-            strokeWidth={2}
+          <FunnelIcon
+            className="-ms-1 me-2 size-4 opacity-60"
             aria-hidden="true"
           />
           {filterKey}

@@ -1,5 +1,4 @@
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "@/ui/button";
@@ -42,7 +41,7 @@ export function ReusableDropdownMenu({
       <DropdownMenuTrigger asChild>
         <Button variant={triggerVariant}>
           {triggerText}
-          <HugeiconsIcon icon={ArrowDown01Icon} className="ml-2 h-4 w-4" />
+          <ChevronDownIcon className="ml-2 h-4 w-4" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} className={contentWidth}>

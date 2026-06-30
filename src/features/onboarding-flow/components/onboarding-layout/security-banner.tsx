@@ -1,5 +1,4 @@
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import { Button } from "@/components/ui/button";
 
@@ -12,8 +11,8 @@ export function SecurityBanner({ onRemove }: { onRemove: () => void }) {
             <span className="text-xs font-bold">!</span>
           </div>
           <p className="text-sm">
-            <span className="font-medium">Reminder:</span> R3tain will never
-            call, email, or text you for your password or 1-time passcode.{" "}
+            <span className="font-medium">Reminder:</span> Onchain Suite will
+            never call, email, or text you for your password or 1-time passcode.{" "}
             <button className="underline hover:no-underline">
               Learn more about security
             </button>
@@ -24,8 +23,9 @@ export function SecurityBanner({ onRemove }: { onRemove: () => void }) {
           size="icon"
           className="text-white hover:bg-white/10"
           onClick={onRemove}
+          aria-label="Dismiss reminder"
         >
-          <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
+          <XMarkIcon aria-hidden="true" className="h-4 w-4" />
         </Button>
       </div>
     </div>

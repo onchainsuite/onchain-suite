@@ -1,6 +1,8 @@
-import { AlertCircleIcon, Clock01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckCircle2 } from "lucide-react";
+import {
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationCircleIcon,
+} from "@heroicons/react/24/outline";
 import type { ReactElement } from "react";
 
 export type NormalizedTag = string;
@@ -20,19 +22,21 @@ export type ChainMeta = {
 export function getStatusIcon(status: string): ReactElement {
   switch (status) {
     case "verified":
-      return <CheckCircle2 className="h-3.5 w-3.5 text-primary" />;
+      return (
+        <CheckCircleIcon
+          className="h-3.5 w-3.5 text-primary"
+          aria-hidden="true"
+        />
+      );
     case "pending":
       return (
-        <HugeiconsIcon
-          icon={Clock01Icon}
-          className="h-3.5 w-3.5 text-secondary"
-        />
+        <ClockIcon className="h-3.5 w-3.5 text-secondary" aria-hidden="true" />
       );
     default:
       return (
-        <HugeiconsIcon
-          icon={AlertCircleIcon}
+        <ExclamationCircleIcon
           className="h-3.5 w-3.5 text-destructive"
+          aria-hidden="true"
         />
       );
   }

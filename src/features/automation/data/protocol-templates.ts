@@ -148,7 +148,11 @@ const stepNodeData = (step: TemplateStep): Record<string, unknown> => {
         ...(step.preview ? { preview: step.preview } : {}),
       };
     case "wait":
-      return { label: step.label ?? "Wait", nodeType: "wait", duration: step.duration };
+      return {
+        label: step.label ?? "Wait",
+        nodeType: "wait",
+        duration: step.duration,
+      };
     case "branch":
       return {
         label: step.label ?? "Branch",

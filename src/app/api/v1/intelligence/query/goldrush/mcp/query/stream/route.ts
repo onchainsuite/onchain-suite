@@ -346,12 +346,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("[api] intelligence/mcp/stream error", error);
-    return jsonError(
-      req,
-      500,
-      "INTERNAL",
-      "Failed to stream GoldRush MCP response."
-    );
+    return jsonError(req, 500, "INTERNAL", "Failed to stream MCP response.");
   }
 }
 
@@ -384,11 +379,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("[api] intelligence/mcp/stream error", error);
-    return jsonError(
-      req,
-      500,
-      "INTERNAL",
-      "Failed to stream GoldRush MCP response."
-    );
+    return jsonError(req, 500, "INTERNAL", "Failed to stream MCP response.");
   }
 }

@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  Add01Icon,
-  ArrowLeft01Icon,
-  Delete02Icon,
-  FloppyDiskIcon,
-  Loading02Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowDownTrayIcon,
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -102,7 +101,7 @@ export function CreateSegmentPage() {
           href="/intelligence"
           className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-secondary"
         >
-          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-5 w-5" />
+          <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Create Segment</h1>
@@ -215,10 +214,7 @@ export function CreateSegmentPage() {
                         onClick={() => removeCondition(condition.id)}
                         className="rounded p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       >
-                        <HugeiconsIcon
-                          icon={Delete02Icon}
-                          className="h-4 w-4"
-                        />
+                        <TrashIcon className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   ))}
@@ -229,7 +225,7 @@ export function CreateSegmentPage() {
                   onClick={addCondition}
                   className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80"
                 >
-                  <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
+                  <PlusIcon className="h-4 w-4" aria-hidden="true" />
                   Add condition
                 </button>
               </div>
@@ -257,12 +253,12 @@ export function CreateSegmentPage() {
                   className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {saveMutation.isPending ? (
-                    <HugeiconsIcon
-                      icon={Loading02Icon}
+                    <ArrowPathIcon
                       className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
                     />
                   ) : (
-                    <HugeiconsIcon icon={FloppyDiskIcon} className="h-4 w-4" />
+                    <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
                   )}
                   {isImportingFromQuery ? "Import Segment" : "Save Segment"}
                 </button>

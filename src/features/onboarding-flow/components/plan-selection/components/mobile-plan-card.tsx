@@ -1,12 +1,11 @@
 "use client";
 import {
-  ArrowDown01Icon,
-  ArrowUp01Icon,
-  Cancel01Icon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   StarIcon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -81,13 +80,13 @@ export function MobilePlanCard({
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">24/7 Support</span>
               {plan.features.support ? (
-                <HugeiconsIcon
-                  icon={Tick01Icon}
+                <CheckIcon
+                  aria-hidden="true"
                   className="h-4 w-4 text-green-600"
                 />
               ) : (
-                <HugeiconsIcon
-                  icon={Cancel01Icon}
+                <XMarkIcon
+                  aria-hidden="true"
                   className="text-muted-foreground h-4 w-4"
                 />
               )}
@@ -103,9 +102,9 @@ export function MobilePlanCard({
           >
             {showAllFeatures ? "Hide" : "View"} all features
             {showAllFeatures ? (
-              <HugeiconsIcon icon={ArrowUp01Icon} className="ml-1 h-4 w-4" />
+              <ChevronUpIcon aria-hidden="true" className="ml-1 h-4 w-4" />
             ) : (
-              <HugeiconsIcon icon={ArrowDown01Icon} className="ml-1 h-4 w-4" />
+              <ChevronDownIcon aria-hidden="true" className="ml-1 h-4 w-4" />
             )}
           </Button>
 
@@ -132,8 +131,8 @@ export function MobilePlanCard({
                                 variant="outline"
                                 className="px-1 py-0 text-xs"
                               >
-                                <HugeiconsIcon
-                                  icon={StarIcon}
+                                <StarIcon
+                                  aria-hidden="true"
                                   className="mr-1 h-2 w-2"
                                 />
                                 Beta

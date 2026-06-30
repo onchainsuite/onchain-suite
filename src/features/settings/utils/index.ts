@@ -1,4 +1,10 @@
-import { Building, Code, CreditCard, Gift, User } from "lucide-react";
+import {
+  BuildingOffice2Icon,
+  CodeBracketIcon,
+  CreditCardIcon,
+  GiftIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 
 export const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -26,11 +32,11 @@ export const modalSlideUp = {
 };
 
 export const tabs = [
-  { id: "profile", label: "Profile", icon: User },
-  { id: "account", label: "Account", icon: Building },
-  { id: "billing", label: "Billing", icon: CreditCard },
-  { id: "integrations", label: "Integrations", icon: Code },
-  { id: "rewards", label: "Rewards", icon: Gift },
+  { id: "profile", label: "Profile", icon: UserIcon },
+  { id: "account", label: "Account", icon: BuildingOffice2Icon },
+  { id: "billing", label: "Billing", icon: CreditCardIcon },
+  { id: "integrations", label: "Integrations", icon: CodeBracketIcon },
+  { id: "rewards", label: "Rewards", icon: GiftIcon },
 ];
 
 export const senders = [

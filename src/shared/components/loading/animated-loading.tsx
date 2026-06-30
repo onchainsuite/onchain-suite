@@ -119,7 +119,7 @@ export default function AnimatedLoading() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
-                R3tain
+                Onchain Suite
               </motion.h1>
 
               {/* Animated "3" with special effect */}

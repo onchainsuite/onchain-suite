@@ -4,9 +4,14 @@ import { KEYWORDS, SITE_CONFIG_META } from "./site";
 
 export function generateMetadata(): Metadata {
   return {
-    title: `${SITE_CONFIG_META.name} - Web3 Marketing & Retention Platform`,
+    title: {
+      default: `${SITE_CONFIG_META.name} — Web3 Retention Automation & Communication Layer`,
+      template: `%s · ${SITE_CONFIG_META.name}`,
+    },
     description: SITE_CONFIG_META.description,
     keywords: KEYWORDS,
+    applicationName: SITE_CONFIG_META.name,
+    category: "technology",
     authors: [{ name: SITE_CONFIG_META.name }],
     creator: SITE_CONFIG_META.name,
     publisher: SITE_CONFIG_META.name,
@@ -20,9 +25,9 @@ export function generateMetadata(): Metadata {
       canonical: "/",
     },
     openGraph: {
-      title: `${SITE_CONFIG_META.name} - Web3 Marketing & Retention Platform`,
+      title: `${SITE_CONFIG_META.name} — Web3 Retention Automation & Communication Layer`,
       description:
-        "Transform Web3 user engagement with integrated behavioral analytics, email marketing, and authentication. Built for DeFi, Gaming, and NFT brands.",
+        "Turn on-chain behavior into automated, multi-channel messaging. Detect wallet activity, resolve identity with zero-knowledge privacy, and re-engage across in-app push, email, Telegram, and Discord — native to Ethereum, Solana, Base, and Polygon.",
       url: SITE_CONFIG_META.url,
       siteName: SITE_CONFIG_META.name,
       images: [
@@ -38,9 +43,9 @@ export function generateMetadata(): Metadata {
     },
     twitter: {
       card: "summary_large_image",
-      title: `${SITE_CONFIG_META.name} - Web3 Marketing & Retention Platform`,
+      title: `${SITE_CONFIG_META.name} — Web3 Retention Automation`,
       description:
-        "The first integrated communication layer built natively for Web3. Drive retention with on-chain behavioral analytics.",
+        "The communication infrastructure layer for Web3. When a wallet acts, your campaign fires — automatically, across every channel.",
       images: [SITE_CONFIG_META.twitterImage],
       creator: SITE_CONFIG_META.twitterHandle,
     },

@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  ArrowUpDownIcon,
+  ArrowsUpDownIcon,
+  BoltIcon,
+  CheckIcon,
   StarIcon,
-  Tick01Icon,
   UserGroupIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Zap } from "lucide-react";
+} from "@heroicons/react/24/outline";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -74,8 +73,8 @@ export function AudienceSelector({
               ? `${value.length} audience${value.length > 1 ? "s" : ""} selected`
               : "Select audience users or intelligence segments"}
           </span>
-          <HugeiconsIcon
-            icon={ArrowUpDownIcon}
+          <ArrowsUpDownIcon
+            aria-hidden="true"
             className="ml-2 h-4 w-4 shrink-0 opacity-50"
           />
         </Button>
@@ -112,14 +111,14 @@ export function AudienceSelector({
                         )}
                       >
                         {value.includes(list.id) && (
-                          <HugeiconsIcon
-                            icon={Tick01Icon}
+                          <CheckIcon
+                            aria-hidden="true"
                             className="h-3 w-3 text-primary-foreground"
                           />
                         )}
                       </div>
-                      <HugeiconsIcon
-                        icon={UserGroupIcon}
+                      <UserGroupIcon
+                        aria-hidden="true"
                         className="h-4 w-4 text-muted-foreground"
                       />
                       <span className="text-sm font-medium text-foreground">
@@ -127,8 +126,8 @@ export function AudienceSelector({
                       </span>
                     </div>
                     {list.starred ? (
-                      <HugeiconsIcon
-                        icon={StarIcon}
+                      <StarIcon
+                        aria-hidden="true"
                         className="h-4 w-4 fill-amber-500 text-amber-500"
                       />
                     ) : null}
@@ -165,20 +164,23 @@ export function AudienceSelector({
                         )}
                       >
                         {value.includes(segment.id) && (
-                          <HugeiconsIcon
-                            icon={Tick01Icon}
+                          <CheckIcon
+                            aria-hidden="true"
                             className="h-3 w-3 text-primary-foreground"
                           />
                         )}
                       </div>
-                      <Zap className="h-4 w-4 text-muted-foreground" />
+                      <BoltIcon
+                        aria-hidden="true"
+                        className="h-4 w-4 text-muted-foreground"
+                      />
                       <span className="text-sm font-medium text-foreground">
                         {segment.name} ({segment.count})
                       </span>
                     </div>
                     {segment.starred ? (
-                      <HugeiconsIcon
-                        icon={StarIcon}
+                      <StarIcon
+                        aria-hidden="true"
                         className="h-4 w-4 fill-amber-500 text-amber-500"
                       />
                     ) : null}

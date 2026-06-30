@@ -1,7 +1,6 @@
 "use client";
 
-import { MoreHorizontalIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { EllipsisHorizontalIcon } from "@heroicons/react/24/outline";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -109,7 +108,7 @@ export function CampaignActionsCell({ campaign }: CampaignActionsCellProps) {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
-            <HugeiconsIcon icon={MoreHorizontalIcon} className="h-4 w-4" />
+            <EllipsisHorizontalIcon aria-hidden="true" className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[160px]">

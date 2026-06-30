@@ -1,12 +1,11 @@
 "use client";
 import {
-  Alert01Icon,
-  CheckmarkCircle01Icon,
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
   InformationCircleIcon,
-  Loading02Icon,
-  OctagonIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  StopIcon,
+} from "@heroicons/react/24/outline";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
@@ -18,14 +17,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       icons={{
-        success: (
-          <HugeiconsIcon icon={CheckmarkCircle01Icon} className="size-4" />
+        success: <CheckCircleIcon className="size-4" aria-hidden="true" />,
+        info: <InformationCircleIcon className="size-4" aria-hidden="true" />,
+        warning: (
+          <ExclamationTriangleIcon className="size-4" aria-hidden="true" />
         ),
-        info: <HugeiconsIcon icon={InformationCircleIcon} className="size-4" />,
-        warning: <HugeiconsIcon icon={Alert01Icon} className="size-4" />,
-        error: <HugeiconsIcon icon={OctagonIcon} className="size-4" />,
+        error: <StopIcon className="size-4" aria-hidden="true" />,
         loading: (
-          <HugeiconsIcon icon={Loading02Icon} className="size-4 animate-spin" />
+          <ArrowPathIcon className="size-4 animate-spin" aria-hidden="true" />
         ),
       }}
       style={

@@ -416,3 +416,311 @@ body {
     animation: none;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   OnchainSuite brand tokens (kept for any app-side reference). The marketing
+   site now uses the v2 "paper + electric blue" design, scoped under `.ocs2`
+   (see features/website/.../landing/v2/landing-v2.css). The old terminal
+   landing system has been removed; auth + 404 keep their own `.os-auth` /
+   `.os-404` scopes below.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --os-cloud: #f0f7ff;
+  --os-electric-blue: #1727e0;
+  --os-midnight: #010f31;
+  --os-sky: #2f94ff;
+  --os-accent-orange: #ff6828;
+  --os-blue: #1727e0;
+  --os-blue-deep: #0a165c;
+  --os-deep: #050a2e;
+  --os-abyss: #02040f;
+}
+
+
+/* Removed the old terminal landing design system (.os-landing/.os-btn/.os-nav,
+   bento/ticker/showcase styles). The marketing site now uses the v2 design
+   under `.ocs2`. Only the cursor-blink keyframe is retained — auth + 404 use it. */
+@keyframes os-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Terminal auth + 404 (app-wide rollout of the landing design system)
+   `.os-auth` remaps the shadcn theme tokens to the terminal palette so the
+   existing form components recolor + go square automatically.
+   ───────────────────────────────────────────────────────────────────────── */
+.os-auth {
+  /* shadcn token remap → terminal palette */
+  --background: #02040f;
+  --foreground: #e8edf5;
+  --card: #0a1124;
+  --card-foreground: #ffffff;
+  --popover: #0a1124;
+  --popover-foreground: #e8edf5;
+  --primary: #00e5ff;
+  --primary-foreground: #00121a;
+  --secondary: #060b1c;
+  --secondary-foreground: #e8edf5;
+  --muted: #060b1c;
+  --muted-foreground: rgba(214, 226, 255, 0.55);
+  --accent: rgba(0, 229, 255, 0.1);
+  --accent-foreground: #80f2ff;
+  --border: rgba(0, 229, 255, 0.22);
+  --input: rgba(0, 229, 255, 0.22);
+  --ring: #00e5ff;
+  --radius: 0px;
+
+  /* local terminal vars */
+  --t-accent: #00e5ff;
+  --t-accent-light: #80f2ff;
+  --t-bg0: #02040f;
+  --t-bg2: #0a1124;
+  --t-border-s: rgba(0, 229, 255, 0.12);
+  --t-border-m: rgba(0, 229, 255, 0.25);
+  --t-mono: var(--font-jetbrains, "JetBrains Mono", monospace);
+  --t-head: var(--font-outfit, "Outfit", system-ui, sans-serif);
+  --t-body: var(--font-inter, "Inter", system-ui, sans-serif);
+
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 80px 16px;
+  background: var(--t-bg0);
+  color: var(--foreground);
+  font-family: var(--t-body);
+}
+/* blueprint grid + radial glow backdrop */
+.os-auth::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black, transparent 75%);
+  pointer-events: none;
+}
+.os-auth::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 50% 50% at 50% 0%, rgba(0, 229, 255, 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 110%, rgba(23, 39, 224, 0.12), transparent 60%);
+  pointer-events: none;
+}
+.os-auth-shell {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 30rem;
+}
+.os-auth-card {
+  position: relative;
+  background: var(--t-bg2);
+  border: 1px solid var(--t-border-m);
+  box-shadow: 8px 8px 0 rgba(0, 229, 255, 0.1);
+  padding: 36px 32px;
+  overflow: hidden;
+}
+.os-auth-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, black, transparent 70%);
+  pointer-events: none;
+}
+/* terminal-style titlebar strip on the card */
+.os-auth-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -36px -32px 28px;
+  padding: 12px 16px;
+  background: var(--t-bg0);
+  border-bottom: 1px solid var(--t-border-s);
+}
+.os-auth-bar i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: block;
+}
+.os-auth-bar i:nth-child(1) { background: #ff5f57; }
+.os-auth-bar i:nth-child(2) { background: #febc2e; }
+.os-auth-bar i:nth-child(3) { background: #28c840; }
+.os-auth-bar span {
+  margin-left: auto;
+  font-family: var(--t-mono);
+  font-size: 0.7rem;
+  color: rgba(214, 226, 255, 0.4);
+}
+/* header */
+.os-auth-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--t-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--t-accent);
+  margin-bottom: 14px;
+}
+.os-auth-title {
+  font-family: var(--t-head);
+  font-weight: 200;
+  letter-spacing: -0.03em;
+  font-size: 1.7rem;
+  color: #fff;
+  line-height: 1.1;
+}
+.os-auth-sub {
+  font-family: var(--t-mono);
+  font-size: 0.78rem;
+  color: rgba(214, 226, 255, 0.5);
+  margin-top: 8px;
+}
+/* field + control refinements inside the terminal card */
+.os-auth label {
+  font-family: var(--t-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: rgba(214, 226, 255, 0.6);
+}
+.os-auth input {
+  font-family: var(--t-mono);
+  border-radius: 0;
+}
+.os-auth input:focus,
+.os-auth input:focus-visible {
+  box-shadow: 0 0 0 1px var(--t-accent), 0 0 16px rgba(0, 229, 255, 0.15);
+  border-color: var(--t-accent);
+}
+.os-auth button {
+  border-radius: 0;
+}
+
+/* ── Terminal 404 / status pages ─────────────────────────────────────────── */
+.os-404 {
+  --t-accent: #00e5ff;
+  --t-bg0: #02040f;
+  --t-bg2: #0a1124;
+  --t-border-m: rgba(0, 229, 255, 0.25);
+  --t-mono: var(--font-jetbrains, "JetBrains Mono", monospace);
+  --t-head: var(--font-outfit, "Outfit", system-ui, sans-serif);
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 80px 16px;
+  background: var(--t-bg0);
+  color: #e8edf5;
+  font-family: var(--font-inter, "Inter", system-ui, sans-serif);
+}
+.os-404::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, black, transparent 75%);
+  pointer-events: none;
+}
+.os-404::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 50% 45% at 50% 40%, rgba(0, 229, 255, 0.08), transparent 65%);
+  pointer-events: none;
+}
+.os-404-inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 720px;
+  text-align: center;
+}
+.os-404-glyph {
+  font-family: var(--t-head);
+  font-weight: 200;
+  letter-spacing: -0.05em;
+  font-size: clamp(6rem, 22vw, 12rem);
+  line-height: 0.9;
+  background: linear-gradient(135deg, #80f2ff 0%, #00e5ff 50%, #0a8aa0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.os-404-term {
+  margin: 28px auto 0;
+  max-width: 540px;
+  border: 1px solid var(--t-border-m);
+  background: var(--t-bg0);
+  text-align: left;
+  box-shadow: 8px 8px 0 rgba(0, 229, 255, 0.1);
+}
+.os-404-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  background: var(--t-bg2);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+}
+.os-404-term-bar i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: block;
+}
+.os-404-term-bar i:nth-child(1) { background: #ff5f57; }
+.os-404-term-bar i:nth-child(2) { background: #febc2e; }
+.os-404-term-bar i:nth-child(3) { background: #28c840; }
+.os-404-term-bar span {
+  margin-left: auto;
+  font-family: var(--t-mono);
+  font-size: 0.7rem;
+  color: rgba(214, 226, 255, 0.4);
+}
+.os-404-term-body {
+  padding: 18px;
+  font-family: var(--t-mono);
+  font-size: 0.82rem;
+  line-height: 1.8;
+}
+.os-404-term-body .p { color: var(--t-accent); }
+.os-404-term-body .c { color: #4ade80; }
+.os-404-term-body .e { color: #f87171; }
+.os-404-term-body .s { color: #9ca3af; }
+.os-404-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--t-accent);
+  vertical-align: middle;
+  animation: os-blink 1s step-end infinite;
+}
+.os-404-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 32px;
+}

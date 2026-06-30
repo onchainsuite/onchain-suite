@@ -1,10 +1,10 @@
 import {
-  ArchiveIcon,
-  Delete02Icon,
-  MoreHorizontalIcon,
+  ArchiveBoxIcon,
+  EllipsisHorizontalIcon,
   StarIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  TrashIcon,
+} from "@heroicons/react/24/outline";
+import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 
@@ -28,38 +28,57 @@ const ConversationHeader = ({ thread }: ConversationHeaderProps) => {
   });
 
   return (
-    <div className="border-b border-border p-6">
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h2 className="mb-1 text-lg font-medium">{thread.subject}</h2>
-          <div className="flex items-center gap-2">
+    <div className="border-b border-border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-base font-semibold text-foreground">
+            {thread.subject}
+          </h2>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
               {thread.labels?.[0]?.name ?? "Inbox"}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="truncate text-xs text-muted-foreground">
               {thread.fromEmail ?? thread.from ?? ""}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-card">
-            <HugeiconsIcon icon={ArchiveIcon} className="h-4 w-4" />
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title="Archive"
+          >
+            <ArchiveBoxIcon className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={() => starMutation.mutate()}
-            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-card"
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-amber-500"
+            title="Star"
           >
-            <HugeiconsIcon
-              icon={StarIcon}
-              className={`h-4 w-4 ${thread.starred ? "fill-amber-400 text-amber-400" : ""}`}
-            />
+            {thread.starred ? (
+              <StarSolidIcon
+                className="h-4 w-4 text-amber-500"
+                aria-hidden="true"
+              />
+            ) : (
+              <StarIcon className="h-4 w-4" aria-hidden="true" />
+            )}
           </button>
-          <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-card">
-            <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
+          <button
+            type="button"
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title="Delete"
+          >
+            <TrashIcon className="h-4 w-4" aria-hidden="true" />
           </button>
-          <button className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-card">
-            <HugeiconsIcon icon={MoreHorizontalIcon} className="h-4 w-4" />
+          <button
+            type="button"
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title="More"
+          >
+            <EllipsisHorizontalIcon className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>

@@ -1,12 +1,11 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ArrowRight01Icon,
-  CheckmarkCircle01Icon,
-  Shield01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowRightIcon,
+  CheckCircleIcon,
+  ShieldCheckIcon,
+} from "@heroicons/react/24/outline";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -83,9 +82,9 @@ export function ResetPasswordForm({
           transition={{ duration: 0.4 }}
         >
           <AuthHeader
-            icon={Shield01Icon}
+            icon={ShieldCheckIcon}
             title="Reset your password"
-            subtitle="Create a new secure password for your R3tain account"
+            subtitle="Create a new secure password for your Onchain Suite account"
           />
 
           <Form {...form}>
@@ -128,8 +127,8 @@ export function ResetPasswordForm({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20"
           >
-            <HugeiconsIcon
-              icon={CheckmarkCircle01Icon}
+            <CheckCircleIcon
+              aria-hidden="true"
               className="h-8 w-8 text-green-600 dark:text-green-400"
             />
           </motion.div>
@@ -155,8 +154,8 @@ export function ResetPasswordForm({
 
           <Button onClick={onPasswordReset} className="group h-12 w-full">
             Continue to Sign In
-            <HugeiconsIcon
-              icon={ArrowRight01Icon}
+            <ArrowRightIcon
+              aria-hidden="true"
               className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
             />
           </Button>

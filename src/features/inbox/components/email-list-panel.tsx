@@ -1,14 +1,16 @@
 import {
-  ArchiveIcon,
-  AttachmentIcon,
-  Clock01Icon,
-  Search01Icon,
-  SentIcon,
+  ArchiveBoxIcon,
+  CheckIcon,
+  ClockIcon,
+  EnvelopeIcon,
+  MagnifyingGlassIcon,
+  PaperAirplaneIcon,
+  PaperClipIcon,
   StarIcon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
+import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import React, { type RefObject } from "react";
 
 import { inboxService } from "../inbox.service";
@@ -70,21 +72,21 @@ const EmailListPanel = ({
   });
 
   return (
-    <div className="w-80 shrink-0 overflow-y-auto border-r border-border">
+    <div className="flex w-full min-h-0 flex-col">
       {/* Search + Folder Tabs / Bulk Actions */}
       <div className="border-b border-border p-3">
         <div className="relative mb-3">
-          <HugeiconsIcon
-            icon={Search01Icon}
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          <MagnifyingGlassIcon
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
           />
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search... ( / )"
+            placeholder="Search ( / )"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
           />
         </div>
 
@@ -104,24 +106,24 @@ const EmailListPanel = ({
               <div className="mx-1 h-4 w-px bg-border" />
               <button
                 type="button"
-                className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-                title="Send Email"
+                className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                title="Send"
               >
-                <HugeiconsIcon icon={SentIcon} className="h-3.5 w-3.5" />
+                <PaperAirplaneIcon className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
-                className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-amber-400"
+                className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Star"
               >
-                <HugeiconsIcon icon={StarIcon} className="h-3.5 w-3.5" />
+                <StarIcon className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
-                className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-blue-400"
+                className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Archive"
               >
-                <HugeiconsIcon icon={ArchiveIcon} className="h-3.5 w-3.5" />
+                <ArchiveBoxIcon className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -129,7 +131,7 @@ const EmailListPanel = ({
                 className="ml-auto rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted"
                 title="Clear selection"
               >
-                <HugeiconsIcon icon={Tick01Icon} className="h-4 w-4" />
+                <CheckIcon className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           ) : (
@@ -143,14 +145,14 @@ const EmailListPanel = ({
                     type="button"
                     key={folder.name}
                     onClick={() => setSelectedFolder(folder.name)}
-                    className={`relative flex items-center justify-center rounded-lg p-2 text-xs font-medium transition-colors ${
+                    className={`relative flex items-center justify-center rounded-lg p-2 transition-colors ${
                       isActive
                         ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-card"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                     title={`${folder.name} (${folder.count})`}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4" aria-hidden="true" />
                     {folder.count > 0 && folder.name === "Unread" && (
                       <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                         {folder.count}
@@ -165,48 +167,48 @@ const EmailListPanel = ({
       </div>
 
       {/* Email List */}
-      <div ref={emailListRef} className="divide-y divide-border">
+      <div
+        ref={emailListRef}
+        className="min-h-0 flex-1 divide-y divide-border overflow-y-auto"
+      >
         {isLoading ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <HugeiconsIcon
-                icon={SentIcon}
-                className="h-5 w-5"
-                aria-hidden="true"
-              />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-foreground">
-              Loading…
+            <EnvelopeIcon
+              className="h-6 w-6 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <h3 className="mt-3 text-sm font-medium text-foreground">
+              Loading messages
             </h3>
           </div>
         ) : threads.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <HugeiconsIcon
-                icon={SentIcon}
-                className="h-5 w-5"
-                aria-hidden="true"
-              />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-foreground">
+            <EnvelopeIcon
+              className="h-6 w-6 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <h3 className="mt-3 text-sm font-medium text-foreground">
               No messages
             </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               {searchQuery.length > 0
                 ? "Try a different search term."
-                : "Incoming replies and notifications will show up here."}
+                : "Replies and notifications will show up here."}
             </p>
           </div>
         ) : (
           threads.map((thread, index) => (
-            <div
+            <motion.div
               key={thread.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
               className={`group relative transition-colors ${
                 selectedThreadId === thread.id
                   ? "bg-primary/10"
                   : focusedIndex === index
-                    ? "bg-card"
-                    : "hover:bg-card"
+                    ? "bg-muted/50"
+                    : "hover:bg-muted/50"
               }`}
             >
               <div className="absolute left-2 top-4 z-10">
@@ -237,10 +239,10 @@ const EmailListPanel = ({
                 tabIndex={0}
                 className="w-full cursor-pointer p-4 pl-8 text-left"
               >
-                <div className="mb-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium ${
                         thread.unreadCount > 0
                           ? "bg-primary/20 text-primary"
                           : "bg-muted text-muted-foreground"
@@ -252,7 +254,7 @@ const EmailListPanel = ({
                         .toUpperCase()}
                     </span>
                     <span
-                      className={`text-sm ${
+                      className={`truncate text-sm ${
                         thread.unreadCount > 0
                           ? "font-semibold text-foreground"
                           : "text-muted-foreground"
@@ -263,17 +265,17 @@ const EmailListPanel = ({
                         : "Unknown"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {thread.hasAttachment && (
-                      <HugeiconsIcon
-                        icon={AttachmentIcon}
+                      <PaperClipIcon
                         className="h-3.5 w-3.5 text-muted-foreground"
+                        aria-hidden="true"
                       />
                     )}
                     {thread.starred && (
-                      <HugeiconsIcon
-                        icon={StarIcon}
-                        className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                      <StarSolidIcon
+                        className="h-3.5 w-3.5 text-amber-500"
+                        aria-hidden="true"
                       />
                     )}
                     <span className="text-xs text-muted-foreground">
@@ -295,21 +297,21 @@ const EmailListPanel = ({
                 <p className="truncate text-xs text-muted-foreground">
                   {thread.snippet}
                 </p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="inline-block truncate rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                     {(thread.labels?.[0]?.name ?? selectedFolder).toString()}
                   </span>
-                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                       }}
-                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-primary"
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                       title="Archive"
                     >
-                      <HugeiconsIcon
-                        icon={ArchiveIcon}
+                      <ArchiveBoxIcon
                         className="h-3.5 w-3.5"
+                        aria-hidden="true"
                       />
                     </button>
                     <button
@@ -317,27 +319,24 @@ const EmailListPanel = ({
                         e.stopPropagation();
                         toggleStarMutation.mutate(thread.id);
                       }}
-                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-400"
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-500"
                       title="Star"
                     >
-                      <HugeiconsIcon icon={StarIcon} className="h-3.5 w-3.5" />
+                      <StarIcon className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                       }}
-                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-blue-400"
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                       title="Snooze"
                     >
-                      <HugeiconsIcon
-                        icon={Clock01Icon}
-                        className="h-3.5 w-3.5"
-                      />
+                      <ClockIcon className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))
         )}
       </div>

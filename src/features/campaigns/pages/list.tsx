@@ -1,16 +1,15 @@
 "use client";
 
 import {
-  Add01Icon,
-  ArrowDown01Icon,
-  Calendar01Icon,
-  LayoutGridIcon,
-  Mail01Icon,
-  Search01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  CalendarIcon,
+  ChevronDownIcon,
+  EnvelopeIcon,
+  ListBulletIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  Squares2X2Icon,
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { List } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -277,11 +276,7 @@ export function CampaignsListsView() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <HugeiconsIcon
-                icon={LayoutGridIcon}
-                className="h-3.5 w-3.5"
-                aria-hidden="true"
-              />
+              <Squares2X2Icon className="h-3.5 w-3.5" aria-hidden="true" />
               View library
             </button>
             <button
@@ -296,7 +291,7 @@ export function CampaignsListsView() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <List className="h-3.5 w-3.5" aria-hidden="true" />
+              <ListBulletIcon className="h-3.5 w-3.5" aria-hidden="true" />
               List
             </button>
             <button
@@ -311,21 +306,13 @@ export function CampaignsListsView() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <HugeiconsIcon
-                icon={Calendar01Icon}
-                className="h-3.5 w-3.5"
-                aria-hidden="true"
-              />
+              <CalendarIcon className="h-3.5 w-3.5" aria-hidden="true" />
               Calendar
             </button>
           </div>
           <Button asChild size="sm" className="rounded-xl">
             <Link href={PRIVATE_ROUTES.NEW_CAMPAIGN}>
-              <HugeiconsIcon
-                icon={Add01Icon}
-                className="mr-2 h-4 w-4"
-                aria-hidden="true"
-              />
+              <PlusIcon className="mr-2 h-4 w-4" aria-hidden="true" />
               Create campaign
             </Link>
           </Button>
@@ -335,8 +322,8 @@ export function CampaignsListsView() {
       {viewMode !== "library" ? (
         <div className="mx-2 mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mx-0">
           <div className="relative w-full sm:w-64">
-            <HugeiconsIcon
-              icon={Search01Icon}
+            <MagnifyingGlassIcon
+              aria-hidden="true"
               className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
             />
             <input
@@ -352,8 +339,7 @@ export function CampaignsListsView() {
               <DropdownMenuTrigger asChild>
                 <button type="button" className={filterTriggerClassName}>
                   <span>{dateRangeLabel}</span>
-                  <HugeiconsIcon
-                    icon={ArrowDown01Icon}
+                  <ChevronDownIcon
                     className="h-4 w-4 text-muted-foreground"
                     aria-hidden="true"
                   />
@@ -390,8 +376,7 @@ export function CampaignsListsView() {
               <DropdownMenuTrigger asChild>
                 <button type="button" className={filterTriggerClassName}>
                   <span>Type: {typeLabel}</span>
-                  <HugeiconsIcon
-                    icon={ArrowDown01Icon}
+                  <ChevronDownIcon
                     className="h-4 w-4 text-muted-foreground"
                     aria-hidden="true"
                   />
@@ -451,8 +436,7 @@ export function CampaignsListsView() {
               <DropdownMenuTrigger asChild>
                 <button type="button" className={filterTriggerClassName}>
                   <span>Status: {statusLabel}</span>
-                  <HugeiconsIcon
-                    icon={ArrowDown01Icon}
+                  <ChevronDownIcon
                     className="h-4 w-4 text-muted-foreground"
                     aria-hidden="true"
                   />
@@ -518,8 +502,8 @@ export function CampaignsListsView() {
       ) : (
         <div className="mx-2 mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mx-0">
           <div className="relative w-full sm:w-80">
-            <HugeiconsIcon
-              icon={Search01Icon}
+            <MagnifyingGlassIcon
+              aria-hidden="true"
               className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
             />
             <input
@@ -661,13 +645,10 @@ export function CampaignsListsView() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-            <HugeiconsIcon
-              icon={Mail01Icon}
-              className="h-5 w-5"
-              aria-hidden="true"
-            />
-          </div>
+          <EnvelopeIcon
+            className="mx-auto h-8 w-8 text-muted-foreground"
+            aria-hidden="true"
+          />
           <h2 className="mt-4 text-lg font-semibold text-foreground">
             You haven&apos;t created any campaigns yet
           </h2>
@@ -678,11 +659,7 @@ export function CampaignsListsView() {
           <div className="mt-6 flex gap-3">
             <Button asChild className="rounded-xl">
               <Link href={PRIVATE_ROUTES.NEW_CAMPAIGN}>
-                <HugeiconsIcon
-                  icon={Add01Icon}
-                  className="mr-2 h-4 w-4"
-                  aria-hidden="true"
-                />
+                <PlusIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                 Create campaign
               </Link>
             </Button>

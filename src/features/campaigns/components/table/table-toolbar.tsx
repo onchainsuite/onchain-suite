@@ -1,10 +1,9 @@
 "use client";
 
 import {
-  Search01Icon,
-  SlidersHorizontalIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  AdjustmentsHorizontalIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 import type { Table } from "@tanstack/react-table";
 
 import { Button } from "@/ui/button";
@@ -36,8 +35,8 @@ export function TableToolbar({ table }: TableToolbarProps) {
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-1 items-center gap-2">
         <div className="relative w-full max-w-sm">
-          <HugeiconsIcon
-            icon={Search01Icon}
+          <MagnifyingGlassIcon
+            aria-hidden="true"
             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
@@ -79,8 +78,8 @@ export function TableToolbar({ table }: TableToolbarProps) {
             variant="outline"
             className="h-10 rounded-xl border-border bg-transparent"
           >
-            <HugeiconsIcon
-              icon={SlidersHorizontalIcon}
+            <AdjustmentsHorizontalIcon
+              aria-hidden="true"
               className="mr-2 h-4 w-4"
             />
             View

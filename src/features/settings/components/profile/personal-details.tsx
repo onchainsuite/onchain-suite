@@ -1,5 +1,4 @@
-import { FloppyDiskIcon, PencilIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { type SyntheticEvent, useEffect, useState } from "react";
@@ -324,7 +323,7 @@ const PersonalDetails = () => {
                   disabled={saveProfileMutation.isPending}
                   className="gap-2"
                 >
-                  <HugeiconsIcon icon={FloppyDiskIcon} className="h-4 w-4" />
+                  <CheckIcon className="h-4 w-4" aria-hidden="true" />
                   {saveProfileMutation.isPending ? "Saving..." : "Save changes"}
                 </Button>
               </div>
@@ -339,7 +338,7 @@ const PersonalDetails = () => {
                 onClick={() => setIsEditing(true)}
                 className="gap-2"
               >
-                <HugeiconsIcon icon={PencilIcon} className="h-3.5 w-3.5" />
+                <PencilIcon className="h-3.5 w-3.5" aria-hidden="true" />
                 Edit
               </Button>
             </div>

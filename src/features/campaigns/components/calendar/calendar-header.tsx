@@ -1,6 +1,5 @@
 "use client";
-import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 
 import { Button } from "@/ui/button";
 import { CardDescription, CardHeader, CardTitle } from "@/ui/card";
@@ -34,17 +33,19 @@ export function CalendarHeader({
             variant="outline"
             size="icon"
             onClick={onPreviousMonth}
+            aria-label="Previous month"
             className="h-9 w-9 rounded-xl transition-all duration-300 bg-transparent"
           >
-            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+            <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
             size="icon"
             onClick={onNextMonth}
+            aria-label="Next month"
             className="h-9 w-9 rounded-xl transition-all duration-300 bg-transparent"
           >
-            <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+            <ArrowRightIcon aria-hidden="true" className="h-4 w-4" />
           </Button>
         </div>
       </div>

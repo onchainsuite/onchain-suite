@@ -1,8 +1,7 @@
 "use client";
 
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/ui/button";
@@ -35,7 +34,7 @@ export function BusinessGoalStep({
     <div className="w-full max-w-2xl">
       <div className="mb-8">
         <h1 className="text-foreground mb-4 text-3xl font-bold">
-          What&apos;s your top goal with R3tain?
+          What&apos;s your top goal with Onchain Suite?
         </h1>
         <p className="text-muted-foreground">
           We&apos;ll get you started with personalized recommendations based on
@@ -109,7 +108,7 @@ export function BusinessGoalStep({
               onClick={onBack}
               className="flex items-center gap-2"
             >
-              <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+              <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
               Back
             </Button>
             <div className="flex items-center gap-3">

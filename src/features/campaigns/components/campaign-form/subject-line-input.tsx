@@ -1,7 +1,6 @@
 "use client";
 
-import { HashtagIcon, SmileIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { FaceSmileIcon, HashtagIcon } from "@heroicons/react/24/outline";
 import { type EmojiClickData, Theme } from "emoji-picker-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -62,10 +61,11 @@ export function SubjectLineInput({ value, onChange }: SubjectLineInputProps) {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Insert emoji"
               className="h-7 w-7 rounded-lg hover:bg-muted transition-all duration-300"
             >
-              <HugeiconsIcon
-                icon={SmileIcon}
+              <FaceSmileIcon
+                aria-hidden="true"
                 className="h-4 w-4 text-muted-foreground"
               />
             </Button>
@@ -93,10 +93,11 @@ export function SubjectLineInput({ value, onChange }: SubjectLineInputProps) {
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Insert merge tag"
               className="h-7 w-7 rounded-lg hover:bg-muted transition-all duration-300"
             >
-              <HugeiconsIcon
-                icon={HashtagIcon}
+              <HashtagIcon
+                aria-hidden="true"
                 className="h-4 w-4 text-muted-foreground"
               />
             </Button>

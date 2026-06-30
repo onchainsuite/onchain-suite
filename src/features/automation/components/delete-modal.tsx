@@ -1,5 +1,7 @@
-import { Alert01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 
 import { type Automation } from "@/features/automation/types";
@@ -28,9 +30,10 @@ export const DeleteModal = ({
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl"
       >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-          <HugeiconsIcon icon={Alert01Icon} className="h-6 w-6" />
-        </div>
+        <ExclamationTriangleIcon
+          className="mb-4 h-9 w-9 text-destructive"
+          aria-hidden="true"
+        />
         <h3 className="text-lg font-semibold text-foreground">
           Delete Automation?
         </h3>
@@ -52,9 +55,9 @@ export const DeleteModal = ({
           >
             {isDeleting ? (
               <>
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
                   className="h-4 w-4 animate-spin"
+                  aria-hidden="true"
                 />
                 Deleting...
               </>

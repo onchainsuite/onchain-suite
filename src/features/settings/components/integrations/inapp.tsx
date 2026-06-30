@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  Copy01Icon,
-  Shield01Icon,
-  Tick01Icon,
-  ViewIcon,
-  ViewOffIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  CheckIcon,
+  ClipboardDocumentIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  ShieldCheckIcon,
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -543,7 +542,7 @@ const InAppIntegration = () => {
       <SettingsSectionCard
         title="In-app push"
         description="Configure SDK keys, approved origins, and test delivery."
-        icon={<HugeiconsIcon icon={Shield01Icon} className="h-5 w-5" />}
+        icon={<ShieldCheckIcon className="h-5 w-5" aria-hidden="true" />}
         badge={
           orgId
             ? `Active sessions: ${statusQuery.isLoading ? "Loading…" : (status.sessionCount ?? "—")}`
@@ -702,12 +701,12 @@ const InAppIntegration = () => {
                         type="button"
                       >
                         {showPublishable ? (
-                          <HugeiconsIcon
-                            icon={ViewOffIcon}
+                          <EyeSlashIcon
                             className="h-4 w-4"
+                            aria-hidden="true"
                           />
                         ) : (
-                          <HugeiconsIcon icon={ViewIcon} className="h-4 w-4" />
+                          <EyeIcon className="h-4 w-4" aria-hidden="true" />
                         )}
                       </Button>
                     </div>
@@ -737,14 +736,14 @@ const InAppIntegration = () => {
                             type="button"
                           >
                             {copiedKey === "pk" ? (
-                              <HugeiconsIcon
-                                icon={Tick01Icon}
+                              <CheckIcon
                                 className="h-4 w-4 text-primary"
+                                aria-hidden="true"
                               />
                             ) : (
-                              <HugeiconsIcon
-                                icon={Copy01Icon}
+                              <ClipboardDocumentIcon
                                 className="h-4 w-4"
+                                aria-hidden="true"
                               />
                             )}
                           </Button>
@@ -784,14 +783,14 @@ const InAppIntegration = () => {
                             type="button"
                           >
                             {copiedKey === "pk" ? (
-                              <HugeiconsIcon
-                                icon={Tick01Icon}
+                              <CheckIcon
                                 className="h-4 w-4 text-primary"
+                                aria-hidden="true"
                               />
                             ) : (
-                              <HugeiconsIcon
-                                icon={Copy01Icon}
+                              <ClipboardDocumentIcon
                                 className="h-4 w-4"
+                                aria-hidden="true"
                               />
                             )}
                           </Button>
@@ -1179,12 +1178,15 @@ const InAppIntegration = () => {
                     aria-label="Copy new secret token"
                   >
                     {copiedKey === "sk" ? (
-                      <HugeiconsIcon
-                        icon={Tick01Icon}
+                      <CheckIcon
                         className="h-4 w-4 text-primary"
+                        aria-hidden="true"
                       />
                     ) : (
-                      <HugeiconsIcon icon={Copy01Icon} className="h-4 w-4" />
+                      <ClipboardDocumentIcon
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                      />
                     )}
                   </Button>
                 </div>

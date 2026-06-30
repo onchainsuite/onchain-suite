@@ -95,7 +95,7 @@ describe("CompanyEditForm", () => {
 
     render(<CompanyEditForm />);
 
-    await screen.findByText("Project Settings");
+    await screen.findByText("Project settings");
     expect(screen.getByText("Goldgard")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));

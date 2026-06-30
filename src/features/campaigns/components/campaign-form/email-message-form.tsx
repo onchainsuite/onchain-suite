@@ -1,6 +1,5 @@
 "use client";
-import { Mail01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import type { UseFormReturn } from "react-hook-form";
 
 import { Button } from "@/ui/button";
@@ -40,8 +39,8 @@ export function EmailMessageForm({
   return (
     <div className="space-y-6 p-6 md:p-8">
       <div className="flex items-center gap-2 pb-4 border-b border-border">
-        <HugeiconsIcon
-          icon={Mail01Icon}
+        <EnvelopeIcon
+          aria-hidden="true"
           className="h-5 w-5 text-muted-foreground"
         />
         <h3 className="text-xl font-semibold text-foreground">Email message</h3>

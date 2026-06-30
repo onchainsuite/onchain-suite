@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react";
 import type { ElementType } from "react";
 
 export interface NavItem {
@@ -24,7 +23,7 @@ export interface Particle {
 }
 
 export interface FloatingIcon {
-  icon: LucideIcon;
+  icon: ElementType;
   left: string;
   top: string;
   delay: number;

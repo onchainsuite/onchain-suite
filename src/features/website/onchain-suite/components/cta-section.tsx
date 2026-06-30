@@ -1,6 +1,5 @@
 "use client";
-import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { useScroll, useTransform } from "motion/react";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -53,8 +52,8 @@ export function CTASection() {
               onClick={() => push(AUTH_ROUTES.REGISTER)}
             >
               Get Started
-              <HugeiconsIcon
-                icon={ArrowRight01Icon}
+              <ArrowRightIcon
+                aria-hidden="true"
                 className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
               />
             </Button>

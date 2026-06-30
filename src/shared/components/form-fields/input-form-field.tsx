@@ -1,5 +1,10 @@
-import type { LucideIcon } from "lucide-react";
-import type { HTMLInputTypeAttribute, ReactElement, ReactNode } from "react";
+import type {
+  ComponentType,
+  HTMLInputTypeAttribute,
+  ReactElement,
+  ReactNode,
+  SVGProps,
+} from "react";
 import type {
   ControllerRenderProps,
   FieldValues,
@@ -28,7 +33,7 @@ interface InputFormFieldProps<T extends FieldValues> {
   additionalLabel?: string;
   description?: string | ReactNode;
   className?: string;
-  icon?: LucideIcon;
+  icon?: ComponentType<SVGProps<SVGSVGElement>>;
   type?: HTMLInputTypeAttribute;
   disabled?: boolean;
   renderChild?: (field: ControllerRenderProps<T, Path<T>>) => ReactElement;

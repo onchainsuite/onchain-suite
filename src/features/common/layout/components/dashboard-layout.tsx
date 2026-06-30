@@ -1,20 +1,19 @@
 "use client";
 
 import {
-  BrainIcon,
-  DashboardCircleIcon,
-  Mail01Icon,
-  Megaphone01Icon,
-  Settings01Icon,
+  BoltIcon,
+  Cog6ToothIcon,
+  CpuChipIcon,
+  EnvelopeIcon,
+  MegaphoneIcon,
+  Squares2X2Icon,
   UserGroupIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import {
   QueryClient,
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import { Zap } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -33,6 +32,7 @@ import { DashboardNavbar } from "./dashboard-navbar";
 import { OrganizationStatusBanner } from "./organization-status-banner";
 import { notificationsService } from "@/features/notifications/notifications.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { queryClientDefaults } from "@/shared/providers";
 
 type BreadcrumbItem = { href: string; label: string };
 
@@ -120,37 +120,37 @@ function DashboardLayoutInner({
     {
       label: "Dashboard",
       href: PRIVATE_ROUTES.DASHBOARD,
-      icon: <HugeiconsIcon icon={DashboardCircleIcon} className="h-4 w-4" />,
+      icon: <Squares2X2Icon className="h-4 w-4" aria-hidden="true" />,
     },
     {
       label: "Campaigns",
       href: PRIVATE_ROUTES.CAMPAIGNS,
-      icon: <HugeiconsIcon icon={Megaphone01Icon} className="h-4 w-4" />,
+      icon: <MegaphoneIcon className="h-4 w-4" aria-hidden="true" />,
     },
     {
       label: "Audience",
       href: PRIVATE_ROUTES.AUDIENCE,
-      icon: <HugeiconsIcon icon={UserGroupIcon} className="h-4 w-4" />,
+      icon: <UserGroupIcon className="h-4 w-4" aria-hidden="true" />,
     },
     {
       label: "Inbox",
       href: PRIVATE_ROUTES.INBOX,
-      icon: <HugeiconsIcon icon={Mail01Icon} className="h-4 w-4" />,
+      icon: <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />,
     },
     {
       label: "Automations",
       href: PRIVATE_ROUTES.AUTOMATIONS,
-      icon: <Zap className="h-4 w-4" />,
+      icon: <BoltIcon className="h-4 w-4" aria-hidden="true" />,
     },
     {
       label: "Intelligence",
       href: PRIVATE_ROUTES.INTELLIGENCE,
-      icon: <HugeiconsIcon icon={BrainIcon} className="h-4 w-4" />,
+      icon: <CpuChipIcon className="h-4 w-4" aria-hidden="true" />,
     },
     {
       label: "Settings",
       href: PRIVATE_ROUTES.SETTINGS,
-      icon: <HugeiconsIcon icon={Settings01Icon} className="h-4 w-4" />,
+      icon: <Cog6ToothIcon className="h-4 w-4" aria-hidden="true" />,
     },
   ];
 
@@ -226,7 +226,9 @@ function DashboardLayoutInner({
 }
 
 export function DashboardLayout(props: DashboardLayoutProps) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: queryClientDefaults })
+  );
 
   return (
     <QueryClientProvider client={queryClient}>

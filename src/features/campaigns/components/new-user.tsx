@@ -1,5 +1,4 @@
-import { Mail01Icon, SparklesIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { EnvelopeIcon, SparklesIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
 import { Button } from "@/ui/button";
@@ -32,7 +31,7 @@ export const NewUserFlow = () => {
                 size="lg"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 py-6 text-base font-medium shadow-lg transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-[1.02]"
               >
-                <HugeiconsIcon icon={Mail01Icon} className="mr-2 h-5 w-5" />
+                <EnvelopeIcon aria-hidden="true" className="mr-2 h-5 w-5" />
                 Send your first email campaign
               </Button>
             </Link>
@@ -58,12 +57,10 @@ export const NewUserFlow = () => {
             <div className="relative bg-card border border-border rounded-2xl p-6 md:p-8 shadow-xl transition-all duration-300 ease-in-out hover:shadow-2xl">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-4 border-b border-border">
-                  <div className="p-2 bg-primary/10 rounded-xl">
-                    <HugeiconsIcon
-                      icon={SparklesIcon}
-                      className="h-5 w-5 text-primary"
-                    />
-                  </div>
+                  <SparklesIcon
+                    aria-hidden="true"
+                    className="h-5 w-5 text-primary"
+                  />
                   <h3 className="text-lg font-semibold text-foreground">
                     Quick Start Templates
                   </h3>
@@ -94,8 +91,8 @@ export const NewUserFlow = () => {
                       className={`${template.color} border rounded-xl p-4 transition-all duration-300 ease-in-out hover:scale-[1.03] hover:shadow-md cursor-pointer`}
                     >
                       <div className="aspect-4/3 bg-background/50 rounded-lg mb-2 flex items-center justify-center">
-                        <HugeiconsIcon
-                          icon={Mail01Icon}
+                        <EnvelopeIcon
+                          aria-hidden="true"
                           className="h-6 w-6 text-muted-foreground"
                         />
                       </div>

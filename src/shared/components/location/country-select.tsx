@@ -1,11 +1,10 @@
 "use client";
 import {
-  ArrowUpDownIcon,
-  GlobeIcon,
-  Refresh01Icon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowPathIcon,
+  CheckIcon,
+  ChevronUpDownIcon,
+  GlobeAltIcon,
+} from "@heroicons/react/24/outline";
 import { useCallback, useMemo, useState } from "react";
 import type { Country } from "react-country-state-city/dist/esm/types";
 
@@ -92,7 +91,7 @@ export function CountrySelect({
     }
     return (
       <div className="flex items-center gap-2">
-        <HugeiconsIcon icon={GlobeIcon} className="h-4 w-4" />
+        <GlobeAltIcon className="h-4 w-4" aria-hidden="true" />
         <span>{placeholder}</span>
       </div>
     );
@@ -121,9 +120,9 @@ export function CountrySelect({
           )}
         >
           {buttonContent}
-          <HugeiconsIcon
-            icon={ArrowUpDownIcon}
+          <ChevronUpDownIcon
             className="ml-2 h-4 w-4 shrink-0 opacity-50"
+            aria-hidden="true"
           />
         </Button>
       </PopoverTrigger>
@@ -153,9 +152,9 @@ export function CountrySelect({
                     </>
                   ) : (
                     <>
-                      <HugeiconsIcon
-                        icon={Refresh01Icon}
+                      <ArrowPathIcon
                         className="mr-2 h-3 w-3"
+                        aria-hidden="true"
                       />
                       Retry
                     </>
@@ -175,12 +174,12 @@ export function CountrySelect({
                     >
                       <span className="text-lg">{country.flag}</span>
                       <span className="truncate">{country.name}</span>
-                      <HugeiconsIcon
-                        icon={Tick01Icon}
+                      <CheckIcon
                         className={cn(
                           "ml-auto h-4 w-4 shrink-0",
                           value === country.name ? "opacity-100" : "opacity-0"
                         )}
+                        aria-hidden="true"
                       />
                     </CommandItem>
                   ))}

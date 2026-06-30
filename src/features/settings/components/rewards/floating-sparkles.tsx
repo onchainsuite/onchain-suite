@@ -1,5 +1,4 @@
-import { SparklesIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { SparklesIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import React from "react";
 
@@ -34,10 +33,10 @@ const FloatingSparkles = () => {
               top: "50%",
             }}
           >
-            <HugeiconsIcon
-              icon={SparklesIcon}
+            <SparklesIcon
               className="h-4 w-4 text-primary"
               style={{ opacity: 0.5 }}
+              aria-hidden="true"
             />
           </motion.div>
         );

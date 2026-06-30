@@ -1,5 +1,8 @@
-import { FireIcon, GitBranchIcon, SnowIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowsRightLeftIcon,
+  CloudIcon,
+  FireIcon,
+} from "@heroicons/react/24/outline";
 import { Handle, Position } from "reactflow";
 
 import { type AutomationNodeData } from "@/features/automation/types";
@@ -11,10 +14,10 @@ interface BranchNodeProps {
 
 export const BranchNode = ({ data, selected }: BranchNodeProps) => (
   <div
-    className={`min-w-[256px] rounded-2xl border bg-card p-4 shadow-sm transition-all ${
+    className={`min-w-[280px] rounded-2xl border bg-card p-5 shadow-md transition-all ${
       selected
-        ? "border-cyan-500/60 ring-2 ring-cyan-500/25"
-        : "border-border hover:border-cyan-500/40"
+        ? "border-cyan-500/60 shadow-cyan-500/10 ring-2 ring-cyan-500/25"
+        : "border-border hover:-translate-y-0.5 hover:border-cyan-500/40 hover:shadow-lg"
     }`}
   >
     <Handle
@@ -38,8 +41,8 @@ export const BranchNode = ({ data, selected }: BranchNodeProps) => (
     />
     <div className="flex items-center gap-3">
       <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10">
-        <HugeiconsIcon
-          icon={GitBranchIcon}
+        <ArrowsRightLeftIcon
+          aria-hidden="true"
           className="h-5 w-5 text-cyan-600 dark:text-cyan-400"
         />
       </div>
@@ -54,10 +57,10 @@ export const BranchNode = ({ data, selected }: BranchNodeProps) => (
     </div>
     <div className="mt-3 flex justify-between rounded-xl border border-border bg-muted/60 px-3 py-2 text-xs">
       <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-300">
-        <HugeiconsIcon icon={SnowIcon} className="h-3 w-3" /> Cold
+        <CloudIcon aria-hidden="true" className="h-3 w-3" /> Cold
       </span>
       <span className="flex items-center gap-1 text-orange-600 dark:text-orange-300">
-        <HugeiconsIcon icon={FireIcon} className="h-3 w-3" /> Warm
+        <FireIcon aria-hidden="true" className="h-3 w-3" /> Warm
       </span>
     </div>
   </div>

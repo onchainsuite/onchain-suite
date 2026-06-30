@@ -35,9 +35,11 @@ export const DashboardHeader = ({
               )}
             </span>
           ))}
-          {currentPage && (
-            <span className="text-foreground">{currentPage}</span>
-          )}
+          {currentPage &&
+            currentPage !==
+              breadcrumbs?.[(breadcrumbs?.length ?? 0) - 1]?.label && (
+              <span className="text-foreground">{currentPage}</span>
+            )}
         </div>
       </div>
 

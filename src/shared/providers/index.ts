@@ -1,3 +1,3 @@
-import { RootProviders } from "./root-providers";
+import { queryClientDefaults, RootProviders } from "./root-providers";
 
-export { RootProviders };
+export { queryClientDefaults, RootProviders };

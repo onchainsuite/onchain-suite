@@ -1,8 +1,10 @@
-import { Loading02Icon, Upload01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  ArrowPathIcon,
+  ArrowUpTrayIcon,
+  CheckCircleIcon,
+} from "@heroicons/react/24/outline";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
 import React, { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
@@ -220,9 +222,10 @@ const LogoUpload = ({
         </DialogHeader>
         {success ? (
           <div className="mt-6 flex flex-col items-center justify-center py-8 text-center animate-in fade-in zoom-in duration-300">
-            <div className="rounded-full bg-green-100 p-3 dark:bg-green-900/20">
-              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
-            </div>
+            <CheckCircleIcon
+              className="h-12 w-12 text-primary"
+              aria-hidden="true"
+            />
             <h3 className="mt-4 text-lg font-medium text-foreground">
               Upload Complete!
             </h3>
@@ -270,9 +273,9 @@ const LogoUpload = ({
                 </div>
               ) : (
                 <>
-                  <HugeiconsIcon
-                    icon={Upload01Icon}
-                    className="h-10 w-10 text-(--brand-oxford-blue)/50 dark:text-(--brand-alice-blue)/50"
+                  <ArrowUpTrayIcon
+                    className="h-10 w-10 text-muted-foreground"
+                    aria-hidden="true"
                   />
                   <p className="mt-4 text-sm font-medium text-(--brand-oxford-blue) dark:text-(--brand-alice-blue)">
                     Drop your file here, or browse
@@ -321,12 +324,12 @@ const LogoUpload = ({
           <Button
             onClick={handleUpload}
             disabled={saving || !file}
-            className="bg-(--brand-blue) text-white hover:bg-(--brand-blue)/30"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {saving ? (
-              <HugeiconsIcon
-                icon={Loading02Icon}
+              <ArrowPathIcon
                 className="mr-2 h-4 w-4 animate-spin"
+                aria-hidden="true"
               />
             ) : (
               "Upload logo"

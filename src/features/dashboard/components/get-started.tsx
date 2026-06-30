@@ -1,23 +1,22 @@
 "use client";
 
 import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Calendar01Icon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ArrowsRightLeftIcon,
+  BellIcon,
+  BoltIcon,
+  CalendarIcon,
+  CheckIcon,
+  CircleStackIcon,
+  Cog6ToothIcon,
   CreditCardIcon,
-  DatabaseIcon,
-  FileAttachmentIcon,
-  Mail01Icon,
-  Notification01Icon,
-  Settings01Icon,
+  EnvelopeIcon,
+  FlagIcon,
+  PaperClipIcon,
   SparklesIcon,
-  Target01Icon,
-  Tick01Icon,
   UserGroupIcon,
-  WorkflowCircle01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Zap } from "lucide-react";
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -30,7 +29,7 @@ const tasks = [
     title: "Connect email",
     description: "Sync your emails for fast follow-ups and a single inbox.",
     completed: true,
-    icon: <HugeiconsIcon icon={Mail01Icon} className="h-6 w-6" />,
+    icon: <EnvelopeIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/inbox",
     cta: "Open inbox",
   },
@@ -38,7 +37,7 @@ const tasks = [
     title: "Connect calendar",
     description: "Connect your calendar to track meetings and stay organized.",
     completed: true,
-    icon: <HugeiconsIcon icon={Calendar01Icon} className="h-6 w-6" />,
+    icon: <CalendarIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/settings",
     cta: "Open settings",
   },
@@ -47,7 +46,7 @@ const tasks = [
     description:
       "Tell us how your team sells and your brand's tone. Get smarter suggestions and a setup that fits your style.",
     completed: false,
-    icon: <HugeiconsIcon icon={SparklesIcon} className="h-6 w-6" />,
+    icon: <SparklesIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/onboarding",
     cta: "Personalize",
   },
@@ -55,7 +54,7 @@ const tasks = [
     title: "Invite team members",
     description: "Add your team to collaborate on deals and share insights.",
     completed: false,
-    icon: <HugeiconsIcon icon={UserGroupIcon} className="h-6 w-6" />,
+    icon: <UserGroupIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/settings",
     cta: "Invite",
   },
@@ -63,7 +62,7 @@ const tasks = [
     title: "Import contacts",
     description: "Bring in your existing contacts to get started faster.",
     completed: false,
-    icon: <HugeiconsIcon icon={FileAttachmentIcon} className="h-6 w-6" />,
+    icon: <PaperClipIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/audience/import-export",
     cta: "Import",
   },
@@ -71,7 +70,7 @@ const tasks = [
     title: "Set up billing",
     description: "Configure payment methods and billing preferences.",
     completed: false,
-    icon: <HugeiconsIcon icon={CreditCardIcon} className="h-6 w-6" />,
+    icon: <CreditCardIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/settings",
     cta: "Set up",
   },
@@ -79,7 +78,7 @@ const tasks = [
     title: "Configure integrations",
     description: "Connect your favorite tools and automate workflows.",
     completed: false,
-    icon: <HugeiconsIcon icon={Settings01Icon} className="h-6 w-6" />,
+    icon: <Cog6ToothIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/settings",
     cta: "Configure",
   },
@@ -87,7 +86,7 @@ const tasks = [
     title: "Set up database",
     description: "Organize your data with custom fields and pipelines.",
     completed: false,
-    icon: <HugeiconsIcon icon={DatabaseIcon} className="h-6 w-6" />,
+    icon: <CircleStackIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/audience",
     cta: "Open audience",
   },
@@ -95,7 +94,7 @@ const tasks = [
     title: "Enable automations",
     description: "Automate repetitive tasks and save time.",
     completed: false,
-    icon: <Zap className="h-6 w-6" />,
+    icon: <BoltIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/automations",
     cta: "Open automations",
   },
@@ -103,7 +102,7 @@ const tasks = [
     title: "Configure notifications",
     description: "Stay updated with customized alert preferences.",
     completed: false,
-    icon: <HugeiconsIcon icon={Notification01Icon} className="h-6 w-6" />,
+    icon: <BellIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/settings",
     cta: "Configure",
   },
@@ -111,7 +110,7 @@ const tasks = [
     title: "Set sales goals",
     description: "Define targets and track your team's performance.",
     completed: false,
-    icon: <HugeiconsIcon icon={Target01Icon} className="h-6 w-6" />,
+    icon: <FlagIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/intelligence/analytics",
     cta: "Open analytics",
   },
@@ -119,7 +118,7 @@ const tasks = [
     title: "Create workflows",
     description: "Build custom processes to streamline your sales pipeline.",
     completed: false,
-    icon: <HugeiconsIcon icon={WorkflowCircle01Icon} className="h-6 w-6" />,
+    icon: <ArrowsRightLeftIcon aria-hidden="true" className="h-6 w-6" />,
     href: "/automations",
     cta: "Create",
   },
@@ -205,7 +204,7 @@ export function GetStartedSection() {
             className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-lg bg-transparent text-muted-foreground transition-all hover:bg-accent/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
             aria-label="Previous step"
           >
-            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+            <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
           </button>
           <button
             onClick={goToNext}
@@ -213,7 +212,7 @@ export function GetStartedSection() {
             className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-lg bg-transparent text-muted-foreground transition-all hover:bg-accent/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
             aria-label="Next step"
           >
-            <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+            <ArrowRightIcon aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -251,10 +250,7 @@ export function GetStartedSection() {
                           }`}
                         >
                           {task.completed ? (
-                            <HugeiconsIcon
-                              icon={Tick01Icon}
-                              className="h-6 w-6"
-                            />
+                            <CheckIcon aria-hidden="true" className="h-6 w-6" />
                           ) : (
                             task.icon
                           )}

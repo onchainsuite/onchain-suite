@@ -1,23 +1,23 @@
 "use client";
 
 import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Cancel01Icon,
-  CancelCircleIcon,
-  Delete02Icon,
-  FloppyDiskIcon,
-  Loading02Icon,
-  Orbit01Icon,
-  Refresh01Icon,
-  Search01Icon,
-  Target01Icon,
+  ArrowDownTrayIcon,
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  ArrowRightIcon,
+  CheckCircleIcon,
+  Cog6ToothIcon,
+  CurrencyDollarIcon,
+  GlobeAltIcon,
+  MagnifyingGlassIcon,
+  TrashIcon,
   UserGroupIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ViewfinderCircleIcon,
+  XCircleIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, DollarSign } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type React from "react";
@@ -272,6 +272,101 @@ const normalizeSchemaFields = (schema: unknown): BuilderSchemaField[] => {
     .filter((field): field is BuilderSchemaField => Boolean(field));
 };
 
+type NodeLibraryItem = {
+  type: string;
+  label: string;
+  description?: string;
+  icon: React.ReactNode;
+};
+
+const NODE_ACCENTS = {
+  sky: {
+    tile: "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    hover: "hover:border-sky-500/50",
+    dot: "bg-sky-500",
+  },
+  indigo: {
+    tile: "border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+    hover: "hover:border-indigo-500/50",
+    dot: "bg-indigo-500",
+  },
+} as const;
+
+/** A draggable, color-accented group of builder nodes in the left library. */
+function NodeLibrarySection({
+  title,
+  accent,
+  nodes,
+}: {
+  title: string;
+  accent: keyof typeof NODE_ACCENTS;
+  nodes: NodeLibraryItem[];
+}) {
+  const a = NODE_ACCENTS[accent];
+  if (nodes.length === 0) return null;
+  return (
+    <div>
+      <h3 className="mb-2.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${a.dot}`}
+          aria-hidden="true"
+        />
+        {title}
+        <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-muted-foreground">
+          {nodes.length}
+        </span>
+      </h3>
+      <div className="space-y-2">
+        {nodes.map((node) => (
+          <div
+            key={node.type}
+            draggable
+            tabIndex={0}
+            role="button"
+            aria-label={`Drag ${node.label} onto the canvas`}
+            onDragStart={(e) => {
+              e.dataTransfer.setData("application/reactflow", node.type);
+              e.dataTransfer.setData("application/label", node.label);
+            }}
+            className={`group flex cursor-grab items-center gap-3 rounded-xl border border-border/60 bg-background p-2.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing focus:outline-none focus:ring-2 focus:ring-primary/30 ${a.hover}`}
+          >
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${a.tile}`}
+            >
+              {node.icon}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {node.label}
+              </p>
+              <p className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+                {node.description}
+              </p>
+            </div>
+            <div
+              aria-hidden="true"
+              className="flex flex-col gap-[3px] pr-0.5 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground"
+            >
+              <span className="flex gap-[3px]">
+                <span className="h-1 w-1 rounded-full bg-current" />
+                <span className="h-1 w-1 rounded-full bg-current" />
+              </span>
+              <span className="flex gap-[3px]">
+                <span className="h-1 w-1 rounded-full bg-current" />
+                <span className="h-1 w-1 rounded-full bg-current" />
+              </span>
+              <span className="flex gap-[3px]">
+                <span className="h-1 w-1 rounded-full bg-current" />
+                <span className="h-1 w-1 rounded-full bg-current" />
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const CreateAutomationContent = () => {
   const params = useParams();
   const automationId = params?.id as string;
@@ -302,6 +397,7 @@ const CreateAutomationContent = () => {
   const [jsonFieldDrafts, setJsonFieldDrafts] = useState<
     Record<string, string>
   >({});
+  const [nodeSearch, setNodeSearch] = useState("");
 
   const { project } = useReactFlow();
 
@@ -394,7 +490,7 @@ const CreateAutomationContent = () => {
           type,
           label,
           description,
-          icon: <HugeiconsIcon icon={Target01Icon} className="h-4 w-4" />,
+          icon: <ViewfinderCircleIcon aria-hidden="true" className="h-4 w-4" />,
         };
       })
       .filter((x): x is (typeof triggerNodes)[number] => !!x);
@@ -416,12 +512,32 @@ const CreateAutomationContent = () => {
           type,
           label,
           description,
-          icon: <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />,
+          icon: <ArrowRightIcon aria-hidden="true" className="h-4 w-4" />,
         };
       })
       .filter((x): x is (typeof actionNodes)[number] => !!x);
     return normalized.length > 0 ? normalized : resolvedActionNodes;
   }, [actionsQuery.data, resolvedActionNodes]);
+
+  const matchesNodeSearch = useCallback(
+    (item: { label?: string; description?: string }) => {
+      const q = nodeSearch.trim().toLowerCase();
+      if (q.length === 0) return true;
+      return (
+        (item.label ?? "").toLowerCase().includes(q) ||
+        (item.description ?? "").toLowerCase().includes(q)
+      );
+    },
+    [nodeSearch]
+  );
+  const filteredTriggerCatalog = useMemo(
+    () => triggerCatalog.filter(matchesNodeSearch),
+    [triggerCatalog, matchesNodeSearch]
+  );
+  const filteredActionCatalog = useMemo(
+    () => actionCatalog.filter(matchesNodeSearch),
+    [actionCatalog, matchesNodeSearch]
+  );
 
   const emailTemplateOptions = useMemo<
     Array<{
@@ -1280,7 +1396,7 @@ const CreateAutomationContent = () => {
             href="/automations"
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+            <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
           </Link>
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -1293,7 +1409,7 @@ const CreateAutomationContent = () => {
                 className="rounded-md bg-transparent px-1 text-sm font-semibold tracking-tight text-foreground transition-colors hover:bg-muted/50 focus:bg-muted/50 focus:outline-none"
               />
               <span className="flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-primary">
-                <CheckCircle2 className="h-3 w-3" />
+                <CheckCircleIcon aria-hidden="true" className="h-3 w-3" />
                 {draftSaveMutation.isPending ? "Autosaving" : "Builder Ready"}
               </span>
             </div>
@@ -1352,8 +1468,8 @@ const CreateAutomationContent = () => {
               disabled={publishMutation.isPending}
             >
               {publishMutation.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="h-3.5 w-3.5 animate-spin"
                 />
               ) : null}
@@ -1369,12 +1485,12 @@ const CreateAutomationContent = () => {
               disabled={resetMutation.isPending}
             >
               {resetMutation.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="h-3.5 w-3.5 animate-spin"
                 />
               ) : (
-                <HugeiconsIcon icon={Refresh01Icon} className="h-3.5 w-3.5" />
+                <ArrowPathIcon aria-hidden="true" className="h-3.5 w-3.5" />
               )}
               Reset Canvas
             </button>
@@ -1393,7 +1509,7 @@ const CreateAutomationContent = () => {
               discardMutation.mutate();
             }}
           >
-            <HugeiconsIcon icon={CancelCircleIcon} className="h-3.5 w-3.5" />
+            <XCircleIcon aria-hidden="true" className="h-3.5 w-3.5" />
             {isNew ? "Clear Draft" : "Discard Draft"}
           </button>
           <button
@@ -1402,12 +1518,12 @@ const CreateAutomationContent = () => {
             disabled={isSaving}
           >
             {isSaving ? (
-              <HugeiconsIcon
-                icon={Loading02Icon}
+              <ArrowPathIcon
+                aria-hidden="true"
                 className="h-3.5 w-3.5 animate-spin"
               />
             ) : (
-              <HugeiconsIcon icon={FloppyDiskIcon} className="h-3.5 w-3.5" />
+              <ArrowDownTrayIcon aria-hidden="true" className="h-3.5 w-3.5" />
             )}
             Save Changes
           </button>
@@ -1423,104 +1539,44 @@ const CreateAutomationContent = () => {
               {sidebarOpen && (
                 <motion.div
                   initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 280, opacity: 1 }}
+                  animate={{ width: 304, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
-                  className="flex flex-col border-r border-border bg-card"
+                  className="flex flex-col border-r border-border bg-gradient-to-b from-card to-card/60"
                 >
-                  <div className="p-4">
-                    <div className="relative">
-                      <HugeiconsIcon
-                        icon={Search01Icon}
-                        className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+                  <div className="p-4 pb-3">
+                    <label className="group relative block">
+                      <MagnifyingGlassIcon
+                        aria-hidden="true"
+                        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary"
                       />
                       <input
                         type="text"
-                        placeholder="Search nodes..."
-                        className="h-9 w-full rounded-lg border border-border bg-background pl-8 pr-4 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        value={nodeSearch}
+                        onChange={(e) => setNodeSearch(e.target.value)}
+                        placeholder="Search triggers & actions…"
+                        aria-label="Search nodes"
+                        className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
-                    </div>
+                    </label>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto px-4 pb-4">
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                          Triggers
-                        </h3>
-                        <div className="space-y-2">
-                          {triggerCatalog.map((node) => (
-                            <div
-                              key={node.type}
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData(
-                                  "application/reactflow",
-                                  node.type
-                                );
-                                e.dataTransfer.setData(
-                                  "application/label",
-                                  node.label
-                                );
-                              }}
-                              className="group flex cursor-grab items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:border-primary/50 hover:shadow-sm active:cursor-grabbing"
-                            >
-                              <div
-                                className={`flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary`}
-                              >
-                                {node.icon}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">
-                                  {node.label}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground">
-                                  {node.description}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                  <div className="flex-1 space-y-6 overflow-y-auto px-4 pb-5">
+                    <NodeLibrarySection
+                      title="Triggers"
+                      accent="sky"
+                      nodes={filteredTriggerCatalog}
+                    />
+                    <NodeLibrarySection
+                      title="Actions"
+                      accent="indigo"
+                      nodes={filteredActionCatalog}
+                    />
+                    {filteredTriggerCatalog.length === 0 &&
+                    filteredActionCatalog.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-8 text-center text-xs text-muted-foreground">
+                        No nodes match “{nodeSearch}”.
                       </div>
-
-                      <div>
-                        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                          Actions
-                        </h3>
-                        <div className="space-y-2">
-                          {actionCatalog.map((node) => (
-                            <div
-                              key={node.type}
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData(
-                                  "application/reactflow",
-                                  node.type
-                                );
-                                e.dataTransfer.setData(
-                                  "application/label",
-                                  node.label
-                                );
-                              }}
-                              className="group flex cursor-grab items-center gap-3 rounded-lg border border-border/50 bg-background p-3 transition-all hover:border-secondary/50 hover:shadow-sm active:cursor-grabbing"
-                            >
-                              <div
-                                className={`flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground`}
-                              >
-                                {node.icon}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">
-                                  {node.label}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground">
-                                  {node.description}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                    ) : null}
                   </div>
                 </motion.div>
               )}
@@ -1541,9 +1597,9 @@ const CreateAutomationContent = () => {
                 className="absolute left-4 top-16 z-10 flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-md transition-colors hover:bg-muted hover:text-foreground"
               >
                 {sidebarOpen ? (
-                  <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
+                  <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
                 ) : (
-                  <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+                  <ArrowRightIcon aria-hidden="true" className="h-4 w-4" />
                 )}
               </button>
 
@@ -1587,8 +1643,8 @@ const CreateAutomationContent = () => {
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/50 px-6 backdrop-blur-[2px]">
                   <div className="rounded-2xl border border-border bg-card px-5 py-4 shadow-xl">
                     <div className="flex items-center gap-3 text-sm text-foreground">
-                      <HugeiconsIcon
-                        icon={Loading02Icon}
+                      <ArrowPathIcon
+                        aria-hidden="true"
                         className="h-4 w-4 animate-spin text-primary"
                       />
                       Loading automation builder...
@@ -1601,7 +1657,7 @@ const CreateAutomationContent = () => {
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
                   <div className="pointer-events-auto w-full max-w-lg rounded-[28px] border border-border bg-card p-7 text-center shadow-[0_32px_80px_rgba(15,23,42,0.45)] backdrop-blur-xl">
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-                      <HugeiconsIcon icon={Orbit01Icon} className="h-6 w-6" />
+                      <GlobeAltIcon aria-hidden="true" className="h-6 w-6" />
                     </div>
                     <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">
                       Start from a clean canvas
@@ -1673,20 +1729,31 @@ const CreateAutomationContent = () => {
                     initial={{ x: 320, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: 320, opacity: 0 }}
-                    className="w-80 border-l border-border bg-card p-6"
+                    className="w-[344px] overflow-y-auto border-l border-border bg-gradient-to-b from-card to-card/60 p-6"
                   >
-                    <div className="mb-6 flex items-center justify-between">
-                      <h3 className="font-semibold tracking-tight text-foreground">
-                        Properties
-                      </h3>
+                    <div className="mb-6 flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                          <Cog6ToothIcon
+                            aria-hidden="true"
+                            className="h-5 w-5"
+                          />
+                        </span>
+                        <div>
+                          <h3 className="font-semibold leading-tight tracking-tight text-foreground">
+                            Properties
+                          </h3>
+                          <p className="text-[11px] capitalize text-muted-foreground">
+                            {selectedNodeDetails?.type ?? "node"} settings
+                          </p>
+                        </div>
+                      </div>
                       <button
                         onClick={() => setSelectedNode(null)}
-                        className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label="Close properties panel"
+                        className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                       >
-                        <HugeiconsIcon
-                          icon={Cancel01Icon}
-                          className="h-4 w-4"
-                        />
+                        <XMarkIcon aria-hidden="true" className="h-4 w-4" />
                       </button>
                     </div>
 
@@ -1860,18 +1927,12 @@ const CreateAutomationContent = () => {
                       selectedNodeSchemaQuery.error instanceof Error ? (
                         <div className="space-y-4 rounded-[20px] border border-border bg-card p-4">
                           <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
-                                Backend Config
-                              </div>
-                              <div className="mt-1 text-[11px] leading-5 text-muted-foreground">
-                                Powered by the automation trigger/action schema
-                                endpoint.
-                              </div>
+                            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
+                              Configuration
                             </div>
                             {selectedNodeSchemaQuery.isFetching ? (
-                              <HugeiconsIcon
-                                icon={Loading02Icon}
+                              <ArrowPathIcon
+                                aria-hidden="true"
                                 className="h-4 w-4 animate-spin text-sky-300"
                               />
                             ) : null}
@@ -2105,8 +2166,11 @@ const CreateAutomationContent = () => {
                       {/* Stats */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                          <div className="rounded-full bg-primary/10 p-2">
-                            <CheckCircle2 className="h-4 w-4 text-sky-300" />
+                          <div className="rounded-full">
+                            <CheckCircleIcon
+                              aria-hidden="true"
+                              className="h-4 w-4 text-sky-300"
+                            />
                           </div>
                           <div>
                             <div className="text-sm font-medium text-foreground">
@@ -2118,9 +2182,9 @@ const CreateAutomationContent = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                          <div className="rounded-full bg-primary/10 p-2">
-                            <HugeiconsIcon
-                              icon={UserGroupIcon}
+                          <div className="rounded-full">
+                            <UserGroupIcon
+                              aria-hidden="true"
                               className="h-4 w-4 text-sky-300"
                             />
                           </div>
@@ -2134,9 +2198,9 @@ const CreateAutomationContent = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                          <div className="rounded-full bg-violet-400/10 p-2">
-                            <HugeiconsIcon
-                              icon={Target01Icon}
+                          <div className="rounded-full">
+                            <ViewfinderCircleIcon
+                              aria-hidden="true"
                               className="h-4 w-4 text-violet-300"
                             />
                           </div>
@@ -2150,8 +2214,11 @@ const CreateAutomationContent = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                          <div className="rounded-full bg-emerald-400/10 p-2">
-                            <DollarSign className="h-4 w-4 text-emerald-300" />
+                          <div className="rounded-full">
+                            <CurrencyDollarIcon
+                              aria-hidden="true"
+                              className="h-4 w-4 text-emerald-300"
+                            />
                           </div>
                           <div>
                             <div className="text-sm font-medium text-foreground">
@@ -2182,10 +2249,7 @@ const CreateAutomationContent = () => {
                           }}
                           className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-400/10 py-2.5 text-sm font-medium text-red-100 transition-colors hover:bg-red-400/15"
                         >
-                          <HugeiconsIcon
-                            icon={Delete02Icon}
-                            className="h-4 w-4"
-                          />
+                          <TrashIcon aria-hidden="true" className="h-4 w-4" />
                           Delete Node
                         </button>
                       </div>
@@ -2206,8 +2270,8 @@ const CreateAutomationContent = () => {
                     value: statsEntries.toLocaleString(),
                     change: "—",
                     icon: (
-                      <HugeiconsIcon
-                        icon={UserGroupIcon}
+                      <UserGroupIcon
+                        aria-hidden="true"
                         className="h-4 w-4 text-blue-500"
                       />
                     ),
@@ -2216,15 +2280,20 @@ const CreateAutomationContent = () => {
                     label: "Conversions",
                     value: statsConversions.toLocaleString(),
                     change: "—",
-                    icon: <CheckCircle2 className="h-4 w-4 text-primary" />,
+                    icon: (
+                      <CheckCircleIcon
+                        aria-hidden="true"
+                        className="h-4 w-4 text-primary"
+                      />
+                    ),
                   },
                   {
                     label: "Conv. Rate",
                     value: `${statsConvRate}%`,
                     change: "—",
                     icon: (
-                      <HugeiconsIcon
-                        icon={Target01Icon}
+                      <ViewfinderCircleIcon
+                        aria-hidden="true"
                         className="h-4 w-4 text-purple-500"
                       />
                     ),
@@ -2236,7 +2305,12 @@ const CreateAutomationContent = () => {
                         ? `$${(statsRevenue / 1000).toFixed(0)}k`
                         : "—",
                     change: "—",
-                    icon: <DollarSign className="h-4 w-4 text-amber-500" />,
+                    icon: (
+                      <CurrencyDollarIcon
+                        aria-hidden="true"
+                        className="h-4 w-4 text-amber-500"
+                      />
+                    ),
                   },
                 ].map((stat, i) => (
                   <motion.div
@@ -2436,8 +2510,8 @@ const CreateAutomationContent = () => {
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                                  <HugeiconsIcon
-                                    icon={UserGroupIcon}
+                                  <UserGroupIcon
+                                    aria-hidden="true"
                                     className="h-4 w-4"
                                   />
                                 </div>

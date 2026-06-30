@@ -1,5 +1,4 @@
-import { ArrowUpDownIcon, Tick01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/outline";
 import type * as React from "react";
 import * as RPNInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
@@ -89,12 +88,12 @@ const CountrySelect = ({
             country={selectedCountry}
             countryName={selectedCountry}
           />
-          <HugeiconsIcon
-            icon={ArrowUpDownIcon}
+          <ChevronUpDownIcon
             className={cn(
               "-mr-2 size-4 opacity-50",
               disabled ? "hidden" : "opacity-100"
             )}
+            aria-hidden="true"
           />
         </Button>
       </PopoverTrigger>
@@ -143,11 +142,11 @@ const CountrySelectOption = ({
       <span className="text-foreground/50 text-sm">{`+${RPNInput.getCountryCallingCode(
         country
       )}`}</span>
-      <HugeiconsIcon
-        icon={Tick01Icon}
+      <CheckIcon
         className={`ml-auto size-4 ${
           country === selectedCountry ? "opacity-100" : "opacity-0"
         }`}
+        aria-hidden="true"
       />
     </CommandItem>
   );

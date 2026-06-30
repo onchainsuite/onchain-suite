@@ -11,7 +11,11 @@ interface UserData {
   userType: "DeFi" | "Gaming" | "DAO";
   trialDaysLeft?: number;
   isNewUser: boolean;
-  subscriptionTier: "free_trial" | "limited_free" | "full_paid" | "r3tain_only";
+  subscriptionTier:
+    | "free_trial"
+    | "limited_free"
+    | "full_paid"
+    | "onchain_suite_only";
   fullName?: string;
   timezone?: string;
 }

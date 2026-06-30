@@ -1,14 +1,13 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  Clock01Icon,
-  Loading02Icon,
-  SentIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  ArrowRightIcon,
+  ClockIcon,
+  PaperAirplaneIcon,
+} from "@heroicons/react/24/outline";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -540,8 +539,8 @@ function CampaignPreviewStep({
               onClick={() => previewMutation.mutate()}
             >
               {previewMutation.isPending ? (
-                <HugeiconsIcon
-                  icon={Loading02Icon}
+                <ArrowPathIcon
+                  aria-hidden="true"
                   className="h-4 w-4 animate-spin"
                 />
               ) : (
@@ -563,8 +562,8 @@ function CampaignPreviewStep({
                 />
               ) : previewMutation.isPending ? (
                 <div className="flex h-full items-center justify-center gap-2 bg-card text-sm text-muted-foreground">
-                  <HugeiconsIcon
-                    icon={Loading02Icon}
+                  <ArrowPathIcon
+                    aria-hidden="true"
                     className="h-4 w-4 animate-spin"
                   />
                   Generating preview…
@@ -1263,10 +1262,7 @@ export function CreateCampaignPage() {
                 size="sm"
                 className="rounded-xl transition-all duration-300"
               >
-                <HugeiconsIcon
-                  icon={ArrowLeft01Icon}
-                  className="mr-2 h-4 w-4"
-                />
+                <ArrowLeftIcon aria-hidden="true" className="mr-2 h-4 w-4" />
                 Back to campaigns
               </Button>
             </Link>
@@ -1358,8 +1354,8 @@ export function CreateCampaignPage() {
                         disabled={currentStep === 1}
                         className="rounded-xl transition-all duration-300 disabled:opacity-50"
                       >
-                        <HugeiconsIcon
-                          icon={ArrowLeft01Icon}
+                        <ArrowLeftIcon
+                          aria-hidden="true"
                           className="mr-2 h-4 w-4"
                         />
                         Back
@@ -1386,13 +1382,13 @@ export function CreateCampaignPage() {
                               ? "Send Campaign Now"
                               : "Schedule Campaign"}
                             {sendOption === "now" ? (
-                              <HugeiconsIcon
-                                icon={SentIcon}
+                              <PaperAirplaneIcon
+                                aria-hidden="true"
                                 className="ml-2 h-4 w-4"
                               />
                             ) : (
-                              <HugeiconsIcon
-                                icon={Clock01Icon}
+                              <ClockIcon
+                                aria-hidden="true"
                                 className="ml-2 h-4 w-4"
                               />
                             )}
@@ -1406,8 +1402,8 @@ export function CreateCampaignPage() {
                           className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
                         >
                           Continue
-                          <HugeiconsIcon
-                            icon={ArrowRight01Icon}
+                          <ArrowRightIcon
+                            aria-hidden="true"
                             className="ml-2 h-4 w-4"
                           />
                         </Button>
@@ -1425,8 +1421,8 @@ export function CreateCampaignPage() {
                         disabled={isBootstrappingCampaign}
                         className="rounded-xl transition-all duration-300"
                       >
-                        <HugeiconsIcon
-                          icon={ArrowLeft01Icon}
+                        <ArrowLeftIcon
+                          aria-hidden="true"
                           className="mr-2 h-4 w-4"
                         />
                         Back
@@ -1439,8 +1435,8 @@ export function CreateCampaignPage() {
                         className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
                       >
                         Continue
-                        <HugeiconsIcon
-                          icon={ArrowRight01Icon}
+                        <ArrowRightIcon
+                          aria-hidden="true"
                           className="ml-2 h-4 w-4"
                         />
                       </Button>

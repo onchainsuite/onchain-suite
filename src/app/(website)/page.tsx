@@ -1,13 +1,5 @@
-import { BlockchainBackground } from "@/ui/blockchain-background";
-
-import { OnchainSuiteHome } from "@/onchain-suite-website/page";
+import { LandingPage } from "@/onchain-suite-website/components/landing/landing-page";
 
 export default function Home() {
-  return (
-    <main className="relative min-h-screen">
-      <BlockchainBackground>
-        <OnchainSuiteHome />
-      </BlockchainBackground>
-    </main>
-  );
+  return <LandingPage />;
 }

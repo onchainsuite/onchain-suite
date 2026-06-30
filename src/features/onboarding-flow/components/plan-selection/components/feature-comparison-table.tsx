@@ -1,6 +1,5 @@
 "use client";
-import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -63,13 +62,10 @@ export function FeatureComparisonTable({
               <Button variant="ghost" className="text-primary">
                 {expandedFeatures ? "Show fewer features" : "View all features"}
                 {expandedFeatures ? (
-                  <HugeiconsIcon
-                    icon={ArrowUp01Icon}
-                    className="ml-1 h-4 w-4"
-                  />
+                  <ChevronUpIcon aria-hidden="true" className="ml-1 h-4 w-4" />
                 ) : (
-                  <HugeiconsIcon
-                    icon={ArrowDown01Icon}
+                  <ChevronDownIcon
+                    aria-hidden="true"
                     className="ml-1 h-4 w-4"
                   />
                 )}

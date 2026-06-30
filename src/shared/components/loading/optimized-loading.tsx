@@ -45,7 +45,9 @@ export default function OptimizedLoading() {
     return (
       <div className="bg-background fixed inset-0 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-primary mb-4 text-4xl font-black">R3tain</div>
+          <div className="text-primary mb-4 text-4xl font-black">
+            Onchain Suite
+          </div>
           <div className="bg-muted h-1 w-32 overflow-hidden rounded-full">
             <div className="bg-primary h-full w-1/3 rounded-full" />
           </div>
@@ -111,7 +113,7 @@ export default function OptimizedLoading() {
                   }
             }
           >
-            R3tain
+            Onchain Suite
           </motion.h1>
         </motion.div>
 

@@ -1,5 +1,4 @@
-import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import { flexRender } from "@tanstack/react-table";
 
 import { TableHead, TableHeader, TableRow } from "@/ui/table";
@@ -48,18 +47,14 @@ export function DefaultTableHeader<TData>({
                     )}
                     {{
                       asc: (
-                        <HugeiconsIcon
-                          icon={ArrowUp01Icon}
-                          className="shrink-0 opacity-60"
-                          size={16}
+                        <ChevronUpIcon
+                          className="size-4 shrink-0 opacity-60"
                           aria-hidden="true"
                         />
                       ),
                       desc: (
-                        <HugeiconsIcon
-                          icon={ArrowDown01Icon}
-                          className="shrink-0 opacity-60"
-                          size={16}
+                        <ChevronDownIcon
+                          className="size-4 shrink-0 opacity-60"
                           aria-hidden="true"
                         />
                       ),

@@ -1,10 +1,9 @@
 "use client";
 import {
-  Add01Icon,
-  ArrowUpDownIcon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  CheckIcon,
+  ChevronUpDownIcon,
+  PlusIcon,
+} from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
@@ -539,9 +538,9 @@ export function OrganizationSwitcher() {
           <Skeleton className="h-6 w-6 rounded-full shrink-0" />
           <Skeleton className="h-4 w-24" />
         </div>
-        <HugeiconsIcon
-          icon={ArrowUpDownIcon}
+        <ChevronUpDownIcon
           className="ml-2 h-4 w-4 shrink-0 opacity-40"
+          aria-hidden="true"
         />
       </Button>
     );
@@ -581,9 +580,9 @@ export function OrganizationSwitcher() {
               </div>
             </div>
           </div>
-          <HugeiconsIcon
-            icon={ArrowUpDownIcon}
+          <ChevronUpDownIcon
             className="ml-2 h-4 w-4 shrink-0 opacity-50"
+            aria-hidden="true"
           />
         </Button>
       </DropdownMenuTrigger>
@@ -616,12 +615,12 @@ export function OrganizationSwitcher() {
                   {org.slug}
                 </div>
               </div>
-              <HugeiconsIcon
-                icon={Tick01Icon}
+              <CheckIcon
                 className={cn(
                   "ml-auto h-4 w-4 text-primary",
                   confirmedActiveOrgId === org.id ? "opacity-100" : "opacity-0"
                 )}
+                aria-hidden="true"
               />
             </DropdownMenuItem>
           ))}
@@ -631,7 +630,7 @@ export function OrganizationSwitcher() {
           disabled
           className="cursor-not-allowed rounded-lg px-2 py-2 opacity-50"
         >
-          <HugeiconsIcon icon={Add01Icon} className="mr-2 h-4 w-4" />
+          <PlusIcon className="mr-2 h-4 w-4" aria-hidden="true" />
           Create Organization
         </DropdownMenuItem>
       </DropdownMenuContent>

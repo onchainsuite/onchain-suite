@@ -1,5 +1,4 @@
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import { Button } from "@/components/ui/button";
 
@@ -25,7 +24,7 @@ export function SecurityBanner({ onRemove }: { onRemove: () => void }) {
           className="text-white hover:bg-white/10"
           onClick={onRemove}
         >
-          <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
+          <XMarkIcon aria-hidden="true" className="h-4 w-4" />
         </Button>
       </div>
     </div>

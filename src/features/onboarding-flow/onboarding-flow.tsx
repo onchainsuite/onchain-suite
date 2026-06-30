@@ -187,7 +187,7 @@ export function OnboardingFlow() {
         return (
           <div className="text-center">
             <h1 className="text-foreground mb-4 text-3xl font-bold">
-              Welcome to R3tain!
+              Welcome to Onchain Suite!
             </h1>
             <p className="text-muted-foreground">
               Your account has been set up successfully.

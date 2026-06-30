@@ -1,9 +1,9 @@
 import {
-  ArrowUpRight01Icon,
-  FileAttachmentIcon,
-  MoreHorizontalIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowRightIcon,
+  BoltIcon,
+  EllipsisHorizontalIcon,
+  PencilSquareIcon,
+} from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
@@ -25,45 +25,51 @@ export const DraftsList = ({ drafts, onDelete }: DraftsListProps) => {
   if (drafts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-          <HugeiconsIcon
-            icon={FileAttachmentIcon}
-            className="h-5 w-5"
-            aria-hidden="true"
-          />
-        </div>
+        <PencilSquareIcon
+          className="h-8 w-8 text-muted-foreground"
+          aria-hidden="true"
+        />
         <h3 className="mt-4 text-lg font-semibold text-foreground">
           No drafts yet
         </h3>
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
-          Start creating a new automation and your drafts will show up here.
+          Start creating a new automation and your unfinished work will show up
+          here so you can pick up where you left off.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <motion.div
+      layout
+      className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(14rem,1fr))]"
+    >
       {drafts.map((draft) => (
         <motion.div
+          layout
           key={draft.id}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="group relative flex flex-col overflow-hidden rounded-xl border border-dashed border-amber-500/40 bg-amber-500/[0.03] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/70 hover:shadow-md hover:shadow-amber-500/10"
         >
-          <div className="mb-4 flex items-start justify-between">
-            <div className="rounded-lg bg-secondary p-2">
-              <HugeiconsIcon
-                icon={FileAttachmentIcon}
-                className="h-5 w-5 text-muted-foreground"
-              />
-            </div>
+          {/* amber WIP accent stripe */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-amber-400/40 to-transparent"
+          />
+
+          <div className="flex items-start justify-between gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-300">
+              <PencilSquareIcon className="h-3 w-3" aria-hidden="true" />
+              Draft
+            </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground opacity-0 group-hover:opacity-100">
-                  <HugeiconsIcon
-                    icon={MoreHorizontalIcon}
+                <button className="-mr-1 rounded-lg p-1 text-muted-foreground opacity-0 transition-colors hover:bg-secondary hover:text-foreground group-hover:opacity-100">
+                  <EllipsisHorizontalIcon
                     className="h-4 w-4"
+                    aria-hidden="true"
                   />
                 </button>
               </DropdownMenuTrigger>
@@ -77,22 +83,42 @@ export const DraftsList = ({ drafts, onDelete }: DraftsListProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <h3 className="font-semibold text-foreground">{draft.name}</h3>
-          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-            {draft.description}
+
+          <h3 className="mt-2.5 text-sm font-semibold leading-snug text-foreground">
+            {draft.name || "Untitled automation"}
+          </h3>
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            {draft.description?.trim()
+              ? draft.description
+              : "Not finished yet — a few steps left before this can go live."}
           </p>
-          <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-            <span>Edited {draft.lastEdited}</span>
+
+          {/* trigger summary */}
+          <div className="mt-2.5 inline-flex w-fit items-center gap-1.5 rounded-md border border-border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
+            <BoltIcon className="h-3 w-3 text-amber-500" aria-hidden="true" />
+            <span className="truncate">
+              {draft.trigger?.event || "No trigger set"}
+            </span>
+          </div>
+
+          <div className="mt-auto flex items-center justify-between gap-2 pt-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              Saved {draft.lastEdited}
+            </span>
             <Link
               href={`/automations/${draft.id}`}
-              className="flex items-center gap-1 font-medium text-primary hover:text-primary/90"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-500/40 px-2 py-1 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-500 hover:text-white dark:text-amber-300"
             >
-              Continue editing
-              <HugeiconsIcon icon={ArrowUpRight01Icon} className="h-3 w-3" />
+              Resume
+              <ArrowRightIcon
+                className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
             </Link>
           </div>
         </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 };

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const breadcrumbs = [
   { href: publicRoutes.HOME, label: "Home" },
-  { href: PRIVATE_ROUTES.AUTOMATIONS, label: "Automation" },
+  { href: PRIVATE_ROUTES.AUTOMATIONS, label: "Automations" },
 ];
 
 export default function NewAutomationPage() {

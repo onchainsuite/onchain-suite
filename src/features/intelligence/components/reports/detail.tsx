@@ -1,16 +1,14 @@
 "use client";
 
 import {
-  AnalyticsUpIcon,
-  ArrowLeft01Icon,
-  Calendar01Icon,
-  CursorPointer01Icon,
-  Loading02Icon,
-  Refresh01Icon,
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  ArrowTrendingUpIcon,
+  CalendarIcon,
+  CursorArrowRaysIcon,
+  EyeIcon,
   UserGroupIcon,
-  ViewIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -134,13 +132,13 @@ export function ReportDetailPage() {
           href="/intelligence"
           className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-secondary"
         >
-          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-5 w-5" />
+          <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
-              <HugeiconsIcon icon={Calendar01Icon} className="h-4 w-4" />
+              <CalendarIcon className="h-4 w-4" aria-hidden="true" />
               {sentDate}
             </span>
             <span>•</span>
@@ -155,12 +153,12 @@ export function ReportDetailPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50"
           >
             {refreshMutation.isPending ? (
-              <HugeiconsIcon
-                icon={Loading02Icon}
+              <ArrowPathIcon
                 className="h-4 w-4 animate-spin"
+                aria-hidden="true"
               />
             ) : (
-              <HugeiconsIcon icon={Refresh01Icon} className="h-4 w-4" />
+              <ArrowPathIcon className="h-4 w-4" aria-hidden="true" />
             )}
             Refresh
           </button>
@@ -173,9 +171,9 @@ export function ReportDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Recipients
             </h3>
-            <HugeiconsIcon
-              icon={UserGroupIcon}
+            <UserGroupIcon
               className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
             />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
@@ -189,9 +187,9 @@ export function ReportDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Open Rate
             </h3>
-            <HugeiconsIcon
-              icon={ViewIcon}
+            <EyeIcon
               className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
             />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
@@ -205,9 +203,9 @@ export function ReportDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Click Rate
             </h3>
-            <HugeiconsIcon
-              icon={CursorPointer01Icon}
+            <CursorArrowRaysIcon
               className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
             />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
@@ -219,9 +217,9 @@ export function ReportDetailPage() {
             <h3 className="text-sm font-medium text-muted-foreground">
               Revenue
             </h3>
-            <HugeiconsIcon
-              icon={AnalyticsUpIcon}
+            <ArrowTrendingUpIcon
               className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
             />
           </div>
           <div className="mt-2 flex items-baseline gap-2">

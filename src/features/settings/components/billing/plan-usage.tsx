@@ -1,5 +1,4 @@
-import { BarChartIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChartBarIcon } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -161,7 +160,7 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
       <SettingsSectionCard
         title="Plan & usage"
         description="Review your current billing plan and monthly usage."
-        icon={<HugeiconsIcon icon={BarChartIcon} className="h-5 w-5" />}
+        icon={<ChartBarIcon className="h-5 w-5" aria-hidden="true" />}
         badge={`Current plan: ${planName}`}
         onOpenChange={setIsOpen}
         collapsedPreview={

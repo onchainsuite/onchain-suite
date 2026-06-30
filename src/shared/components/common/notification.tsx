@@ -1,14 +1,13 @@
 "use client";
 
 import {
-  Cancel01Icon,
+  BellIcon,
+  ChatBubbleLeftIcon,
+  CheckIcon,
+  CubeIcon,
   InformationCircleIcon,
-  Message01Icon,
-  Notification01Icon,
-  PackageIcon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -161,34 +160,34 @@ export function NotificationBell() {
     switch (type) {
       case "info":
         return (
-          <HugeiconsIcon
-            icon={InformationCircleIcon}
+          <InformationCircleIcon
             className="h-4 w-4 text-blue-500"
+            aria-hidden="true"
           />
         );
       case "success":
         return (
-          <HugeiconsIcon icon={Tick01Icon} className="h-4 w-4 text-green-500" />
+          <CheckIcon className="h-4 w-4 text-green-500" aria-hidden="true" />
         );
       case "warning":
         return (
-          <HugeiconsIcon
-            icon={InformationCircleIcon}
+          <InformationCircleIcon
             className="h-4 w-4 text-amber-500"
+            aria-hidden="true"
           />
         );
       case "message":
         return (
-          <HugeiconsIcon
-            icon={Message01Icon}
+          <ChatBubbleLeftIcon
             className="h-4 w-4 text-indigo-500"
+            aria-hidden="true"
           />
         );
       default:
         return (
-          <HugeiconsIcon
-            icon={InformationCircleIcon}
+          <InformationCircleIcon
             className="h-4 w-4 text-blue-500"
+            aria-hidden="true"
           />
         );
     }
@@ -198,7 +197,7 @@ export function NotificationBell() {
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <HugeiconsIcon icon={Notification01Icon} className="h-5 w-5" />
+          <BellIcon className="h-5 w-5" aria-hidden="true" />
           {unreadCount > 0 && (
             <span className="bg-primary text-primary-foreground absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-medium">
               {unreadCount > 9 ? "9+" : unreadCount}
@@ -251,9 +250,9 @@ export function NotificationBell() {
                               className="h-6 w-6"
                               onClick={() => markAsRead(notification.id)}
                             >
-                              <HugeiconsIcon
-                                icon={Tick01Icon}
+                              <CheckIcon
                                 className="h-3 w-3"
+                                aria-hidden="true"
                               />
                               <span className="sr-only">Mark as read</span>
                             </Button>
@@ -264,10 +263,7 @@ export function NotificationBell() {
                             className="h-6 w-6"
                             onClick={() => removeNotification(notification.id)}
                           >
-                            <HugeiconsIcon
-                              icon={Cancel01Icon}
-                              className="h-3 w-3"
-                            />
+                            <XMarkIcon className="h-3 w-3" aria-hidden="true" />
                             <span className="sr-only">Remove</span>
                           </Button>
                         </div>
@@ -287,9 +283,9 @@ export function NotificationBell() {
             </DropdownMenuGroup>
           ) : (
             <div className="flex flex-col items-center justify-center py-6 text-center">
-              <HugeiconsIcon
-                icon={PackageIcon}
+              <CubeIcon
                 className="text-muted-foreground/50 h-10 w-10"
+                aria-hidden="true"
               />
               <p className="mt-2 text-sm font-medium">No notifications</p>
               <p className="text-muted-foreground text-xs">

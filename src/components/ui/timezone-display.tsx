@@ -1,6 +1,5 @@
 "use client";
-import { Clock01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ClockIcon } from "@heroicons/react/24/outline";
 import React, { useEffect, useState } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,7 +52,7 @@ export function TimezoneDisplay() {
       className="flex items-center gap-2 text-sm text-muted-foreground"
       title={info.timeZone}
     >
-      <HugeiconsIcon icon={Clock01Icon} className="h-4 w-4" />
+      <ClockIcon aria-hidden="true" className="h-4 w-4" />
       <span className="font-medium text-foreground">{time}</span>
       <span className="font-medium">{info.short}</span>
       <span className="hidden sm:inline">({info.long})</span>

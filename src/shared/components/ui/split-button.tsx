@@ -1,6 +1,5 @@
 "use client";
-import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +49,7 @@ export function SplitButton({
             size={size}
             className="bg-background hover:bg-muted/50 border-border rounded-l-none border-l px-2 py-2 transition-colors"
           >
-            <HugeiconsIcon icon={ArrowDown01Icon} className="h-4 w-4" />
+            <ChevronDownIcon className="h-4 w-4" aria-hidden="true" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">

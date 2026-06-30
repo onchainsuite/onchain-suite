@@ -1,11 +1,10 @@
 import {
-  Clock01Icon,
-  GitBranchIcon,
-  Mail01Icon,
-  Tag01Icon,
-  Wallet01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowsRightLeftIcon,
+  ClockIcon,
+  EnvelopeIcon,
+  TagIcon,
+  WalletIcon,
+} from "@heroicons/react/24/outline";
 import React from "react";
 
 import type { AutomationTemplate, HelpResource } from "../types";
@@ -101,9 +100,7 @@ export const triggerNodes = [
     type: "onchain",
     label: "On-chain Event",
     description: "When your users interact with a contract",
-    icon: (
-      <HugeiconsIcon icon={Wallet01Icon} className="h-5 w-5 text-primary" />
-    ),
+    icon: <WalletIcon aria-hidden="true" className="h-5 w-5 text-primary" />,
     color: "emerald",
   },
 ];
@@ -243,7 +240,7 @@ export const actionNodes = [
     label: "Send Email",
     description: "Send an email to the user",
     icon: (
-      <HugeiconsIcon icon={Mail01Icon} className="h-5 w-5 text-indigo-500" />
+      <EnvelopeIcon aria-hidden="true" className="h-5 w-5 text-indigo-500" />
     ),
     color: "indigo",
   },
@@ -251,9 +248,7 @@ export const actionNodes = [
     type: "wait",
     label: "Wait",
     description: "Wait for a period of time",
-    icon: (
-      <HugeiconsIcon icon={Clock01Icon} className="h-5 w-5 text-amber-500" />
-    ),
+    icon: <ClockIcon aria-hidden="true" className="h-5 w-5 text-amber-500" />,
     color: "amber",
   },
   {
@@ -261,7 +256,10 @@ export const actionNodes = [
     label: "Branch",
     description: "Split based on condition",
     icon: (
-      <HugeiconsIcon icon={GitBranchIcon} className="h-5 w-5 text-violet-500" />
+      <ArrowsRightLeftIcon
+        aria-hidden="true"
+        className="h-5 w-5 text-violet-500"
+      />
     ),
     color: "violet",
   },
@@ -269,9 +267,7 @@ export const actionNodes = [
     type: "add_tag",
     label: "Add Tag",
     description: "Add a tag to the user",
-    icon: (
-      <HugeiconsIcon icon={Tag01Icon} className="h-5 w-5 text-indigo-500" />
-    ),
+    icon: <TagIcon aria-hidden="true" className="h-5 w-5 text-indigo-500" />,
     color: "indigo",
   },
 ];

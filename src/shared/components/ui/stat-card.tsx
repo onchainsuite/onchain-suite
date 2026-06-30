@@ -1,12 +1,14 @@
-import type { LucideIcon } from "lucide-react";
+import type * as React from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+type IconType = React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
 interface StatCardProps {
   title: string;
   value: string | number;
   description?: string;
-  icon: LucideIcon;
+  icon: IconType;
   trend?: {
     value: string;
     label: string;

@@ -1,12 +1,11 @@
 "use client";
 
 import {
-  ArrowRight01Icon,
-  ChampionIcon,
-  Clock01Icon,
-  Tick01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowRightIcon,
+  CheckIcon,
+  ClockIcon,
+  TrophyIcon,
+} from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -57,7 +56,7 @@ interface OnboardingProgress {
 const onboardingSteps: OnboardingStep[] = [
   {
     id: "welcome",
-    title: "Welcome to R3tain",
+    title: "Welcome to Onchain Suite",
     description: "Let's get you started with the basics",
     component: WelcomeStep,
   },
@@ -163,7 +162,7 @@ export function OnboardingFlow() {
       await trackStep("started");
     } else {
       // Onboarding completed
-      toast.success("Onboarding completed! Welcome to R3tain!");
+      toast.success("Onboarding completed! Welcome to Onchain Suite!");
       router.push("/dashboard");
     }
   };
@@ -207,8 +206,8 @@ export function OnboardingFlow() {
             </div>
             {progress && (
               <div className="flex items-center gap-2">
-                <HugeiconsIcon
-                  icon={Clock01Icon}
+                <ClockIcon
+                  aria-hidden="true"
                   className="h-4 w-4 text-muted-foreground"
                 />
                 <span className="text-sm text-muted-foreground">
@@ -253,7 +252,7 @@ export function OnboardingFlow() {
                 }`}
               >
                 {index < currentStepIndex ? (
-                  <HugeiconsIcon icon={Tick01Icon} className="h-3 w-3" />
+                  <CheckIcon aria-hidden="true" className="h-3 w-3" />
                 ) : (
                   index + 1
                 )}
@@ -300,11 +299,13 @@ export function OnboardingFlow() {
 function WelcomeStep({ onComplete }: OnboardingStepProps) {
   return (
     <div className="space-y-6 text-center">
-      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-        <HugeiconsIcon icon={ChampionIcon} className="h-8 w-8 text-primary" />
+      <div className="flex items-center justify-center mx-auto">
+        <TrophyIcon aria-hidden="true" className="h-12 w-12 text-primary" />
       </div>
       <div>
-        <h3 className="text-xl font-semibold mb-2">Welcome to R3tain!</h3>
+        <h3 className="text-xl font-semibold mb-2">
+          Welcome to Onchain Suite!
+        </h3>
         <p className="text-muted-foreground">
           You&apos;re about to discover the future of marketing automation.
           Let&apos;s get you set up in just a few minutes.
@@ -312,7 +313,7 @@ function WelcomeStep({ onComplete }: OnboardingStepProps) {
       </div>
       <Button onClick={() => onComplete()} className="w-full">
         Let&apos;s Get Started
-        <HugeiconsIcon icon={ArrowRight01Icon} className="ml-2 h-4 w-4" />
+        <ArrowRightIcon aria-hidden="true" className="ml-2 h-4 w-4" />
       </Button>
     </div>
   );
@@ -362,7 +363,8 @@ function IntegrationsStep({ onComplete, onNext }: OnboardingStepProps) {
     <div className="space-y-6">
       <h3 className="text-xl font-semibold">Connect Your Tools</h3>
       <p className="text-muted-foreground">
-        Connect your existing marketing tools to get the most out of R3tain.
+        Connect your existing marketing tools to get the most out of Onchain
+        Suite.
       </p>
       <div className="flex gap-2">
         <Button onClick={() => onComplete({ integrationsSetup: true })}>
@@ -379,8 +381,8 @@ function IntegrationsStep({ onComplete, onNext }: OnboardingStepProps) {
 function CompleteStep({ onComplete }: OnboardingStepProps) {
   return (
     <div className="space-y-6 text-center">
-      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-        <HugeiconsIcon icon={Tick01Icon} className="h-8 w-8 text-green-600" />
+      <div className="flex items-center justify-center mx-auto">
+        <CheckIcon aria-hidden="true" className="h-12 w-12 text-green-600" />
       </div>
       <div>
         <h3 className="text-xl font-semibold mb-2">You&apos;re All Set!</h3>
@@ -391,7 +393,7 @@ function CompleteStep({ onComplete }: OnboardingStepProps) {
       </div>
       <Button onClick={() => onComplete()} className="w-full">
         Go to Dashboard
-        <HugeiconsIcon icon={ArrowRight01Icon} className="ml-2 h-4 w-4" />
+        <ArrowRightIcon aria-hidden="true" className="ml-2 h-4 w-4" />
       </Button>
     </div>
   );

@@ -1,22 +1,20 @@
 "use client";
 
 import {
-  Add01Icon,
-  ArrowUp01Icon,
-  Cancel01Icon,
-  CodeIcon,
-  Copy01Icon,
-  Loading02Icon,
-  Mail01Icon,
-  Message01Icon,
+  ArrowPathIcon,
+  ArrowUturnLeftIcon,
+  BoltIcon,
+  ChatBubbleLeftRightIcon,
+  CheckCircleIcon,
+  ChevronUpIcon,
+  ClipboardDocumentIcon,
+  ClockIcon,
+  CodeBracketIcon,
   PlayIcon,
-  Settings02Icon,
   SparklesIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  StopIcon,
+} from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { Zap } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -24,7 +22,6 @@ import { Button } from "@/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -35,10 +32,42 @@ import {
   type IntelligenceGoldrushMcpStructuredResult,
   intelligenceService,
 } from "../../intelligence.service";
+import { CachePanel } from "./cache-panel";
 import { McpTypingIndicator } from "./mcp-typing-indicator";
 import { SqlBlockchainLoader } from "./sql-blockchain-loader";
+import { SqlResultsTable } from "./sql-results-table";
 
 const DEFAULT_SQL_QUERY = "";
+
+/**
+ * Normalize the editor SQL into what the backend accepts:
+ *  - strip leading comments/whitespace so it begins with `select`/`with`
+ *    (a leading comment trips "Only SELECT queries are allowed"), and
+ *  - drop statement-ending semicolons (the backend runs a single read-only
+ *    statement and rejects any semicolons).
+ * The editor keeps the user's text as-is; this only affects what we send.
+ */
+const toExecutableSql = (sql: string): string => {
+  let s = sql;
+  // Peel leading whitespace / line comments / block comments until the next
+  // token is real SQL (bounded loop guards against pathological input).
+  for (let i = 0; i < 1000; i += 1) {
+    const before = s;
+    s = s.replace(/^\s+/, "");
+    if (s.startsWith("--")) {
+      const nl = s.indexOf("\n");
+      s = nl === -1 ? "" : s.slice(nl + 1);
+    } else if (s.startsWith("/*")) {
+      const end = s.indexOf("*/");
+      s = end === -1 ? "" : s.slice(end + 2);
+    }
+    if (s === before) break;
+  }
+  // Remove semicolons at the end of a line or the query (keeps any inside
+  // string literals on a line with more content untouched).
+  s = s.replace(/;[ \t]*(?=\r?\n|$)/g, "");
+  return s.trim();
+};
 
 const asRecord = (row: unknown): Record<string, unknown> =>
   isJsonObject(row) ? (row as Record<string, unknown>) : { value: row };
@@ -658,15 +687,6 @@ const SUGGESTION_SECTORS = [
   "infrastructure",
 ] as const;
 
-const MCP_CHAIN_OPTIONS = [
-  { id: "eth-mainnet", label: "Ethereum", family: "EVM" },
-  { id: "base-mainnet", label: "Base", family: "EVM" },
-  { id: "arbitrum-mainnet", label: "Arbitrum", family: "EVM" },
-  { id: "optimism-mainnet", label: "Optimism", family: "EVM" },
-  { id: "polygon-mainnet", label: "Polygon", family: "EVM" },
-  { id: "solana-mainnet", label: "Solana", family: "Solana" },
-] as const;
-
 const DEFAULT_MCP_CHAINS = [
   "eth-mainnet",
   "base-mainnet",
@@ -675,21 +695,6 @@ const DEFAULT_MCP_CHAINS = [
   "polygon-mainnet",
   "solana-mainnet",
 ] as const;
-
-const EVM_MCP_CHAINS = MCP_CHAIN_OPTIONS.filter(
-  (chain) => chain.family === "EVM"
-).map((chain) => chain.id);
-
-const SOLANA_MCP_CHAINS = MCP_CHAIN_OPTIONS.filter(
-  (chain) => chain.family === "Solana"
-).map((chain) => chain.id);
-
-type MpcChainMode = "auto" | "evm" | "solana" | "custom";
-
-const normalizeChainSlug = (value: string) => value.trim().toLowerCase();
-
-const getChainLabel = (value: string) =>
-  MCP_CHAIN_OPTIONS.find((chain) => chain.id === value)?.label ?? value;
 
 interface QueryTabProps {
   activeSurface: "chat" | "sql";
@@ -715,22 +720,20 @@ export function QueryTab({
   >("report");
   const [nameDialogValue, setNameDialogValue] = useState("");
   const [chatPrompt, setChatPrompt] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const chatThreadEndRef = useRef<HTMLDivElement | null>(null);
-  const [protocolSearch, setProtocolSearch] = useState("");
-  const [selectedProtocolId, setSelectedProtocolId] = useState("");
+  const mcpAbortRef = useRef<AbortController | null>(null);
+  const [protocolSearch] = useState("");
+  const [selectedProtocolId] = useState("");
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
   const [lastSubmittedChatPrompt, setLastSubmittedChatPrompt] = useState("");
-  const [selectedSector, setSelectedSector] =
+  const [selectedSector] =
     useState<(typeof SUGGESTION_SECTORS)[number]>("general");
-  const [chainMode, setChainMode] = useState<MpcChainMode>("auto");
-  const [selectedChains, setSelectedChains] = useState<string[]>([
-    ...DEFAULT_MCP_CHAINS,
-  ]);
-  const [customChainInput, setCustomChainInput] = useState("");
+  const [selectedChains] = useState<string[]>([...DEFAULT_MCP_CHAINS]);
   const [streamActivity, setStreamActivity] = useState<StreamActivityEntry[]>(
     []
   );
@@ -738,10 +741,11 @@ export function QueryTab({
   const [activeSuggestionId, setActiveSuggestionId] = useState<string | null>(
     null
   );
-  const trimmedSqlQuery = sqlQuery.trim();
+  // What we actually send to validate/run — leading comments stripped so the
+  // backend sees a query that starts with SELECT/WITH.
+  const executableSql = toExecutableSql(sqlQuery);
   const trimmedAssistantPrompt = assistantPrompt.trim();
   const normalizedProtocolSearch = protocolSearch.trim();
-  const normalizedCustomChainInput = normalizeChainSlug(customChainInput);
   const [primaryChain] = selectedChains;
 
   const schemaQuery = useQuery({
@@ -795,13 +799,6 @@ export function QueryTab({
     refetchOnWindowFocus: false,
   });
 
-  const suggestionsAnalyticsQuery = useQuery({
-    queryKey: ["intelligence", "query", "suggestions", "analytics"],
-    queryFn: () => intelligenceService.getQuerySuggestionsAnalytics(),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
   const protocols = useMemo(
     () => protocolsQuery.data?.items ?? [],
     [protocolsQuery.data?.items]
@@ -810,14 +807,6 @@ export function QueryTab({
   const selectedProtocol = useMemo(
     () => protocols.find((protocol) => protocol.id === selectedProtocolId),
     [protocols, selectedProtocolId]
-  );
-  const selectedChainSet = useMemo(
-    () => new Set(selectedChains),
-    [selectedChains]
-  );
-  const selectedChainLabels = useMemo(
-    () => selectedChains.map((chain) => getChainLabel(chain)),
-    [selectedChains]
   );
   const chainCoverageLabel = useMemo(() => {
     if (selectedChains.length === 0) return "Auto / multichain";
@@ -829,35 +818,7 @@ export function QueryTab({
     if (families.size === 2) return "EVM + Solana";
     return families.has("Solana") ? "Solana" : "EVM";
   }, [selectedChains]);
-  const chainSummary = useMemo(() => {
-    if (selectedChainLabels.length === 0) return "Auto / multichain";
-    if (selectedChainLabels.length <= 3) return selectedChainLabels.join(", ");
-    return `${selectedChainLabels.slice(0, 3).join(", ")} +${
-      selectedChainLabels.length - 3
-    }`;
-  }, [selectedChainLabels]);
-  const customSelectedChains = useMemo(
-    () =>
-      selectedChains.filter(
-        (chain) => !MCP_CHAIN_OPTIONS.some((option) => option.id === chain)
-      ),
-    [selectedChains]
-  );
 
-  const applyChainMode = useCallback((mode: MpcChainMode) => {
-    setChainMode(mode);
-    if (mode === "auto") {
-      setSelectedChains([...DEFAULT_MCP_CHAINS]);
-      return;
-    }
-    if (mode === "evm") {
-      setSelectedChains([...EVM_MCP_CHAINS]);
-      return;
-    }
-    if (mode === "solana") {
-      setSelectedChains([...SOLANA_MCP_CHAINS]);
-    }
-  }, []);
   const trackSuggestionInteraction = useCallback(
     async (payload: {
       selected?: boolean;
@@ -879,30 +840,6 @@ export function QueryTab({
     },
     [activeSuggestionId]
   );
-  const toggleChainSelection = useCallback((chainId: string) => {
-    setChainMode("custom");
-    setSelectedChains((current) =>
-      current.includes(chainId)
-        ? current.filter((chain) => chain !== chainId)
-        : [...current, chainId]
-    );
-  }, []);
-  const addCustomChain = useCallback(() => {
-    if (normalizedCustomChainInput.length === 0) return;
-    setChainMode("custom");
-    setSelectedChains((current) =>
-      current.includes(normalizedCustomChainInput)
-        ? current
-        : [...current, normalizedCustomChainInput]
-    );
-    setCustomChainInput("");
-  }, [normalizedCustomChainInput]);
-  const removeChainSelection = useCallback((chainId: string) => {
-    setChainMode("custom");
-    setSelectedChains((current) =>
-      current.filter((chain) => chain !== chainId)
-    );
-  }, []);
   const buildMcpRequest = useCallback(
     (prompt: string) => ({
       conversationId: activeConversationId ?? undefined,
@@ -931,10 +868,22 @@ export function QueryTab({
 
   const validateMutation = useMutation({
     mutationFn: async () => {
-      if (trimmedSqlQuery.length === 0) {
+      if (executableSql.length === 0) {
         throw new Error("Write a SQL query first");
       }
-      return intelligenceService.validateQuery({ query: trimmedSqlQuery });
+      return intelligenceService.validateQuery({ query: executableSql });
+    },
+    onSuccess: (res) => {
+      // Inline check-mark on the button signals success; surface problems
+      // (invalid SQL) in the toaster instead of a standalone panel.
+      if (!res.valid) {
+        const detail = Array.isArray(res.suggestions)
+          ? res.suggestions.filter((s) => s.trim().length > 0).join(" ")
+          : "";
+        toast.error(
+          detail.length > 0 ? detail : "Query needs a tweak before it can run."
+        );
+      }
     },
     onError: (err) => {
       const message =
@@ -945,10 +894,10 @@ export function QueryTab({
 
   const runMutation = useMutation({
     mutationFn: async () => {
-      if (trimmedSqlQuery.length === 0) {
+      if (executableSql.length === 0) {
         throw new Error("Write a SQL query first");
       }
-      return intelligenceService.runQuery({ query: trimmedSqlQuery });
+      return intelligenceService.runQuery({ query: executableSql });
     },
     onSuccess: (res) => {
       setQueryId(res.queryId);
@@ -985,6 +934,12 @@ export function QueryTab({
       let streamFinalResponse: IntelligenceGoldrushMcpQueryResponse | undefined;
       let streamFailed = false;
       const streamAbortController = new AbortController();
+      // Lets the user stop a long-running agent; also tears down the SSE stream.
+      const runAbort = new AbortController();
+      mcpAbortRef.current = runAbort;
+      runAbort.signal.addEventListener("abort", () =>
+        streamAbortController.abort()
+      );
 
       const streamPromise = intelligenceService
         .streamGoldrushMcpQuery(request, {
@@ -1037,8 +992,12 @@ export function QueryTab({
         });
 
       const [planResult, queryResult] = await Promise.allSettled([
-        intelligenceService.planGoldrushMcp(request),
-        intelligenceService.queryGoldrushMcp(request),
+        intelligenceService.planGoldrushMcp(request, undefined, {
+          signal: runAbort.signal,
+        }),
+        intelligenceService.queryGoldrushMcp(request, undefined, {
+          signal: runAbort.signal,
+        }),
       ]);
 
       streamAbortController.abort();
@@ -1170,8 +1129,32 @@ export function QueryTab({
         setQueryId(null);
         setHasRunQuery(false);
       }
+
+      // MCP runs spend GoldRush credits — refresh the meter.
+      void queryClient.invalidateQueries({
+        queryKey: ["intelligence", "credits"],
+      });
     },
     onError: (err) => {
+      // User pressed Stop (or the run was aborted) — exit quietly.
+      const msg = err instanceof Error ? err.message.toLowerCase() : "";
+      if (
+        isAbortError(err) ||
+        msg.includes("canceled") ||
+        msg.includes("cancelled") ||
+        msg.includes("aborted")
+      ) {
+        setStreamActivity((prev) => [
+          ...prev.slice(-3),
+          {
+            id: `stream-stopped-${Date.now()}`,
+            label: "Stopped",
+            detail: "Run cancelled.",
+            tone: "warning",
+          },
+        ]);
+        return;
+      }
       const errorReport = toMcpFailureReport(err, {
         prompt: lastSubmittedChatPrompt,
         conversationId: activeConversationId,
@@ -1202,7 +1185,16 @@ export function QueryTab({
       ]);
       toast.error(message);
     },
+    onSettled: () => {
+      mcpAbortRef.current = null;
+    },
   });
+
+  const stopMcpRun = useCallback(() => {
+    mcpAbortRef.current?.abort();
+    mcpAbortRef.current = null;
+  }, []);
+
   const submitChatPrompt = useCallback(
     (prompt: string) => {
       const trimmedPrompt = prompt.trim();
@@ -1293,7 +1285,13 @@ export function QueryTab({
       queryId
         ? intelligenceService.getQueryResults(queryId, { page, limit })
         : null,
-    enabled: !!queryId && statusQuery.data?.status === "completed",
+    // The SQL `run` returns rows + a "completed" status inline, so don't make
+    // the results fetch depend solely on the separate status poll (the backend
+    // surfaces results directly; status may resolve later or not at all).
+    enabled:
+      !!queryId &&
+      (statusQuery.data?.status === "completed" ||
+        runMutation.data?.status === "completed"),
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -1405,14 +1403,41 @@ export function QueryTab({
   const columns = useMemo(() => {
     const cols = latestRunData?.columns;
     if (Array.isArray(cols) && cols.length > 0) {
-      return cols
-        .map((c) =>
-          isJsonObject(c) && typeof c.name === "string" ? c.name : ""
-        )
+      // Backend contract: { key, label?, type? } (older responses used `name`).
+      const keys = cols
+        .map((c) => {
+          if (!isJsonObject(c)) return "";
+          if (typeof c.key === "string" && c.key.length > 0) return c.key;
+          if (typeof c.name === "string" && c.name.length > 0) return c.name;
+          return "";
+        })
         .filter((c) => c.length > 0);
+      if (keys.length > 0) return keys;
     }
     return columnsFromRows(rows);
   }, [latestRunData?.columns, rows]);
+
+  // Map column key → friendly header label from the backend column metadata.
+  const columnLabels = useMemo(() => {
+    const map = new Map<string, string>();
+    const cols = latestRunData?.columns;
+    if (Array.isArray(cols)) {
+      for (const c of cols) {
+        if (!isJsonObject(c)) continue;
+        const key =
+          typeof c.key === "string" && c.key.length > 0
+            ? c.key
+            : typeof c.name === "string"
+              ? c.name
+              : "";
+        if (!key) continue;
+        if (typeof c.label === "string" && c.label.length > 0) {
+          map.set(key, c.label);
+        }
+      }
+    }
+    return map;
+  }, [latestRunData?.columns]);
 
   const totalRows =
     typeof resultsQuery.data?.total === "number"
@@ -1431,22 +1456,6 @@ export function QueryTab({
     () => suggestionsMutation.data?.suggestions ?? [],
     [suggestionsMutation.data?.suggestions]
   );
-  const suggestionTotals = useMemo(() => {
-    const totals = suggestionsAnalyticsQuery.data?.totals;
-    return isJsonObject(totals) ? (totals as Record<string, unknown>) : {};
-  }, [suggestionsAnalyticsQuery.data?.totals]);
-  const topProtocols = useMemo(() => {
-    const items = suggestionsAnalyticsQuery.data?.topProtocols;
-    return Array.isArray(items)
-      ? items.filter((item): item is Record<string, unknown> =>
-          isJsonObject(item)
-        )
-      : [];
-  }, [suggestionsAnalyticsQuery.data?.topProtocols]);
-  const activeTopProtocol =
-    typeof topProtocols[0]?.name === "string"
-      ? String(topProtocols[0].name)
-      : (selectedProtocol?.name ?? "Any protocol");
   const reasoningTimeline = useMemo(
     () =>
       streamActivity.length > 0
@@ -1509,7 +1518,7 @@ export function QueryTab({
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/60">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-border/60 text-sm">
-            <thead className="bg-white/[0.03]">
+            <thead className="bg-muted/30">
               <tr>
                 {visibleColumns.map((column) => (
                   <th
@@ -1672,8 +1681,8 @@ export function QueryTab({
 
         return (
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-            <div className="overflow-hidden rounded-2xl border border-primary/15 bg-[linear-gradient(180deg,rgba(33,49,86,0.52),rgba(14,22,39,0.82))]">
-              <div className="flex items-center justify-between gap-3 border-b border-white/8 px-5 py-4">
+            <div className="overflow-hidden rounded-2xl border border-primary/15 bg-card">
+              <div className="flex items-center justify-between gap-3 border-b border-border/70 px-5 py-4">
                 <div>
                   <div className="text-sm font-medium text-foreground">
                     Ranked holders
@@ -1720,7 +1729,7 @@ export function QueryTab({
                             ? asIdentifierText(row[holderColumn])
                             : `Holder ${index + 1}`}
                         </div>
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted/60">
                           <div
                             className="h-full rounded-full bg-[linear-gradient(90deg,rgba(87,115,255,0.95),rgba(88,211,255,0.9))]"
                             style={{ width: `${width}%` }}
@@ -1799,7 +1808,7 @@ export function QueryTab({
                 return (
                   <div
                     key={rowKey}
-                    className="rounded-2xl border border-border/60 bg-[linear-gradient(180deg,rgba(28,36,59,0.9),rgba(14,19,33,0.96))] p-4 shadow-[0_20px_60px_-40px_rgba(70,120,255,0.42)]"
+                    className="rounded-2xl border border-border/60 bg-card p-4 shadow-[0_20px_60px_-40px_rgba(70,120,255,0.42)]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1814,7 +1823,7 @@ export function QueryTab({
                             : chainCoverageLabel}
                         </div>
                       </div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      <span className="rounded-full border border-border bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                         Balance
                       </span>
                     </div>
@@ -1865,7 +1874,7 @@ export function QueryTab({
               return (
                 <div
                   key={rowKey}
-                  className="rounded-2xl border border-border/60 bg-[linear-gradient(180deg,rgba(26,33,53,0.96),rgba(14,19,32,0.96))] p-4 shadow-[0_18px_60px_-42px_rgba(58,171,255,0.35)]"
+                  className="rounded-2xl border border-border/60 bg-card p-4 shadow-[0_18px_60px_-42px_rgba(58,171,255,0.35)]"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
@@ -1942,7 +1951,7 @@ export function QueryTab({
               return (
                 <div
                   key={rowKey}
-                  className="rounded-2xl border border-border/60 bg-[linear-gradient(180deg,rgba(31,39,63,0.96),rgba(14,19,31,0.96))] p-4 shadow-[0_20px_60px_-42px_rgba(130,96,255,0.44)]"
+                  className="rounded-2xl border border-border/60 bg-card p-4 shadow-[0_20px_60px_-42px_rgba(130,96,255,0.44)]"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-medium text-foreground">
@@ -1950,7 +1959,7 @@ export function QueryTab({
                         ? asDisplayText(row[chainColumn])
                         : `Network ${index + 1}`}
                     </div>
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                    <span className="rounded-full border border-border bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                       Fees
                     </span>
                   </div>
@@ -2035,6 +2044,31 @@ export function QueryTab({
     []
   );
 
+  // Stable handlers for the (memoized) results table so editor keystrokes
+  // don't re-render it.
+  const clearSelection = useCallback(() => setSelectedRows([]), []);
+  const goPrevPage = useCallback(() => setPage((p) => Math.max(1, p - 1)), []);
+  const goNextPage = useCallback(
+    () => setPage((p) => Math.min(pageCount, p + 1)),
+    [pageCount]
+  );
+  const handleSaveReport = useCallback(
+    () => openNameDialog("report"),
+    [openNameDialog]
+  );
+  const handleCreateSegment = useCallback(
+    () => openNameDialog("segment"),
+    [openNameDialog]
+  );
+  const handleCreateCampaign = useCallback(
+    () => openNameDialog("campaign"),
+    [openNameDialog]
+  );
+  const handleEmailRow = useCallback(
+    (email: string) => openEmailComposer({ email }),
+    [openEmailComposer]
+  );
+
   const submitNameDialog = useCallback(() => {
     if (nameDialogKind === "campaign") {
       setNameDialogOpen(false);
@@ -2086,17 +2120,17 @@ export function QueryTab({
   return (
     <div className="space-y-4">
       {activeSurface === "chat" ? (
-        <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-[linear-gradient(180deg,rgba(7,11,22,0.985),rgba(5,8,18,0.985))] shadow-[0_44px_140px_-72px_rgba(55,98,255,0.78)]">
+        <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-card shadow-[0_44px_140px_-72px_rgba(55,98,255,0.78)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(88,123,255,0.2),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(46,164,255,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_24%,transparent_76%,rgba(255,255,255,0.02))]" />
           <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(119,137,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(119,137,255,0.12)_1px,transparent_1px)] [background-size:28px_28px]" />
           <div className="relative grid min-h-[760px] grid-rows-[auto_1fr_auto]">
-            <div className="flex items-start justify-between border-b border-white/8 px-5 py-4">
+            <div className="flex items-start justify-between border-b border-border/70 px-5 py-4">
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-[18px] border border-primary/20 bg-primary/10 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                    <HugeiconsIcon
-                      icon={Message01Icon}
+                    <ChatBubbleLeftRightIcon
                       className="h-4.5 w-4.5"
+                      aria-hidden="true"
                     />
                   </div>
                   <div>
@@ -2107,264 +2141,11 @@ export function QueryTab({
                 </div>
                 {activeConversationId ? (
                   <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-white/[0.04] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                    <span className="rounded-full bg-muted/40 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                       Thread {truncateMiddle(activeConversationId, 6, 4)}
                     </span>
                   </div>
                 ) : null}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="rounded-full"
-                        >
-                          <HugeiconsIcon
-                            icon={Settings02Icon}
-                            className="h-4 w-4"
-                          />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        align="end"
-                        className="w-[360px] rounded-2xl border-border/70 bg-card/95 p-4 backdrop-blur"
-                      >
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2.5 border-b border-border/60 pb-3">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                              <HugeiconsIcon
-                                icon={Settings02Icon}
-                                className="h-4 w-4"
-                              />
-                            </span>
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium text-foreground">
-                                MCP agent settings
-                              </div>
-                              <div className="truncate text-xs text-muted-foreground">
-                                {chainCoverageLabel} · Focus {activeTopProtocol}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                              Protocol
-                              <Input
-                                value={protocolSearch}
-                                onChange={(e) =>
-                                  setProtocolSearch(e.target.value)
-                                }
-                                placeholder="Search protocol registry"
-                              />
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedProtocolId("")}
-                                className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                                  selectedProtocolId.length === 0
-                                    ? "border-primary/40 bg-primary/10 text-foreground"
-                                    : "border-border bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                                }`}
-                              >
-                                Any protocol
-                              </button>
-                              {protocols.slice(0, 4).map((protocol) => (
-                                <button
-                                  key={protocol.id}
-                                  type="button"
-                                  onClick={() =>
-                                    setSelectedProtocolId(protocol.id)
-                                  }
-                                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                                    selectedProtocolId === protocol.id
-                                      ? "border-primary/40 bg-primary/10 text-foreground"
-                                      : "border-border bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                                  }`}
-                                >
-                                  {protocol.name}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="grid gap-3 border-border/60 pt-4 sm:grid-cols-2">
-                            <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                              Sector
-                              <select
-                                value={selectedSector}
-                                onChange={(e) =>
-                                  setSelectedSector(
-                                    e.target
-                                      .value as (typeof SUGGESTION_SECTORS)[number]
-                                  )
-                                }
-                                className="h-10 rounded-lg border border-border bg-background px-3 text-sm font-normal tracking-normal text-foreground focus:outline-none"
-                              >
-                                {SUGGESTION_SECTORS.map((sector) => (
-                                  <option key={sector} value={sector}>
-                                    {sector.replace("_", " ")}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <div className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                              Coverage
-                              <div className="flex h-10 items-center rounded-lg border border-border bg-background px-3 text-sm font-normal tracking-normal text-foreground">
-                                {chainCoverageLabel}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 border-t border-border/60 pt-4">
-                            <div className="space-y-2">
-                              <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                                Mode
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {(
-                                  [
-                                    ["auto", "Auto"],
-                                    ["evm", "EVM"],
-                                    ["solana", "Solana"],
-                                    ["custom", "Custom"],
-                                  ] as Array<[MpcChainMode, string]>
-                                ).map(([mode, label]) => (
-                                  <button
-                                    key={mode}
-                                    type="button"
-                                    onClick={() =>
-                                      mode === "custom"
-                                        ? setChainMode("custom")
-                                        : applyChainMode(mode)
-                                    }
-                                    className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                                      chainMode === mode
-                                        ? "border-primary/40 bg-primary/10 text-foreground"
-                                        : "border-border bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                                    }`}
-                                  >
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                                Chains
-                              </div>
-                              <div className="text-[11px] text-muted-foreground">
-                                {chainSummary}
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {MCP_CHAIN_OPTIONS.map((chain) => (
-                                <button
-                                  key={chain.id}
-                                  type="button"
-                                  onClick={() => toggleChainSelection(chain.id)}
-                                  className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                                    selectedChainSet.has(chain.id)
-                                      ? "border-primary/40 bg-primary/10 text-foreground"
-                                      : "border-border bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                                  }`}
-                                >
-                                  {chain.label}
-                                </button>
-                              ))}
-                            </div>
-                            <div className="flex gap-2">
-                              <Input
-                                value={customChainInput}
-                                onChange={(e) =>
-                                  setCustomChainInput(e.target.value)
-                                }
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addCustomChain();
-                                  }
-                                }}
-                                placeholder="Add custom chain slug"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={addCustomChain}
-                                disabled={
-                                  normalizedCustomChainInput.length === 0
-                                }
-                                className="shrink-0"
-                              >
-                                <HugeiconsIcon
-                                  icon={Add01Icon}
-                                  className="mr-2 h-4 w-4"
-                                />
-                                Add
-                              </Button>
-                            </div>
-                            {customSelectedChains.length > 0 ? (
-                              <div className="flex flex-wrap gap-2">
-                                {customSelectedChains.map((chain) => (
-                                  <button
-                                    key={chain}
-                                    type="button"
-                                    onClick={() => removeChainSelection(chain)}
-                                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                                  >
-                                    {chain}
-                                    <HugeiconsIcon
-                                      icon={Cancel01Icon}
-                                      className="h-3 w-3"
-                                    />
-                                  </button>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-
-                          <div className="grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-3">
-                            <div className="rounded-xl border border-border/60 bg-background/70 p-3">
-                              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                                Tracked
-                              </div>
-                              <div className="mt-2 text-lg font-semibold text-foreground">
-                                {typeof suggestionTotals.selected === "number"
-                                  ? suggestionTotals.selected.toLocaleString()
-                                  : "—"}
-                              </div>
-                            </div>
-                            <div className="rounded-xl border border-border/60 bg-background/70 p-3">
-                              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                                Executed
-                              </div>
-                              <div className="mt-2 text-lg font-semibold text-foreground">
-                                {typeof suggestionTotals.executed === "number"
-                                  ? suggestionTotals.executed.toLocaleString()
-                                  : "—"}
-                              </div>
-                            </div>
-                            <div className="rounded-xl border border-border/60 bg-background/70 p-3">
-                              <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                                Top protocol
-                              </div>
-                              <div className="mt-2 truncate text-sm font-medium text-foreground">
-                                {activeTopProtocol}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={6}>Agent settings</TooltipContent>
-                </Tooltip>
               </div>
             </div>
 
@@ -2396,12 +2177,12 @@ export function QueryTab({
                             >
                               {message.kind === "error" ? "!" : "AI"}
                             </div>
-                            <div className="overflow-hidden rounded-[28px_28px_28px_12px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,21,38,0.98),rgba(8,13,26,0.98))] shadow-[0_28px_90px_-46px_rgba(45,102,255,0.5)]">
-                              <div className="flex flex-wrap items-center gap-2 border-b border-white/8 px-5 py-4">
+                            <div className="overflow-hidden rounded-[28px_28px_28px_12px] border border-border bg-card shadow-[0_28px_90px_-46px_rgba(45,102,255,0.5)]">
+                              <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-5 py-4">
                                 <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                                  <HugeiconsIcon
-                                    icon={SparklesIcon}
+                                  <SparklesIcon
                                     className="h-4 w-4"
+                                    aria-hidden="true"
                                   />
                                 </div>
                                 <div className="text-sm font-medium text-foreground">
@@ -2427,7 +2208,7 @@ export function QueryTab({
                               <div className="space-y-5 px-5 py-5">
                                 {message.structuredResult ? (
                                   <div className="space-y-4">
-                                    <div className="rounded-[24px] border border-primary/15 bg-[linear-gradient(180deg,rgba(59,89,220,0.12),rgba(16,22,39,0.38))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                                    <div className="rounded-[24px] border border-primary/15 bg-card p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
                                       <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div>
                                           <div className="text-[11px] uppercase tracking-[0.16em] text-primary/80">
@@ -2477,7 +2258,7 @@ export function QueryTab({
                                 ) : null}
 
                                 {message.rationale ? (
-                                  <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                                  <div className="rounded-[24px] border border-border bg-muted/30 p-4">
                                     <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                                       Reasoning frame
                                     </div>
@@ -2510,9 +2291,9 @@ export function QueryTab({
                                         }}
                                         className="inline-flex items-center gap-1 rounded-full border border-red-400/20 bg-red-400/10 px-2.5 py-1 text-[11px] font-medium text-red-100 transition-colors hover:bg-red-400/15"
                                       >
-                                        <HugeiconsIcon
-                                          icon={Copy01Icon}
+                                        <ClipboardDocumentIcon
                                           className="h-3.5 w-3.5"
+                                          aria-hidden="true"
                                         />
                                         Copy
                                       </button>
@@ -2578,7 +2359,7 @@ export function QueryTab({
                                           step.description ??
                                           "tool-step"
                                         }
-                                        className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4"
+                                        className="rounded-[22px] border border-border bg-muted/30 p-4"
                                       >
                                         <div className="flex items-center gap-2">
                                           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
@@ -2600,9 +2381,12 @@ export function QueryTab({
                                   </div>
                                 ) : null}
 
-                                <div className="flex flex-wrap items-center gap-2 border-t border-white/8 pt-3 text-[11px] text-muted-foreground">
-                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-                                    <Zap className="h-3 w-3 text-primary" />
+                                <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-3 text-[11px] text-muted-foreground">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1">
+                                    <BoltIcon
+                                      className="h-3 w-3 text-primary"
+                                      aria-hidden="true"
+                                    />
                                     {message.mode === "deterministic_fallback"
                                       ? "Deterministic fallback"
                                       : "Dynamic MCP routing"}
@@ -2613,7 +2397,7 @@ export function QueryTab({
                                       below
                                     </span>
                                   ) : message.kind === "question" ? (
-                                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
+                                    <span className="rounded-full border border-border bg-muted/40 px-2.5 py-1">
                                       Reply below to continue this thread
                                     </span>
                                   ) : null}
@@ -2633,8 +2417,8 @@ export function QueryTab({
                   </>
                 ) : (
                   <div className="flex flex-col items-center px-4 py-10 text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-[0_20px_50px_-28px_rgba(86,112,255,0.8)]">
-                      <HugeiconsIcon icon={SparklesIcon} className="h-6 w-6" />
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-primary shadow-[0_20px_50px_-28px_rgba(86,112,255,0.8)]">
+                      <SparklesIcon className="h-6 w-6" aria-hidden="true" />
                     </div>
                     <h2 className="mt-5 max-w-md text-xl font-medium tracking-[-0.02em] text-foreground">
                       Ask anything about onchain activity
@@ -2672,18 +2456,18 @@ export function QueryTab({
                           key={chip.title}
                           type="button"
                           onClick={() => submitChatPrompt(chip.prompt)}
-                          className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-primary/30 hover:bg-primary/[0.06]"
+                          className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted/30 px-4 py-3 text-left text-sm text-foreground transition-colors hover:border-primary/30 hover:bg-primary/[0.06]"
                         >
                           <span>{chip.title}</span>
-                          <HugeiconsIcon
-                            icon={ArrowUp01Icon}
+                          <ChevronUpIcon
                             className="h-4 w-4 rotate-45 text-muted-foreground transition-colors group-hover:text-primary"
+                            aria-hidden="true"
                           />
                         </button>
                       ))}
                     </div>
 
-                    <div className="mt-6 w-full max-w-xl overflow-hidden rounded-xl border border-white/10 bg-[#050913] px-3 py-2">
+                    <div className="mt-6 w-full max-w-xl overflow-hidden rounded-xl border border-border bg-card px-3 py-2">
                       <div className="ocs-anim-hash-flicker truncate font-mono text-[10px] leading-5 tracking-[0.12em] text-primary/60">
                         {createStableLineKeys(
                           buildMatrixFrame(1, 60),
@@ -2699,9 +2483,9 @@ export function QueryTab({
               </div>
             </div>
 
-            <div className="border-t border-white/8 px-5 py-4 backdrop-blur">
+            <div className="border-t border-border/70 px-5 py-4 backdrop-blur">
               <div className="mx-auto flex w-full max-w-4xl flex-col gap-3">
-                <div className="flex items-end gap-2 rounded-[24px] border border-white/12 bg-white/[0.04] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/25">
+                <div className="flex items-end gap-2 rounded-[24px] border border-border bg-muted/40 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/25">
                   <textarea
                     id="mcp-chat-input"
                     aria-label="MCP chat input"
@@ -2720,20 +2504,26 @@ export function QueryTab({
                   />
                   <Button
                     type="button"
-                    aria-label="Send"
-                    onClick={() => submitChatPrompt(chatPrompt)}
-                    disabled={
-                      mcpMutation.isPending || chatPrompt.trim().length === 0
+                    aria-label={mcpMutation.isPending ? "Stop" : "Send"}
+                    title={mcpMutation.isPending ? "Stop" : "Send"}
+                    onClick={() =>
+                      mcpMutation.isPending
+                        ? stopMcpRun()
+                        : submitChatPrompt(chatPrompt)
                     }
-                    className="h-11 w-11 shrink-0 rounded-full bg-[linear-gradient(135deg,#5c70ff,#4258e0)] p-0 shadow-[0_14px_34px_-16px_rgba(86,112,255,0.9)] transition-all hover:shadow-[0_18px_40px_-14px_rgba(86,112,255,1)]"
+                    disabled={
+                      !mcpMutation.isPending && chatPrompt.trim().length === 0
+                    }
+                    className={
+                      mcpMutation.isPending
+                        ? "h-11 w-11 shrink-0 rounded-full bg-white/10 p-0 text-foreground transition-all hover:bg-white/20"
+                        : "h-11 w-11 shrink-0 rounded-full bg-[linear-gradient(135deg,#5c70ff,#4258e0)] p-0 shadow-[0_14px_34px_-16px_rgba(86,112,255,0.9)] transition-all hover:shadow-[0_18px_40px_-14px_rgba(86,112,255,1)]"
+                    }
                   >
                     {mcpMutation.isPending ? (
-                      <HugeiconsIcon
-                        icon={Loading02Icon}
-                        className="h-4 w-4 animate-spin"
-                      />
+                      <StopIcon className="h-4 w-4" aria-hidden="true" />
                     ) : (
-                      <HugeiconsIcon icon={ArrowUp01Icon} className="h-4 w-4" />
+                      <ChevronUpIcon className="h-4 w-4" aria-hidden="true" />
                     )}
                   </Button>
                 </div>
@@ -2743,11 +2533,11 @@ export function QueryTab({
         </div>
       ) : (
         <>
-          <div className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-[linear-gradient(180deg,rgba(8,13,25,0.98),rgba(4,8,17,0.98))] shadow-[0_28px_80px_-48px_rgba(66,118,255,0.75)] transition-shadow focus-within:shadow-[0_28px_90px_-40px_rgba(66,118,255,0.9)]">
+          <div className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-card shadow-[0_28px_80px_-48px_rgba(66,118,255,0.75)] transition-shadow focus-within:shadow-[0_28px_90px_-40px_rgba(66,118,255,0.9)]">
             {/* ambient glow */}
             <div className="ocs-anim-float-glow pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-primary/25 blur-3xl" />
             {/* editor window header */}
-            <div className="relative flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+            <div className="relative flex items-center justify-between gap-3 border-b border-border px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5" aria-hidden="true">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
@@ -2755,9 +2545,9 @@ export function QueryTab({
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
                 </span>
                 <div className="flex items-center gap-2">
-                  <HugeiconsIcon
-                    icon={CodeIcon}
+                  <CodeBracketIcon
                     className="h-4 w-4 text-primary"
+                    aria-hidden="true"
                   />
                   <span className="font-mono text-xs text-primary/90">
                     query.sql
@@ -2765,9 +2555,17 @@ export function QueryTab({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-slate-400 md:inline">
-                  Postgres · org-scoped
-                </span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(sqlQuery)}
+                  className="rounded-md p-1.5 text-primary transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label="Copy SQL"
+                >
+                  <ClipboardDocumentIcon
+                    className="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  />
+                </button>
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <button
@@ -2775,9 +2573,9 @@ export function QueryTab({
                       aria-label="AI SQL assistant"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/25"
                     >
-                      <HugeiconsIcon
-                        icon={SparklesIcon}
+                      <SparklesIcon
                         className="h-3.5 w-3.5"
+                        aria-hidden="true"
                       />
                       AI assist
                     </button>
@@ -2789,9 +2587,9 @@ export function QueryTab({
                     <div className="space-y-4">
                       <div>
                         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          <HugeiconsIcon
-                            icon={SparklesIcon}
+                          <SparklesIcon
                             className="h-4 w-4 text-primary"
+                            aria-hidden="true"
                           />
                           AI SQL assistant
                         </div>
@@ -2819,14 +2617,14 @@ export function QueryTab({
                             className="flex-1"
                           >
                             {generateSqlMutation.isPending ? (
-                              <HugeiconsIcon
-                                icon={Loading02Icon}
+                              <ArrowPathIcon
                                 className="mr-2 h-4 w-4 animate-spin"
+                                aria-hidden="true"
                               />
                             ) : (
-                              <HugeiconsIcon
-                                icon={SparklesIcon}
+                              <SparklesIcon
                                 className="mr-2 h-4 w-4"
+                                aria-hidden="true"
                               />
                             )}
                             Generate SQL
@@ -2841,9 +2639,9 @@ export function QueryTab({
                             }
                           >
                             {suggestionsMutation.isPending ? (
-                              <HugeiconsIcon
-                                icon={Loading02Icon}
+                              <ArrowPathIcon
                                 className="h-4 w-4 animate-spin"
+                                aria-hidden="true"
                               />
                             ) : (
                               "Ideas"
@@ -2928,40 +2726,52 @@ export function QueryTab({
                     </div>
                   </PopoverContent>
                 </Popover>
-                <button
-                  onClick={() => navigator.clipboard.writeText(sqlQuery)}
-                  className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-slate-100"
-                  aria-label="Copy SQL"
-                >
-                  <HugeiconsIcon icon={Copy01Icon} className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => validateMutation.mutate()}
-                  disabled={validateMutation.isPending}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-slate-100 transition-colors hover:bg-white/10 disabled:opacity-50"
-                >
-                  {validateMutation.isPending ? (
-                    <HugeiconsIcon
-                      icon={Loading02Icon}
-                      className="h-3.5 w-3.5 animate-spin"
-                    />
-                  ) : (
-                    <Zap className="h-3.5 w-3.5" />
-                  )}
-                  Validate
-                </button>
+                {(() => {
+                  const isValidated =
+                    !validateMutation.isPending &&
+                    validateMutation.data?.valid === true;
+                  return (
+                    <button
+                      onClick={() => validateMutation.mutate()}
+                      disabled={validateMutation.isPending}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        isValidated
+                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                          : "border-border bg-muted/50 text-primary hover:bg-muted"
+                      }`}
+                    >
+                      {validateMutation.isPending ? (
+                        <ArrowPathIcon
+                          className="h-3.5 w-3.5 animate-spin text-primary"
+                          aria-hidden="true"
+                        />
+                      ) : isValidated ? (
+                        <CheckCircleIcon
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <BoltIcon
+                          className="h-3.5 w-3.5 text-primary"
+                          aria-hidden="true"
+                        />
+                      )}
+                      {isValidated ? "Valid" : "Validate"}
+                    </button>
+                  );
+                })()}
                 <button
                   onClick={() => runMutation.mutate()}
                   disabled={isQueryRunning}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-[0_12px_30px_-12px_rgba(86,112,255,0.9)] transition-all hover:bg-primary/90 hover:shadow-[0_16px_36px_-12px_rgba(86,112,255,1)] disabled:opacity-50"
                 >
                   {isQueryRunning ? (
-                    <HugeiconsIcon
-                      icon={Loading02Icon}
+                    <ArrowPathIcon
                       className="h-3.5 w-3.5 animate-spin"
+                      aria-hidden="true"
                     />
                   ) : (
-                    <HugeiconsIcon icon={PlayIcon} className="h-3.5 w-3.5" />
+                    <PlayIcon className="h-3.5 w-3.5" aria-hidden="true" />
                   )}
                   Run
                 </button>
@@ -2971,7 +2781,7 @@ export function QueryTab({
             <div className="relative">
               <div className="pointer-events-none absolute inset-0 opacity-[0.13] [background-image:linear-gradient(rgba(122,140,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(122,140,255,0.18)_1px,transparent_1px)] [background-size:22px_22px]" />
               {/* blockchain chain accent gutter */}
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex w-9 flex-col items-center justify-start gap-3 border-r border-white/5 bg-white/[0.02] py-4">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex w-9 flex-col items-center justify-start gap-3 border-r border-border/60 bg-muted/20 py-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <span
                     key={i}
@@ -2982,14 +2792,18 @@ export function QueryTab({
               <textarea
                 aria-label="SQL query editor"
                 value={sqlQuery}
-                onChange={(e) => setSqlQuery(e.target.value)}
-                className="relative z-10 h-[260px] w-full resize-none bg-transparent py-4 pl-12 pr-4 font-mono text-sm leading-6 text-sky-50 caret-primary placeholder:text-slate-500 focus:outline-none"
+                onChange={(e) => {
+                  setSqlQuery(e.target.value);
+                  // Editing invalidates the last validation → clear the check.
+                  if (validateMutation.data) validateMutation.reset();
+                }}
+                className="relative z-10 h-[260px] w-full resize-none bg-transparent py-4 pl-12 pr-4 font-mono text-sm leading-6 text-foreground caret-primary placeholder:text-muted-foreground/60 focus:outline-none"
                 placeholder={`SELECT\n  wallet,\n  email\nFROM users\nLIMIT 50;`}
                 spellCheck={false}
               />
             </div>
             {/* footer */}
-            <div className="relative flex items-center justify-between border-t border-white/10 px-4 py-2 text-[11px] text-slate-400">
+            <div className="relative flex items-center justify-between border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
               <span>Read-only SELECT against your organization data.</span>
               <span className="font-mono">
                 {sqlQuery.length === 0
@@ -3002,268 +2816,135 @@ export function QueryTab({
         </>
       )}
 
-      {activeSurface === "sql" && validateMutation.data ? (
-        <div className="rounded-xl border border-border bg-card p-4 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-foreground">
-              {validateMutation.data.valid
-                ? "Valid query"
-                : "Query needs attention"}
-            </span>
-            {schemaQuery.data ? (
-              <span className="text-xs text-muted-foreground">
-                Schema loaded
-              </span>
-            ) : null}
-          </div>
-          {Array.isArray(validateMutation.data.suggestions) &&
-          validateMutation.data.suggestions.length > 0 ? (
-            <ul className="mt-2 list-disc pl-5 text-muted-foreground">
-              {validateMutation.data.suggestions.slice(0, 6).map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-
       {isSqlRunning ? <SqlBlockchainLoader query={sqlQuery} /> : null}
 
       {hasRunQuery && !isSqlRunning && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border border-border bg-card overflow-hidden"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/30 px-4 py-3">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-foreground">
-                {typeof totalRows === "number" ? totalRows.toLocaleString() : 0}{" "}
-                results
-              </span>
-              {summaryQuery.data?.winbackPotential ? (
-                <span className="text-sm text-muted-foreground">
-                  Win-back potential:{" "}
-                  <span className="font-medium text-primary">
-                    {summaryQuery.data.winbackPotential}
-                  </span>
-                </span>
-              ) : null}
-            </div>
-            <div className="flex items-center gap-2">
-              {selectedRows.length > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  {selectedRows.length} selected
-                  <button
-                    onClick={() => setSelectedRows([])}
-                    className="ml-2 inline-flex items-center gap-1 rounded px-2 py-1 text-xs hover:bg-muted/40"
-                  >
-                    <HugeiconsIcon icon={Cancel01Icon} className="h-3 w-3" />
-                    Clear
-                  </button>
-                </span>
-              )}
-              {queryId ? (
-                <>
-                  <button
-                    onClick={() => {
-                      openNameDialog("report");
-                    }}
-                    disabled={saveReportMutation.isPending}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50"
-                  >
-                    Save report
-                  </button>
-                  <button
-                    onClick={() => {
-                      openNameDialog("segment");
-                    }}
-                    disabled={createSegmentMutation.isPending}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:shadow-[0_0_16px_rgba(var(--primary),0.4)] disabled:opacity-50"
-                  >
-                    <HugeiconsIcon icon={Add01Icon} className="h-3.5 w-3.5" />
-                    Create segment
-                  </button>
-                  <button
-                    onClick={() => {
-                      openNameDialog("campaign");
-                    }}
-                    disabled={createCampaignMutation.isPending}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50"
-                  >
-                    <HugeiconsIcon icon={Mail01Icon} className="h-3.5 w-3.5" />
-                    Create campaign
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30 text-left text-xs font-medium text-muted-foreground">
-                  <th className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={
-                        rows.length > 0 && selectedRows.length === rows.length
-                      }
-                      onChange={toggleAllRows}
-                    />
-                  </th>
-                  {columns.slice(0, 8).map((c) => (
-                    <th key={c} className="px-4 py-3">
-                      {c}
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, idx) => {
-                  const email = typeof row.email === "string" ? row.email : "";
-                  const key =
-                    typeof row.id === "string" && row.id.length > 0
-                      ? row.id
-                      : String(idx);
-                  return (
-                    <tr
-                      key={key}
-                      className="border-b border-border/50 transition-colors hover:bg-muted/50"
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.includes(String(idx))}
-                          onChange={() => toggleRowSelection(String(idx))}
-                        />
-                      </td>
-                      {columns.slice(0, 8).map((c) => (
-                        <td key={c} className="px-4 py-3">
-                          {typeof row[c] === "string" ||
-                          typeof row[c] === "number"
-                            ? String(row[c])
-                            : row[c] === null || row[c] === undefined
-                              ? ""
-                              : isJsonObject(row[c])
-                                ? "[object]"
-                                : Array.isArray(row[c])
-                                  ? "[array]"
-                                  : String(row[c])}
-                        </td>
-                      ))}
-                      <td className="px-4 py-3 text-right">
-                        <div className="inline-flex items-center gap-2">
-                          {email.length > 0 ? (
-                            <button
-                              className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
-                              onClick={() => openEmailComposer({ email })}
-                            >
-                              <HugeiconsIcon
-                                icon={Mail01Icon}
-                                className="mr-1 inline-block h-3.5 w-3.5"
-                              />
-                              Email
-                            </button>
-                          ) : null}
-                          <button
-                            className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
-                            onClick={() =>
-                              navigator.clipboard.writeText(
-                                JSON.stringify(row, null, 2)
-                              )
-                            }
-                          >
-                            <HugeiconsIcon
-                              icon={Copy01Icon}
-                              className="mr-1 inline-block h-3.5 w-3.5"
-                            />
-                            Copy
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {queryId && status === "completed" && pageCount > 1 ? (
-            <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
-              <span className="text-muted-foreground">
-                Page {page} of {pageCount}
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
-                >
-                  Prev
-                </button>
-                <button
-                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                  disabled={page >= pageCount}
-                  className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </motion.div>
+        <SqlResultsTable
+          rows={rows}
+          columns={columns}
+          columnLabels={columnLabels}
+          selectedRows={selectedRows}
+          onToggleAll={toggleAllRows}
+          onToggleRow={toggleRowSelection}
+          onClearSelection={clearSelection}
+          totalRows={typeof totalRows === "number" ? totalRows : 0}
+          winbackPotential={summaryQuery.data?.winbackPotential}
+          queryId={queryId}
+          status={status}
+          page={page}
+          pageCount={pageCount}
+          onPrevPage={goPrevPage}
+          onNextPage={goNextPage}
+          onSaveReport={handleSaveReport}
+          onCreateSegment={handleCreateSegment}
+          onCreateCampaign={handleCreateCampaign}
+          savePending={saveReportMutation.isPending}
+          segmentPending={createSegmentMutation.isPending}
+          campaignPending={createCampaignMutation.isPending}
+          onEmail={handleEmailRow}
+        />
       )}
 
-      {(hasRunQuery || chatMessages.length > 0) &&
-      (historyQuery.data?.length ?? 0) > 0 ? (
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="mb-2 text-sm font-medium text-foreground">
-            Recent queries
-          </div>
-          <div className="space-y-2">
-            {(historyQuery.data ?? []).slice(0, 5).map((h) => {
-              const item = isJsonObject(h)
-                ? (h as Record<string, unknown>)
-                : {};
-              const qid =
+      {activeSurface === "sql" ? <CachePanel /> : null}
+
+      {activeSurface === "sql" &&
+        (() => {
+          const items = (historyQuery.data ?? [])
+            .map((h) => (isJsonObject(h) ? (h as Record<string, unknown>) : {}))
+            .map((item) => ({
+              qid:
                 typeof item.queryId === "string"
                   ? item.queryId
                   : typeof item.id === "string"
                     ? item.id
-                    : "";
-              const q = typeof item.query === "string" ? item.query : "";
-              const s = typeof item.status === "string" ? item.status : "";
-              if (!qid || q.length === 0) return null;
-              return (
-                <button
-                  key={qid}
-                  type="button"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-left text-sm hover:bg-muted/40"
-                  onClick={() => {
-                    setQueryId(qid);
-                    setHasRunQuery(true);
-                    if (q.length > 0) setSqlQuery(q);
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="truncate font-mono text-xs text-muted-foreground">
-                      {qid}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{s}</span>
-                  </div>
-                  {q.length > 0 ? (
-                    <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                      {q}
-                    </div>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+                    : "",
+              q: typeof item.query === "string" ? item.query : "",
+              status: typeof item.status === "string" ? item.status : "",
+              createdAt:
+                typeof item.createdAt === "string" ? item.createdAt : "",
+            }))
+            .filter((x) => x.qid && x.q.length > 0)
+            .slice(0, 12);
+          if (items.length === 0) return null;
+          return (
+            <div className="overflow-hidden rounded-xl border border-border bg-card/40">
+              <button
+                type="button"
+                aria-expanded={historyOpen}
+                onClick={() => setHistoryOpen((v) => !v)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+              >
+                <ClockIcon
+                  className="h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span className="text-sm font-medium text-foreground">
+                  History
+                </span>
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {items.length}
+                </span>
+                <ChevronUpIcon
+                  className={`ml-auto h-4 w-4 text-muted-foreground transition-transform duration-300 ${
+                    historyOpen ? "" : "rotate-180"
+                  }`}
+                  aria-hidden="true"
+                />
+              </button>
+              <div
+                className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                  historyOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <ul className="max-h-80 space-y-1.5 overflow-y-auto px-3 pb-3">
+                    {items.map((it) => {
+                      const ok = it.status === "completed";
+                      const failed = it.status === "failed";
+                      return (
+                        <li key={it.qid}>
+                          <button
+                            type="button"
+                            className="group flex w-full items-start gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition-colors hover:border-border hover:bg-background"
+                            onClick={() => {
+                              setSqlQuery(it.q);
+                              setQueryId(it.qid);
+                              setHasRunQuery(true);
+                            }}
+                          >
+                            <span
+                              className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${
+                                ok
+                                  ? "bg-emerald-500"
+                                  : failed
+                                    ? "bg-rose-500"
+                                    : "bg-amber-500"
+                              }`}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-mono text-xs text-foreground">
+                                {it.q.replace(/\s+/g, " ").trim()}
+                              </span>
+                              {it.createdAt ? (
+                                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                                  {new Date(it.createdAt).toLocaleString()}
+                                </span>
+                              ) : null}
+                            </span>
+                            <ArrowUturnLeftIcon
+                              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
         <DialogContent className="max-w-[420px]">

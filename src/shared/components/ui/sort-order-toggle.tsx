@@ -1,6 +1,5 @@
 "use client";
-import { ArrowDown01Icon, ArrowUp01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 
 import { Button } from "@/components/ui/button";
 
@@ -28,9 +27,9 @@ export function SortOrderToggle({
       title={`Sort ${order === "asc" ? "ascending" : "descending"}`}
     >
       {order === "asc" ? (
-        <HugeiconsIcon icon={ArrowUp01Icon} className="h-4 w-4" />
+        <ChevronUpIcon className="h-4 w-4" aria-hidden="true" />
       ) : (
-        <HugeiconsIcon icon={ArrowDown01Icon} className="h-4 w-4" />
+        <ChevronDownIcon className="h-4 w-4" aria-hidden="true" />
       )}
     </Button>
   );

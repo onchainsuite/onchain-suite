@@ -1,6 +1,5 @@
 "use client";
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import type React from "react";
 import { useEffect } from "react";
 
@@ -80,7 +79,7 @@ export function CustomModal({
               onClick={onClose}
               className="h-8 w-8"
             >
-              <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
+              <XMarkIcon className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
           <div className="scrollbar-thin flex-1 overflow-y-auto p-4">
@@ -120,7 +119,7 @@ export function CustomModal({
             onClick={onClose}
             className="h-8 w-8"
           >
-            <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
+            <XMarkIcon className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
         <div className="scrollbar-thin flex-1 overflow-y-auto p-6">

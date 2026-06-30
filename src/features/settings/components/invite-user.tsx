@@ -1,11 +1,12 @@
-import { Loading02Icon, Mail01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowPathIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
 import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
+import { fadeInUp } from "../utils";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -93,7 +94,13 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
             Send an invitation to join your workspace.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <motion.div
+          variants={fadeInUp}
+          initial="initial"
+          animate="animate"
+          transition={{ duration: 0.2 }}
+          className="grid gap-4 py-4"
+        >
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">
               Email address
@@ -118,7 +125,7 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </motion.div>
         <DialogFooter>
           <Button
             variant="outline"
@@ -133,12 +140,12 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {saving ? (
-              <HugeiconsIcon
-                icon={Loading02Icon}
+              <ArrowPathIcon
                 className="mr-2 h-4 w-4 animate-spin"
+                aria-hidden="true"
               />
             ) : (
-              <HugeiconsIcon icon={Mail01Icon} className="mr-2 h-4 w-4" />
+              <EnvelopeIcon className="mr-2 h-4 w-4" aria-hidden="true" />
             )}
             Send invitation
           </Button>

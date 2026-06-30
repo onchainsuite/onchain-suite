@@ -1,6 +1,3 @@
-import { CircleIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-
 import { Badge } from "@/ui/badge";
 
 import { cn } from "@/lib/utils";
@@ -71,11 +68,11 @@ export function CalendarDayCell({
         {/* Mobile: Show dots */}
         <div className="flex gap-1 sm:hidden">
           {campaigns.slice(0, 3).map((campaign) => (
-            <HugeiconsIcon
-              icon={CircleIcon}
+            <span
+              aria-hidden="true"
               key={campaign.id}
               className={cn(
-                "h-2 w-2 fill-current",
+                "h-2 w-2 rounded-full bg-current",
                 getCampaignStatusColor(campaign.status)
               )}
             />
@@ -90,10 +87,10 @@ export function CalendarDayCell({
               className="group relative rounded-lg bg-muted/80 p-1.5 text-xs transition-all duration-300 hover:bg-muted"
             >
               <div className="flex items-center gap-1">
-                <HugeiconsIcon
-                  icon={CircleIcon}
+                <span
+                  aria-hidden="true"
                   className={cn(
-                    "h-2 w-2 fill-current shrink-0",
+                    "h-2 w-2 rounded-full bg-current shrink-0",
                     getCampaignStatusColor(campaign.status)
                   )}
                 />

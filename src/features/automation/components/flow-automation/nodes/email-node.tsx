@@ -1,5 +1,4 @@
-import { Mail01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import { Handle, Position } from "reactflow";
 
 import { type AutomationNodeData } from "@/features/automation/types";
@@ -11,10 +10,10 @@ interface EmailNodeProps {
 
 export const EmailNode = ({ data, selected }: EmailNodeProps) => (
   <div
-    className={`min-w-[272px] rounded-2xl border bg-card p-4 shadow-sm transition-all ${
+    className={`min-w-[300px] rounded-2xl border bg-card p-5 shadow-md transition-all ${
       selected
-        ? "border-indigo-500/60 ring-2 ring-indigo-500/25"
-        : "border-border hover:border-indigo-500/40"
+        ? "border-indigo-500/60 shadow-indigo-500/10 ring-2 ring-indigo-500/25"
+        : "border-border hover:-translate-y-0.5 hover:border-indigo-500/40 hover:shadow-lg"
     }`}
   >
     <Handle
@@ -29,8 +28,8 @@ export const EmailNode = ({ data, selected }: EmailNodeProps) => (
     />
     <div className="flex items-center gap-3">
       <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10">
-        <HugeiconsIcon
-          icon={Mail01Icon}
+        <EnvelopeIcon
+          aria-hidden="true"
           className="h-5 w-5 text-indigo-600 dark:text-indigo-400"
         />
       </div>

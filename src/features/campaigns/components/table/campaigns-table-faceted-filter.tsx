@@ -1,7 +1,6 @@
 "use client";
 
-import { AddCircleIcon, Tick01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import type { Column } from "@tanstack/react-table";
 import type * as React from "react";
 
@@ -47,7 +46,7 @@ export function CampaignsTableFacetedFilter<TData, TValue>({
           size="sm"
           className="h-10 border-border rounded-xl bg-transparent"
         >
-          <HugeiconsIcon icon={AddCircleIcon} className="mr-2 h-4 w-4" />
+          <PlusCircleIcon aria-hidden="true" className="mr-2 h-4 w-4" />
           {title}
           {selectedValues?.size > 0 && (
             <>
@@ -115,13 +114,10 @@ export function CampaignsTableFacetedFilter<TData, TValue>({
                           : "opacity-50 [&_svg]:invisible"
                       )}
                     >
-                      <HugeiconsIcon icon={Tick01Icon} className="h-4 w-4" />
+                      <CheckIcon aria-hidden="true" className="h-4 w-4" />
                     </div>
                     {option.icon && (
-                      <HugeiconsIcon
-                        icon={option.icon}
-                        className="mr-2 h-4 w-4 text-muted-foreground"
-                      />
+                      <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
                     )}
                     <span>{option.label}</span>
                     {facets?.get(option.value) && (

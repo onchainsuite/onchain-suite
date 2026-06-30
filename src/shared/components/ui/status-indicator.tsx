@@ -1,6 +1,11 @@
 "use client";
 
-import { AlertCircle, CheckCircle, Loader2, XCircle } from "lucide-react";
+import {
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  XCircleIcon,
+} from "@heroicons/react/24/outline";
 
 import { cn } from "@/lib/utils";
 
@@ -12,23 +17,23 @@ interface StatusIndicatorProps {
 
 const statusConfig = {
   success: {
-    icon: CheckCircle,
+    icon: CheckCircleIcon,
     color: "text-green-600 dark:text-green-400",
   },
   warning: {
-    icon: AlertCircle,
+    icon: ExclamationCircleIcon,
     color: "text-amber-600 dark:text-amber-400",
   },
   error: {
-    icon: XCircle,
+    icon: XCircleIcon,
     color: "text-red-600 dark:text-red-400",
   },
   loading: {
-    icon: Loader2,
+    icon: ArrowPathIcon,
     color: "text-blue-600 dark:text-blue-400 animate-spin",
   },
   info: {
-    icon: AlertCircle,
+    icon: ExclamationCircleIcon,
     color: "text-blue-600 dark:text-blue-400",
   },
 };

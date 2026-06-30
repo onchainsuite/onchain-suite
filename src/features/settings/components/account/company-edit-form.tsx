@@ -1,14 +1,13 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Add01Icon,
-  Delete02Icon,
-  FloppyDiskIcon,
-  Loading02Icon,
+  ArrowPathIcon,
+  CheckIcon,
   PencilIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
@@ -21,7 +20,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -30,26 +31,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { authClient } from "@/lib/auth-client";
 import { getSelectedOrganizationId } from "@/lib/utils";
 
+import { ContractAddressList } from "@/features/settings/components/account/contract-address-list";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import {
   type ProjectSettingsFormData,
   projectSettingsService,
+  type SupportedChain,
 } from "@/features/settings/project-settings.service";
-import { useTimezones } from "@/shared/hooks/client/use-timezones";
-
-const chainOptions = [
-  "Ethereum",
-  "Base",
-  "Solana",
-  "Arbitrum",
-  "Optimism",
-  "Polygon",
-  "BNB Chain",
-  "Sei",
-  "Algorand",
-] as const;
-
-type ChainOption = (typeof chainOptions)[number];
 
 const contractEntrySchema = z.object({
   chain: z.string().min(1, "Chain is required"),
@@ -131,7 +119,8 @@ export default function CompanyEditForm() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ProjectSettingsFormData | null>(null);
-  const [chainToAdd, setChainToAdd] = useState<ChainOption>("Ethereum");
+  const [chainToAdd, setChainToAdd] = useState<string>("");
+  const [supportedChains, setSupportedChains] = useState<SupportedChain[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
   const isNonEmptyString = (value: unknown): value is string =>
@@ -163,25 +152,32 @@ export default function CompanyEditForm() {
     name: "contractAddresses",
   });
 
-  const {
-    fields: treasuryFields,
-    append: appendTreasury,
-    remove: removeTreasury,
-  } = useFieldArray({
-    control: form.control,
-    name: "treasuryWallets",
-  });
-
-  const {
-    fields: teamFields,
-    append: appendTeam,
-    remove: removeTeam,
-  } = useFieldArray({
-    control: form.control,
-    name: "teamWallets",
-  });
-
-  const { items: timezones, loading: tzLoading } = useTimezones();
+  const mainnetChains = useMemo(
+    () => supportedChains.filter((c) => !c.testnet),
+    [supportedChains]
+  );
+  const testnetChains = useMemo(
+    () => supportedChains.filter((c) => c.testnet),
+    [supportedChains]
+  );
+  // slug (or alias) → human label, for chips and the read-only list.
+  const chainLabel = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of supportedChains) {
+      map.set(c.slug, c.label);
+      for (const alias of c.aliases ?? []) map.set(alias, c.label);
+    }
+    return (slug: string) => map.get(slug) ?? slug;
+  }, [supportedChains]);
+  // set of every accepted chain identifier, to drop stale/unsupported values.
+  const supportedKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of supportedChains) {
+      set.add(c.slug);
+      for (const alias of c.aliases ?? []) set.add(alias);
+    }
+    return set;
+  }, [supportedChains]);
 
   const primaryChains = useWatch({
     control: form.control,
@@ -190,8 +186,8 @@ export default function CompanyEditForm() {
   const primaryChainsLabel = useMemo(() => {
     const list = Array.isArray(primaryChains) ? primaryChains : [];
     if (list.length === 0) return "";
-    return list.join(", ");
-  }, [primaryChains]);
+    return list.map((s) => chainLabel(s)).join(", ");
+  }, [primaryChains, chainLabel]);
 
   const organizationId = useMemo(() => {
     const selected = selectedOrgId?.trim();
@@ -242,6 +238,29 @@ export default function CompanyEditForm() {
     fetchOrg();
   }, [form, organizationId]);
 
+  // Supported chains drive the chain pickers (single source of truth) so the
+  // PUT never returns UNSUPPORTED_CHAINS.
+  useEffect(() => {
+    if (!organizationId) return;
+    let cancelled = false;
+    projectSettingsService
+      .getSupportedChains(organizationId)
+      .then((chains) => {
+        if (cancelled) return;
+        setSupportedChains(chains);
+        setChainToAdd(
+          (cur) =>
+            cur || chains.find((c) => !c.testnet)?.slug || chains[0]?.slug || ""
+        );
+      })
+      .catch(() => {
+        /* non-fatal: pickers just stay empty until reachable */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
+
   const onSubmit = async (values: CompanyFormValues) => {
     if (!organizationId) {
       toast.error("No active organization selected");
@@ -249,6 +268,16 @@ export default function CompanyEditForm() {
     }
     const previousData = data;
     const nextValues = toProjectSettingsFormData(values);
+    // Drop any stale/unsupported chains so the backend never rejects with
+    // UNSUPPORTED_CHAINS (only filter once the registry has loaded).
+    if (supportedKeys.size > 0) {
+      nextValues.primaryChains = nextValues.primaryChains.filter((s) =>
+        supportedKeys.has(s)
+      );
+      nextValues.contractAddresses = nextValues.contractAddresses.filter(
+        (row) => !row.chain || supportedKeys.has(row.chain)
+      );
+    }
     // Optimistic update
     setData(nextValues);
     setIsEditing(false);
@@ -279,8 +308,9 @@ export default function CompanyEditForm() {
   return (
     <SettingsSectionCard
       title="Project settings"
-      description="Manage protocol identity, chains, contracts, and wallets."
+      description="Manage protocol identity, chains, and contract addresses."
       badge={data?.name ? `Protocol: ${data.name}` : "No project name set"}
+      defaultOpen
       className="bg-card/50 backdrop-blur-sm transition-all hover:bg-card/80"
     >
       <AnimatePresence mode="wait">
@@ -335,19 +365,31 @@ export default function CompanyEditForm() {
               <div className="space-y-2">
                 <Label>Primary Chains</Label>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <Select
-                    value={chainToAdd}
-                    onValueChange={(val) => setChainToAdd(val as ChainOption)}
-                  >
+                  <Select value={chainToAdd} onValueChange={setChainToAdd}>
                     <SelectTrigger className="sm:w-56">
                       <SelectValue placeholder="Select chain" />
                     </SelectTrigger>
                     <SelectContent>
-                      {chainOptions.map((chain) => (
-                        <SelectItem key={chain} value={chain}>
-                          {chain}
-                        </SelectItem>
-                      ))}
+                      {mainnetChains.length > 0 ? (
+                        <SelectGroup>
+                          <SelectLabel>Mainnet</SelectLabel>
+                          {mainnetChains.map((chain) => (
+                            <SelectItem key={chain.slug} value={chain.slug}>
+                              {chain.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ) : null}
+                      {testnetChains.length > 0 ? (
+                        <SelectGroup>
+                          <SelectLabel>Testnet</SelectLabel>
+                          {testnetChains.map((chain) => (
+                            <SelectItem key={chain.slug} value={chain.slug}>
+                              {chain.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ) : null}
                     </SelectContent>
                   </Select>
                   <Button
@@ -367,7 +409,7 @@ export default function CompanyEditForm() {
                       }
                     }}
                   >
-                    <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
+                    <PlusIcon className="h-4 w-4" aria-hidden="true" />
                     Add chain
                   </Button>
                 </div>
@@ -377,7 +419,7 @@ export default function CompanyEditForm() {
                       key={chain}
                       className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-foreground"
                     >
-                      {chain}
+                      {chainLabel(chain)}
                       <button
                         type="button"
                         className="text-muted-foreground hover:text-foreground"
@@ -420,30 +462,6 @@ export default function CompanyEditForm() {
                   </p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label>Timezone</Label>
-                <Select
-                  onValueChange={(val) => form.setValue("timezone", val)}
-                  defaultValue={form.getValues("timezone")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select timezone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tzLoading ? (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        Loading…
-                      </div>
-                    ) : (
-                      timezones.map((tz) => (
-                        <SelectItem key={tz.id} value={tz.id}>
-                          {tz.label}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Address</Label>
                 <Input
@@ -462,10 +480,10 @@ export default function CompanyEditForm() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Contract Addresses
+                    Contract addresses
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Add contracts for on-chain queries and intelligence.
+                    Indexed into the on-chain intelligence pipeline.
                   </p>
                 </div>
                 <Button
@@ -474,13 +492,13 @@ export default function CompanyEditForm() {
                   className="gap-2"
                   onClick={() =>
                     appendContract({
-                      chain: chainOptions[0],
+                      chain: mainnetChains[0]?.slug ?? chainToAdd ?? "",
                       address: "",
                       label: "",
                     })
                   }
                 >
-                  <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
+                  <PlusIcon className="h-4 w-4" aria-hidden="true" />
                   Add contract
                 </Button>
               </div>
@@ -511,14 +529,29 @@ export default function CompanyEditForm() {
                           )}
                         >
                           <SelectTrigger className="h-11">
-                            <SelectValue placeholder="Chain" />
+                            <SelectValue placeholder="Network" />
                           </SelectTrigger>
                           <SelectContent>
-                            {chainOptions.map((chain) => (
-                              <SelectItem key={chain} value={chain}>
-                                {chain}
-                              </SelectItem>
-                            ))}
+                            {mainnetChains.length > 0 ? (
+                              <SelectGroup>
+                                <SelectLabel>Mainnet</SelectLabel>
+                                {mainnetChains.map((net) => (
+                                  <SelectItem key={net.slug} value={net.slug}>
+                                    {net.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ) : null}
+                            {testnetChains.length > 0 ? (
+                              <SelectGroup>
+                                <SelectLabel>Testnet</SelectLabel>
+                                {testnetChains.map((net) => (
+                                  <SelectItem key={net.slug} value={net.slug}>
+                                    {net.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ) : null}
                           </SelectContent>
                         </Select>
                       </div>
@@ -546,151 +579,12 @@ export default function CompanyEditForm() {
                           onClick={() => removeContract(idx)}
                           aria-label="Remove contract"
                         >
-                          <HugeiconsIcon
-                            icon={Delete02Icon}
-                            className="h-4 w-4"
-                          />
+                          <TrashIcon className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
                     </div>
                   ))
                 )}
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      Treasury Wallets
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Treasury, marketing, team, etc.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => appendTreasury({ address: "", label: "" })}
-                  >
-                    <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
-                    Add
-                  </Button>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {treasuryFields.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">
-                      No wallets added
-                    </div>
-                  ) : (
-                    treasuryFields.map((field, idx) => (
-                      <div
-                        key={field.id}
-                        className="grid gap-3 rounded-xl border border-border/60 bg-card/40 p-3 md:grid-cols-12"
-                      >
-                        <div className="md:col-span-7">
-                          <Label className="sr-only">Wallet address</Label>
-                          <Input
-                            {...form.register(`treasuryWallets.${idx}.address`)}
-                            placeholder="0x…"
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="md:col-span-4">
-                          <Label className="sr-only">Label</Label>
-                          <Input
-                            {...form.register(`treasuryWallets.${idx}.label`)}
-                            placeholder="Treasury"
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="flex items-center justify-end md:col-span-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeTreasury(idx)}
-                            aria-label="Remove wallet"
-                          >
-                            <HugeiconsIcon
-                              icon={Delete02Icon}
-                              className="h-4 w-4"
-                            />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      Deployer / Team Wallets
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      For privilege tracking and intelligence features.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => appendTeam({ address: "", label: "" })}
-                  >
-                    <HugeiconsIcon icon={Add01Icon} className="h-4 w-4" />
-                    Add
-                  </Button>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {teamFields.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">
-                      No wallets added
-                    </div>
-                  ) : (
-                    teamFields.map((field, idx) => (
-                      <div
-                        key={field.id}
-                        className="grid gap-3 rounded-xl border border-border/60 bg-card/40 p-3 md:grid-cols-12"
-                      >
-                        <div className="md:col-span-7">
-                          <Label className="sr-only">Wallet address</Label>
-                          <Input
-                            {...form.register(`teamWallets.${idx}.address`)}
-                            placeholder="0x…"
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="md:col-span-4">
-                          <Label className="sr-only">Label</Label>
-                          <Input
-                            {...form.register(`teamWallets.${idx}.label`)}
-                            placeholder="Deployer"
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="flex items-center justify-end md:col-span-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeTeam(idx)}
-                            aria-label="Remove wallet"
-                          >
-                            <HugeiconsIcon
-                              icon={Delete02Icon}
-                              className="h-4 w-4"
-                            />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
               </div>
             </div>
 
@@ -707,15 +601,12 @@ export default function CompanyEditForm() {
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? (
-                  <HugeiconsIcon
-                    icon={Loading02Icon}
+                  <ArrowPathIcon
                     className="h-4 w-4 animate-spin mr-2"
+                    aria-hidden="true"
                   />
                 ) : (
-                  <HugeiconsIcon
-                    icon={FloppyDiskIcon}
-                    className="h-4 w-4 mr-2"
-                  />
+                  <CheckIcon className="h-4 w-4 mr-2" aria-hidden="true" />
                 )}
                 Save Changes
               </Button>
@@ -736,7 +627,7 @@ export default function CompanyEditForm() {
                 onClick={() => setIsEditing(true)}
                 className="gap-2"
               >
-                <HugeiconsIcon icon={PencilIcon} className="h-3.5 w-3.5" />
+                <PencilIcon className="h-3.5 w-3.5" aria-hidden="true" />
                 Edit
               </Button>
             </div>
@@ -822,18 +713,6 @@ export default function CompanyEditForm() {
                   })()}
                 </p>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Timezone
-                </p>
-                <p className="text-base">
-                  {(() => {
-                    const timezone = data?.timezone;
-                    if (isNonEmptyString(timezone)) return timezone;
-                    return "UTC";
-                  })()}
-                </p>
-              </div>
               <div className="md:col-span-2">
                 <p className="text-sm font-medium text-muted-foreground mb-1">
                   Address
@@ -850,35 +729,19 @@ export default function CompanyEditForm() {
                   })()}
                 </p>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Contract Addresses
-                </p>
-                <p className="text-base">
-                  {(data?.contractAddresses?.length ?? 0) > 0
-                    ? `${data?.contractAddresses?.length ?? 0} saved`
-                    : "Not set"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Treasury Wallets
-                </p>
-                <p className="text-base">
-                  {(data?.treasuryWallets?.length ?? 0) > 0
-                    ? `${data?.treasuryWallets?.length ?? 0} saved`
-                    : "Not set"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Deployer / Team Wallets
-                </p>
-                <p className="text-base">
-                  {(data?.teamWallets?.length ?? 0) > 0
-                    ? `${data?.teamWallets?.length ?? 0} saved`
-                    : "Not set"}
-                </p>
+              <div className="md:col-span-2">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Contract addresses
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {data?.contractAddresses?.length ?? 0} in the pipeline
+                  </span>
+                </div>
+                <ContractAddressList
+                  contracts={data?.contractAddresses ?? []}
+                  chains={supportedChains}
+                />
               </div>
             </div>
           </motion.div>

@@ -1,5 +1,5 @@
-import { Loading02Icon, LockIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowPathIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import React, { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+import { fadeInUp } from "../utils";
 
 interface ChangePasswordProps {
   open: boolean;
@@ -43,7 +45,13 @@ const ChangePassword = ({ open, onOpenChange }: ChangePasswordProps) => {
             Enter your current password and choose a new one
           </DialogDescription>
         </DialogHeader>
-        <div className="mt-6 space-y-6">
+        <motion.div
+          variants={fadeInUp}
+          initial="initial"
+          animate="animate"
+          transition={{ duration: 0.2 }}
+          className="mt-6 space-y-6"
+        >
           <div className="space-y-3">
             <Label className="text-sm font-medium text-foreground">
               Current password
@@ -77,7 +85,7 @@ const ChangePassword = ({ open, onOpenChange }: ChangePasswordProps) => {
               className="h-12 border-border/80"
             />
           </div>
-        </div>
+        </motion.div>
         <DialogFooter className="mt-6">
           <Button
             variant="outline"
@@ -104,12 +112,12 @@ const ChangePassword = ({ open, onOpenChange }: ChangePasswordProps) => {
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {saving ? (
-              <HugeiconsIcon
-                icon={Loading02Icon}
+              <ArrowPathIcon
                 className="mr-2 h-4 w-4 animate-spin"
+                aria-hidden="true"
               />
             ) : (
-              <HugeiconsIcon icon={LockIcon} className="mr-2 h-4 w-4" />
+              <LockClosedIcon className="mr-2 h-4 w-4" aria-hidden="true" />
             )}
             Update password
           </Button>
