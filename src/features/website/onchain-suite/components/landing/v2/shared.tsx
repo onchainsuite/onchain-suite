@@ -34,7 +34,7 @@ export function Logo({ height = 28 }: { height?: number }) {
   return (
     <Image
       src={LOGO_SRC}
-      alt="OnchainSuite"
+      alt="Onchain Suite"
       width={Math.round(height * 5.4)}
       height={height}
       priority
@@ -489,7 +489,7 @@ export function Heading({
       <Reveal>
         <span className="eyebrow">{eyebrow}</span>
       </Reveal>
-      <Reveal delay={0.05} as="h2">
+      <Reveal delay={0.05}>
         <h2
           className="mt-4 font-semibold tracking-tight t-ink"
           style={{ fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)", lineHeight: 1.1 }}
@@ -506,7 +506,11 @@ export function Heading({
   );
 }
 
-const FOOTER = [
+const X_URL = "https://x.com/0nchainSuite";
+const LINKEDIN_URL = "https://www.linkedin.com/company/onchainsuite/";
+const EMAIL_URL = "mailto:onchainsuite@gmail.com";
+
+const FOOTER: { h: string; links: [string, string][] }[] = [
   {
     h: "Product",
     links: [
@@ -521,37 +525,68 @@ const FOOTER = [
   {
     h: "Company",
     links: [
-      ["About", "/legal"],
-      ["Blog", "/legal"],
-      ["Careers", "/legal"],
+      ["About", DOCS_URL],
+      ["Blog", DOCS_URL],
+      ["Careers", DOCS_URL],
     ],
   },
   {
     h: "Resources",
     links: [
-      ["Docs", "/legal"],
-      ["API", "/legal"],
-      ["SDK", "/#developer"],
-      ["Changelog", "/legal"],
+      ["Docs", DOCS_URL],
+      ["API", DOCS_URL],
+      ["SDK", DOCS_URL],
+      ["Changelog", DOCS_URL],
     ],
   },
   {
     h: "Connect",
     links: [
-      ["X", "/legal"],
-      ["Discord", "/legal"],
-      ["LinkedIn", "/legal"],
-      ["Email", "mailto:info@onchainsuite.com"],
+      ["X", X_URL],
+      ["LinkedIn", LINKEDIN_URL],
+      ["Discord", DOCS_URL],
+      ["Email", EMAIL_URL],
     ],
   },
-] as const;
+];
+
+/** Renders an internal Link or an external anchor depending on the href. */
+function FooterLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const external = /^(https?:|mailto:)/.test(href);
+  if (external) {
+    return (
+      <a
+        href={href}
+        target={href.startsWith("mailto:") ? undefined : "_blank"}
+        rel="noopener noreferrer"
+        className={className}
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 export function Footer() {
+  const year = new Date().getFullYear();
   return (
     <footer className="border-t py-14" style={{ borderColor: "var(--line)" }}>
       <div className="wrap grid gap-10 md:grid-cols-[1.5fr_repeat(4,1fr)]">
         <div>
-          <Logo height={32} />
+          <Logo height={50} />
           <p className="mt-3 max-w-xs text-[13px] leading-relaxed t-muted">
             The behaviour-triggered retention platform for Web3.
           </p>
@@ -564,12 +599,12 @@ export function Footer() {
             <ul className="space-y-2">
               {col.links.map(([label, href]) => (
                 <li key={label}>
-                  <Link
+                  <FooterLink
                     href={href}
                     className="text-[13.5px] t-muted transition-colors hover:text-[color:var(--acc)]"
                   >
                     {label}
-                  </Link>
+                  </FooterLink>
                 </li>
               ))}
             </ul>
@@ -580,22 +615,22 @@ export function Footer() {
         className="wrap mt-10 flex flex-col items-center justify-between gap-3 border-t pt-8 text-[12.5px] t-muted2 sm:flex-row"
         style={{ borderColor: "var(--line)" }}
       >
-        <span>© 2026 OnchainSuite Incorporated</span>
+        <span>© {year} OnchainSuite Incorporated</span>
         <div className="flex items-center gap-5">
           <Link
-            href="/legal"
+            href="/legal#privacy"
             className="transition-colors hover:text-[color:var(--acc)]"
           >
             Privacy
           </Link>
           <Link
-            href="/legal"
+            href="/legal#terms"
             className="transition-colors hover:text-[color:var(--acc)]"
           >
             Terms
           </Link>
           <Link
-            href="/legal"
+            href="/legal#compliance"
             className="transition-colors hover:text-[color:var(--acc)]"
           >
             Compliance

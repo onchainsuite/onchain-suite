@@ -165,9 +165,9 @@ export function ContractAddressList({
 
   return (
     <div className="grid gap-2 sm:grid-cols-2">
-      {valid.map((contract, i) => (
+      {valid.map((contract) => (
         <ContractRowItem
-          key={`${contract.address}-${i}`}
+          key={`${contract.chain ?? "?"}-${contract.address}`}
           contract={contract}
           chain={contract.chain ? bySlug.get(contract.chain) : undefined}
         />

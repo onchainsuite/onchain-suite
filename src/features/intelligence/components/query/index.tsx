@@ -676,16 +676,15 @@ const formatTimestamp = (value: unknown) => {
   return date.toLocaleString();
 };
 
-const SUGGESTION_SECTORS = [
-  "general",
-  "defi",
-  "nft",
-  "gaming",
-  "meme",
-  "dao",
-  "payments",
-  "infrastructure",
-] as const;
+type SuggestionSector =
+  | "general"
+  | "defi"
+  | "nft"
+  | "gaming"
+  | "meme"
+  | "dao"
+  | "payments"
+  | "infrastructure";
 
 const DEFAULT_MCP_CHAINS = [
   "eth-mainnet",
@@ -732,7 +731,7 @@ export function QueryTab({
   >(null);
   const [lastSubmittedChatPrompt, setLastSubmittedChatPrompt] = useState("");
   const [selectedSector] =
-    useState<(typeof SUGGESTION_SECTORS)[number]>("general");
+    useState<SuggestionSector>("general");
   const [selectedChains] = useState<string[]>([...DEFAULT_MCP_CHAINS]);
   const [streamActivity, setStreamActivity] = useState<StreamActivityEntry[]>(
     []
@@ -748,7 +747,8 @@ export function QueryTab({
   const normalizedProtocolSearch = protocolSearch.trim();
   const [primaryChain] = selectedChains;
 
-  const schemaQuery = useQuery({
+  // Warms the schema cache for the SQL editor; result read elsewhere via cache.
+  const _schemaQuery = useQuery({
     queryKey: ["intelligence", "schema"],
     queryFn: () => intelligenceService.getSchema(),
     retry: false,
@@ -1131,9 +1131,9 @@ export function QueryTab({
       }
 
       // MCP runs spend GoldRush credits — refresh the meter.
-      void queryClient.invalidateQueries({
-        queryKey: ["intelligence", "credits"],
-      });
+      queryClient
+        .invalidateQueries({ queryKey: ["intelligence", "credits"] })
+        .catch(() => undefined);
     },
     onError: (err) => {
       // User pressed Stop (or the run was aborted) — exit quietly.
@@ -2782,9 +2782,9 @@ export function QueryTab({
               <div className="pointer-events-none absolute inset-0 opacity-[0.13] [background-image:linear-gradient(rgba(122,140,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(122,140,255,0.18)_1px,transparent_1px)] [background-size:22px_22px]" />
               {/* blockchain chain accent gutter */}
               <div className="pointer-events-none absolute inset-y-0 left-0 flex w-9 flex-col items-center justify-start gap-3 border-r border-border/60 bg-muted/20 py-4">
-                {Array.from({ length: 6 }).map((_, i) => (
+                {["g0", "g1", "g2", "g3", "g4", "g5"].map((k) => (
                   <span
-                    key={i}
+                    key={k}
                     className="h-1.5 w-1.5 rounded-full bg-primary/40"
                   />
                 ))}

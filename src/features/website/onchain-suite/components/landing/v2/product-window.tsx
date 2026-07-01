@@ -7,7 +7,12 @@ import {
   CheckIcon,
   CpuChipIcon,
 } from "@heroicons/react/24/outline";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useInView,
+  useReducedMotion,
+} from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 import { type ChainKey, ChainLogo } from "./chain-logos";
@@ -514,17 +519,62 @@ export function AutomationsViz() {
   );
 }
 
-/* Intelligence card for the marketing feature section — mirrors the hero tab:
-   the typed natural-language ask, then the full animated MCP result
-   (skeleton → bar chart → rows → Create automation / Save segment). */
+const INTEL_QUESTION =
+  "Which wallets deposited over $10k last month but haven't returned?";
+
+/* Intelligence card for the marketing feature section — a self-driving loop:
+   type the question → reveal the full animated MCP result (skeleton → bar
+   chart → rows → buttons) → hold → clear → retype. Loops while in view. */
 export function IntelligenceAskCard() {
-  const typed = useTypewriter(
-    "Which wallets deposited over $10k last month but haven't returned?",
-    0.3,
-    true
-  );
+  const ref = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, { margin: "-80px" });
+  const reduce = useReducedMotion();
+  const [typed, setTyped] = useState("");
+  const [showViz, setShowViz] = useState(false);
+  const [runId, setRunId] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    if (reduce) {
+      setTyped(INTEL_QUESTION);
+      setShowViz(true);
+      return;
+    }
+    let cancelled = false;
+    const timers: number[] = [];
+    const at = (fn: () => void, ms: number) =>
+      timers.push(window.setTimeout(fn, ms));
+
+    const run = () => {
+      if (cancelled) return;
+      setTyped("");
+      setShowViz(false);
+      setRunId((r) => r + 1);
+      // type the question
+      let i = 0;
+      const typeStep = () => {
+        if (cancelled) return;
+        i += 1;
+        setTyped(INTEL_QUESTION.slice(0, i));
+        if (i < INTEL_QUESTION.length) at(typeStep, 30);
+        else {
+          at(() => !cancelled && setShowViz(true), 500); // reveal graph
+          at(run, 9500); // hold, then restart the loop
+        }
+      };
+      at(typeStep, 450);
+    };
+    run();
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [inView, reduce]);
+
+  const typingDone = typed.length === INTEL_QUESTION.length;
+
   return (
-    <div className="card flex flex-col gap-3 p-4 md:p-5">
+    <div ref={ref} className="card flex flex-col gap-3 p-4 md:p-5">
       <div className="flex items-center gap-2">
         <span
           className="inline-block h-5 w-5 rounded-[6px]"
@@ -546,14 +596,40 @@ export function IntelligenceAskCard() {
         </div>
         <div className="text-[14px] leading-relaxed t-ink">
           {typed}
-          <span className="ocs2-caret">▌</span>
+          {!typingDone ? <span className="ocs2-caret">▌</span> : null}
         </div>
       </div>
       <div
-        className="rounded-2xl border p-4"
+        className="min-h-[318px] rounded-2xl border p-4"
         style={{ borderColor: "var(--line-2)", background: "var(--surface)" }}
       >
-        <IntelligenceViz />
+        <AnimatePresence mode="wait">
+          {showViz ? (
+            <motion.div
+              key={runId}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="h-full"
+            >
+              <IntelligenceViz />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="thinking"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex h-full min-h-[286px] items-center justify-center"
+            >
+              <span className="mono inline-flex items-center gap-2 text-[12px] t-muted2">
+                <CpuChipIcon className="h-4 w-4 t-acc" aria-hidden="true" />
+                {typingDone ? "Running MCP…" : "Waiting for your question…"}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -563,16 +639,24 @@ export function IntelligenceAskCard() {
 
 type IntelView = "result" | "automation" | "segments";
 
-const CHART = [0.52, 0.8, 0.46, 0.95, 1.0, 0.6, 0.36];
+const CHART = [
+  { id: "w1", v: 0.52 },
+  { id: "w2", v: 0.8 },
+  { id: "w3", v: 0.46 },
+  { id: "w4", v: 0.95 },
+  { id: "w5", v: 1.0 },
+  { id: "w6", v: 0.6 },
+  { id: "w7", v: 0.36 },
+];
 
 function CohortChart() {
   return (
     <div className="flex h-[68px] items-end gap-2">
-      {CHART.map((v, i) => (
+      {CHART.map((b, i) => (
         <motion.div
-          key={i}
+          key={b.id}
           initial={{ height: 4, opacity: 0.5 }}
-          animate={{ height: `${v * 100}%`, opacity: 1 }}
+          animate={{ height: `${b.v * 100}%`, opacity: 1 }}
           transition={{
             delay: i * 0.06,
             duration: 0.55,
@@ -590,17 +674,17 @@ function CohortSkeleton() {
   return (
     <div className="space-y-3">
       <div className="flex h-[68px] items-end gap-2">
-        {[0.5, 0.8, 0.45, 0.95, 1, 0.6, 0.35].map((v, i) => (
+        {CHART.map((b) => (
           <div
-            key={i}
+            key={b.id}
             className="skel flex-1"
-            style={{ height: `${v * 100}%`, minHeight: 6 }}
+            style={{ height: `${b.v * 100}%`, minHeight: 6 }}
           />
         ))}
       </div>
       <div className="space-y-1.5">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="skel h-8 w-full" />
+        {["r1", "r2", "r3"].map((k) => (
+          <div key={k} className="skel h-8 w-full" />
         ))}
       </div>
     </div>
@@ -888,44 +972,21 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 const ORDER: TabId[] = ["activity", "automations", "intelligence"];
-const DWELL = 10000; // ms onscreen per tab (lets every pane animation play)
+const DWELL = 9000; // ms onscreen per tab (lets every pane animation play)
 
 /* ─────────────────────── product window ─────────────────────── */
 
 export function ProductWindow() {
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<TabId>("activity");
-  const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
-  const progressRef = useRef(0);
 
-  // autoplay: fill the active underline over DWELL, then advance.
-  useEffect(() => {
-    if (reduce || paused) return;
-    let raf = 0;
-    let startedAt = 0;
-    const tick = (now: number) => {
-      if (!startedAt) startedAt = now - progressRef.current * DWELL;
-      const p = Math.min(1, (now - startedAt) / DWELL);
-      progressRef.current = p;
-      setProgress(p);
-      if (p >= 1) {
-        progressRef.current = 0;
-        setProgress(0);
-        setTab((cur) => ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length]);
-        return;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [tab, paused, reduce]);
-
-  const selectTab = (id: TabId) => {
-    progressRef.current = 0;
-    setProgress(0);
-    setTab(id);
-  };
+  // The time-line below the tabs is a pure-CSS animation (smooth linear fill
+  // over DWELL). When it finishes it advances to the next tab; changing tabs
+  // remounts the fill (key={tab}) so it restarts cleanly for each screen.
+  const advance = () =>
+    setTab((cur) => ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length]);
+  const selectTab = (id: TabId) => setTab(id);
 
   return (
     <Tilt max={2.5} className="relative w-full">
@@ -975,24 +1036,29 @@ export function ProductWindow() {
             <span className="mono">app.onchainsuite.com</span>
           </span>
         </div>
-        {/* gap, then a full-width time-line track that fills end-to-end
-            over the dwell (the 'remaining time' indicator) */}
+        {/* gap, then a full-width time-line track that fills end-to-end over
+            the dwell, then advances to the next tab */}
         <div
-          className="mt-2 h-[3px] w-full"
+          className="mt-2 h-[3px] w-full overflow-hidden"
           style={{ background: "var(--line)" }}
         >
-          <span
-            className="pointer-events-none block h-full rounded-r-full"
-            style={{
-              width: reduce ? "100%" : `${progress * 100}%`,
-              background:
-                "linear-gradient(90deg, color-mix(in oklab, var(--acc) 35%, transparent), var(--acc))",
-              boxShadow: reduce
-                ? "none"
-                : "0 0 10px color-mix(in oklab, var(--acc) 55%, transparent)",
-              transition: "width .12s linear",
-            }}
-          />
+          {reduce ? (
+            <span
+              className="block h-full"
+              style={{
+                width: "100%",
+                background:
+                  "linear-gradient(90deg, color-mix(in oklab, var(--acc) 35%, transparent), var(--acc))",
+              }}
+            />
+          ) : (
+            <span
+              key={tab}
+              onAnimationEnd={advance}
+              className={`ocs2-timeline pointer-events-none ${paused ? "is-paused" : ""}`}
+              style={{ animationDuration: `${DWELL}ms` }}
+            />
+          )}
         </div>
 
         {/* body: two panes, equal height */}

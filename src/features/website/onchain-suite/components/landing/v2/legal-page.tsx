@@ -40,7 +40,7 @@ export function LegalPage() {
           <Reveal>
             <span className="eyebrow">Legal</span>
           </Reveal>
-          <Reveal delay={0.06} as="h1">
+          <Reveal delay={0.06}>
             <h1
               className="mt-5 font-semibold tracking-tight"
               style={{
@@ -97,8 +97,8 @@ export function LegalPage() {
           })}
           <Reveal delay={0.1}>
             <p className="pt-2 text-center text-[12.5px] t-muted2">
-              Last updated ahead of general availability · © 2026 OnchainSuite
-              Incorporated
+              Last updated ahead of general availability · ©{" "}
+              {new Date().getFullYear()} OnchainSuite Incorporated
             </p>
           </Reveal>
         </div>

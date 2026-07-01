@@ -309,6 +309,35 @@
   animation: ocs2-sheen 6.5s ease-in-out 1.2s infinite;
 }
 
+/* ----- product-window tab time-line (fills 0→100% over the dwell) ----- */
+.ocs2 .ocs2-timeline {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--acc) 35%, transparent),
+    var(--acc)
+  );
+  box-shadow: 0 0 10px color-mix(in oklab, var(--acc) 55%, transparent);
+  animation-name: ocs2-timeline;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
+.ocs2 .ocs2-timeline.is-paused {
+  animation-play-state: paused;
+}
+@keyframes ocs2-timeline {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 /* ----- typing caret ----- */
 .ocs2 .ocs2-caret {
   margin-left: 1px;

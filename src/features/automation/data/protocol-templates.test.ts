@@ -32,7 +32,8 @@ describe("protocol templates catalog", () => {
 describe("buildTemplateGraph", () => {
   const linear = protocolTemplates.find(
     (t) => t.id === "bridge-welcome-series"
-  )!;
+  );
+  if (!linear) throw new Error("fixture 'bridge-welcome-series' not found");
 
   it("produces a node per linear step and connects them sequentially", () => {
     const graph = buildTemplateGraph(linear, 1);
@@ -57,7 +58,10 @@ describe("buildTemplateGraph", () => {
   it("fans a branch into yes/no paths with handle-tagged edges", () => {
     const branching = protocolTemplates.find(
       (t) => t.id === "airdrop-eligibility-notice"
-    )!;
+    );
+    if (!branching) {
+      throw new Error("fixture 'airdrop-eligibility-notice' not found");
+    }
     const graph = buildTemplateGraph(branching, 2);
 
     const branchNode = graph.nodes.find((n) => n.type === "branch");
@@ -65,11 +69,15 @@ describe("buildTemplateGraph", () => {
 
     const yesEdge = graph.edges.find((e) => e.sourceHandle === "yes");
     const noEdge = graph.edges.find((e) => e.sourceHandle === "no");
-    expect(yesEdge?.source).toBe(branchNode!.id);
-    expect(noEdge?.source).toBe(branchNode!.id);
+    expect(branchNode).toBeDefined();
+    expect(yesEdge).toBeDefined();
+    expect(noEdge).toBeDefined();
+    if (!branchNode || !yesEdge || !noEdge) return;
+    expect(yesEdge.source).toBe(branchNode.id);
+    expect(noEdge.source).toBe(branchNode.id);
 
     // yes/no edges are color-coded distinctly
-    expect(yesEdge!.style.stroke).not.toBe(noEdge!.style.stroke);
+    expect(yesEdge.style.stroke).not.toBe(noEdge.style.stroke);
   });
 
   it("is deterministic for a given seed", () => {

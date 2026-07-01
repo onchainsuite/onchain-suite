@@ -20,6 +20,8 @@ export interface EarlyAccessPayload {
   /** One or more reasons the team wants OnchainSuite. */
   reasons?: string[];
   notes?: string;
+  /** Preferred call time (ISO string) if the user picked one. */
+  preferredTime?: string;
   /** Where the signup originated. */
   source: "hero" | "early-access";
 }

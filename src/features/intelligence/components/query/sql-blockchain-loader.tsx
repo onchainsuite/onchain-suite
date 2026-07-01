@@ -143,12 +143,12 @@ export function SqlBlockchainLoader({
 
         {/* Blockchain track */}
         <div className="relative mt-5 flex items-stretch gap-0 overflow-hidden">
-          {Array.from({ length: totalBlocks }).map((_, i) => {
+          {Array.from({ length: totalBlocks }, (_, idx) => idx).map((i) => {
             const isSealed = i < sealed;
             const isActive =
               i === Math.min(sealed, totalBlocks - 1) && !reduced;
             return (
-              <div key={i} className="flex flex-1 items-center">
+              <div key={`block-${i}`} className="flex flex-1 items-center">
                 <motion.div
                   className={`relative w-full rounded-lg border p-2.5 ${
                     isSealed

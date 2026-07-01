@@ -248,9 +248,10 @@ export default function CompanyEditForm() {
       .then((chains) => {
         if (cancelled) return;
         setSupportedChains(chains);
-        setChainToAdd(
-          (cur) =>
-            cur || chains.find((c) => !c.testnet)?.slug || chains[0]?.slug || ""
+        setChainToAdd((cur) =>
+          cur
+            ? cur
+            : (chains.find((c) => !c.testnet)?.slug ?? chains[0]?.slug ?? "")
         );
       })
       .catch(() => {

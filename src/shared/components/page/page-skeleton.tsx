@@ -22,8 +22,8 @@ export function StatCardsSkeleton({
 }) {
   return (
     <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-4", className)}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-2xl border border-border bg-card p-4">
+      {Array.from({ length: count }, (_, i) => i).map((i) => (
+        <div key={`stat-${i}`} className="rounded-2xl border border-border bg-card p-4">
           <Skeleton className="h-10 w-10 rounded-xl" />
           <Skeleton className="mt-4 h-7 w-24" />
           <Skeleton className="mt-2 h-4 w-28" />
@@ -48,8 +48,8 @@ export function TabsSkeleton({
         className
       )}
     >
-      {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} className="h-9 w-24 rounded-lg" />
+      {Array.from({ length: count }, (_, i) => i).map((i) => (
+        <Skeleton key={`tab-${i}`} className="h-9 w-24 rounded-lg" />
       ))}
     </div>
   );
@@ -76,8 +76,8 @@ export function TableSkeleton({
         <Skeleton className="h-4 w-20" />
       </div>
       <div className="divide-y divide-border">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-4">
+        {Array.from({ length: rows }, (_, i) => i).map((i) => (
+          <div key={`row-${i}`} className="flex items-center gap-4 px-5 py-4">
             <Skeleton className="h-9 w-9 rounded-full" />
             <div className="space-y-2">
               <Skeleton className="h-4 w-40" />

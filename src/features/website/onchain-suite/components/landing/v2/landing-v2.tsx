@@ -216,7 +216,7 @@ function Hero() {
       />
       <div className="wrap relative">
         <div className="mx-auto max-w-5xl text-center">
-          <Reveal as="h1">
+          <Reveal>
             <h1
               className="text-balance font-bold tracking-tight"
               style={{
@@ -270,9 +270,12 @@ function Networks() {
         </p>
       </Reveal>
       <Marquee durationSec={62} className="mx-auto max-w-2xl mt-4">
-        {NETWORKS.concat(NETWORKS).map((n, i) => (
+        {[
+          ...NETWORKS.map((n) => ({ ...n, k: `${n.name}-a` })),
+          ...NETWORKS.map((n) => ({ ...n, k: `${n.name}-b` })),
+        ].map((n) => (
           <div
-            key={`${n.name}-${i}`}
+            key={n.k}
             className="mx-2.5 inline-flex items-center gap-2 rounded-full border bg-[color:var(--surface)] px-4 py-2.5"
             style={{ borderColor: "var(--line)" }}
           >
@@ -1037,7 +1040,7 @@ function Metrics() {
           style={{ borderColor: "var(--line)", background: "var(--line)" }}
         >
           {items.map((it, i) => (
-            <Reveal key={i} delay={i * 0.08}>
+            <Reveal key={it.l} delay={i * 0.08}>
               <div className="surface flex h-full flex-col items-center justify-center px-6 py-10 text-center">
                 <div
                   className="font-semibold tracking-tight t-ink"
@@ -1277,7 +1280,10 @@ function Developer() {
           <span className="eyebrow">Developer experience</span>
           <h2
             className="mt-4 font-semibold tracking-tight t-ink"
-            style={{ fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)", lineHeight: 1.1 }}
+            style={{
+              fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)",
+              lineHeight: 1.1,
+            }}
           >
             Drop in in-app push <span className="grad">in minutes.</span>
           </h2>
@@ -1298,16 +1304,28 @@ function Developer() {
         </Reveal>
 
         <Reveal delay={0.1}>
-          <div className="card overflow-hidden" style={{ boxShadow: "var(--shadow)" }}>
+          <div
+            className="card overflow-hidden"
+            style={{ boxShadow: "var(--shadow)" }}
+          >
             {/* terminal top bar with tabs */}
             <div
               className="flex items-center gap-3 border-b px-4 py-3"
               style={{ borderColor: "var(--line)" }}
             >
               <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full" style={{ background: "#d7dde6" }} />
-                <span className="h-3 w-3 rounded-full" style={{ background: "#d7dde6" }} />
-                <span className="h-3 w-3 rounded-full" style={{ background: "#d7dde6" }} />
+                <span
+                  className="h-3 w-3 rounded-full"
+                  style={{ background: "#d7dde6" }}
+                />
+                <span
+                  className="h-3 w-3 rounded-full"
+                  style={{ background: "#d7dde6" }}
+                />
+                <span
+                  className="h-3 w-3 rounded-full"
+                  style={{ background: "#d7dde6" }}
+                />
               </span>
               <div className="flex items-center gap-1">
                 {DEV_TABS.map((t, i) => (
@@ -1321,7 +1339,11 @@ function Developer() {
                     className="mono rounded-md px-2.5 py-1 text-[12.5px] transition-colors"
                     style={
                       tab === i
-                        ? { color: "var(--ink)", fontWeight: 600, background: "var(--acc-soft)" }
+                        ? {
+                            color: "var(--ink)",
+                            fontWeight: 600,
+                            background: "var(--acc-soft)",
+                          }
                         : { color: "var(--muted)" }
                     }
                   >
@@ -1329,7 +1351,9 @@ function Developer() {
                   </button>
                 ))}
               </div>
-              <span className="mono ml-auto text-[11px] t-muted2">terminal</span>
+              <span className="mono ml-auto text-[11px] t-muted2">
+                terminal
+              </span>
             </div>
 
             {/* code body */}
@@ -1346,12 +1370,18 @@ function Developer() {
                   )
                 }
                 className="mono absolute right-3 top-3 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] t-muted transition-colors hover:t-ink"
-                style={{ borderColor: "var(--line)", background: "var(--surface)" }}
+                style={{
+                  borderColor: "var(--line)",
+                  background: "var(--surface)",
+                }}
               >
                 {copied ? (
                   <CheckIcon className="h-3 w-3" aria-hidden="true" />
                 ) : (
-                  <ClipboardDocumentIcon className="h-3 w-3" aria-hidden="true" />
+                  <ClipboardDocumentIcon
+                    className="h-3 w-3"
+                    aria-hidden="true"
+                  />
                 )}
                 {copied ? "Copied" : "Copy"}
               </button>
@@ -1364,11 +1394,14 @@ function Developer() {
                   transition={{ duration: 0.22 }}
                   className="mono min-h-[168px] overflow-x-auto p-5 text-[13px] leading-7"
                 >
-                  {active.code.split("\n").map((line, i) => (
-                    <div key={i}>
-                      <CodeLine line={line} />
-                    </div>
-                  ))}
+                  {active.code
+                    .split("\n")
+                    .map((text, i) => ({ id: `${active.id}-${i}`, text }))
+                    .map((l) => (
+                      <div key={l.id}>
+                        <CodeLine line={l.text} />
+                      </div>
+                    ))}
                 </motion.pre>
               </AnimatePresence>
             </div>
@@ -1384,7 +1417,9 @@ function Developer() {
               >
                 npm
               </span>
-              <span className="mono text-[12.5px] t-ink2">@onchainsuite/sdk</span>
+              <span className="mono text-[12.5px] t-ink2">
+                @onchainsuite/sdk
+              </span>
               <span
                 className="mono rounded-full px-2 py-0.5 text-[10.5px] font-medium t-acc"
                 style={{ background: "var(--acc-soft)" }}
@@ -1486,9 +1521,6 @@ function Testimonials() {
             </StaggerItem>
           ))}
         </Stagger>
-        <p className="mt-6 text-center text-[12px] mono t-muted2">
-          Illustrative quotes · real customer stories at launch
-        </p>
       </div>
     </section>
   );

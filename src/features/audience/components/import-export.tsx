@@ -286,31 +286,42 @@ a@x.io,Ada,0xAbC…,vip`}
 
 /** Compact, scrollable table preview of the uploaded file's first rows. */
 function FilePreviewTable({ table }: { table: PreviewTable }) {
+  const headerCells = table.headers.map((h, i) => ({
+    key: `h${i}`,
+    label: h || `Column ${i + 1}`,
+  }));
+  const bodyRows = table.rows.map((row, r) => ({
+    key: `row${r}`,
+    cells: table.headers.map((_, c) => ({
+      key: `r${r}c${c}`,
+      val: row[c] ?? "",
+    })),
+  }));
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
       <table className="w-full border-collapse text-left text-xs">
         <thead>
           <tr className="bg-muted/60">
-            {table.headers.map((h, i) => (
+            {headerCells.map((c) => (
               <th
-                key={`${h}-${i}`}
+                key={c.key}
                 className="whitespace-nowrap border-b border-border px-3 py-2 font-medium text-foreground"
               >
-                {h || `Column ${i + 1}`}
+                {c.label}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {table.rows.map((row, r) => (
-            <tr key={r} className="even:bg-muted/20">
-              {table.headers.map((_, c) => (
+          {bodyRows.map((row) => (
+            <tr key={row.key} className="even:bg-muted/20">
+              {row.cells.map((cell) => (
                 <td
-                  key={c}
+                  key={cell.key}
                   className="max-w-[220px] truncate border-b border-border/60 px-3 py-2 font-mono text-muted-foreground"
-                  title={row[c] ?? ""}
+                  title={cell.val}
                 >
-                  {row[c] ?? ""}
+                  {cell.val}
                 </td>
               ))}
             </tr>
