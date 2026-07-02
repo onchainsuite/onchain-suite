@@ -485,164 +485,181 @@ body {
    `.os-auth` remaps the shadcn theme tokens to the terminal palette so the
    existing form components recolor + go square automatically.
    ───────────────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────
+   Auth (signin / signup / forgot / reset) — reskinned to the main app brand:
+   light "paper" canvas + electric-blue primary, two-column with a branded
+   showcase panel. `.os-auth` remaps the shadcn tokens so the shared form
+   controls recolor + round automatically.
+   ───────────────────────────────────────────────────────────────────────── */
 .os-auth {
-  /* shadcn token remap → terminal palette */
-  --background: #02040f;
-  --foreground: #e8edf5;
-  --card: #0a1124;
-  --card-foreground: #ffffff;
-  --popover: #0a1124;
-  --popover-foreground: #e8edf5;
-  --primary: #00e5ff;
-  --primary-foreground: #00121a;
-  --secondary: #060b1c;
-  --secondary-foreground: #e8edf5;
-  --muted: #060b1c;
-  --muted-foreground: rgba(214, 226, 255, 0.55);
-  --accent: rgba(0, 229, 255, 0.1);
-  --accent-foreground: #80f2ff;
-  --border: rgba(0, 229, 255, 0.22);
-  --input: rgba(0, 229, 255, 0.22);
-  --ring: #00e5ff;
-  --radius: 0px;
+  --background: #f4f5fb;
+  --foreground: #0e1120;
+  --card: #ffffff;
+  --card-foreground: #0e1120;
+  --popover: #ffffff;
+  --popover-foreground: #0e1120;
+  --primary: #1727e0;
+  --primary-foreground: #ffffff;
+  --secondary: #eef1fb;
+  --secondary-foreground: #0e1120;
+  --muted: #eef1fb;
+  --muted-foreground: #6b7291;
+  --accent: #e7ebff;
+  --accent-foreground: #1727e0;
+  --border: #e3e7f4;
+  --input: #e3e7f4;
+  --ring: #2f6bff;
+  --radius: 0.75rem;
 
-  /* local terminal vars */
-  --t-accent: #00e5ff;
-  --t-accent-light: #80f2ff;
-  --t-bg0: #02040f;
-  --t-bg2: #0a1124;
-  --t-border-s: rgba(0, 229, 255, 0.12);
-  --t-border-m: rgba(0, 229, 255, 0.25);
-  --t-mono: var(--font-jetbrains, "JetBrains Mono", monospace);
-  --t-head: var(--font-outfit, "Outfit", system-ui, sans-serif);
-  --t-body: var(--font-inter, "Inter", system-ui, sans-serif);
+  /* local brand vars */
+  --b-primary: #1727e0;
+  --b-sky: #2f94ff;
+  --b-ink: #0e1120;
+  --b-body: #4a5169;
+  --b-muted: #8a91a8;
+  --b-paper: #f4f5fb;
+  --b-border: #e3e7f4;
 
   position: relative;
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 80px 16px;
-  background: var(--t-bg0);
+  background: var(--b-paper);
   color: var(--foreground);
-  font-family: var(--t-body);
+  font-family: var(--font-inter, "Inter", system-ui, sans-serif);
 }
-/* blueprint grid + radial glow backdrop */
-.os-auth::before {
+
+.os-auth-grid {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1024px) {
+  .os-auth-grid {
+    grid-template-columns: 1.05fr 1fr;
+  }
+}
+
+/* Left brand / showcase panel */
+.os-auth-brand {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 56px;
+  color: #eaf0ff;
+  background: radial-gradient(
+    130% 130% at 0% 0%,
+    #2f4bff 0%,
+    #1727e0 45%,
+    #0a1570 100%
+  );
+}
+@media (min-width: 1024px) {
+  .os-auth-brand {
+    display: flex;
+  }
+}
+.os-auth-brand::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black, transparent 75%);
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 30% 15%,
+    black,
+    transparent 75%
+  );
   pointer-events: none;
 }
-.os-auth::after {
+.os-auth-brand::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 50% 50% at 50% 0%, rgba(0, 229, 255, 0.08), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 50% 110%, rgba(23, 39, 224, 0.12), transparent 60%);
+  width: 460px;
+  height: 460px;
+  right: -140px;
+  bottom: -160px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(47, 148, 255, 0.55), transparent 60%);
+  filter: blur(18px);
   pointer-events: none;
 }
-.os-auth-shell {
+.os-auth-brand > * {
   position: relative;
-  z-index: 2;
+  z-index: 1;
+}
+
+/* Right form column */
+.os-auth-formwrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+.os-auth-shell {
   width: 100%;
   max-width: 30rem;
 }
 .os-auth-card {
   position: relative;
-  background: var(--t-bg2);
-  border: 1px solid var(--t-border-m);
-  box-shadow: 8px 8px 0 rgba(0, 229, 255, 0.1);
-  padding: 36px 32px;
-  overflow: hidden;
+  width: 100%;
+  max-width: 30rem;
+  margin: 0 auto;
+  background: var(--card);
+  border: 1px solid var(--b-border);
+  border-radius: 24px;
+  box-shadow: 0 30px 80px -40px rgba(23, 39, 224, 0.28);
+  padding: 44px 42px;
 }
-.os-auth-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
-  background-size: 22px 22px;
-  mask-image: linear-gradient(to bottom, black, transparent 70%);
-  pointer-events: none;
-}
-/* terminal-style titlebar strip on the card */
-.os-auth-bar {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: -36px -32px 28px;
-  padding: 12px 16px;
-  background: var(--t-bg0);
-  border-bottom: 1px solid var(--t-border-s);
-}
-.os-auth-bar i {
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  display: block;
-}
-.os-auth-bar i:nth-child(1) { background: #ff5f57; }
-.os-auth-bar i:nth-child(2) { background: #febc2e; }
-.os-auth-bar i:nth-child(3) { background: #28c840; }
-.os-auth-bar span {
-  margin-left: auto;
-  font-family: var(--t-mono);
-  font-size: 0.7rem;
-  color: rgba(214, 226, 255, 0.4);
-}
+
 /* header */
 .os-auth-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--t-mono);
-  font-size: 0.64rem;
+  font-size: 0.66rem;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--t-accent);
-  margin-bottom: 14px;
+  color: var(--b-primary);
+  background: var(--accent);
+  border: 1px solid var(--border);
+  padding: 5px 11px;
+  border-radius: 999px;
+  margin-bottom: 16px;
 }
 .os-auth-title {
-  font-family: var(--t-head);
-  font-weight: 200;
+  font-family: var(--font-outfit, "Outfit", system-ui, sans-serif);
+  font-weight: 800;
   letter-spacing: -0.03em;
-  font-size: 1.7rem;
-  color: #fff;
+  font-size: 2.15rem;
   line-height: 1.1;
+  color: var(--b-ink);
 }
 .os-auth-sub {
-  font-family: var(--t-mono);
-  font-size: 0.78rem;
-  color: rgba(214, 226, 255, 0.5);
+  font-size: 0.95rem;
+  color: var(--b-muted);
   margin-top: 8px;
 }
-/* field + control refinements inside the terminal card */
+/* control refinements inside the card */
 .os-auth label {
-  font-family: var(--t-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  color: rgba(214, 226, 255, 0.6);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--b-body);
 }
 .os-auth input {
-  font-family: var(--t-mono);
-  border-radius: 0;
+  border-radius: 0.7rem;
 }
 .os-auth input:focus,
 .os-auth input:focus-visible {
-  box-shadow: 0 0 0 1px var(--t-accent), 0 0 16px rgba(0, 229, 255, 0.15);
-  border-color: var(--t-accent);
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.18);
+  border-color: var(--ring);
 }
 .os-auth button {
-  border-radius: 0;
+  border-radius: 0.7rem;
 }
 
 /* ── Terminal 404 / status pages ─────────────────────────────────────────── */

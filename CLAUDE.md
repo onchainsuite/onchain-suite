@@ -20,6 +20,36 @@ axios · react-hook-form + zod.
 1. Implement the latest API endpoints from `docs/backend.md`; model typed
    request/response contracts, never `any`.
 2. Reduce frontend render time as much as possible — this whole document is how.
+3. Model the domain **wallet-first** (Section 0.5). It's the product standard,
+   shared with the backend; UI/data contracts must conform.
+
+---
+
+## 0.5 Product data contracts (wallet-first — shared standard)
+
+Mirrors the backend `CLAUDE.md` Section 2.5. These are product invariants; the
+frontend consumes and must not contradict them.
+
+1. **Wallet is the identity.** Type a contact around `walletAddress` as the primary
+   key; `email`, `farcaster`/FID, `x`, `ens`, `telegram`, `discord` are optional
+   **channel handles** (`{ value, source, verifiedAt, optInAt }`). A wallet with
+   zero channels is valid — never gate UI (forms, tables, selection) on an email
+   existing, and never send an empty email as required.
+2. **Channel-aware reachability.** "reachable on in-app push" ≠ "has email". Model
+   reachability per channel in audience/segment builders; don't assume email.
+3. **Never render PII from plaintext assumptions.** Email/FID/X/Discord are PII and
+   are blind-indexed/encrypted server-side. Display only what the API returns
+   (decrypted at the boundary); don't build client-side joins/dedup on raw email —
+   use the server's contact id / wallet.
+4. **Multi-channel, one trigger.** The automation builder's send nodes are siblings
+   — `{ Send Email, Send In-App Push, Post to Discord, Post to Telegram, Post to
+   Farcaster }` — over a shared trigger/segment contract. Per-channel analytics
+   differ (email: Sent/Delivered/Opened/Clicked; in-app: Delivered/Viewed/
+   Dismissed/Clicked; posts: Posted/Reactions/Replies) — type them separately.
+5. **Protocol Plays** are versioned specs the user forks into an editable
+   automation; render the gallery by tier (Starter first) with "Ready to fork" vs
+   "Needs setup" from the Play's tier/gate. First-mile shows an auto-generated
+   cohort insight with a no-email CTA ("reach these wallets with an in-app push").
 
 ---
 

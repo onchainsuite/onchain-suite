@@ -10,15 +10,13 @@ interface AuthHeaderProps {
 }
 
 /**
- * Terminal auth header — mono command eyebrow, thin Outfit title, mono subtitle.
- * Matches the landing/terminal design system.
+ * Branded auth header — electric-blue eyebrow chip, bold Outfit title, muted
+ * subtitle. Matches the main app's design system.
  */
 export function AuthHeader({ title, subtitle }: AuthHeaderProps) {
   return (
     <div className="mb-8">
-      <span className="os-auth-eyebrow">
-        <span className="font-mono">›_</span> onchainsuite
-      </span>
+      <span className="os-auth-eyebrow">Onchain Suite</span>
       <h1 className="os-auth-title">{title}</h1>
       <p className="os-auth-sub">{subtitle}</p>
     </div>
