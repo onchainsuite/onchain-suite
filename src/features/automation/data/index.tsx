@@ -8,57 +8,19 @@ import {
 import React from "react";
 
 import type { AutomationTemplate, HelpResource } from "../types";
+import { LIBRARY_EMAIL_TEMPLATES } from "@/features/templates/library-templates";
 
-export const emailTemplates = [
-  {
-    id: "winback",
-    name: "Win-back Campaign",
-    subject: "We miss you, {{ens_name}}",
-    category: "Re-engagement",
-    previewText: "Come back and see what's new...",
-    body: "<p>Hi {{ens_name}},</p><p>We noticed you haven't been active lately. Come back and see what's new</p><p>Best,</p><p>The Team</p>",
-  },
-  {
-    id: "newsletter",
-    name: "Weekly Newsletter",
-    subject: "This week in Web3, {{ens_name}}",
-    category: "Newsletter",
-    previewText: "Top stories and updates...",
-    body: "<p>Hi {{ens_name}},</p><p>Here's your weekly dose of Web3 news.</p><p>Cheers,</p><p>The Editors</p>",
-  },
-  {
-    id: "airdrop",
-    name: "Airdrop Alert",
-    subject: "You're eligible for an airdrop",
-    category: "Promotional",
-    previewText: "Based on your on-chain activity...",
-    body: "<p>Hello {{ens_name}},</p><p>You're eligible for a special airdrop</p><p>Details inside.</p>",
-  },
-  {
-    id: "vip",
-    name: "VIP Announcement",
-    subject: "Exclusive: You're invited",
-    category: "VIP",
-    previewText: "As a valued member...",
-    body: "<p>Dear {{ens_name}},</p><p>You're invited to an exclusive event.</p><p>Don't miss out</p>",
-  },
-  {
-    id: "product",
-    name: "Product Update",
-    subject: "New features just dropped",
-    category: "Product",
-    previewText: "Check out what we built...",
-    body: "<p>Hey {{ens_name}},</p><p>We've launched some exciting new features</p><p>See what's new.</p>",
-  },
-  {
-    id: "welcome",
-    name: "Welcome Series #1",
-    subject: "Welcome to the community",
-    category: "Onboarding",
-    previewText: "Thanks for joining us...",
-    body: "<p>Welcome, {{ens_name}}</p><p>Glad to have you here.</p><p>Let's get started.</p>",
-  },
-];
+// The automation Send-email action reuses the production Email Library
+// templates so its fallback options match what users see in the email section
+// (full branded HTML bodies + onchain merge variables), not throwaway stubs.
+export const emailTemplates = LIBRARY_EMAIL_TEMPLATES.map((template) => ({
+  id: template.id,
+  name: template.name,
+  subject: template.subject,
+  category: template.category,
+  previewText: template.previewText,
+  body: template.html,
+}));
 
 export const mockContracts = [
   {

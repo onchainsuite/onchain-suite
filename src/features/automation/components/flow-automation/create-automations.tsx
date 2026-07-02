@@ -56,13 +56,19 @@ import { isJsonObject } from "@/lib/utils";
 import "reactflow/dist/style.css";
 import { automationService } from "../../automation.service";
 import { Confetti } from "../confetti";
+import { AutoGrowTextarea } from "./auto-grow-textarea";
 import {
   BranchNode,
+  DispatchCampaignNode,
   EmailNode,
+  InappNode,
   PlaceholderNode,
+  TagNode,
   TriggerNode,
   WaitNode,
+  WebhookNode,
 } from "./nodes";
+import { PropertySelect } from "./property-select";
 import {
   actionNodes,
   emailTemplates as fallbackEmailTemplates,
@@ -109,12 +115,86 @@ if (typeof window === "undefined") {
 }
 
 const nodeTypes = {
+  // Renderer keys used by the drag-and-drop builder.
   trigger: TriggerNode,
   wait: WaitNode,
   branch: BranchNode,
   email: EmailNode,
+  inapp: InappNode,
+  tag: TagNode,
+  webhook: WebhookNode,
+  dispatch: DispatchCampaignNode,
   placeholder: PlaceholderNode,
+  // Canonical backend types — so a graph saved/applied with these (e.g. built-in
+  // templates use `node.type: "send_inapp"`, "holder_acquired", …) still renders
+  // the correct styled node when loaded onto the canvas.
+  send_email: EmailNode,
+  send_inapp: InappNode,
+  add_tag: TagNode,
+  dispatch_campaign: DispatchCampaignNode,
+  onchain_event: TriggerNode,
+  holder_acquired: TriggerNode,
+  governance_activity: TriggerNode,
+  swap_completed: TriggerNode,
+  liquidity_added: TriggerNode,
+  borrow_opened: TriggerNode,
+  exchange_outflow: TriggerNode,
+  capital_withdrawn: TriggerNode,
+  liquidation_detected: TriggerNode,
+  approval_intent: TriggerNode,
+  segment_entered: TriggerNode,
+  email_opened: TriggerNode,
+  health_threshold: TriggerNode,
 };
+
+/**
+ * Maps an action catalog `type` (from GET /automations/builder/actions) to the
+ * ReactFlow node renderer key above. Anything not listed falls through to its
+ * own type (e.g. `wait`, `branch`). Triggers never use this — they all render
+ * with the `trigger` node.
+ */
+const ACTION_NODE_RENDERER: Record<string, string> = {
+  send_email: "email",
+  send_inapp: "inapp",
+  dispatch_campaign: "dispatch",
+  add_tag: "tag",
+  webhook: "webhook",
+  wait: "wait",
+  branch: "branch",
+};
+
+/**
+ * Trigger types that are NOT on-chain (so they don't get a contract/event
+ * placeholder). Everything else in the trigger catalog — `onchain_event` and the
+ * business presets like `holder_acquired` — is treated as on-chain.
+ */
+const NON_ONCHAIN_TRIGGER_TYPES = new Set([
+  "segment_entered",
+  "email_opened",
+  "health_threshold",
+]);
+
+/**
+ * All canonical trigger `type`s (used to recognize a trigger node whether it was
+ * created via drag — renderer key "trigger" — or loaded from a template, where
+ * `node.type` is the canonical type like "holder_acquired").
+ */
+const TRIGGER_NODE_TYPES = new Set([
+  "trigger",
+  "onchain_event",
+  "holder_acquired",
+  "governance_activity",
+  "swap_completed",
+  "liquidity_added",
+  "borrow_opened",
+  "exchange_outflow",
+  "capital_withdrawn",
+  "liquidation_detected",
+  "approval_intent",
+  "segment_entered",
+  "email_opened",
+  "health_threshold",
+]);
 
 const asString = (v: unknown): string => (typeof v === "string" ? v : "");
 
@@ -192,6 +272,43 @@ const PROPERTY_INPUT_CLASS =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/40 focus:outline-none focus:ring-1 focus:ring-primary/30";
 
 const PROPERTY_HINT_CLASS = "text-[11px] leading-5 text-muted-foreground";
+
+/** A single branch condition row: `field <operator> value → target node`. */
+type BranchRule = {
+  id: string;
+  field: string;
+  operator: string;
+  value: string;
+  target: string;
+};
+
+const BRANCH_OPERATORS: { value: string; label: string }[] = [
+  { value: "eq", label: "equals" },
+  { value: "neq", label: "not equals" },
+  { value: "gte", label: "greater or equal" },
+  { value: "lte", label: "less or equal" },
+  { value: "contains", label: "contains" },
+  { value: "exists", label: "exists" },
+];
+
+/** Operators that don't need a comparison value. */
+const BRANCH_VALUELESS_OPERATORS = new Set(["exists"]);
+
+/** Normalize a persisted branch rule (tolerant of backend/legacy key names). */
+const normalizeBranchRule = (raw: unknown, index: number): BranchRule => {
+  const obj = isJsonObject(raw) ? raw : {};
+  return {
+    id:
+      asString(obj.id) ||
+      asString(obj.ruleId) ||
+      `rule-${index}-${Math.random().toString(36).slice(2, 8)}`,
+    field: asString(obj.field ?? obj.key ?? obj.attribute),
+    operator: asString(obj.operator ?? obj.op ?? obj.comparator) || "eq",
+    value:
+      obj.value === undefined || obj.value === null ? "" : String(obj.value),
+    target: asString(obj.target ?? obj.targetNodeId ?? obj.to ?? obj.node),
+  };
+};
 
 const INTERNAL_SCHEMA_KEYS = new Set([
   "label",
@@ -870,6 +987,20 @@ const CreateAutomationContent = () => {
         : {},
     [selectedNodeDetails]
   );
+  // Recognize triggers/email nodes by either the drag renderer key OR the
+  // canonical backend type (so loaded templates get the bespoke config blocks).
+  const selectedIsTrigger =
+    TRIGGER_NODE_TYPES.has(asString(selectedNodeDetails?.type)) ||
+    TRIGGER_NODE_TYPES.has(asString(selectedNodeData.triggerType));
+  const selectedIsEmail =
+    selectedNodeDetails?.type === "email" ||
+    selectedNodeDetails?.type === "send_email" ||
+    asString(selectedNodeData.actionType) === "send_email";
+  const selectedIsBranch =
+    selectedNodeDetails?.type === "branch" ||
+    asString(selectedNodeData.nodeType) === "branch" ||
+    asString(selectedNodeData.actionType) === "branch" ||
+    asString(selectedNodeData.type) === "branch";
   const selectedTemplate = useMemo(() => {
     const templateId = asString(selectedNodeData.templateId);
     return (
@@ -884,6 +1015,22 @@ const CreateAutomationContent = () => {
         : {},
     [selectedNodeData]
   );
+  // Per-node performance numbers are attached to node.data.stats by the backend
+  // once an automation is published and starts processing entries. Drafts have
+  // none, so we surface an explicit empty state instead of a wall of zeros.
+  const selectedNodeStatsView = useMemo(() => {
+    const conversions = asNumber(selectedNodeStats.conversions);
+    const active = asNumber(selectedNodeStats.active);
+    const clickRate = asNumber(selectedNodeStats.clickRate);
+    const revenue = asNumber(selectedNodeStats.revenue);
+    return {
+      conversions,
+      active,
+      clickRate,
+      revenue,
+      hasData: conversions > 0 || active > 0 || clickRate > 0 || revenue > 0,
+    };
+  }, [selectedNodeStats]);
   const selectedNodeSchemaType = useMemo(
     () =>
       pickText(
@@ -904,7 +1051,7 @@ const CreateAutomationContent = () => {
       selectedNodeSchemaType,
     ],
     queryFn: async () => {
-      if (selectedNodeDetails?.type === "trigger") {
+      if (selectedIsTrigger) {
         return automationService.getTriggerSchema(selectedNodeSchemaType);
       }
       return automationService.getActionSchema(selectedNodeSchemaType);
@@ -956,6 +1103,80 @@ const CreateAutomationContent = () => {
       updateSelectedNodeData({ [field.key]: value });
     },
     [updateSelectedNodeData]
+  );
+
+  // Branch rules, normalized from either `branches` (builder key) or `rules`
+  // (legacy/runtime key) so a node loaded from any source stays editable.
+  const branchRules = useMemo<BranchRule[]>(() => {
+    const raw = Array.isArray(selectedNodeData.branches)
+      ? selectedNodeData.branches
+      : Array.isArray(selectedNodeData.rules)
+        ? selectedNodeData.rules
+        : [];
+    return raw.map(normalizeBranchRule);
+  }, [selectedNodeData.branches, selectedNodeData.rules]);
+
+  const branchDefaultTarget = pickText(
+    selectedNodeData.defaultTarget,
+    selectedNodeData.elseTarget,
+    selectedNodeData.fallbackTarget
+  );
+
+  // Nodes selectable as branch targets (everything except this node + blanks).
+  const branchTargetOptions = useMemo(
+    () =>
+      nodes
+        .filter(
+          (node) => node.id !== selectedNode && node.type !== "placeholder"
+        )
+        .map((node) => ({
+          value: node.id,
+          label:
+            asString(isJsonObject(node.data) ? node.data.label : "") ||
+            asString(node.type) ||
+            node.id,
+        })),
+    [nodes, selectedNode]
+  );
+
+  // Persist rules under both keys so the runtime (reads `rules`/`branches`) and
+  // the builder stay in sync — mirrors the tolerant wait/`seconds` fix.
+  const writeBranchRules = useCallback(
+    (next: BranchRule[]) => {
+      updateSelectedNodeData({ branches: next, rules: next });
+    },
+    [updateSelectedNodeData]
+  );
+
+  const addBranchRule = useCallback(() => {
+    writeBranchRules([
+      ...branchRules,
+      {
+        id: `rule-${Date.now().toString(36)}`,
+        field: "",
+        operator: "eq",
+        value: "",
+        target: "",
+      },
+    ]);
+  }, [branchRules, writeBranchRules]);
+
+  const updateBranchRule = useCallback(
+    (id: string, patch: Partial<BranchRule>) => {
+      writeBranchRules(
+        branchRules.map((rule) =>
+          rule.id === id ? { ...rule, ...patch } : rule
+        )
+      );
+    },
+    [branchRules, writeBranchRules]
+  );
+
+  const removeBranchRule = useCallback(
+    (id: string) => {
+      writeBranchRules(branchRules.filter((rule) => rule.id !== id));
+    },
+    [branchRules, writeBranchRules]
   );
 
   useEffect(() => {
@@ -1264,6 +1485,39 @@ const CreateAutomationContent = () => {
     event.dataTransfer.dropEffect = "move";
   }, []);
 
+  // Classify a catalog `type` as a trigger or action (via the fetched trigger
+  // catalog) and resolve its ReactFlow renderer key + initial node data. This
+  // replaces the old includes("email") / === "onchain" heuristic, which
+  // misrouted every on-chain preset and misclassified `email_opened` (a trigger)
+  // as the email action node.
+  const resolveNodeShape = useCallback(
+    (type: string, label: string) => {
+      const category: "trigger" | "action" = triggerCatalog.some(
+        (t) => t.type === type
+      )
+        ? "trigger"
+        : "action";
+      const rendererType =
+        category === "trigger"
+          ? "trigger"
+          : (ACTION_NODE_RENDERER[type] ?? type);
+      const isOnchainTrigger =
+        category === "trigger" && !NON_ONCHAIN_TRIGGER_TYPES.has(type);
+      const data: Record<string, unknown> = {
+        label,
+        nodeType: type,
+        ...(category === "trigger"
+          ? { triggerType: type }
+          : { actionType: type }),
+        ...(isOnchainTrigger
+          ? { contract: "Select Contract", event: "Select Event" }
+          : {}),
+      };
+      return { category, rendererType, data };
+    },
+    [triggerCatalog]
+  );
+
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
@@ -1280,28 +1534,17 @@ const CreateAutomationContent = () => {
         y: event.clientY - 64, // Adjust for header
       });
 
+      const { rendererType, data } = resolveNodeShape(type, label);
       const newNode: Node = {
         id: `${type}-${Date.now()}`,
-        type:
-          type === "onchain"
-            ? "trigger"
-            : type.includes("email")
-              ? "email"
-              : type,
+        type: rendererType,
         position,
-        data: {
-          label,
-          nodeType: type,
-          ...(type === "onchain" && {
-            contract: "Select Contract",
-            event: "Select Event",
-          }),
-        },
+        data,
       };
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [project, setNodes]
+    [project, setNodes, resolveNodeShape]
   );
 
   const handleNodeClick = (_: React.MouseEvent, node: Node) => {
@@ -1324,16 +1567,12 @@ const CreateAutomationContent = () => {
   };
 
   const addNode = (type: string, label: string) => {
+    const { rendererType, data } = resolveNodeShape(type, label);
     const newNode: Node = {
       id: `${type}-${Date.now()}`,
-      type:
-        type === "onchain"
-          ? "trigger"
-          : type.includes("email")
-            ? "email"
-            : type,
+      type: rendererType,
       position: { x: 0, y: 0 }, // Will be calculated
-      data: { label, nodeType: type },
+      data,
     };
 
     const layout = autoLayoutNodes(nodes, newNode);
@@ -1560,7 +1799,7 @@ const CreateAutomationContent = () => {
                     </label>
                   </div>
 
-                  <div className="flex-1 space-y-6 overflow-y-auto px-4 pb-5">
+                  <div className="scrollbar-sleek flex-1 space-y-6 overflow-y-auto px-4 pb-5">
                     <NodeLibrarySection
                       title="Triggers"
                       accent="sky"
@@ -1729,7 +1968,7 @@ const CreateAutomationContent = () => {
                     initial={{ x: 320, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: 320, opacity: 0 }}
-                    className="w-[344px] overflow-y-auto border-l border-border bg-gradient-to-b from-card to-card/60 p-6"
+                    className="scrollbar-sleek w-[344px] overflow-y-auto border-l border-border bg-gradient-to-b from-card to-card/60 p-6"
                   >
                     <div className="mb-6 flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
@@ -1773,55 +2012,48 @@ const CreateAutomationContent = () => {
                       </div>
 
                       {/* Specific fields */}
-                      {selectedNodeDetails?.type === "trigger" && (
+                      {selectedIsTrigger && (
                         <>
                           <div className="space-y-2">
                             <label className={PROPERTY_LABEL_CLASS}>
                               Contract
                             </label>
-                            <select
-                              className={PROPERTY_INPUT_CLASS}
+                            <PropertySelect
+                              placeholder="Select contract"
                               value={
                                 asString(selectedNodeData.contractAddress) ||
                                 asString(selectedNodeData.contract)
                               }
-                              onChange={(e) => {
+                              options={contractCatalog.map((c) => ({
+                                value: c.address,
+                                label: c.name,
+                                hint: `(${c.chain})`,
+                              }))}
+                              onChange={(next) => {
                                 updateSelectedNodeData(
                                   buildTriggerContractPatch(
-                                    e.target.value,
+                                    next,
                                     contractCatalog
                                   )
                                 );
                               }}
-                            >
-                              <option value="">Select contract</option>
-                              {contractCatalog.map((c) => (
-                                <option key={c.address} value={c.address}>
-                                  {c.name} ({c.chain})
-                                </option>
-                              ))}
-                            </select>
+                            />
                           </div>
                           <div className="space-y-2">
                             <label className={PROPERTY_LABEL_CLASS}>
                               Event
                             </label>
-                            <select
-                              className={PROPERTY_INPUT_CLASS}
+                            <PropertySelect
+                              placeholder="Select event"
                               value={asString(selectedNodeData.event)}
-                              onChange={(e) =>
-                                updateSelectedNodeData({
-                                  event: e.target.value,
-                                })
+                              options={eventTypes.map((e) => ({
+                                value: e,
+                                label: e,
+                              }))}
+                              onChange={(next) =>
+                                updateSelectedNodeData({ event: next })
                               }
-                            >
-                              <option value="">Select event</option>
-                              {eventTypes.map((e) => (
-                                <option key={e} value={e}>
-                                  {e}
-                                </option>
-                              ))}
-                            </select>
+                            />
                           </div>
                           {!isNew ? (
                             <div className="rounded-2xl border border-primary/15 bg-primary/5 p-3.5">
@@ -1854,35 +2086,32 @@ const CreateAutomationContent = () => {
                         </>
                       )}
 
-                      {selectedNodeDetails?.type === "email" && (
+                      {selectedIsEmail && (
                         <>
                           <div className="space-y-2">
                             <label className={PROPERTY_LABEL_CLASS}>
                               Template
                             </label>
-                            <select
-                              className={PROPERTY_INPUT_CLASS}
+                            <PropertySelect
+                              placeholder="Select template"
                               value={asString(selectedNodeData.templateId)}
-                              onChange={(e) => {
+                              options={emailTemplateOptions.map((t) => ({
+                                value: t.id,
+                                label: t.name,
+                              }))}
+                              onChange={(next) => {
                                 const template =
                                   emailTemplateOptions.find(
-                                    (item) => item.id === e.target.value
+                                    (item) => item.id === next
                                   ) ?? null;
                                 updateSelectedNodeData({
-                                  templateId: e.target.value,
+                                  templateId: next,
                                   templateName: template?.name ?? "",
                                   subject: template?.subject ?? "",
                                   previewText: template?.previewText ?? "",
                                 });
                               }}
-                            >
-                              <option value="">Select template</option>
-                              {emailTemplateOptions.map((t) => (
-                                <option key={t.id} value={t.id}>
-                                  {t.name}
-                                </option>
-                              ))}
-                            </select>
+                            />
                           </div>
                           {selectedTemplate?.category ||
                           selectedTemplate?.source ? (
@@ -1920,6 +2149,149 @@ const CreateAutomationContent = () => {
                             </div>
                           </div>
                         </>
+                      )}
+
+                      {selectedIsBranch && (
+                        <div className="space-y-4 rounded-[20px] border border-border bg-card p-4">
+                          <div>
+                            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
+                              Branch logic
+                            </div>
+                            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                              Rules run top to bottom. The first match routes to
+                              its target node; if none match, the else branch is
+                              used.
+                            </p>
+                          </div>
+
+                          {branchRules.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-border bg-muted/30 px-3 py-4 text-center text-[11px] text-muted-foreground">
+                              No rules yet. Add one to route matching profiles.
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {branchRules.map((rule, index) => {
+                                const needsValue =
+                                  !BRANCH_VALUELESS_OPERATORS.has(
+                                    rule.operator
+                                  );
+                                return (
+                                  <div
+                                    key={rule.id}
+                                    className="space-y-2 rounded-xl border border-border bg-background p-3"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                                        If #{index + 1}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          removeBranchRule(rule.id)
+                                        }
+                                        aria-label="Remove rule"
+                                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                      >
+                                        <TrashIcon
+                                          aria-hidden="true"
+                                          className="h-3.5 w-3.5"
+                                        />
+                                      </button>
+                                    </div>
+                                    <input
+                                      className={PROPERTY_INPUT_CLASS}
+                                      placeholder="Field (e.g. tier, balance)"
+                                      value={rule.field}
+                                      onChange={(e) =>
+                                        updateBranchRule(rule.id, {
+                                          field: e.target.value,
+                                        })
+                                      }
+                                    />
+                                    <div
+                                      className={
+                                        needsValue
+                                          ? "grid grid-cols-2 gap-2"
+                                          : undefined
+                                      }
+                                    >
+                                      <PropertySelect
+                                        placeholder="Operator"
+                                        value={rule.operator}
+                                        options={BRANCH_OPERATORS}
+                                        onChange={(next) =>
+                                          updateBranchRule(rule.id, {
+                                            operator: next,
+                                          })
+                                        }
+                                      />
+                                      {needsValue ? (
+                                        <input
+                                          className={PROPERTY_INPUT_CLASS}
+                                          placeholder="Value"
+                                          value={rule.value}
+                                          onChange={(e) =>
+                                            updateBranchRule(rule.id, {
+                                              value: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      ) : null}
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className={PROPERTY_LABEL_CLASS}>
+                                        Route to
+                                      </label>
+                                      <PropertySelect
+                                        placeholder={
+                                          branchTargetOptions.length > 0
+                                            ? "Select node"
+                                            : "Add more nodes first"
+                                        }
+                                        value={rule.target}
+                                        options={branchTargetOptions}
+                                        onChange={(next) =>
+                                          updateBranchRule(rule.id, {
+                                            target: next,
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={addBranchRule}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                          >
+                            + Add rule
+                          </button>
+
+                          <div className="space-y-1 border-t border-border pt-3">
+                            <label className={PROPERTY_LABEL_CLASS}>
+                              Else → default branch
+                            </label>
+                            <PropertySelect
+                              placeholder={
+                                branchTargetOptions.length > 0
+                                  ? "Select fallback node"
+                                  : "Add more nodes first"
+                              }
+                              value={branchDefaultTarget}
+                              options={branchTargetOptions}
+                              onChange={(next) =>
+                                updateSelectedNodeData({ defaultTarget: next })
+                              }
+                            />
+                            <p className={PROPERTY_HINT_CLASS}>
+                              Where profiles go when no rule matches.
+                            </p>
+                          </div>
+                        </div>
                       )}
 
                       {selectedNodeSchemaQuery.isFetching ||
@@ -1960,29 +2332,20 @@ const CreateAutomationContent = () => {
                                     {field.label}
                                     {field.required ? " *" : ""}
                                   </label>
-                                  <select
-                                    className={PROPERTY_INPUT_CLASS}
-                                    value={pickText(rawValue)}
-                                    onChange={(e) =>
-                                      updateSchemaFieldValue(
-                                        field,
-                                        e.target.value
-                                      )
+                                  <PropertySelect
+                                    placeholder={
+                                      field.placeholder ??
+                                      `Select ${field.label}`
                                     }
-                                  >
-                                    <option value="">
-                                      {field.placeholder ??
-                                        `Select ${field.label}`}
-                                    </option>
-                                    {field.options.map((option) => (
-                                      <option
-                                        key={`${field.key}-${option.value}`}
-                                        value={option.value}
-                                      >
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                  </select>
+                                    value={pickText(rawValue)}
+                                    options={field.options.map((option) => ({
+                                      value: option.value,
+                                      label: option.label,
+                                    }))}
+                                    onChange={(next) =>
+                                      updateSchemaFieldValue(field, next)
+                                    }
+                                  />
                                   {field.description ? (
                                     <p className={PROPERTY_HINT_CLASS}>
                                       {field.description}
@@ -2117,8 +2480,7 @@ const CreateAutomationContent = () => {
                                   {field.required ? " *" : ""}
                                 </label>
                                 {isTextarea ? (
-                                  <textarea
-                                    rows={4}
+                                  <AutoGrowTextarea
                                     className={PROPERTY_INPUT_CLASS}
                                     placeholder={field.placeholder}
                                     value={String(rawValue ?? "")}
@@ -2163,72 +2525,89 @@ const CreateAutomationContent = () => {
                         </div>
                       ) : null}
 
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                          <div className="rounded-full">
-                            <CheckCircleIcon
-                              aria-hidden="true"
-                              className="h-4 w-4 text-sky-300"
-                            />
+                      {/* Node performance */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            Node performance
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">
-                              Total Conversions
-                            </div>
-                            <div className="text-2xl font-bold text-foreground">
-                              {asNumber(selectedNodeStats.conversions)}
-                            </div>
-                          </div>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              selectedNodeStatsView.hasData
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {selectedNodeStatsView.hasData
+                              ? "Live"
+                              : "No data yet"}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                          <div className="rounded-full">
-                            <UserGroupIcon
-                              aria-hidden="true"
-                              className="h-4 w-4 text-sky-300"
-                            />
+
+                        {selectedNodeStatsView.hasData ? (
+                          <div className="grid grid-cols-2 gap-2.5">
+                            {[
+                              {
+                                key: "conv",
+                                icon: CheckCircleIcon,
+                                tone: "text-sky-500 dark:text-sky-300",
+                                label: "Conversions",
+                                value:
+                                  selectedNodeStatsView.conversions.toLocaleString(),
+                              },
+                              {
+                                key: "active",
+                                icon: UserGroupIcon,
+                                tone: "text-sky-500 dark:text-sky-300",
+                                label: "Active users",
+                                value:
+                                  selectedNodeStatsView.active.toLocaleString(),
+                              },
+                              {
+                                key: "click",
+                                icon: ViewfinderCircleIcon,
+                                tone: "text-violet-500 dark:text-violet-300",
+                                label: "Click rate",
+                                value: `${selectedNodeStatsView.clickRate}%`,
+                              },
+                              {
+                                key: "rev",
+                                icon: CurrencyDollarIcon,
+                                tone: "text-emerald-500 dark:text-emerald-300",
+                                label: "Revenue",
+                                value: `$${selectedNodeStatsView.revenue.toLocaleString()}`,
+                              },
+                            ].map((stat) => (
+                              <div
+                                key={stat.key}
+                                className="rounded-xl border border-border bg-card p-3"
+                              >
+                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                  <stat.icon
+                                    aria-hidden="true"
+                                    className={`h-3.5 w-3.5 ${stat.tone}`}
+                                  />
+                                  {stat.label}
+                                </div>
+                                <div className="mt-1 text-xl font-semibold tracking-tight text-foreground">
+                                  {stat.value}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">
-                              Active Users
-                            </div>
-                            <div className="text-2xl font-bold text-foreground">
-                              {asNumber(selectedNodeStats.active)}
-                            </div>
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-border bg-muted/30 px-3.5 py-4 text-[11px] leading-5 text-muted-foreground">
+                            Conversions, active users, click rate, and revenue
+                            for this step populate automatically once the
+                            automation is published and starts processing
+                            entries. Draft nodes show no data. See the full
+                            breakdown any time in the{" "}
+                            <span className="font-medium text-foreground">
+                              Stats
+                            </span>{" "}
+                            tab.
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                          <div className="rounded-full">
-                            <ViewfinderCircleIcon
-                              aria-hidden="true"
-                              className="h-4 w-4 text-violet-300"
-                            />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">
-                              Click Rate
-                            </div>
-                            <div className="text-2xl font-bold text-foreground">
-                              {asNumber(selectedNodeStats.clickRate)}%
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                          <div className="rounded-full">
-                            <CurrencyDollarIcon
-                              aria-hidden="true"
-                              className="h-4 w-4 text-emerald-300"
-                            />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">
-                              Revenue
-                            </div>
-                            <div className="text-2xl font-bold text-foreground">
-                              ${asNumber(selectedNodeStats.revenue)}
-                            </div>
-                          </div>
-                        </div>
+                        )}
                       </div>
 
                       {/* Actions */}
@@ -2260,7 +2639,7 @@ const CreateAutomationContent = () => {
           </>
         ) : (
           /* Stats Tab Content */
-          <div className="flex-1 overflow-y-auto bg-muted/10 p-6">
+          <div className="scrollbar-sleek flex-1 overflow-y-auto bg-muted/10 p-6">
             <div className="mx-auto max-w-6xl space-y-6">
               {/* Overview Cards */}
               <div className="grid grid-cols-4 gap-4">

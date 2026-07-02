@@ -7,6 +7,18 @@ import {
   isJsonObject,
 } from "@/lib/utils";
 
+import {
+  buildTemplateSeedPayload,
+  LIBRARY_EMAIL_TEMPLATES,
+  type LibraryEmailTemplate,
+} from "./library-templates";
+
+export interface SeedTemplatesResult {
+  created: string[];
+  skipped: string[];
+  failed: { name: string; error: string }[];
+}
+
 export interface TemplateItem {
   id: string;
   name: string;
@@ -193,5 +205,105 @@ export const templatesService = {
         orgId
       );
     });
+  },
+
+  /** Duplicate a template by id into a new editable copy. */
+  async duplicate(id: string, orgId?: string) {
+    const full = await templatesService.get(id, orgId);
+    const baseName =
+      typeof full.name === "string" && full.name.trim().length > 0
+        ? full.name.trim()
+        : "Template";
+    const content = extractEmailContent(full);
+    return templatesService.create(
+      {
+        name: `${baseName} (copy)`,
+        content: {
+          html: content.html ?? "",
+          json: content.json,
+          previewUrl: content.previewUrl,
+          source: "duplicate",
+        },
+      },
+      orgId
+    );
+  },
+
+  /**
+   * Seed the built-in Email Library templates into the backend as public
+   * templates. Idempotent: any template whose name already exists (case-
+   * insensitive) is skipped, so re-running is safe. Runs sequentially to keep
+   * ordering stable and avoid hammering the API, and reports per-template
+   * outcomes via `onProgress` for live UI feedback.
+   */
+  async seedLibraryTemplates(
+    options: {
+      templates?: LibraryEmailTemplate[];
+      orgId?: string;
+      onProgress?: (done: number, total: number, name: string) => void;
+    } = {}
+  ): Promise<SeedTemplatesResult> {
+    const templates = options.templates ?? LIBRARY_EMAIL_TEMPLATES;
+    const result: SeedTemplatesResult = {
+      created: [],
+      skipped: [],
+      failed: [],
+    };
+
+    let existingNames = new Set<string>();
+    try {
+      const existing = await templatesService.list(
+        { limit: 100 },
+        options.orgId
+      );
+      existingNames = new Set(
+        existing
+          .map((t) => (typeof t.name === "string" ? t.name.toLowerCase() : ""))
+          .filter((n) => n.length > 0)
+      );
+    } catch {
+      // If listing fails, proceed optimistically — the backend can still reject
+      // duplicates on its own.
+    }
+
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
+    let done = 0;
+    for (const template of templates) {
+      done += 1;
+      options.onProgress?.(done, templates.length, template.name);
+      if (existingNames.has(template.name.toLowerCase())) {
+        result.skipped.push(template.name);
+        continue;
+      }
+
+      // Up to 3 attempts with exponential backoff — many partial-seed failures
+      // are transient (rate limits / cold backend), so a retry recovers them.
+      let lastError = "Unknown error";
+      let created = false;
+      for (let attempt = 0; attempt < 3 && !created; attempt += 1) {
+        if (attempt > 0) await sleep(400 * attempt);
+        try {
+          await templatesService.create(
+            buildTemplateSeedPayload(template),
+            options.orgId
+          );
+          created = true;
+        } catch (e) {
+          lastError = e instanceof Error ? e.message : "Unknown error";
+        }
+      }
+
+      if (created) {
+        result.created.push(template.name);
+      } else {
+        result.failed.push({ name: template.name, error: lastError });
+      }
+      // Gentle spacing between templates to avoid hammering the API.
+      await sleep(150);
+    }
+
+    return result;
   },
 };

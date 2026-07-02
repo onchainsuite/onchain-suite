@@ -2,7 +2,6 @@
 
 import {
   ArrowLeftIcon,
-  ArrowRightIcon,
   CheckCircleIcon,
   CheckIcon,
   CloudArrowUpIcon,
@@ -25,6 +24,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   type AudienceExportJobStatus,
@@ -45,6 +51,10 @@ const fieldOptions = [
   { value: "notes", label: "Notes" },
   { value: "custom", label: "Custom Field" },
 ];
+
+// Radix Select reserves "" to clear selection, so the "Skip this column"
+// option is represented by this sentinel and mapped back to "" on change.
+const SKIP_VALUE = "__skip";
 
 type ImportStep = "upload" | "mapping" | "complete";
 type ActiveTab = "import" | "export";
@@ -1305,46 +1315,68 @@ export default function ImportExportPage() {
             )}
 
             {selectedImportFormat === "csv" ? (
-              <div className="space-y-3">
-                {csvColumns.map((column, index) => (
-                  <div
-                    key={column.header}
-                    className="flex items-center gap-4 rounded-xl border border-(--color-border) bg-(--color-card) p-4"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{column.header}</p>
-                      <p className="mt-1 text-xs text-(--color-text-muted) font-mono truncate">
-                        {column.sample.slice(0, 2).join(", ")}
-                        {column.sample.length > 2 && "..."}
-                      </p>
-                    </div>
-                    <ArrowRightIcon
-                      className="h-5 w-5 shrink-0 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <div className="w-48 shrink-0">
-                      <select
-                        value={column.mappedTo}
-                        onChange={(e) => updateMapping(index, e.target.value)}
-                        className="w-full rounded-lg border border-(--color-border) bg-(--color-background) px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {csvColumns.map((column, index) => {
+                  const isMapped = Boolean(column.mappedTo);
+                  return (
+                    <div
+                      key={column.header}
+                      className={`rounded-xl border bg-(--color-card) p-3 transition-colors ${
+                        isMapped
+                          ? "border-primary/40"
+                          : "border-(--color-border)"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p
+                          className="truncate text-sm font-medium"
+                          title={column.header}
+                        >
+                          {column.header}
+                        </p>
+                        {isMapped ? (
+                          <CheckIcon
+                            className="h-4 w-4 shrink-0 text-primary"
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-(--color-elevated) px-2 py-0.5 text-[10px] font-medium text-(--color-text-muted)">
+                            Skipped
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className="mt-1 truncate font-mono text-[11px] text-(--color-text-muted)"
+                        title={column.sample.join(", ")}
                       >
-                        {fieldOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                        {column.sample.slice(0, 2).join(", ")}
+                        {column.sample.length > 2 && "…"}
+                      </p>
+                      <Select
+                        value={
+                          column.mappedTo === "" ? SKIP_VALUE : column.mappedTo
+                        }
+                        onValueChange={(v) =>
+                          updateMapping(index, v === SKIP_VALUE ? "" : v)
+                        }
+                      >
+                        <SelectTrigger className="mt-2.5 h-9 w-full rounded-lg border-(--color-border) bg-(--color-background) text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          {fieldOptions.map((option) => (
+                            <SelectItem
+                              key={option.value || SKIP_VALUE}
+                              value={option.value || SKIP_VALUE}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="w-6 shrink-0">
-                      {column.mappedTo && (
-                        <CheckIcon
-                          className="h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-2xl border border-(--color-border) bg-(--color-card) p-6 text-sm text-(--color-text-muted)">

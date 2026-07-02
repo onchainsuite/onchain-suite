@@ -38,12 +38,18 @@ export function EmailMessageForm({
 
   return (
     <div className="space-y-6 p-6 md:p-8">
-      <div className="flex items-center gap-2 pb-4 border-b border-border">
-        <EnvelopeIcon
-          aria-hidden="true"
-          className="h-5 w-5 text-muted-foreground"
-        />
-        <h3 className="text-xl font-semibold text-foreground">Email message</h3>
+      <div className="flex items-center gap-3 pb-5 border-b border-border">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary ring-1 ring-primary/20">
+          <EnvelopeIcon aria-hidden="true" className="h-4 w-4" />
+        </span>
+        <div>
+          <h3 className="text-lg font-semibold leading-tight text-foreground">
+            Email message
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Sender, subject, and preview details
+          </p>
+        </div>
       </div>
 
       <FormField

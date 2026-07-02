@@ -90,7 +90,7 @@ export const DraftsList = ({ drafts, onDelete }: DraftsListProps) => {
           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
             {draft.description?.trim()
               ? draft.description
-              : "Not finished yet — a few steps left before this can go live."}
+              : "Not finished yet, a few steps left before this can go live."}
           </p>
 
           {/* trigger summary */}

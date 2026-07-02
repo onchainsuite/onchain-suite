@@ -1,5 +1,5 @@
 const DESCRIPTION =
-  "OnchainSuite is the communication infrastructure layer for Web3 — a retention automation platform that turns on-chain behavior into automated, multi-channel messaging. Detect wallet activity, resolve identity with zero-knowledge privacy, segment audiences, and re-engage across in-app push, email, Telegram, and Discord. Native to Ethereum, Solana, Base, and Polygon.";
+  "OnchainSuite is the communication infrastructure layer for Web3. It is a retention automation platform that turns on-chain behavior into automated, multi-channel messaging. Detect wallet activity, resolve identity with zero-knowledge privacy, segment audiences, and re-engage across in-app push, email, Telegram, and Discord. Native to Ethereum, Solana, Base, and Polygon.";
 
 export const SITE_CONFIG = {
   name: "OnchainSuite",

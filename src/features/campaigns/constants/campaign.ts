@@ -6,6 +6,7 @@ import type {
   Segment,
   Timezone,
 } from "../../campaigns/types";
+import { ALL_VARIABLES } from "@/features/templates/onchain-variables";
 
 export const CAMPAIGN_LISTS: List[] = [
   { id: "newsletter", name: "Newsletter", count: 1, starred: true },
@@ -43,22 +44,14 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
   },
 ];
 
-export const MERGE_TAGS: MergeTag[] = [
-  { id: "firstName", label: "First Name", tag: "{{ firstName }}" },
-  { id: "lastName", label: "Last Name", tag: "{{ lastName }}" },
-  { id: "email", label: "Email Address", tag: "{{ email }}" },
-  { id: "fullName", label: "Full Name", tag: "{{ fullName }}" },
-  { id: "company", label: "Company", tag: "{{ company }}" },
-  { id: "phone", label: "Phone Number", tag: "{{ phone }}" },
-  { id: "city", label: "City", tag: "{{ city }}" },
-  { id: "state", label: "State", tag: "{{ state }}" },
-  { id: "country", label: "Country", tag: "{{ country }}" },
-  {
-    id: "unsubscribeLink",
-    label: "Unsubscribe Link",
-    tag: "{{ unsubscribeLink }}",
-  },
-];
+// Onchain-native merge tags (name, ens_name, wallet, …) replace the previous
+// generic Web2 set. Sourced from the shared variable registry so the email
+// templates, subject line, and automation Send-email all stay in sync.
+export const MERGE_TAGS: MergeTag[] = ALL_VARIABLES.map((v) => ({
+  id: v.id,
+  label: v.label,
+  tag: v.tag,
+}));
 
 export const TIMEZONES: Timezone[] = [
   { value: "UTC", label: "UTC (Coordinated Universal Time)" },

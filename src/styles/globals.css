@@ -214,6 +214,40 @@ body {
   }
 }
 
+/*
+ * Sleek, thin, themed scrollbar.
+ * Track stays invisible; the thumb is a slim primary-tinted pill that brightens
+ * on hover. Works in both light and dark because it derives from --primary /
+ * --border tokens. Firefox uses the `scrollbar-*` properties; WebKit/Blink use
+ * the ::-webkit pseudo-elements.
+ */
+.scrollbar-sleek {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--primary) 45%, transparent)
+    transparent;
+}
+.scrollbar-sleek::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-sleek::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-sleek::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--primary) 38%, transparent);
+  transition: background 0.2s ease;
+}
+.scrollbar-sleek:hover::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--primary) 62%, transparent);
+}
+.scrollbar-sleek::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+.scrollbar-sleek::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Added custom animations and glow effects */
 @keyframes glow-pulse {
   0%,

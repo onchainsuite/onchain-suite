@@ -78,7 +78,7 @@ function Calculator() {
         >
           A small base fee plus your tracked wallets and email subscribers.
           In-app push to every connected wallet is included, and email is
-          optional — so wallets with no linked email cost nothing extra.
+          optional, so wallets with no linked email cost nothing extra.
           Estimates are indicative; founding rates are locked in for
           early-access teams.
         </p>
@@ -408,7 +408,7 @@ function PricingCta() {
                 Start acting on what your users do on-chain.
               </h2>
               <p className="mt-4 text-[16px] text-white/85">
-                Write your first rule today. It fires the moment a wallet acts —
+                Write your first rule today. It fires the moment a wallet acts,
                 until you pause it.
               </p>
               <div className="mt-7 flex justify-center">

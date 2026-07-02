@@ -53,7 +53,7 @@ export function TemplateStep({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1.9fr)]">
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <EmailMessageForm
             form={form}
@@ -65,6 +65,22 @@ export function TemplateStep({
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <TemplateSelector
             form={form}
+            onEditTemplate={(templateId, templateName) => {
+              const params = new URLSearchParams();
+              if (campaignId && campaignId.trim().length > 0) {
+                params.set("campaign", campaignId);
+              }
+              const returnTo =
+                campaignId && campaignId.trim().length > 0
+                  ? `/campaigns/new?campaign=${encodeURIComponent(campaignId)}&step=3`
+                  : "/campaigns/new?step=3";
+              params.set("returnTo", returnTo);
+              params.set("template", templateId);
+              if (templateName) params.set("templateName", templateName);
+              const subject = form.getValues("emailSubject");
+              if (subject) params.set("subject", subject);
+              router.push(`/campaigns/editor?${params.toString()}`);
+            }}
             onSelectTemplate={(templateId) => {
               if (!normalizedCampaignId) return;
               const clean = templateId.trim();

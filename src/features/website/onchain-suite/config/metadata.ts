@@ -25,9 +25,9 @@ export function generateMetadata(): Metadata {
       canonical: "/",
     },
     openGraph: {
-      title: `${SITE_CONFIG_META.name} — Web3 Retention Automation & Communication Layer`,
+      title: `${SITE_CONFIG_META.name} - Web3 Retention Automation & Communication Layer`,
       description:
-        "Turn on-chain behavior into automated, multi-channel messaging. Detect wallet activity, resolve identity with zero-knowledge privacy, and re-engage across in-app push, email, Telegram, and Discord — native to Ethereum, Solana, Base, and Polygon.",
+        "Turn on-chain behavior into automated, multi-channel messaging. Detect wallet activity, resolve identity with zero-knowledge privacy, and re-engage across in-app push, email, Telegram, and Discord. All native to Ethereum, Solana, Base, and Polygon.",
       url: SITE_CONFIG_META.url,
       siteName: SITE_CONFIG_META.name,
       images: [
@@ -45,7 +45,7 @@ export function generateMetadata(): Metadata {
       card: "summary_large_image",
       title: `${SITE_CONFIG_META.name} — Web3 Retention Automation`,
       description:
-        "The communication infrastructure layer for Web3. When a wallet acts, your campaign fires — automatically, across every channel.",
+        "The communication infrastructure layer for Web3. When a wallet acts, your campaign fires, automatically, across every channel.",
       images: [SITE_CONFIG_META.twitterImage],
       creator: SITE_CONFIG_META.twitterHandle,
     },

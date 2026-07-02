@@ -10,7 +10,6 @@ import {
   ChevronRightIcon,
   ChevronUpIcon,
   ClipboardDocumentIcon,
-  CpuChipIcon,
   EyeIcon,
   MagnifyingGlassIcon,
   SparklesIcon,
@@ -710,29 +709,6 @@ export function AudiencePages(): ReactElement {
               transition={{ duration: 0.22 }}
             >
               <div className="space-y-6">
-                <div className="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <CpuChipIcon
-                      className="h-5 w-5 text-primary"
-                      aria-hidden="true"
-                    />
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">Advanced segmentation</span>
-                      <span className="text-muted-foreground">
-                        {" "}
-                        has moved to Intelligence
-                      </span>
-                    </p>
-                  </div>
-                  <Link
-                    href="/intelligence"
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80"
-                  >
-                    Go to Intelligence
-                    <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </div>
-
                 {/* Search and Filters */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="relative w-full sm:w-64">

@@ -28,6 +28,14 @@ export interface AutomationNodeData {
   template?: string;
   subject?: string;
   dynamicFields?: string[];
+  // Action-node summary fields rendered on the canvas.
+  title?: string;
+  body?: string;
+  tag?: string;
+  tags?: string[];
+  url?: string;
+  method?: string;
+  campaignId?: string;
   [key: string]: unknown;
 }
 

@@ -23,7 +23,10 @@ export function StatCardsSkeleton({
   return (
     <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-4", className)}>
       {Array.from({ length: count }, (_, i) => i).map((i) => (
-        <div key={`stat-${i}`} className="rounded-2xl border border-border bg-card p-4">
+        <div
+          key={`stat-${i}`}
+          className="rounded-2xl border border-border bg-card p-4"
+        >
           <Skeleton className="h-10 w-10 rounded-xl" />
           <Skeleton className="mt-4 h-7 w-24" />
           <Skeleton className="mt-2 h-4 w-28" />
@@ -102,8 +105,11 @@ export function CardListSkeleton({
 }) {
   return (
     <div className={cn("space-y-4", className)}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-2xl border border-border bg-card p-6">
+      {Array.from({ length: count }, (_, i) => i).map((i) => (
+        <div
+          key={`card-${i}`}
+          className="rounded-2xl border border-border bg-card p-6"
+        >
           <div className="flex items-center gap-3">
             <Skeleton className="h-5 w-5 rounded" />
             <Skeleton className="h-5 w-40" />

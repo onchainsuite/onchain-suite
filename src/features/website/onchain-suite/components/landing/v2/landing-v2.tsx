@@ -233,7 +233,7 @@ function Hero() {
             <p className="mx-auto mt-5 max-w-xl text-[16.5px] leading-relaxed t-muted">
               With OnchainSuite, protocols can respond directly to user
               behaviour, on-chain and off. Wallet activity, email opens, and
-              clicks all become triggers — for enriched, personalised user
+              clicks all become triggers for enriched, personalised user
               engagement at scale.
             </p>
           </Reveal>
@@ -301,7 +301,7 @@ function Problem() {
           eyebrow="The problem"
           title={
             <>
-              Protocols watch their best users churn —{" "}
+              Protocols watch their best users churn{" "}
               <span className="grad">and can&apos;t act on it.</span>
             </>
           }
@@ -1079,13 +1079,13 @@ const CHANNELS = [
     name: "Telegram",
     tag: "ROADMAP",
     tagC: "var(--muted-2)",
-    d: "A bot that posts to the protocol's group — on the roadmap.",
+    d: "A bot that posts to the protocol's group, on the roadmap.",
   },
   {
     name: "Discord",
     tag: "ROADMAP",
     tagC: "var(--muted-2)",
-    d: "Channel posts and DMs to members — on the roadmap.",
+    d: "Channel posts and DMs to members, on the roadmap.",
   },
 ];
 
@@ -1101,7 +1101,7 @@ function Channels() {
               <span className="grad">Every channel it can reach.</span>
             </>
           }
-          sub="A single behaviour reaches whichever channels are set up for each wallet — in-app push leads, with no DNS, warm-up, or extra identifier."
+          sub="A single behaviour reaches whichever channels are set up for each wallet, in-app push leads, with no DNS, warm-up, or extra identifier."
         />
         <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {CHANNELS.map((c) => (
@@ -1450,7 +1450,7 @@ function Integrations() {
               Plug into the stack <span className="grad">you already run.</span>
             </>
           }
-          sub="Wallets, chains, chat, and developer tools — all connected into one real-time pipeline."
+          sub="Wallets, chains, chat, and developer tools, all connected into one real-time pipeline."
         />
         <Stagger className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {INTEGRATIONS.map(({ name, Logo }) => (
@@ -1483,7 +1483,7 @@ const QUOTES = [
     r: "Liquid staking",
   },
   {
-    q: "The MCP queries feel like cheating — cohorts back in plain language.",
+    q: "The MCP queries feel like cheating, cohorts back in plain language.",
     a: "Head of Growth",
     r: "NFT marketplace",
   },
@@ -1500,7 +1500,7 @@ function Testimonials() {
               Built for teams who <span className="grad">feel the pain.</span>
             </>
           }
-          sub="The first tool that actually does something when a wallet goes quiet — instead of just charting it."
+          sub="The first tool that actually does something when a wallet goes quiet, instead of just charting it."
         />
         <Stagger className="mt-12 grid gap-5 md:grid-cols-3">
           {QUOTES.map((t) => (
@@ -1535,11 +1535,11 @@ const FAQS = [
   },
   {
     q: "How can you message a wallet with no personal data?",
-    a: "In-app push needs only the wallet address, so it reaches 100% of connected wallets through a drop-in SDK — no email or extra identifier required. Email is available when a wallet has linked an address privately through our zero-knowledge identity bridge.",
+    a: "In-app push needs only the wallet address, so it reaches 100% of connected wallets through a drop-in SDK, no email or extra identifier required. Email is available when a wallet has linked an address privately through our zero-knowledge identity bridge.",
   },
   {
     q: "How does identity resolution work?",
-    a: "Wallet-to-channel mapping is automatic. Where a wallet has opted to link a personal channel, it happens through our zero-knowledge privacy bridge — so you never stitch CSVs by hand and never hold data a wallet hasn't chosen to share.",
+    a: "Wallet-to-channel mapping is automatic. Where a wallet has opted to link a personal channel, it happens through our zero-knowledge privacy bridge so you never stitch CSVs by hand and never hold data a wallet hasn't chosen to share.",
   },
   {
     q: "Do you ever move funds or write to the chain?",
@@ -1551,7 +1551,7 @@ const FAQS = [
   },
   {
     q: "What does it cost?",
-    a: "Usage-based, with no rigid tiers. You pay a small base fee plus the wallets you track and the email subscribers you reach — pricing starts low (around $45/mo for a small protocol) and scales with use. Early-access teams lock in founding rates.",
+    a: "Usage-based, with no rigid tiers. You pay a small base fee plus the wallets you track and the email subscribers you reach, pricing starts low (around $45/mo for a small protocol) and scales with use. Early-access teams lock in founding rates.",
   },
 ];
 
@@ -1647,7 +1647,7 @@ function Cta() {
                 <span className="grad-blue">on-chain.</span>
               </h2>
               <p className="mt-4 text-[16px] t-muted">
-                Write your first rule today. It fires the moment a wallet acts —
+                Write your first rule today. It fires the moment a wallet acts,
                 day or night, until you pause it.
               </p>
               <div className="mt-8 flex justify-center">
@@ -1686,10 +1686,10 @@ export function LandingV2() {
             <span className="grad">real behaviour.</span>
           </>
         }
-        body="Build a flow once. It runs on its own, firing the instant a wallet acts or a contact opens, clicks, or ignores your message — day or night, until you pause or edit it."
+        body="Build a flow once. It runs on its own, firing the instant a wallet acts or a contact opens, clicks, or ignores your message, day or night, until you pause or edit it."
         points={[
           "Set it up once. It runs on its own until you pause it.",
-          "Trigger on on-chain actions and email behaviour — opens, clicks, even non-opens.",
+          "Trigger on on-chain actions and email behaviour, opens, clicks, even non-opens.",
           "One trigger sends to both in-app push and email.",
         ]}
         visual={

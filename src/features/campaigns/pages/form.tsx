@@ -1282,7 +1282,7 @@ export function CreateCampaignPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-24 py-4 md:py-6 max-w-6xl">
+      <div className="container mx-auto px-4 py-4 sm:px-6 md:py-6 lg:px-10 max-w-[1440px]">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="bg-card border border-border rounded-2xl shadow-xl transition-all duration-300">

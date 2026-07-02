@@ -15,7 +15,7 @@ export function StructuredData() {
           url: SITE_CONFIG.logo,
         },
         description:
-          "The communication infrastructure layer for Web3 — retention automation that turns on-chain behavior into multi-channel messaging. A Datum Labs product.",
+          "The communication infrastructure layer for Web3. A retention automation that turns on-chain behavior into multi-channel messaging. A Datum Labs product.",
         sameAs: [
           "https://twitter.com/onchainsuite",
           "https://discord.gg/onchainsuite",

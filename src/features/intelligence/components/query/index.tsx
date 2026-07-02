@@ -730,8 +730,7 @@ export function QueryTab({
     string | null
   >(null);
   const [lastSubmittedChatPrompt, setLastSubmittedChatPrompt] = useState("");
-  const [selectedSector] =
-    useState<SuggestionSector>("general");
+  const [selectedSector] = useState<SuggestionSector>("general");
   const [selectedChains] = useState<string[]>([...DEFAULT_MCP_CHAINS]);
   const [streamActivity, setStreamActivity] = useState<StreamActivityEntry[]>(
     []
