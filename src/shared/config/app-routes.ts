@@ -26,6 +26,7 @@ export const PRIVATE_ROUTES = {
   AUTOMATION: (id: string | number) => `/automations/${id}` as const,
   EDIT_AUTOMATION: (id: string | number) => `/automations/${id}/edit` as const,
   AUDIENCE: "/audience",
+  FORMS: "/forms",
   SEGMENTS: "/audience/segments",
   NEW_SEGMENT: "/audience/segments/new",
   SEGMENT: (id: string | number) => `/audience/segments/${id}` as const,

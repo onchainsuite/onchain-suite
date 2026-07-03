@@ -2,6 +2,7 @@
 
 import {
   ArrowLeftIcon,
+  ArrowPathIcon,
   CheckCircleIcon,
   CheckIcon,
   CloudArrowUpIcon,
@@ -19,6 +20,12 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
@@ -1417,70 +1424,121 @@ export default function ImportExportPage() {
               </div>
             </div>
 
-            {importJobId && (
-              <div className="mt-6 rounded-2xl border border-(--color-border) bg-(--color-card) p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">Import job</p>
-                    <p className="mt-1 text-xs text-(--color-text-muted) break-all">
-                      {importJobId}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => cancelImportMutation.mutate()}
-                      disabled={
-                        cancelImportMutation.isPending ||
-                        ["completed", "failed", "cancelled"].includes(
-                          String(importStatus?.state ?? "")
-                        )
-                      }
-                      className="rounded-xl border border-(--color-border) px-3 py-2 text-xs font-medium hover:bg-(--color-elevated) disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => downloadImportErrorsMutation.mutate()}
-                      disabled={
-                        downloadImportErrorsMutation.isPending ||
-                        !importStatus ||
-                        (importStatus.errorCount ?? 0) <= 0
-                      }
-                      className="rounded-xl bg-(--color-elevated) px-3 py-2 text-xs font-medium hover:bg-(--color-border) disabled:opacity-50"
-                    >
-                      Download errors
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-(--color-elevated)">
+          </div>
+        )}
+
+        {(() => {
+          const state = String(importStatus?.state ?? "queued");
+          const isTerminal = ["completed", "failed", "cancelled"].includes(
+            state
+          );
+          const pct = Math.max(
+            0,
+            Math.min(
+              100,
+              Number(
+                importStatus?.progress ?? (state === "completed" ? 100 : 0)
+              )
+            )
+          );
+          return (
+            <Dialog
+              open={Boolean(importJobId)}
+              onOpenChange={(open) => {
+                if (!open && isTerminal) setImportJobId(null);
+              }}
+            >
+              <DialogContent
+                className="sm:max-w-md"
+                onInteractOutside={(e) => {
+                  if (!isTerminal) e.preventDefault();
+                }}
+              >
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    {isTerminal ? (
+                      <CheckCircleIcon
+                        aria-hidden="true"
+                        className={`h-5 w-5 ${
+                          state === "completed"
+                            ? "text-primary"
+                            : "text-amber-500"
+                        }`}
+                      />
+                    ) : (
+                      <ArrowPathIcon
+                        aria-hidden="true"
+                        className="h-5 w-5 animate-spin text-primary"
+                      />
+                    )}
+                    {state === "completed"
+                      ? "Import complete"
+                      : state === "failed"
+                        ? "Import failed"
+                        : state === "cancelled"
+                          ? "Import cancelled"
+                          : "Importing your audience…"}
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-3">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full bg-primary transition-all"
-                      style={{
-                        width: `${Math.max(0, Math.min(100, Number(importStatus?.progress ?? (String(importStatus?.state ?? "") === "completed" ? 100 : 0))))}%`,
-                      }}
+                      className="h-full rounded-full bg-primary transition-all duration-500"
+                      style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <p className="mt-2 text-xs text-(--color-text-muted)">
-                    Status: {String(importStatus?.state ?? "queued")}
+                  <p className="text-xs text-muted-foreground">
                     {typeof importStatus?.processedRows === "number"
-                      ? ` · ${importStatus.processedRows.toLocaleString()} processed`
-                      : ""}
+                      ? `${importStatus.processedRows.toLocaleString()} processed`
+                      : "Preparing…"}
                     {typeof importStatus?.createdCount === "number"
                       ? ` · ${importStatus.createdCount.toLocaleString()} created`
                       : ""}
                     {typeof importStatus?.updatedCount === "number"
                       ? ` · ${importStatus.updatedCount.toLocaleString()} updated`
                       : ""}
-                    {typeof importStatus?.errorCount === "number"
+                    {typeof importStatus?.errorCount === "number" &&
+                    importStatus.errorCount > 0
                       ? ` · ${importStatus.errorCount.toLocaleString()} errors`
                       : ""}
                   </p>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+
+                <div className="mt-2 flex justify-end gap-2">
+                  {importStatus && (importStatus.errorCount ?? 0) > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => downloadImportErrorsMutation.mutate()}
+                      disabled={downloadImportErrorsMutation.isPending}
+                      className="rounded-xl border border-border px-3 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                    >
+                      Download errors
+                    </button>
+                  ) : null}
+                  {isTerminal ? (
+                    <button
+                      type="button"
+                      onClick={() => setImportJobId(null)}
+                      className="rounded-xl bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      Done
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => cancelImportMutation.mutate()}
+                      disabled={cancelImportMutation.isPending}
+                      className="rounded-xl border border-border px-4 py-2 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                    >
+                      Cancel import
+                    </button>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
 
         {importStep === "complete" && importResult && (
           <div className="flex flex-col items-center justify-center py-20 text-center">

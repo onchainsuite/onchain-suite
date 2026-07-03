@@ -1013,7 +1013,7 @@ export default function CampaignEditorPage() {
 
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
-      <div className="mx-auto w-full max-w-[1440px] px-4 py-1">
+      <div className="mx-auto w-full max-w-[1720px] px-4 py-1">
         {!campaignId ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
             Missing campaign id.
@@ -1050,7 +1050,7 @@ export default function CampaignEditorPage() {
             <div
               ref={containerRef}
               className={cn(
-                "relative h-[calc(100vh-156px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+                "relative h-[calc(100vh-116px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
               )}
             >
               {iframeFailed ? (

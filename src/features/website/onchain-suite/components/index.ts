@@ -1,4 +1,5 @@
 export * from "./cta-section";
+export * from "./developer-section";
 export * from "./footer";
 export * from "./hero-section";
 export * from "./meta/structured-data";

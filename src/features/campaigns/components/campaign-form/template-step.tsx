@@ -6,10 +6,24 @@ import { useMemo } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
+import { extractEmailContent } from "@/lib/utils";
+
 import { campaignsService } from "../../campaigns.service";
 import type { CampaignFormData } from "../../validations";
 import { EmailMessageForm } from "./email-message-form";
 import { TemplateSelector } from "./template-selector";
+import { templatesService } from "@/features/templates/templates.service";
+
+/** URL-safe base64 (matches the editor page's decodeBase64Url). */
+function toBase64Url(value: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const b64 = window.btoa(unescape(encodeURIComponent(value)));
+    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  } catch {
+    return "";
+  }
+}
 
 export interface TemplateStepProps {
   form: UseFormReturn<CampaignFormData>;
@@ -53,7 +67,7 @@ export function TemplateStep({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1.9fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1.7fr)]">
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <EmailMessageForm
             form={form}
@@ -65,6 +79,57 @@ export function TemplateStep({
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <TemplateSelector
             form={form}
+            onUseTemplate={async (templateId, templateName) => {
+              const clean = templateId.trim();
+              form.setValue("selectedTemplate", clean, { shouldDirty: true });
+              let designB64 = "";
+              if (normalizedCampaignId && clean) {
+                try {
+                  // Load the template's content so we can both apply it to the
+                  // campaign AND seed the builder's editor content (otherwise the
+                  // external editor opens blank).
+                  const full = await templatesService.get(clean);
+                  const content = extractEmailContent(full);
+                  await campaignsService.setTemplate(normalizedCampaignId, {
+                    templateId: clean,
+                  });
+                  await campaignsService
+                    .editorSaved(normalizedCampaignId, {
+                      html: content.html,
+                      json: content.json,
+                      textVersion: content.textVersion,
+                      assets: content.assets,
+                    })
+                    .catch(() => undefined);
+                  if (content.json && typeof content.json === "object") {
+                    const raw = JSON.stringify(content.json);
+                    if (raw.length < 190_000) designB64 = toBase64Url(raw);
+                  }
+                } catch (e: unknown) {
+                  const message =
+                    e instanceof Error
+                      ? e.message
+                      : "Failed to apply template";
+                  toast.error(message);
+                }
+              }
+              const params = new URLSearchParams();
+              if (campaignId && campaignId.trim().length > 0) {
+                params.set("campaign", campaignId);
+              }
+              params.set(
+                "returnTo",
+                normalizedCampaignId
+                  ? `/campaigns/new?campaign=${encodeURIComponent(normalizedCampaignId)}&step=3`
+                  : "/campaigns/new?step=3"
+              );
+              if (clean) params.set("template", clean);
+              if (templateName) params.set("templateName", templateName);
+              const subject = form.getValues("emailSubject");
+              if (subject) params.set("subject", subject);
+              if (designB64) params.set("initialJsonB64", designB64);
+              router.push(`/campaigns/editor?${params.toString()}`);
+            }}
             onEditTemplate={(templateId, templateName) => {
               const params = new URLSearchParams();
               if (campaignId && campaignId.trim().length > 0) {

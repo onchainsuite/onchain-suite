@@ -18,6 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
@@ -69,6 +70,11 @@ export function AudienceStep({
   const selectedAudiences = form.watch("selectedAudiences");
   const smartSending = form.watch("smartSending");
   const trackingParameters = form.watch("trackingParameters");
+  const utmSource = form.watch("utmSource");
+  const utmMedium = form.watch("utmMedium");
+  const utmCampaign = form.watch("utmCampaign");
+  const utmTerm = form.watch("utmTerm");
+  const utmContent = form.watch("utmContent");
   const [estimatedRecipients, setEstimatedRecipients] = useState<number | null>(
     null
   );
@@ -95,6 +101,30 @@ export function AudienceStep({
     [lists, selectedAudiences, selectedSegmentIds]
   );
 
+  // Assemble the UTM object sent to the backend (only when tracking is on and
+  // at least one value is set). Keys map to utm_source/medium/campaign/…
+  const utmParams = useMemo(() => {
+    if (!trackingParameters) return undefined;
+    const out: Record<string, string> = {};
+    const add = (key: string, value: string | undefined) => {
+      const trimmed = (value ?? "").trim();
+      if (trimmed.length > 0) out[key] = trimmed;
+    };
+    add("source", utmSource);
+    add("medium", utmMedium);
+    add("campaign", utmCampaign);
+    add("term", utmTerm);
+    add("content", utmContent);
+    return Object.keys(out).length > 0 ? out : undefined;
+  }, [
+    trackingParameters,
+    utmSource,
+    utmMedium,
+    utmCampaign,
+    utmTerm,
+    utmContent,
+  ]);
+
   useEffect(() => {
     if (!campaignId || !canSync) return;
 
@@ -114,6 +144,7 @@ export function AudienceStep({
         campaignsService.updateTracking(campaignId, {
           smartSending: Boolean(smartSending),
           trackingParameters: Boolean(trackingParameters),
+          ...(utmParams ? { utm: utmParams } : {}),
         }),
       ])
         .then(() => campaignsService.estimateAudience(campaignId))
@@ -143,6 +174,7 @@ export function AudienceStep({
     selectedAudiences,
     smartSending,
     trackingParameters,
+    utmParams,
   ]);
 
   const displayedEstimatedRecipients =
@@ -329,6 +361,63 @@ export function AudienceStep({
             </FormItem>
           )}
         />
+
+        {trackingParameters ? (
+          <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-background p-4 sm:grid-cols-2">
+            {(
+              [
+                {
+                  name: "utmSource",
+                  label: "Source",
+                  placeholder: "onchain_suite",
+                },
+                { name: "utmMedium", label: "Medium", placeholder: "email" },
+                {
+                  name: "utmCampaign",
+                  label: "Campaign",
+                  placeholder: "spring_launch",
+                },
+                { name: "utmTerm", label: "Term", placeholder: "optional" },
+                {
+                  name: "utmContent",
+                  label: "Content",
+                  placeholder: "optional",
+                },
+              ] as const
+            ).map((f) => (
+              <FormField
+                key={f.name}
+                control={form.control}
+                name={f.name}
+                render={({ field }) => (
+                  <FormItem
+                    className={f.name === "utmContent" ? "sm:col-span-2" : ""}
+                  >
+                    <FormLabel className="text-xs font-medium text-muted-foreground">
+                      utm_{f.label.toLowerCase()}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value ?? ""}
+                        placeholder={f.placeholder}
+                        className="h-9 rounded-lg bg-card"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            ))}
+            <p className="text-[11px] leading-5 text-muted-foreground sm:col-span-2">
+              Example:{" "}
+              <span className="font-mono text-foreground">
+                ?utm_source={utmSource?.trim() || "onchain_suite"}
+                &amp;utm_medium={utmMedium?.trim() || "email"}
+                {utmCampaign?.trim() ? `&utm_campaign=${utmCampaign.trim()}` : ""}
+              </span>
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

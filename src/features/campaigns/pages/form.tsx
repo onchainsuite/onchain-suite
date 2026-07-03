@@ -642,6 +642,11 @@ export function CreateCampaignPage() {
       selectedAudiences: [],
       smartSending: true,
       trackingParameters: true,
+      utmSource: "onchain_suite",
+      utmMedium: "email",
+      utmCampaign: "",
+      utmTerm: "",
+      utmContent: "",
       selectedTemplate: "",
       emailSubject: "",
       previewText: "",
@@ -981,12 +986,26 @@ export function CreateCampaignPage() {
           const tObj: Record<string, unknown> = isJsonObject(trackingRes.value)
             ? trackingRes.value
             : {};
-          const { smartSending, trackingParameters } = tObj;
+          const { smartSending, trackingParameters, utm } = tObj;
           if (typeof smartSending === "boolean") {
             nextValues.smartSending = smartSending;
           }
           if (typeof trackingParameters === "boolean") {
             nextValues.trackingParameters = trackingParameters;
+          }
+          if (isJsonObject(utm)) {
+            const utmStr = (value: unknown) =>
+              typeof value === "string" ? value : undefined;
+            const source = utmStr(utm.source);
+            const medium = utmStr(utm.medium);
+            const campaign = utmStr(utm.campaign);
+            const term = utmStr(utm.term);
+            const content = utmStr(utm.content);
+            if (source !== undefined) nextValues.utmSource = source;
+            if (medium !== undefined) nextValues.utmMedium = medium;
+            if (campaign !== undefined) nextValues.utmCampaign = campaign;
+            if (term !== undefined) nextValues.utmTerm = term;
+            if (content !== undefined) nextValues.utmContent = content;
           }
         }
 
@@ -1137,9 +1156,22 @@ export function CreateCampaignPage() {
         await campaignsService
           .estimateAudience(campaignId)
           .catch(() => undefined);
+        const utm: Record<string, string> = {};
+        if (data.trackingParameters) {
+          const addUtm = (key: string, value?: string) => {
+            const trimmed = (value ?? "").trim();
+            if (trimmed.length > 0) utm[key] = trimmed;
+          };
+          addUtm("source", data.utmSource);
+          addUtm("medium", data.utmMedium);
+          addUtm("campaign", data.utmCampaign);
+          addUtm("term", data.utmTerm);
+          addUtm("content", data.utmContent);
+        }
         await campaignsService.updateTracking(campaignId, {
           smartSending: Boolean(data.smartSending),
           trackingParameters: Boolean(data.trackingParameters),
+          ...(Object.keys(utm).length > 0 ? { utm } : {}),
         });
       }
 

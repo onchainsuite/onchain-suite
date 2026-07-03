@@ -1,5 +1,6 @@
 import {
   CTASection,
+  DeveloperSection,
   Footer,
   HeroSection,
   OnchainNavbar,
@@ -14,6 +15,7 @@ export function OnchainSuiteHome() {
       <HeroSection />
       <ProductShowcase />
       <ProductsSection />
+      <DeveloperSection />
       <CTASection />
       <Footer />
     </main>

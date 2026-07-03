@@ -20,6 +20,12 @@ export const campaignFormSchema = z
       .min(1, "Select at least one audience"),
     smartSending: z.boolean().default(true),
     trackingParameters: z.boolean().default(true),
+    // UTM parameters appended to links when tracking is on.
+    utmSource: z.string().optional(),
+    utmMedium: z.string().optional(),
+    utmCampaign: z.string().optional(),
+    utmTerm: z.string().optional(),
+    utmContent: z.string().optional(),
 
     // Step 3: Template & Email Message
     selectedTemplate: z.string().optional(),

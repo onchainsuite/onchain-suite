@@ -3,18 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-import { Switch } from "@/components/ui/switch";
-
 import { isJsonObject } from "@/lib/utils";
 
 import { fadeInUp, staggerContainer } from "../../utils";
+import UpgradePlanDialog from "./upgrade-plan-dialog";
 import { billingService } from "@/features/billing/billing.service";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
-
-interface PlanUsageProps {
-  optimisePlan: boolean;
-  setOptimisePlan: (value: boolean) => void;
-}
 
 const pickString = (...values: unknown[]) => {
   for (const value of values) {
@@ -43,7 +37,7 @@ const formatDate = (value: unknown) => {
   return parsed.toLocaleDateString();
 };
 
-const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
+const PlanUsage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const overviewQuery = useQuery({
     queryKey: ["billing", "overview"],
@@ -218,12 +212,7 @@ const PlanUsage = ({ optimisePlan, setOptimisePlan }: PlanUsageProps) => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground" />
-              <Switch
-                checked={optimisePlan}
-                onCheckedChange={setOptimisePlan}
-                className="data-[state=checked]:bg-primary"
-              />
+              <UpgradePlanDialog currentPlan={planName} />
             </div>
           </div>
 

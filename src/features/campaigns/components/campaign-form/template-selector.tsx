@@ -16,7 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -52,7 +52,11 @@ import {
 } from "@/lib/utils";
 
 import type { CampaignFormData } from "../../validations";
-import { LIBRARY_EMAIL_TEMPLATES } from "@/features/templates/library-templates";
+import {
+  buildTemplateSeedPayload,
+  LIBRARY_EMAIL_TEMPLATES,
+  type LibraryEmailTemplate,
+} from "@/features/templates/library-templates";
 import {
   ONCHAIN_VARIABLE_SAMPLES,
   renderMergeTags,
@@ -67,6 +71,7 @@ interface TemplateSelectorProps {
   onCreateEditor?: (opts?: { templateName?: string }) => void;
   onSelectTemplate?: (templateId: string) => void;
   onEditTemplate?: (templateId: string, templateName: string) => void;
+  onUseTemplate?: (templateId: string, templateName: string) => void;
 }
 
 type SortMode = "used" | "recent" | "oldest" | "name";
@@ -109,6 +114,48 @@ const writeRecents = (recents: Record<string, number>) => {
   window.dispatchEvent(new Event("onchain:templates-recents"));
 };
 
+/**
+ * Renders an email's HTML as a thumbnail that always fills its card. The email
+ * is laid out at a fixed 600px design width inside an iframe, then scaled by
+ * (container width / 600) via a ResizeObserver — so the preview fits any card
+ * size instead of overflowing/underflowing a hard-coded scale.
+ */
+function TemplateThumb({ html, title }: { html: string; title: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.3);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const BASE = 600;
+    const update = () => {
+      const w = el.clientWidth;
+      if (w > 0) setScale(w / BASE);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="absolute inset-0 overflow-hidden bg-white">
+      <iframe
+        title={title}
+        sandbox="allow-same-origin"
+        srcDoc={html}
+        className="origin-top-left border-0"
+        style={{
+          width: "600px",
+          height: "750px",
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          pointerEvents: "none",
+        }}
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
 function TemplatesEmptyState({
   title,
   description,
@@ -149,6 +196,7 @@ export function TemplateSelector({
   onCreateEditor,
   onSelectTemplate,
   onEditTemplate,
+  onUseTemplate,
 }: TemplateSelectorProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [tab, setTab] = useState<TabMode>("library");
@@ -350,6 +398,38 @@ export function TemplateSelector({
     onError: (e) => {
       toast.error(
         e instanceof Error ? e.message : "Failed to duplicate template."
+      );
+    },
+  });
+
+  // "Use" a built-in starter template: create it in the workspace so it becomes
+  // a real, sendable template, then select it for this campaign.
+  const useStarterMutation = useMutation({
+    mutationFn: async (tpl: LibraryEmailTemplate) => {
+      const created = await templatesService.create(
+        buildTemplateSeedPayload(tpl),
+        orgId ?? undefined
+      );
+      return { created, tpl };
+    },
+    onSuccess: ({ created, tpl }) => {
+      const id = String(created?.id ?? "");
+      window.dispatchEvent(new Event("onchain:templates-updated"));
+      templatesQuery.refetch();
+      if (id.length > 0) {
+        markTemplateUsed(id);
+        form.setValue("selectedTemplate", id);
+        if (onUseTemplate) {
+          onUseTemplate(id, tpl.name);
+          return;
+        }
+        onSelectTemplate?.(id);
+      }
+      toast.success("Template added and applied to your campaign.");
+    },
+    onError: (e) => {
+      toast.error(
+        e instanceof Error ? e.message : "Couldn't use this template."
       );
     },
   });
@@ -564,23 +644,9 @@ export function TemplateSelector({
                   className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:border-muted-foreground/30 hover:shadow-lg"
                 >
                   <div className="relative aspect-[4/5] overflow-hidden bg-white">
-                    <iframe
+                    <TemplateThumb
+                      html={renderMergeTags(tpl.html, ONCHAIN_VARIABLE_SAMPLES)}
                       title={`Starter template ${tpl.name}`}
-                      sandbox="allow-same-origin"
-                      srcDoc={renderMergeTags(
-                        tpl.html,
-                        ONCHAIN_VARIABLE_SAMPLES
-                      )}
-                      className="absolute left-0 top-0 origin-top-left"
-                      style={{
-                        width: "600px",
-                        height: "820px",
-                        transform: "scale(0.32)",
-                        transformOrigin: "top left",
-                        border: "none",
-                        pointerEvents: "none",
-                      }}
-                      loading="lazy"
                     />
                     <span className="absolute right-3 top-3 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-medium text-primary-foreground shadow-sm">
                       {tpl.category}
@@ -595,21 +661,45 @@ export function TemplateSelector({
                         {tpl.description}
                       </p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0 rounded-lg"
-                      aria-label={`Preview ${tpl.name}`}
-                      onClick={() =>
-                        openLibraryPreview({ title: tpl.name, html: tpl.html })
-                      }
-                    >
-                      <MagnifyingGlassIcon
-                        aria-hidden="true"
-                        className="h-4 w-4"
-                      />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 rounded-lg"
+                          aria-label={`Options for ${tpl.name}`}
+                        >
+                          <EllipsisVerticalIcon
+                            aria-hidden="true"
+                            className="h-4 w-4"
+                          />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() =>
+                            openLibraryPreview({
+                              title: tpl.name,
+                              html: tpl.html,
+                            })
+                          }
+                        >
+                          <MagnifyingGlassIcon
+                            aria-hidden="true"
+                            className="h-4 w-4"
+                          />
+                          Preview
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={useStarterMutation.isPending}
+                          onClick={() => useStarterMutation.mutate(tpl)}
+                        >
+                          <CheckIcon aria-hidden="true" className="h-4 w-4" />
+                          Use template
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))}
@@ -671,23 +761,10 @@ export function TemplateSelector({
                           }}
                         />
                       ) : htmlCache[temp.id] ? (
-                        <div className="absolute inset-0 bg-white overflow-hidden">
-                          <iframe
-                            title={`Template preview ${temp.title}`}
-                            sandbox="allow-same-origin"
-                            srcDoc={htmlCache[temp.id]}
-                            className="absolute top-0 left-0 origin-top-left"
-                            style={{
-                              width: "600px",
-                              height: "820px",
-                              transform: "scale(0.32)",
-                              transformOrigin: "top left",
-                              border: "none",
-                              pointerEvents: "none",
-                            }}
-                            loading="lazy"
-                          />
-                        </div>
+                        <TemplateThumb
+                          html={htmlCache[temp.id]}
+                          title={`Template preview ${temp.title}`}
+                        />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
                           Preview
@@ -794,47 +871,66 @@ export function TemplateSelector({
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEditTemplate?.(temp.id, temp.title);
+                        markTemplateUsed(temp.id);
+                        if (onUseTemplate) {
+                          onUseTemplate(temp.id, temp.title);
+                        } else {
+                          select();
+                          toast.success("Template applied to your campaign.");
+                        }
                       }}
                     >
-                      <PencilIcon aria-hidden="true" className="h-4 w-4" />
-                      Edit
+                      <CheckIcon aria-hidden="true" className="h-4 w-4" />
+                      Use template
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        duplicateMutation.mutate(temp.id);
-                      }}
-                    >
-                      <DocumentDuplicateIcon
-                        aria-hidden="true"
-                        className="h-4 w-4"
-                      />
-                      Duplicate
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRenameId(temp.id);
-                        setRenameValue(temp.title);
-                        setRenameOpen(true);
-                      }}
-                    >
-                      <PencilIcon aria-hidden="true" className="h-4 w-4" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteId(temp.id);
-                        setDeleteTitle(temp.title);
-                        setDeleteOpen(true);
-                      }}
-                    >
-                      <TrashIcon aria-hidden="true" className="h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
+                    {tab === "saved" ? (
+                      <>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditTemplate?.(temp.id, temp.title);
+                          }}
+                        >
+                          <PencilIcon aria-hidden="true" className="h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            duplicateMutation.mutate(temp.id);
+                          }}
+                        >
+                          <DocumentDuplicateIcon
+                            aria-hidden="true"
+                            className="h-4 w-4"
+                          />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRenameId(temp.id);
+                            setRenameValue(temp.title);
+                            setRenameOpen(true);
+                          }}
+                        >
+                          <PencilIcon aria-hidden="true" className="h-4 w-4" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteId(temp.id);
+                            setDeleteTitle(temp.title);
+                            setDeleteOpen(true);
+                          }}
+                        >
+                          <TrashIcon aria-hidden="true" className="h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </>
+                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               );
@@ -924,23 +1020,10 @@ export function TemplateSelector({
                         }}
                       />
                     ) : htmlCache[temp.id] ? (
-                      <div className="absolute inset-0 bg-white overflow-hidden">
-                        <iframe
-                          title={`Template preview ${temp.title}`}
-                          sandbox="allow-same-origin"
-                          srcDoc={htmlCache[temp.id]}
-                          className="absolute top-0 left-0 origin-top-left"
-                          style={{
-                            width: "600px",
-                            height: "820px",
-                            transform: "scale(0.32)",
-                            transformOrigin: "top left",
-                            border: "none",
-                            pointerEvents: "none",
-                          }}
-                          loading="lazy"
-                        />
-                      </div>
+                      <TemplateThumb
+                        html={htmlCache[temp.id]}
+                        title={`Template preview ${temp.title}`}
+                      />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
                         Preview
