@@ -177,7 +177,6 @@
   background-size: 56px 56px;
   mask-image: radial-gradient(circle at 70% 18%, #000 0%, transparent 62%);
   -webkit-mask-image: radial-gradient(circle at 70% 18%, #000 0%, transparent 62%);
-  animation: ocs2-grid 22s linear infinite;
   pointer-events: none;
 }
 .ocs2 .orb {
@@ -186,7 +185,15 @@
   filter: blur(60px);
   opacity: 0.5;
   pointer-events: none;
-  animation: ocs2-float 16s ease-in-out infinite;
+}
+
+/* ----- offscreen animation gate -----
+   Sections carry data-anim="off" while out of the viewport (see useAnimGate);
+   every CSS animation inside pauses so offscreen content costs nothing. */
+.ocs2 [data-anim="off"] *,
+.ocs2 [data-anim="off"] *::before,
+.ocs2 [data-anim="off"] *::after {
+  animation-play-state: paused !important;
 }
 
 /* ----- marquee ----- */
@@ -246,19 +253,6 @@
 }
 
 /* ----- keyframes ----- */
-@keyframes ocs2-grid {
-  to {
-    background-position: 56px 56px;
-  }
-}
-@keyframes ocs2-float {
-  0%, 100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(0, -26px, 0) scale(1.06);
-  }
-}
 @keyframes ocs2-marquee {
   to {
     transform: translateX(-50%);
@@ -306,7 +300,8 @@
     transparent
   );
   transform: translateX(-120%);
-  animation: ocs2-sheen 6.5s ease-in-out 1.2s infinite;
+  /* one sweep on load — an always-on loop was pure repaint cost */
+  animation: ocs2-sheen 3.2s ease-in-out 1.2s 1;
 }
 
 /* ----- product-window tab time-line (fills 0→100% over the dwell) ----- */
@@ -346,57 +341,6 @@
 }
 @keyframes ocs2-caret {
   50% {
-    opacity: 0;
-  }
-}
-
-/* ----- live activity feed (vertical auto-scroll) ----- */
-.ocs2 .vfeed {
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 12%, #000 84%, transparent);
-  mask-image: linear-gradient(180deg, transparent, #000 12%, #000 84%, transparent);
-}
-.ocs2 .vfeed-track {
-  animation: ocs2-vscroll 18s linear infinite;
-}
-.ocs2 .vfeed:hover .vfeed-track {
-  animation-play-state: paused;
-}
-@keyframes ocs2-vscroll {
-  to {
-    transform: translateY(-50%);
-  }
-}
-
-/* ----- automation flow dot ----- */
-.ocs2 .flow-line {
-  position: relative;
-  background: var(--line);
-}
-.ocs2 .flow-dot {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 7px;
-  height: 7px;
-  margin-left: -3.5px;
-  border-radius: 999px;
-  background: var(--acc);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--acc) 18%, transparent);
-  animation: ocs2-flow 2.4s ease-in-out infinite;
-}
-@keyframes ocs2-flow {
-  0% {
-    top: -4px;
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  85% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
     opacity: 0;
   }
 }
@@ -514,20 +458,21 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ocs2 .grid-bg,
-  .ocs2 .orb,
-  .ocs2 .marquee,
-  .ocs2 .live-dot,
-  .ocs2 .sheen::after,
-  .ocs2 .vfeed-track,
-  .ocs2 .flow-dot,
-  .ocs2 .auto-dot-main,
-  .ocs2 .auto-dot-branch,
-  .ocs2 .auto-beep,
-  .ocs2 .skel::after {
+  /* kill every landing animation, not just a subset */
+  .ocs2 *,
+  .ocs2 *::before,
+  .ocs2 *::after {
     animation: none !important;
+    transition-duration: 0.01ms !important;
   }
   .ocs2 .auto-beep {
     opacity: 1 !important;
+  }
+  .ocs2 .auto-dot-main,
+  .ocs2 .auto-dot-branch {
+    opacity: 0 !important;
+  }
+  .ocs2 .ocs2-timeline {
+    width: 100% !important;
   }
 }

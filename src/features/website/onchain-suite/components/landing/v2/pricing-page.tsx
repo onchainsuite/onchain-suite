@@ -255,9 +255,9 @@ const INCLUDED = [
   "In-app push to 100% of connected wallets, via a drop-in SDK",
   "Email with 10 monthly sends bundled per subscriber",
   "Protocol Plays library: fork-and-edit retention automations",
-  "Behaviour-triggered automations and on-demand campaigns",
-  "Intelligence: MCP plus a SQL engine over normalised on-chain data",
-  "Protocol Normalisation across Ethereum, Solana, Base, and Polygon",
+  "Behavior-triggered automations and on-demand campaigns",
+  "Intelligence: MCP plus a SQL engine over normalized on-chain data",
+  "Protocol Normalization across Ethereum, Solana, Base, and Polygon",
   "Wallet-first identity with a zero-knowledge privacy bridge",
   "Sub-10-minute first-mile cohort report",
 ];
@@ -303,7 +303,7 @@ const PRICING_FAQ = [
   ],
   [
     "What is a tracked wallet?",
-    "An on-chain wallet your protocol monitors for behaviour. Tracked wallets are the platform's core value, independent of email, so they are billed separately. In-app push reaches every connected wallet with no extra identifier.",
+    "An on-chain wallet your protocol monitors for behavior. Tracked wallets are the platform's core value, independent of email, so they are billed separately. In-app push reaches every connected wallet with no extra identifier.",
   ],
   [
     "What is an email subscriber?",

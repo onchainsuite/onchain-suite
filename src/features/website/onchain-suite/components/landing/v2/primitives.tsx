@@ -9,7 +9,34 @@ import {
   useTransform,
   type Variants,
 } from "framer-motion";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+
+/**
+ * Offscreen animation gate. Attach `ref` to a section/container and spread
+ * `data-anim` — while the element is out of the viewport every CSS animation
+ * inside is paused (see the `[data-anim="off"]` rule in landing-v2.css), so
+ * looping animations only cost anything while actually visible.
+ */
+export function useAnimGate(rootMargin = "160px 0px") {
+  const ref = useRef<HTMLElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { rootMargin }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [rootMargin]);
+
+  return { ref, visible, anim: visible ? "on" : "off" } as const;
+}
 
 const MOTION_TAGS = {
   div: motion.div,
@@ -159,7 +186,8 @@ export function Counter({
   );
 }
 
-/** Infinite marquee — duplicates children so the loop is seamless. */
+/** Infinite marquee — duplicates children so the loop is seamless.
+ *  Pauses automatically while scrolled out of view. */
 export function Marquee({
   children,
   className,
@@ -169,8 +197,11 @@ export function Marquee({
   className?: string;
   durationSec?: number;
 }) {
+  const gate = useAnimGate();
   return (
     <div
+      ref={gate.ref as React.RefObject<HTMLDivElement>}
+      data-anim={gate.anim}
       className={`marquee-mask marquee-pause overflow-hidden ${className ?? ""}`}
     >
       <div className="marquee" style={{ animationDuration: `${durationSec}s` }}>

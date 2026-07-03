@@ -7,7 +7,7 @@ import { LandingV2 } from "./v2/landing-v2";
  * tilt, and accordion animations. Everything is scoped under `.ocs2`.
  *
  * Section order: Hero (+ product window) → Networks marquee → Problem →
- * Monitor/normalise → Automations → Intelligence → Metrics → Channels →
+ * Monitor/normalize → Automations → Intelligence → Metrics → Channels →
  * Why (comparison) → Developer SDK → Integrations → Testimonials → FAQ → CTA.
  */
 export function LandingPage() {

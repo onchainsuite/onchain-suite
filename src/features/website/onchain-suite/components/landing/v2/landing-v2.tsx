@@ -9,17 +9,29 @@ import {
   SparklesIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useInView,
+  useReducedMotion,
+} from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import "./landing-v2.css";
 import { type ChainKey, ChainLogo } from "./chain-logos";
 import { submitEarlyAccess } from "./early-access.service";
 import { INTEGRATIONS } from "./integration-logos";
-import { Counter, Marquee, Reveal, Stagger, StaggerItem } from "./primitives";
+import {
+  Counter,
+  Marquee,
+  Reveal,
+  Stagger,
+  StaggerItem,
+  useAnimGate,
+} from "./primitives";
 import {
   AutomationsViz,
   IntelligenceAskCard,
@@ -165,17 +177,20 @@ const HERO_WORDS = ["incentivize", "mail", "respond", "act"];
 
 function RotatingWord() {
   const reduce = useReducedMotion();
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const inView = useInView(ref, { margin: "80px" });
   const [i, setI] = useState(0);
   useEffect(() => {
-    if (reduce) return;
+    // rotate only while the headline is actually on screen
+    if (reduce || !inView) return;
     const t = window.setInterval(
       () => setI((v) => (v + 1) % HERO_WORDS.length),
       2600
     );
     return () => window.clearInterval(t);
-  }, [reduce]);
+  }, [reduce, inView]);
   return (
-    <span className="relative inline-block align-baseline">
+    <span ref={ref} className="relative inline-block align-baseline">
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={HERO_WORDS[i]}
@@ -200,8 +215,13 @@ function RotatingWord() {
 }
 
 function Hero() {
+  const gate = useAnimGate();
   return (
-    <section className="relative overflow-hidden pb-10 pt-10 md:pt-12">
+    <section
+      ref={gate.ref as React.RefObject<HTMLElement>}
+      data-anim={gate.anim}
+      className="relative overflow-hidden pb-10 pt-10 md:pt-12"
+    >
       <div className="grid-bg" />
       <div
         className="orb"
@@ -232,8 +252,8 @@ function Hero() {
           <Reveal delay={0.12}>
             <p className="mx-auto mt-5 max-w-xl text-[16.5px] leading-relaxed t-muted">
               With OnchainSuite, protocols can respond directly to user
-              behaviour, on-chain and off. Wallet activity, email opens, and
-              clicks all become triggers for enriched, personalised user
+              behavior, on-chain and off. Wallet activity, email opens, and
+              clicks all become triggers for enriched, personalized user
               engagement at scale.
             </p>
           </Reveal>
@@ -242,7 +262,7 @@ function Hero() {
           </Reveal>
         </div>
 
-        <div className="relative mx-auto mt-10 max-w-5xl">
+        <div className="relative mx-auto mt-10">
           <ProductWindow />
         </div>
       </div>
@@ -266,7 +286,7 @@ function Networks() {
     <section className="py-12">
       <Reveal className="wrap mb-6 text-center">
         <p className="mono text-[11px] uppercase tracking-[0.18em] t-muted2">
-          Normalising activity across the chains your users already use
+          Normalizing activity across the chains your users already use
         </p>
       </Reveal>
       <Marquee durationSec={62} className="mx-auto max-w-2xl mt-4">
@@ -294,8 +314,14 @@ function Networks() {
 /* ───────────────────────── Problem ───────────────────────── */
 
 function Problem() {
+  const gate = useAnimGate();
   return (
-    <section className="py-20" id="problem">
+    <section
+      ref={gate.ref as React.RefObject<HTMLElement>}
+      data-anim={gate.anim}
+      className="py-20"
+      id="problem"
+    >
       <div className="wrap">
         <Heading
           eyebrow="The problem"
@@ -379,12 +405,10 @@ function Problem() {
                 Then what?
               </span>
               <motion.span
-                animate={{ scale: [1, 1.12, 1] }}
-                transition={{
-                  duration: 1.8,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
+                initial={{ scale: 0.6, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ type: "spring", stiffness: 320, damping: 20 }}
                 className="flex h-11 w-11 items-center justify-center rounded-full"
                 style={{
                   background: "color-mix(in oklab, #C0405A 12%, transparent)",
@@ -481,7 +505,7 @@ function Problem() {
   );
 }
 
-/* ───────────────────── Monitor / normalise ───────────────────── */
+/* ───────────────────── Monitor / normalize ───────────────────── */
 
 type MonitorRow = {
   p: string;
@@ -700,6 +724,7 @@ const MONITOR_CHAINS: { name: string; chain: ChainKey }[] = [
 
 function Monitor() {
   const reduce = useReducedMotion();
+  const gate = useAnimGate();
   const [active, setActive] = useState(0);
   const ev = MONITOR_EVENTS[active];
   const [sel, setSel] = useState(ev.defaultIndex);
@@ -710,9 +735,10 @@ function Monitor() {
   };
   const row = ev.rows[sel] ?? ev.rows[ev.defaultIndex];
 
-  // auto-walk the highlight across protocols, then across events
+  // auto-walk the highlight across protocols, then across events —
+  // only while the section is on screen
   useEffect(() => {
-    if (reduce || paused) return;
+    if (reduce || paused || !gate.visible) return;
     const t = window.setInterval(() => {
       setSel((prev) => {
         const rows = MONITOR_EVENTS[active].rows.length;
@@ -724,37 +750,42 @@ function Monitor() {
       });
     }, 2400);
     return () => window.clearInterval(t);
-  }, [active, paused, reduce]);
+  }, [active, paused, reduce, gate.visible]);
 
   return (
-    <section className="py-20" id="monitor">
+    <section
+      ref={gate.ref as React.RefObject<HTMLElement>}
+      data-anim={gate.anim}
+      className="py-20"
+      id="monitor"
+    >
       <div className="wrap">
         <Heading
-          eyebrow="Monitor & normalise"
+          eyebrow="Monitor & normalize"
           title={
             <>
-              Monitor on-chain behaviour.{" "}
+              Monitor on-chain behavior.{" "}
               <span className="grad">Act on it.</span>
             </>
           }
-          sub="OnchainSuite normalises wallet activity across Ethereum, Solana, Base, and Polygon into clean triggers and segments any marketer can use."
+          sub="OnchainSuite normalizes wallet activity across Ethereum, Solana, Base, and Polygon into clean triggers and segments any marketer can use."
         />
         <Reveal delay={0.1}>
           <div
-            className="card mx-auto mt-12 max-w-5xl overflow-hidden p-5 md:p-7"
+            className="card mx-auto mt-12 overflow-hidden p-5 md:p-7"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
           >
             <div className="flex items-center justify-between gap-3">
               <span className="mono inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] t-muted2">
-                <span className="live-dot" /> Normalising on-chain events in
+                <span className="live-dot" /> Normalizing on-chain events in
                 real time
               </span>
               <span className="mono text-[13px] t-muted2">
                 <span className="font-semibold t-ink">
                   <Counter to={1213435} />
                 </span>{" "}
-                events normalised today
+                events normalized today
               </span>
             </div>
             <div className="my-5 h-px" style={{ background: "var(--line)" }} />
@@ -851,23 +882,17 @@ function Monitor() {
                 <span className="mono hidden text-center text-[10px] uppercase leading-tight tracking-[0.14em] t-muted2 md:block">
                   Protocol
                   <br />
-                  normalisation
+                  normalization
                 </span>
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{
-                    duration: 1.6,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
+                <div
                   className="flex h-11 w-11 items-center justify-center rounded-xl"
                   style={{ background: "var(--acc-soft)", color: "var(--acc)" }}
                 >
                   <ArrowRightIcon className="h-5 w-5" aria-hidden="true" />
-                </motion.div>
+                </div>
               </div>
 
-              {/* right: normalised (derives from the selected protocol row) */}
+              {/* right: normalized (derives from the selected protocol row) */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`${ev.label}-${sel}`}
@@ -883,7 +908,7 @@ function Monitor() {
                   }}
                 >
                   <div className="mono mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] t-muted2">
-                    <span>Normalised · one shape</span>
+                    <span>Normalized · one shape</span>
                     <span className="flex items-center gap-1 normal-case tracking-normal">
                       <ChainLogo chain={row.logo} size={13} />
                       {row.p}
@@ -968,8 +993,14 @@ function FeatureSplit({
   visual: React.ReactNode;
   flip?: boolean;
 }) {
+  const gate = useAnimGate();
   return (
-    <section className="py-20" id={id}>
+    <section
+      ref={gate.ref as React.RefObject<HTMLElement>}
+      data-anim={gate.anim}
+      className="py-20"
+      id={id}
+    >
       <div className="wrap grid items-center gap-12 lg:grid-cols-2">
         <Reveal className={flip ? "lg:order-2" : ""}>
           <span className="eyebrow">{eyebrow}</span>
@@ -1030,7 +1061,7 @@ function Metrics() {
       ),
       l: "to your first real cohort insight",
     },
-    { v: <Counter to={4} />, l: "chains, normalised to one event shape" },
+    { v: <Counter to={4} />, l: "chains, normalized to one event shape" },
   ];
   return (
     <section className="py-14">
@@ -1101,7 +1132,7 @@ function Channels() {
               <span className="grad">Every channel it can reach.</span>
             </>
           }
-          sub="A single behaviour reaches whichever channels are set up for each wallet, in-app push leads, with no DNS, warm-up, or extra identifier."
+          sub="A single behavior reaches whichever channels are set up for each wallet, in-app push leads, with no DNS, warm-up, or extra identifier."
         />
         <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {CHANNELS.map((c) => (
@@ -1143,12 +1174,12 @@ const WHY_ROWS = [
   [
     "On-chain analytics",
     "Dune queries + CSV export",
-    "Real-time normalised events",
+    "Real-time normalized events",
   ],
   [
     "Activation",
     "Generic, no on-chain triggers",
-    "Behaviour-triggered, multi-channel",
+    "Behavior-triggered, multi-channel",
   ],
   ["Data flow", "Manual CSV stitching", "Unified real-time pipeline"],
   ["Time to first campaign", "Hours to days", "Minutes"],
@@ -1169,7 +1200,7 @@ function Why() {
           sub="Most Web3 teams stitch together email, auth, analytics, and CSV exports. It's slow and can't automate in real time. OnchainSuite replaces all of it."
         />
         <Reveal delay={0.1}>
-          <div className="card mx-auto mt-12 max-w-4xl overflow-hidden">
+          <div className="card mx-auto mt-12 overflow-hidden">
             <div
               className="grid grid-cols-[1.2fr_1fr_1fr] border-b text-[12px] font-semibold uppercase tracking-wide"
               style={{ borderColor: "var(--line)" }}
@@ -1452,7 +1483,7 @@ function Integrations() {
           }
           sub="Wallets, chains, chat, and developer tools, all connected into one real-time pipeline."
         />
-        <Stagger className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        <Stagger className="mx-auto mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {INTEGRATIONS.map(({ name, Logo }) => (
             <StaggerItem key={name}>
               <div className="card flex items-center gap-3 px-4 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[color:var(--acc)]">
@@ -1531,7 +1562,7 @@ function Testimonials() {
 const FAQS = [
   {
     q: "Which chains do you support?",
-    a: "Ethereum, Solana, Base, and Polygon today, with more on the way. Every chain is normalised into one event shape, so a stake on Lido and a stake on Marinade look identical to your rules and segments.",
+    a: "Ethereum, Solana, Base, and Polygon today, with more on the way. Every chain is normalized into one event shape, so a stake on Lido and a stake on Marinade look identical to your rules and segments.",
   },
   {
     q: "How can you message a wallet with no personal data?",
@@ -1543,7 +1574,7 @@ const FAQS = [
   },
   {
     q: "Do you ever move funds or write to the chain?",
-    a: "No. OnchainSuite monitors on-chain activity read-only and is fully non-custodial. We normalise events and fire your messages; we never sign transactions or touch a wallet's assets.",
+    a: "No. OnchainSuite monitors on-chain activity read-only and is fully non-custodial. We normalize events and fire your messages; we never sign transactions or touch a wallet's assets.",
   },
   {
     q: "How fast can we go live?",
@@ -1683,13 +1714,13 @@ export function LandingV2() {
         title={
           <>
             Automations that fire on{" "}
-            <span className="grad">real behaviour.</span>
+            <span className="grad">real behavior.</span>
           </>
         }
         body="Build a flow once. It runs on its own, firing the instant a wallet acts or a contact opens, clicks, or ignores your message, day or night, until you pause or edit it."
         points={[
           "Set it up once. It runs on its own until you pause it.",
-          "Trigger on on-chain actions and email behaviour, opens, clicks, even non-opens.",
+          "Trigger on on-chain actions and email behavior, opens, clicks, even non-opens.",
           "One trigger sends to both in-app push and email.",
         ]}
         visual={
@@ -1709,7 +1740,7 @@ export function LandingV2() {
         }
         body="The Intelligence layer pairs a SQL engine with an MCP integration, so you can query on-chain actions and email engagement in plain language and get cohorts back. No SQL required."
         points={[
-          "The MCP runs the analysis over your normalised on-chain data.",
+          "The MCP runs the analysis over your normalized on-chain data.",
           "Get cohorts and segments back, ready to message.",
           "A SQL engine underneath for when your team wants the raw query.",
         ]}

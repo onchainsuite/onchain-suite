@@ -87,7 +87,7 @@ const PLATFORM_ITEMS: {
 }[] = [
   {
     icon: SignalIcon,
-    title: "Monitor & Normalise",
+    title: "Monitor & Normalize",
     desc: "Real-time on-chain events, one shape",
     href: "/#monitor",
   },
@@ -399,6 +399,15 @@ export function Nav() {
           >
             Pricing
           </Link>
+          <a
+            href={DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onMouseEnter={() => setOpenMenu(null)}
+            className="rounded-full px-3 py-1.5 text-[13.5px] font-medium t-muted transition-colors hover:bg-[color:var(--acc-soft)] hover:text-[color:var(--acc)]"
+          >
+            Docs
+          </a>
         </div>
         <div className="ml-auto flex items-center gap-2.5">
           {/* Sign in — temporarily hidden, functionality preserved.
@@ -588,7 +597,7 @@ export function Footer() {
         <div>
           <Logo height={50} />
           <p className="mt-3 max-w-xs text-[13px] leading-relaxed t-muted">
-            The behaviour-triggered retention platform for Web3.
+            The behavior-triggered retention platform for Web3.
           </p>
         </div>
         {FOOTER.map((col) => (

@@ -308,6 +308,8 @@ function FeedRowCard({ r, top }: { r: LiveRow; top: boolean }) {
 
 function ActivityViz() {
   const reduce = useReducedMotion();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(rootRef, { margin: "80px" });
   const idRef = useRef(VISIBLE_ROWS);
   const srcRef = useRef(VISIBLE_ROWS);
   const [rows, setRows] = useState<LiveRow[]>(() =>
@@ -318,7 +320,8 @@ function ActivityViz() {
   );
 
   useEffect(() => {
-    if (reduce) return;
+    // feed only ticks while visible
+    if (reduce || !inView) return;
     const t = window.setInterval(() => {
       setRows((prev) => {
         const next: LiveRow = {
@@ -331,10 +334,10 @@ function ActivityViz() {
       });
     }, 2100);
     return () => window.clearInterval(t);
-  }, [reduce]);
+  }, [reduce, inView]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div ref={rootRef} className="flex h-full flex-col">
       <div
         className="mb-3 flex items-center justify-between rounded-xl border px-3 py-2"
         style={{
@@ -778,7 +781,7 @@ export function IntelligenceViz() {
               </span>
             </div>
             <div className="mono mb-2 text-[10px] uppercase tracking-[0.14em] t-muted2">
-              Result · MCP over normalised on-chain data
+              Result · MCP over normalized on-chain data
             </div>
             {!loaded ? (
               <CohortSkeleton />
@@ -957,7 +960,7 @@ const CHAT: Record<TabId, ChatSpec> = {
     ],
     items: [
       { text: "Parsed your question via MCP" },
-      { text: "Queried normalised on-chain data" },
+      { text: "Queried normalized on-chain data" },
       { text: "Cohort built · 87 wallets" },
       { text: "Ready to message or save as segment", active: true },
     ],
@@ -978,8 +981,12 @@ const DWELL = 9000; // ms onscreen per tab (lets every pane animation play)
 
 export function ProductWindow() {
   const reduce = useReducedMotion();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(rootRef, { margin: "80px" });
   const [tab, setTab] = useState<TabId>("activity");
   const [paused, setPaused] = useState(false);
+  // hovering pauses by intent; offscreen pauses for free
+  const halted = paused || !inView;
 
   // The time-line below the tabs is a pure-CSS animation (smooth linear fill
   // over DWELL). When it finishes it advances to the next tab; changing tabs
@@ -991,6 +998,7 @@ export function ProductWindow() {
   return (
     <Tilt max={2.5} className="relative w-full">
       <motion.div
+        ref={rootRef}
         initial={{ opacity: 0, y: 40, scale: 0.97 }}
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true }}
@@ -1055,7 +1063,7 @@ export function ProductWindow() {
             <span
               key={tab}
               onAnimationEnd={advance}
-              className={`ocs2-timeline pointer-events-none ${paused ? "is-paused" : ""}`}
+              className={`ocs2-timeline pointer-events-none ${halted ? "is-paused" : ""}`}
               style={{ animationDuration: `${DWELL}ms` }}
             />
           )}

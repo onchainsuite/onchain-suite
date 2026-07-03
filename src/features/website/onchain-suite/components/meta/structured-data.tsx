@@ -17,7 +17,7 @@ export function StructuredData() {
         description:
           "The communication infrastructure layer for Web3. A retention automation that turns on-chain behavior into multi-channel messaging. A Datum Labs product.",
         sameAs: [
-          "https://twitter.com/onchainsuite",
+          "https://twitter.com/0nchainSuite",
           "https://discord.gg/onchainsuite",
           "https://t.me/onchainsuite",
         ],
@@ -41,7 +41,7 @@ export function StructuredData() {
         operatingSystem: "Web",
         offers: {
           "@type": "Offer",
-          price: "299",
+          price: "49",
           priceCurrency: "USD",
           priceSpecification: {
             "@type": "UnitPriceSpecification",
