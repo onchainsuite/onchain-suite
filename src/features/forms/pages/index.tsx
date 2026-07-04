@@ -6,18 +6,18 @@ import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/ui/button";
 import { Card, CardContent } from "@/ui/card";
 import { Skeleton } from "@/ui/skeleton";
-import { PageHeader } from "@/shared/components/page/page-header";
 
 import { CreateFormDialog } from "../components/create-form-dialog";
 import { FormCard } from "../components/form-card";
 import { FormDetailSheet } from "../components/form-detail-sheet";
 import { FormStats } from "../components/form-stats";
+import { FormsTable } from "../components/forms-table";
 import {
-  FormsToolbar,
   type FormsStatusFilter,
+  FormsToolbar,
   type FormsViewMode,
 } from "../components/forms-toolbar";
-import { FormsTable } from "../components/forms-table";
+import type { CaptureForm, UpdateFormInput } from "../forms.service";
 import {
   useConnectForm,
   useCreateForm,
@@ -25,7 +25,7 @@ import {
   useFormsList,
   useUpdateForm,
 } from "../hooks/use-forms";
-import type { CaptureForm, UpdateFormInput } from "../forms.service";
+import { PageHeader } from "@/shared/components/page/page-header";
 
 /**
  * Email-to-Wallet capture forms.

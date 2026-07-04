@@ -24,7 +24,9 @@ export function EmbedSnippet({
   const copy = useCallback((which: "embed" | "url", value: string) => {
     void navigator.clipboard.writeText(value);
     setCopied(which);
-    toast.success(which === "embed" ? "Embed code copied" : "Submit URL copied");
+    toast.success(
+      which === "embed" ? "Embed code copied" : "Submit URL copied"
+    );
     window.setTimeout(() => setCopied(null), 1500);
   }, []);
 
@@ -32,9 +34,7 @@ export function EmbedSnippet({
     <div className="space-y-4">
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <Label className="text-xs text-muted-foreground">
-            Embed snippet
-          </Label>
+          <Label className="text-xs text-muted-foreground">Embed snippet</Label>
           <Button
             variant="outline"
             size="sm"

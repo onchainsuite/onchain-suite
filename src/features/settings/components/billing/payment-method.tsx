@@ -161,7 +161,7 @@ const PaymentMethod = () => {
               <p className="mt-1 text-sm text-foreground">
                 {isOpen
                   ? (defaultMethodLabel ?? "No default payment method")
-                  : "Expand to load live data"}
+                  : "-"}
               </p>
             </div>
             <div>

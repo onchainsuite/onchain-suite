@@ -106,7 +106,7 @@ const InvoiceHistory = () => {
                   ? items.length > 0
                     ? formatDate(latestInvoice)
                     : "No invoices yet"
-                  : "Expand to load live data"}
+                  : "-"}
               </p>
             </div>
             <div>

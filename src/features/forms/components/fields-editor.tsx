@@ -33,9 +33,7 @@ export function FieldsEditor({
 }) {
   const update = useCallback(
     (index: number, patch: Partial<CaptureFieldSpec>) => {
-      onChange(
-        fields.map((f, i) => (i === index ? { ...f, ...patch } : f))
-      );
+      onChange(fields.map((f, i) => (i === index ? { ...f, ...patch } : f)));
     },
     [fields, onChange]
   );
