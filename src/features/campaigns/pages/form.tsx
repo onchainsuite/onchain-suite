@@ -8,11 +8,11 @@ import {
   PaperAirplaneIcon,
 } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import type { FieldErrors, UseFormReturn } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -27,6 +27,7 @@ import {
   zonedWallTimeToUtcDate,
 } from "@/lib/timezone";
 import {
+  cn,
   extractEmailContent,
   getSelectedOrganizationId,
   isJsonObject,
@@ -335,13 +336,13 @@ const asSendOption = (
 function CampaignPreviewStep({
   form,
   campaignId,
+  canLaunch,
 }: {
   form: UseFormReturn<CampaignFormData>;
   campaignId?: string;
+  canLaunch: boolean;
 }) {
   const [tab, setTab] = useState<"html" | "text">("html");
-  const [previewHtml, setPreviewHtml] = useState("");
-  const [previewText, setPreviewText] = useState("");
 
   const normalizedCampaignId = useMemo(() => {
     return campaignId && campaignId.trim().length > 0 ? campaignId.trim() : "";
@@ -407,19 +408,30 @@ function CampaignPreviewStep({
     );
   };
 
-  const previewMutation = useMutation({
-    mutationFn: getCanonicalPreview,
-    onSuccess: (data) => {
-      setPreviewHtml(typeof data.html === "string" ? data.html : "");
-      setPreviewText(typeof data.text === "string" ? data.text : "");
-      setTab("html");
-    },
-    onError: (e: unknown) => {
-      const message =
-        e instanceof Error ? e.message : "Failed to generate preview";
-      toast.error(message);
-    },
+  const selectedTemplateId = form.watch("selectedTemplate") ?? "";
+
+  // Auto-load the rendered email as soon as the step opens — no manual
+  // "Generate preview" click required. The selected template is part of the
+  // key so re-selecting a template invalidates the cached render.
+  const previewQuery = useQuery({
+    queryKey: [
+      "campaigns",
+      "preview",
+      normalizedCampaignId,
+      selectedTemplateId,
+    ],
+    queryFn: getCanonicalPreview,
+    enabled: normalizedCampaignId.length > 0,
+    retry: false,
   });
+
+  const previewHtml = previewQuery.data?.html ?? "";
+  const previewText = previewQuery.data?.text ?? "";
+  const previewErrorMessage =
+    previewQuery.error instanceof Error
+      ? previewQuery.error.message
+      : "Failed to generate preview.";
+  const { isSubmitting } = form.formState;
 
   const values = form.watch();
   const isScheduled = values.sendOption === "schedule";
@@ -461,134 +473,192 @@ function CampaignPreviewStep({
           Preview campaign
         </h2>
         <p className="text-base text-muted-foreground text-pretty">
-          Review your details and preview the email before sending.
+          Here is the email your audience will receive. Review the details, then
+          send it on its way.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <div className="text-sm font-medium text-foreground">Summary</div>
-          <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <div>
-              <span className="text-foreground">Campaign:</span>{" "}
-              {values.campaignName || "Untitled"}
-            </div>
-            <div>
-              <span className="text-foreground">Type:</span>{" "}
-              {values.campaignType}
-            </div>
-            <div>
-              <span className="text-foreground">Subject:</span>{" "}
-              {values.emailSubject || "—"}
-            </div>
-            <div>
-              <span className="text-foreground">From:</span>{" "}
-              {values.senderName ? `${values.senderName} ` : ""}
-              {values.senderEmail || "—"}
-            </div>
-            <div>
-              <span className="text-foreground">Send:</span> {scheduleLabel}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <div className="text-sm font-medium text-foreground">Summary</div>
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <div>
+                <span className="text-foreground">Campaign:</span>{" "}
+                {values.campaignName || "Untitled"}
+              </div>
+              <div>
+                <span className="text-foreground">Type:</span>{" "}
+                {values.campaignType}
+              </div>
+              <div>
+                <span className="text-foreground">Subject:</span>{" "}
+                {values.emailSubject || "—"}
+              </div>
+              <div>
+                <span className="text-foreground">From:</span>{" "}
+                {values.senderName ? `${values.senderName} ` : ""}
+                {values.senderEmail || "—"}
+              </div>
+              <div>
+                <span className="text-foreground">Send:</span> {scheduleLabel}
+              </div>
+              <div>
+                <span className="text-foreground">Template:</span>{" "}
+                {values.selectedTemplate && values.selectedTemplate.length > 0
+                  ? values.selectedTemplate
+                  : "—"}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <div className="text-sm font-medium text-foreground">Template</div>
-          <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <div>
-              <span className="text-foreground">Selected template:</span>{" "}
-              {values.selectedTemplate && values.selectedTemplate.length > 0
-                ? values.selectedTemplate
-                : "—"}
-            </div>
-            <div>
-              <span className="text-foreground">Campaign id:</span>{" "}
-              {normalizedCampaignId || "—"}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="text-sm font-medium text-foreground">
-            Email preview
-          </div>
-          <div className="flex items-center gap-2">
+          <div className="rounded-2xl border border-border bg-card p-5">
+            {!canLaunch ? (
+              <p className="mb-3 text-xs text-muted-foreground">
+                Your role cannot launch campaigns for this organization.
+              </p>
+            ) : null}
             <Button
-              type="button"
-              variant={tab === "html" ? "default" : "outline"}
-              className="rounded-xl"
-              onClick={() => setTab("html")}
+              type="submit"
+              disabled={!normalizedCampaignId || !canLaunch || isSubmitting}
+              className="w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 hover:shadow-lg"
             >
-              HTML
-            </Button>
-            <Button
-              type="button"
-              variant={tab === "text" ? "default" : "outline"}
-              className="rounded-xl"
-              onClick={() => setTab("text")}
-            >
-              Plain text
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              disabled={!normalizedCampaignId || previewMutation.isPending}
-              onClick={() => previewMutation.mutate()}
-            >
-              {previewMutation.isPending ? (
-                <ArrowPathIcon
-                  aria-hidden="true"
-                  className="h-4 w-4 animate-spin"
-                />
+              {isSubmitting ? (
+                <>
+                  <ArrowPathIcon
+                    aria-hidden="true"
+                    className="mr-2 h-4 w-4 animate-spin"
+                  />
+                  {isScheduled ? "Scheduling…" : "Sending…"}
+                </>
               ) : (
-                "Generate preview"
+                <>
+                  {isScheduled ? "Schedule campaign" : "Send campaign now"}
+                  {isScheduled ? (
+                    <ClockIcon aria-hidden="true" className="ml-2 h-4 w-4" />
+                  ) : (
+                    <PaperAirplaneIcon
+                      aria-hidden="true"
+                      className="ml-2 h-4 w-4"
+                    />
+                  )}
+                </>
               )}
             </Button>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              {isScheduled ? scheduleLabel : "Delivery starts immediately."}
+            </p>
           </div>
         </div>
 
-        <div className="mt-4">
-          {tab === "html" ? (
-            <div className="h-[65vh] overflow-hidden rounded-xl border border-border">
-              {previewHtml.trim().length > 0 ? (
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm font-medium text-foreground">
+              Email preview
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={tab === "html" ? "default" : "outline"}
+                className="rounded-xl"
+                onClick={() => setTab("html")}
+              >
+                HTML
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={tab === "text" ? "default" : "outline"}
+                className="rounded-xl"
+                onClick={() => setTab("text")}
+              >
+                Plain text
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-xl"
+                disabled={!normalizedCampaignId || previewQuery.isFetching}
+                onClick={() => previewQuery.refetch()}
+              >
+                <ArrowPathIcon
+                  aria-hidden="true"
+                  className={cn(
+                    "h-4 w-4",
+                    previewQuery.isFetching && "animate-spin"
+                  )}
+                />
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 h-[65vh] overflow-hidden rounded-xl border border-border">
+            {!normalizedCampaignId ? (
+              <div className="flex h-full items-center justify-center bg-card p-6 text-center text-sm text-muted-foreground">
+                Missing campaign id.
+              </div>
+            ) : previewQuery.isLoading ? (
+              <div
+                className="flex h-full animate-pulse flex-col gap-3 bg-card p-6"
+                aria-hidden="true"
+              >
+                <div className="h-6 w-1/3 rounded-md bg-muted" />
+                <div className="h-40 rounded-md bg-muted" />
+                <div className="h-4 w-2/3 rounded-md bg-muted" />
+                <div className="h-4 w-1/2 rounded-md bg-muted" />
+                <div className="flex-1 rounded-md bg-muted" />
+              </div>
+            ) : previewQuery.isError ? (
+              <div className="flex h-full items-center justify-center bg-card p-6 text-center">
+                <div className="max-w-md space-y-3">
+                  <div className="text-sm font-medium text-foreground">
+                    Preview unavailable
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {previewErrorMessage}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={() => previewQuery.refetch()}
+                  >
+                    Try again
+                  </Button>
+                </div>
+              </div>
+            ) : tab === "html" ? (
+              previewHtml.trim().length > 0 ? (
                 <iframe
                   title="Email HTML preview"
                   srcDoc={previewHtml}
                   className="h-full w-full bg-white"
                   style={{ border: "none" }}
                 />
-              ) : previewMutation.isPending ? (
-                <div className="flex h-full items-center justify-center gap-2 bg-card text-sm text-muted-foreground">
-                  <ArrowPathIcon
-                    aria-hidden="true"
-                    className="h-4 w-4 animate-spin"
-                  />
-                  Generating preview…
-                </div>
               ) : (
                 <div className="flex h-full items-center justify-center bg-card p-6 text-center">
                   <div className="max-w-md space-y-2">
                     <div className="text-sm font-medium text-foreground">
-                      No preview yet
+                      No HTML preview available
                     </div>
                     <div className="text-sm text-muted-foreground">
                       Select a template (or save content in the editor), then
-                      click Generate preview.
+                      refresh the preview.
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
-          ) : (
-            <pre className="h-[65vh] overflow-auto rounded-xl border border-border bg-muted p-4 text-sm text-foreground whitespace-pre-wrap">
-              {previewText.length > 0
-                ? previewText
-                : "No text preview available."}
-            </pre>
-          )}
+              )
+            ) : (
+              <pre className="h-full overflow-auto bg-muted p-4 text-sm text-foreground whitespace-pre-wrap">
+                {previewText.length > 0
+                  ? previewText
+                  : "No text preview available."}
+              </pre>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -1147,12 +1217,17 @@ export function CreateCampaignPage() {
 
       if (currentStep === 2) {
         const data = form.getValues();
-        const { listIds, segmentIds } = partitionAudienceSelection(
+        const { listIds, segmentIds, profileIds } = partitionAudienceSelection(
           data.selectedAudiences,
-          audienceSegmentsQuery.data ?? []
+          audienceSegmentsQuery.data ?? [],
+          audienceUsersQuery.data ?? []
         );
 
-        await campaignsService.setAudience(campaignId, { listIds, segmentIds });
+        await campaignsService.setAudience(campaignId, {
+          listIds,
+          segmentIds,
+          profileIds,
+        });
         await campaignsService
           .estimateAudience(campaignId)
           .catch(() => undefined);
@@ -1277,6 +1352,22 @@ export function CreateCampaignPage() {
     }
   };
 
+  // handleSubmit silently swallows schema failures without this — the send
+  // button would appear dead. Surface the first blocking field error instead.
+  const onInvalid = (errors: FieldErrors<CampaignFormData>) => {
+    for (const value of Object.values(errors)) {
+      const message =
+        value && typeof value === "object" && "message" in value
+          ? (value as { message?: unknown }).message
+          : undefined;
+      if (typeof message === "string" && message.trim().length > 0) {
+        toast.error(message);
+        return;
+      }
+    }
+    toast.error("Please complete the required fields before sending.");
+  };
+
   const sendOption = form.watch("sendOption");
   const scheduleDate = form.watch("scheduleDate");
   const scheduleTime = form.watch("scheduleTime");
@@ -1316,7 +1407,7 @@ export function CreateCampaignPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 sm:px-6 md:py-6 lg:px-10 max-w-[1440px]">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)}>
             <div className="bg-card border border-border rounded-2xl shadow-xl transition-all duration-300">
               {!showConfirmation ? (
                 <>
@@ -1373,7 +1464,11 @@ export function CreateCampaignPage() {
                   )}
                   {currentStep === 4 && <ScheduleStep form={form} />}
                   {currentStep === 5 && (
-                    <CampaignPreviewStep form={form} campaignId={campaignId} />
+                    <CampaignPreviewStep
+                      form={form}
+                      campaignId={campaignId}
+                      canLaunch={canLaunchCampaigns && !isBootstrappingCampaign}
+                    />
                   )}
 
                   {/* Navigation Buttons */}
@@ -1393,40 +1488,9 @@ export function CreateCampaignPage() {
                         Back
                       </Button>
 
-                      {currentStep === TOTAL_STEPS ? (
-                        <div className="flex flex-col items-end gap-2">
-                          {!canLaunchCampaigns && (
-                            <div className="text-right text-xs text-muted-foreground">
-                              Your role cannot launch campaigns for this
-                              organization.
-                            </div>
-                          )}
-                          <Button
-                            type="submit"
-                            disabled={
-                              !campaignId ||
-                              isBootstrappingCampaign ||
-                              !canLaunchCampaigns
-                            }
-                            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg hover:scale-[1.02]"
-                          >
-                            {sendOption === "now"
-                              ? "Send Campaign Now"
-                              : "Schedule Campaign"}
-                            {sendOption === "now" ? (
-                              <PaperAirplaneIcon
-                                aria-hidden="true"
-                                className="ml-2 h-4 w-4"
-                              />
-                            ) : (
-                              <ClockIcon
-                                aria-hidden="true"
-                                className="ml-2 h-4 w-4"
-                              />
-                            )}
-                          </Button>
-                        </div>
-                      ) : (
+                      {/* Step 5 owns the "Send campaign now" button (in the
+                          preview panel), so the footer only navigates back. */}
+                      {currentStep === TOTAL_STEPS ? null : (
                         <Button
                           type="button"
                           onClick={handleNext}

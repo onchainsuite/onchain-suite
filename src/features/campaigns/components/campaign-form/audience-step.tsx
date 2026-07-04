@@ -134,13 +134,18 @@ export function AudienceStep({
     setSyncError(null);
 
     const timeout = window.setTimeout(() => {
-      const { listIds, segmentIds } = partitionAudienceSelection(
+      const { listIds, segmentIds, profileIds } = partitionAudienceSelection(
         selectedAudiences,
-        segments
+        segments,
+        lists
       );
 
       Promise.all([
-        campaignsService.setAudience(campaignId, { listIds, segmentIds }),
+        campaignsService.setAudience(campaignId, {
+          listIds,
+          segmentIds,
+          profileIds,
+        }),
         campaignsService.updateTracking(campaignId, {
           smartSending: Boolean(smartSending),
           trackingParameters: Boolean(trackingParameters),
@@ -170,6 +175,7 @@ export function AudienceStep({
   }, [
     campaignId,
     canSync,
+    lists,
     segments,
     selectedAudiences,
     smartSending,
@@ -411,9 +417,11 @@ export function AudienceStep({
             <p className="text-[11px] leading-5 text-muted-foreground sm:col-span-2">
               Example:{" "}
               <span className="font-mono text-foreground">
-                ?utm_source={utmSource?.trim() || "onchain_suite"}
-                &amp;utm_medium={utmMedium?.trim() || "email"}
-                {utmCampaign?.trim() ? `&utm_campaign=${utmCampaign.trim()}` : ""}
+                ?utm_source={(utmSource ?? "").trim() || "onchain_suite"}
+                &amp;utm_medium={(utmMedium ?? "").trim() || "email"}
+                {utmCampaign?.trim()
+                  ? `&utm_campaign=${utmCampaign.trim()}`
+                  : ""}
               </span>
             </p>
           </div>

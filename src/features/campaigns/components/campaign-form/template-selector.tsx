@@ -340,16 +340,6 @@ export function TemplateSelector({
     return mapped.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
   }, [recents, sortMode, templatesQuery.data, templatesQuery.isSuccess]);
 
-  const recentTemplates = useMemo<TemplateRow[]>(() => {
-    if (templates.length === 0) return [];
-    const byId = new Map(templates.map((t) => [t.id, t]));
-    return Object.entries(recents)
-      .sort((a, b) => b[1] - a[1])
-      .map(([id]) => byId.get(id))
-      .filter((t): t is TemplateRow => Boolean(t))
-      .slice(0, 6);
-  }, [recents, templates]);
-
   const markTemplateUsed = (templateId: string) => {
     const next = { ...readRecents(), [templateId]: Date.now() };
     writeRecents(next);
@@ -713,278 +703,123 @@ export function TemplateSelector({
           />
         )
       ) : (
-        <>
-          {tab === "saved" && recentTemplates.length > 0 ? (
-            <div className="space-y-3">
-              <div className="text-sm font-medium text-foreground">
-                Used most recently
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {recentTemplates.map((temp) => (
-                  <div
-                    key={temp.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
+        <div
+          className={cn(
+            "transition-all duration-300",
+            viewMode === "grid"
+              ? "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+              : "flex flex-col gap-1.5"
+          )}
+        >
+          {templates.map((temp) => {
+            const isList = viewMode === "list";
+            const isSelected = selectedTemplate === temp.id;
+            const select = () => {
+              markTemplateUsed(temp.id);
+              form.setValue("selectedTemplate", temp.id);
+              onSelectTemplate?.(temp.id);
+            };
+            const menu = (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "shrink-0 rounded-lg",
+                      isList ? "h-7 w-7" : "h-8 w-8"
+                    )}
+                    aria-label="Template options"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <EllipsisVerticalIcon
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                    />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openPreview({ id: temp.id, title: temp.title });
+                    }}
+                  >
+                    <MagnifyingGlassIcon
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                    />
+                    Preview
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
                       markTemplateUsed(temp.id);
-                      form.setValue("selectedTemplate", temp.id);
-                      onSelectTemplate?.(temp.id);
-                    }}
-                    onMouseEnter={() => {
-                      if (!temp.preview) ensureHtmlCached(temp);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        markTemplateUsed(temp.id);
-                        form.setValue("selectedTemplate", temp.id);
-                        onSelectTemplate?.(temp.id);
-                      }
-                    }}
-                    className={cn(
-                      "group relative w-[220px] shrink-0 overflow-hidden rounded-2xl border bg-card text-left transition-all duration-300 hover:shadow-lg",
-                      selectedTemplate === temp.id
-                        ? "border-primary shadow-lg ring-2 ring-primary/20"
-                        : "border-border hover:border-muted-foreground/30"
-                    )}
-                  >
-                    <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-                      {temp.preview ? (
-                        <Image
-                          src={temp.preview || "/placeholder.svg"}
-                          alt={temp.title}
-                          fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = "none";
-                          }}
-                        />
-                      ) : htmlCache[temp.id] ? (
-                        <TemplateThumb
-                          html={htmlCache[temp.id]}
-                          title={`Template preview ${temp.title}`}
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-                          Preview
-                        </div>
-                      )}
-                      {selectedTemplate === temp.id ? (
-                        <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
-                          <CheckIcon
-                            aria-hidden="true"
-                            className="h-4 w-4 text-primary-foreground"
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-2 border-t border-border px-3 py-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold text-foreground">
-                          {temp.title}
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg"
-                            aria-label="Template options"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <EllipsisVerticalIcon
-                              aria-hidden="true"
-                              className="h-4 w-4"
-                            />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openPreview({ id: temp.id, title: temp.title });
-                            }}
-                          >
-                            Preview
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          <div
-            className={cn(
-              "transition-all duration-300",
-              viewMode === "grid"
-                ? "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
-                : "flex flex-col gap-1.5"
-            )}
-          >
-            {templates.map((temp) => {
-              const isList = viewMode === "list";
-              const isSelected = selectedTemplate === temp.id;
-              const select = () => {
-                markTemplateUsed(temp.id);
-                form.setValue("selectedTemplate", temp.id);
-                onSelectTemplate?.(temp.id);
-              };
-              const menu = (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "shrink-0 rounded-lg",
-                        isList ? "h-7 w-7" : "h-8 w-8"
-                      )}
-                      aria-label="Template options"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <EllipsisVerticalIcon
-                        aria-hidden="true"
-                        className="h-4 w-4"
-                      />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openPreview({ id: temp.id, title: temp.title });
-                      }}
-                    >
-                      <MagnifyingGlassIcon
-                        aria-hidden="true"
-                        className="h-4 w-4"
-                      />
-                      Preview
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        markTemplateUsed(temp.id);
-                        if (onUseTemplate) {
-                          onUseTemplate(temp.id, temp.title);
-                        } else {
-                          select();
-                          toast.success("Template applied to your campaign.");
-                        }
-                      }}
-                    >
-                      <CheckIcon aria-hidden="true" className="h-4 w-4" />
-                      Use template
-                    </DropdownMenuItem>
-                    {tab === "saved" ? (
-                      <>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditTemplate?.(temp.id, temp.title);
-                          }}
-                        >
-                          <PencilIcon aria-hidden="true" className="h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            duplicateMutation.mutate(temp.id);
-                          }}
-                        >
-                          <DocumentDuplicateIcon
-                            aria-hidden="true"
-                            className="h-4 w-4"
-                          />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setRenameId(temp.id);
-                            setRenameValue(temp.title);
-                            setRenameOpen(true);
-                          }}
-                        >
-                          <PencilIcon aria-hidden="true" className="h-4 w-4" />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteId(temp.id);
-                            setDeleteTitle(temp.title);
-                            setDeleteOpen(true);
-                          }}
-                        >
-                          <TrashIcon aria-hidden="true" className="h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </>
-                    ) : null}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-
-              if (isList) {
-                return (
-                  <div
-                    key={temp.id}
-                    onClick={select}
-                    onMouseEnter={() => {
-                      if (!temp.preview) ensureHtmlCached(temp);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
+                      if (onUseTemplate) {
+                        onUseTemplate(temp.id, temp.title);
+                      } else {
                         select();
+                        toast.success("Template applied to your campaign.");
                       }
                     }}
-                    role="button"
-                    tabIndex={0}
-                    className={cn(
-                      "group flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-1.5 transition-colors",
-                      isSelected
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                        : "border-border hover:border-muted-foreground/30 hover:bg-muted/40"
-                    )}
                   >
-                    <span
-                      className={cn(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold uppercase",
-                        isSelected
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {temp.title.trim().charAt(0) || "T"}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                      {temp.title}
-                    </span>
-                    <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
-                      {temp.date}
-                    </span>
-                    {isSelected ? (
-                      <CheckIcon
-                        aria-hidden="true"
-                        className="h-4 w-4 shrink-0 text-primary"
-                      />
-                    ) : null}
-                    {menu}
-                  </div>
-                );
-              }
+                    <CheckIcon aria-hidden="true" className="h-4 w-4" />
+                    Use template
+                  </DropdownMenuItem>
+                  {tab === "saved" ? (
+                    <>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditTemplate?.(temp.id, temp.title);
+                        }}
+                      >
+                        <PencilIcon aria-hidden="true" className="h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateMutation.mutate(temp.id);
+                        }}
+                      >
+                        <DocumentDuplicateIcon
+                          aria-hidden="true"
+                          className="h-4 w-4"
+                        />
+                        Duplicate
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameId(temp.id);
+                          setRenameValue(temp.title);
+                          setRenameOpen(true);
+                        }}
+                      >
+                        <PencilIcon aria-hidden="true" className="h-4 w-4" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteId(temp.id);
+                          setDeleteTitle(temp.title);
+                          setDeleteOpen(true);
+                        }}
+                      >
+                        <TrashIcon aria-hidden="true" className="h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
 
+            if (isList) {
               return (
                 <div
                   key={temp.id}
@@ -1001,59 +836,105 @@ export function TemplateSelector({
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    "group cursor-pointer overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:shadow-lg",
+                    "group flex cursor-pointer items-center gap-2.5 rounded-lg border px-2.5 py-1.5 transition-colors",
                     isSelected
-                      ? "border-primary shadow-lg ring-2 ring-primary/20"
-                      : "border-border hover:border-muted-foreground/30"
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                      : "border-border hover:border-muted-foreground/30 hover:bg-muted/40"
                   )}
                 >
-                  <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-                    {temp.preview ? (
-                      <Image
-                        src={temp.preview || "/placeholder.svg"}
-                        alt={temp.title}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                        }}
-                      />
-                    ) : htmlCache[temp.id] ? (
-                      <TemplateThumb
-                        html={htmlCache[temp.id]}
-                        title={`Template preview ${temp.title}`}
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-                        Preview
-                      </div>
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold uppercase",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
                     )}
-                    {isSelected ? (
-                      <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
-                        <CheckIcon
-                          aria-hidden="true"
-                          className="h-4 w-4 text-primary-foreground"
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center gap-2 border-t border-border px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-semibold text-foreground">
-                        {temp.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {temp.date}
-                      </p>
-                    </div>
-                    {menu}
-                  </div>
+                  >
+                    {temp.title.trim().charAt(0) || "T"}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                    {temp.title}
+                  </span>
+                  <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+                    {temp.date}
+                  </span>
+                  {isSelected ? (
+                    <CheckIcon
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-primary"
+                    />
+                  ) : null}
+                  {menu}
                 </div>
               );
-            })}
-          </div>
-        </>
+            }
+
+            return (
+              <div
+                key={temp.id}
+                onClick={select}
+                onMouseEnter={() => {
+                  if (!temp.preview) ensureHtmlCached(temp);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    select();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                className={cn(
+                  "group cursor-pointer overflow-hidden rounded-2xl border bg-card transition-all duration-300 hover:shadow-lg",
+                  isSelected
+                    ? "border-primary shadow-lg ring-2 ring-primary/20"
+                    : "border-border hover:border-muted-foreground/30"
+                )}
+              >
+                <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+                  {temp.preview ? (
+                    <Image
+                      src={temp.preview || "/placeholder.svg"}
+                      alt={temp.title}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                      }}
+                    />
+                  ) : htmlCache[temp.id] ? (
+                    <TemplateThumb
+                      html={htmlCache[temp.id]}
+                      title={`Template preview ${temp.title}`}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+                      Preview
+                    </div>
+                  )}
+                  {isSelected ? (
+                    <div className="absolute top-3 right-3 bg-primary rounded-full p-1.5 shadow-lg">
+                      <CheckIcon
+                        aria-hidden="true"
+                        className="h-4 w-4 text-primary-foreground"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-semibold text-foreground">
+                      {temp.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">{temp.date}</p>
+                  </div>
+                  {menu}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
