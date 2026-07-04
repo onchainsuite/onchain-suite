@@ -48,9 +48,9 @@ import type {
   CaptureForm,
   UpdateFormInput,
 } from "../forms.service";
-import { statusBadgeVariant } from "./form-card";
 import { EmbedSnippet } from "./embed-snippet";
 import { FieldsEditor } from "./fields-editor";
+import { statusBadgeVariant } from "./form-card";
 import { FormPreview } from "./form-preview";
 
 const STATUSES = ["active", "paused", "archived"] as const;

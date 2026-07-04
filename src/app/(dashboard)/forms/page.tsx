@@ -1,5 +1,5 @@
-import { FormsPage } from "@/features/forms/pages";
 import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
+import { FormsPage } from "@/features/forms/pages";
 import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export const dynamic = "force-dynamic";

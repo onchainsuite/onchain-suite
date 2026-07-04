@@ -101,8 +101,8 @@ const extractItems = <T>(payload: unknown): T[] => {
 /** Typed client for the Email-to-Wallet capture-forms API. */
 export const formsService = {
   listForms(orgId?: string) {
-    return request<unknown>({ method: "GET", url: "/forms" }, orgId).then(
-      (r) => extractItems<CaptureForm>(r)
+    return request<unknown>({ method: "GET", url: "/forms" }, orgId).then((r) =>
+      extractItems<CaptureForm>(r)
     );
   },
 

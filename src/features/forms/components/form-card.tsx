@@ -62,9 +62,7 @@ export const FormCard = memo(function FormCard({
           className="rounded-none border-0 border-b border-border"
         />
         <div className="absolute right-2 top-2 flex gap-1">
-          <Badge variant={statusBadgeVariant(form.status)}>
-            {form.status}
-          </Badge>
+          <Badge variant={statusBadgeVariant(form.status)}>{form.status}</Badge>
           {form.zkEnabled ? (
             <Badge variant="outline" className="gap-1 bg-card">
               <LockClosedIcon className="h-3 w-3" aria-hidden="true" />

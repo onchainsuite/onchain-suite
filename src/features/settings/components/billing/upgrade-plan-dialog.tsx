@@ -93,8 +93,7 @@ export default function UpgradePlanDialog({
   });
 
   const upgradeMutation = useMutation({
-    mutationFn: (plan: BillingPlanName) =>
-      billingService.upgradeFiat({ plan }),
+    mutationFn: (plan: BillingPlanName) => billingService.upgradeFiat({ plan }),
     onSuccess: (res) => {
       const checkoutUrl =
         isJsonObject(res) && typeof res.checkoutUrl === "string"

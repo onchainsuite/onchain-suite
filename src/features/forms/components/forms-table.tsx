@@ -103,7 +103,10 @@ export const FormsTable = memo(function FormsTable({
                     toast.success("Embed code copied");
                   }}
                 >
-                  <ClipboardIcon className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                  <ClipboardIcon
+                    className="mr-1 h-3.5 w-3.5"
+                    aria-hidden="true"
+                  />
                   Embed
                 </Button>
               </TableCell>
