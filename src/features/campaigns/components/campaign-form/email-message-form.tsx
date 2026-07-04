@@ -172,7 +172,9 @@ export function EmailMessageForm({
                     shouldTouch: true,
                     shouldValidate: true,
                   });
-                  const currentSenderName = form.getValues("senderName").trim();
+                  const currentSenderName = (
+                    form.getValues("senderName") ?? ""
+                  ).trim();
                   if (
                     currentSenderName.length === 0 ||
                     currentSenderName === "Pivotup Media"

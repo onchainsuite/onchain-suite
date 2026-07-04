@@ -555,7 +555,7 @@ export default function CampaignEditorPage() {
       return `${url.pathname}?${url.searchParams.toString()}`;
     }
     const url = new URL("/campaigns/new", "http://localhost");
-    url.searchParams.set("step", "4");
+    url.searchParams.set("step", "3");
     if (campaignId) url.searchParams.set("campaign", campaignId);
     return `${url.pathname}?${url.searchParams.toString()}`;
   }, [campaignId, returnTo]);
@@ -563,7 +563,7 @@ export default function CampaignEditorPage() {
   const prevWizardUrl = useMemo(() => {
     const base = returnTo.length > 0 ? returnTo : "/campaigns/new";
     const url = new URL(base, "http://localhost");
-    url.searchParams.set("step", "3");
+    url.searchParams.set("step", "2");
     if (campaignId) url.searchParams.set("campaign", campaignId);
     return `${url.pathname}?${url.searchParams.toString()}`;
   }, [campaignId, returnTo]);
@@ -1013,7 +1013,7 @@ export default function CampaignEditorPage() {
 
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
-      <div className="mx-auto w-full max-w-[1720px] px-4 py-1">
+      <div className="mx-auto -mt-4 w-full max-w-[1720px] px-4 pb-1">
         {!campaignId ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
             Missing campaign id.
@@ -1050,7 +1050,7 @@ export default function CampaignEditorPage() {
             <div
               ref={containerRef}
               className={cn(
-                "relative h-[calc(100vh-116px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+                "relative h-[calc(100vh-96px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
               )}
             >
               {iframeFailed ? (

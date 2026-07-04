@@ -35,7 +35,7 @@ function Calculator() {
             <Slider
               label="Tracked wallets"
               hint="On-chain wallets you monitor"
-              min={500}
+              min={0}
               max={50000}
               step={500}
               value={wallets}

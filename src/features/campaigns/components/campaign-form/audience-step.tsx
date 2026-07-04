@@ -46,6 +46,11 @@ interface AudienceStepProps {
 }
 
 const getEstimatedRecipientsValue = (estimate: CampaignAudienceEstimate) => {
+  // Canonical field per POST /campaigns/{id}/audience/estimate, with legacy
+  // fallbacks for older response shapes.
+  if (typeof estimate.recipientCount === "number") {
+    return estimate.recipientCount;
+  }
   if (typeof estimate.estimatedRecipients === "number") {
     return estimate.estimatedRecipients;
   }

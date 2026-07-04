@@ -30,6 +30,90 @@ export interface CampaignAudienceSelection {
 export interface CampaignAudienceEstimate {
   recipients?: number;
   estimatedRecipients?: number;
+  /** Canonical field per POST /campaigns/{id}/audience/estimate. */
+  recipientCount?: number;
+  excludedBySmartSending?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * The campaign's in-app push variant (docs/backend.md). Saved via
+ * `PUT /campaigns/{id}` as `pushContent` (stored under `channelsContent.inapp`)
+ * and consumed by `POST /campaigns/{id}/send-inapp`.
+ */
+export interface CampaignPushContent {
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+}
+
+export interface CampaignSendInAppResult {
+  campaignRunId?: string;
+  recipientCount?: number;
+  deliveredNowCount?: number;
+  skippedCount?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Engagement analytics (docs/backend.md). Rates are percentages (2 dp);
+ * open/click denominators use `delivered` when ACS delivery events exist,
+ * falling back to `sent`.
+ */
+export interface CampaignEmailFunnel {
+  sent?: number;
+  delivered?: number;
+  failed?: number;
+  bounces?: number;
+  complaints?: number;
+  suppressed?: number;
+  unsubscribes?: number;
+  uniqueOpens?: number;
+  totalClicks?: number;
+  uniqueClicks?: number;
+  deliveryRate?: number;
+  openRate?: number;
+  clickRate?: number;
+  clickToOpenRate?: number;
+  bounceRate?: number;
+  unsubscribeRate?: number;
+  [key: string]: unknown;
+}
+
+export interface CampaignInAppFunnel {
+  sent?: number;
+  delivered?: number;
+  viewed?: number;
+  clicked?: number;
+  dismissed?: number;
+  deliveryRate?: number;
+  viewRate?: number;
+  clickRate?: number;
+  dismissRate?: number;
+  [key: string]: unknown;
+}
+
+export interface CampaignAnalytics {
+  campaignId?: string;
+  email?: CampaignEmailFunnel;
+  inapp?: CampaignInAppFunnel;
+  totals?: { messagesSent?: number };
+  [key: string]: unknown;
+}
+
+export interface CampaignAnalyticsOverview {
+  rangeDays?: number;
+  email?: CampaignEmailFunnel;
+  inapp?: CampaignInAppFunnel;
+  totals?: { messagesSent?: number };
+  /** Shared monthly message allowance; limit/remaining are null on unlimited tiers. */
+  allowance?: {
+    limitKey?: string;
+    limit?: number | null;
+    used?: number;
+    remaining?: number | null;
+  };
   [key: string]: unknown;
 }
 
@@ -76,6 +160,8 @@ export interface CampaignEditorContent {
   textVersion?: string;
   text?: string;
   assets?: unknown;
+  /** In-app push variant; `null` clears it (POST /campaigns/{id}/editor/saved). */
+  push?: CampaignPushContent | null;
   [key: string]: unknown;
 }
 
@@ -513,6 +599,62 @@ export const campaignsService = {
   launchCampaign(id: string, orgId?: string) {
     return request<{ success?: boolean }>(
       { method: "POST", url: `/campaigns/${id}/launch` },
+      orgId
+    );
+  },
+
+  /**
+   * Save the campaign's in-app push variant (title/body/CTA). Stored under
+   * `channelsContent.inapp` and auto-enables the INAPP channel; consumed by
+   * sendInAppPush (docs/backend.md, PUT /campaigns/{id}).
+   */
+  setPushContent(id: string, push: CampaignPushContent, orgId?: string) {
+    return request<unknown>(
+      { method: "PUT", url: `/campaigns/${id}`, data: { pushContent: push } },
+      orgId
+    );
+  },
+
+  /**
+   * Send the campaign's in-app push to its wallet-reachable audience
+   * (docs/backend.md, POST /campaigns/{id}/send-inapp). Content precedence:
+   * body overrides → saved `channelsContent.inapp` → the linked in-app
+   * template. Immediate fan-out — there is no scheduled push send.
+   */
+  sendInAppPush(
+    id: string,
+    overrides?: Partial<CampaignPushContent>,
+    orgId?: string
+  ) {
+    return request<CampaignSendInAppResult>(
+      {
+        method: "POST",
+        url: `/campaigns/${id}/send-inapp`,
+        data: overrides ?? {},
+      },
+      orgId
+    );
+  },
+
+  /** Per-campaign engagement funnel (GET /campaigns/{id}/analytics). */
+  getAnalytics(id: string, orgId?: string) {
+    return request<CampaignAnalytics>(
+      { method: "GET", url: `/campaigns/${id}/analytics` },
+      orgId
+    );
+  },
+
+  /**
+   * Org-wide per-channel funnels + monthly message allowance
+   * (GET /campaigns/analytics/overview?days=, 1–90, default 30).
+   */
+  getAnalyticsOverview(days = 30, orgId?: string) {
+    return request<CampaignAnalyticsOverview>(
+      {
+        method: "GET",
+        url: "/campaigns/analytics/overview",
+        params: { days },
+      },
       orgId
     );
   },

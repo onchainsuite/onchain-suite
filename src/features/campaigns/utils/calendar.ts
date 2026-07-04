@@ -20,6 +20,14 @@ export const MONTH_NAMES = [
 export const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const WEEK_DAYS_MOBILE = ["S", "M", "T", "W", "T", "F", "S"];
 
+/**
+ * The date a campaign occupies on the calendar: its scheduled slot, or —
+ * for send-now campaigns that never had a schedule — the time it was sent.
+ */
+export function getCampaignCalendarDate(campaign: Campaign): Date | undefined {
+  return campaign.scheduledFor ?? campaign.sentAt;
+}
+
 export function getCampaignsForDate(
   campaigns: Campaign[],
   year: number,
@@ -28,8 +36,9 @@ export function getCampaignsForDate(
   timeZone: string
 ): Campaign[] {
   return campaigns.filter((campaign) => {
-    if (!campaign.scheduledFor) return false;
-    const z = getZonedDateTimeParts(new Date(campaign.scheduledFor), timeZone);
+    const eventDate = getCampaignCalendarDate(campaign);
+    if (!eventDate) return false;
+    const z = getZonedDateTimeParts(new Date(eventDate), timeZone);
     return z.day === day && z.month - 1 === month && z.year === year;
   });
 }

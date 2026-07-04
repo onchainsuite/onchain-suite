@@ -68,6 +68,8 @@ import {
 
 interface TemplateSelectorProps {
   form: UseFormReturn<CampaignFormData>;
+  /** Campaign delivery channel — push campaigns default to push templates. */
+  channel?: "email" | "in-app-push";
   onCreateEditor?: (opts?: { templateName?: string }) => void;
   onSelectTemplate?: (templateId: string) => void;
   onEditTemplate?: (templateId: string, templateName: string) => void;
@@ -76,6 +78,7 @@ interface TemplateSelectorProps {
 
 type SortMode = "used" | "recent" | "oldest" | "name";
 type TabMode = "library" | "saved";
+type ChannelFilter = "email" | "inapp";
 
 type TemplateRow = {
   raw: TemplateItem;
@@ -193,6 +196,7 @@ function TemplatesEmptyState({
 
 export function TemplateSelector({
   form,
+  channel,
   onCreateEditor,
   onSelectTemplate,
   onEditTemplate,
@@ -201,6 +205,9 @@ export function TemplateSelector({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [tab, setTab] = useState<TabMode>("library");
   const [sortMode, setSortMode] = useState<SortMode>("used");
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>(
+    channel === "in-app-push" ? "inapp" : "email"
+  );
   const [templateSearch, setTemplateSearch] = useState("");
   const [recents, setRecents] = useState<Record<string, number>>({});
   const [htmlCache, setHtmlCache] = useState<Record<string, string>>({});
@@ -220,21 +227,26 @@ export function TemplateSelector({
 
   const selectedTemplate = form.watch("selectedTemplate");
   const templatesQuery = useQuery({
-    queryKey: ["templates", "list", orgId, tab, templateSearch, sortMode],
+    queryKey: [
+      "templates",
+      "list",
+      orgId,
+      tab,
+      templateSearch,
+      sortMode,
+      channelFilter,
+    ],
     queryFn: () =>
       templatesService.list(
-        templateSearch.trim().length > 0
-          ? {
-              search: templateSearch.trim(),
-              sort: sortMode,
-              folder: tab === "saved" ? "saved" : undefined,
-              limit: 50,
-            }
-          : {
-              sort: sortMode,
-              folder: tab === "saved" ? "saved" : undefined,
-              limit: 50,
-            },
+        {
+          ...(templateSearch.trim().length > 0
+            ? { search: templateSearch.trim() }
+            : {}),
+          sort: sortMode,
+          folder: tab === "saved" ? "saved" : undefined,
+          channel: channelFilter,
+          limit: 50,
+        },
         orgId ?? undefined
       ),
     retry: false,
@@ -563,6 +575,18 @@ export function TemplateSelector({
               <ListBulletIcon aria-hidden="true" className="h-4 w-4" />
             </Button>
           </div>
+          <Select
+            value={channelFilter}
+            onValueChange={(v) => setChannelFilter(v as ChannelFilter)}
+          >
+            <SelectTrigger className="h-10 w-[150px] rounded-xl border-border bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="email">Email templates</SelectItem>
+              <SelectItem value="inapp">Push templates</SelectItem>
+            </SelectContent>
+          </Select>
           <Select
             value={sortMode}
             onValueChange={(v) => setSortMode(v as SortMode)}

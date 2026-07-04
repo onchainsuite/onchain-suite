@@ -35,7 +35,42 @@ export interface ListTemplatesParams {
   page?: number;
   folder?: string;
   limit?: number;
+  /**
+   * Delivery channel the template targets — "email" | "inapp"
+   * (docs/backend.md: GET /templates?channel= filters exactly).
+   */
+  channel?: "email" | "inapp";
 }
+
+/** In-app template content shape: { channel: "inapp", title, body, ctaLabel?, ctaUrl? }. */
+export interface TemplatePushContent {
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+}
+
+/**
+ * Extract the push payload from an in-app template (`content.channel ===
+ * "inapp"`). Returns null for email templates or empty content.
+ */
+export const extractTemplatePushContent = (
+  raw: unknown
+): TemplatePushContent | null => {
+  const obj = isJsonObject(raw) ? raw : {};
+  const content = isJsonObject(obj.content) ? obj.content : {};
+  if (content.channel !== "inapp") return null;
+  const title = typeof content.title === "string" ? content.title : "";
+  const body = typeof content.body === "string" ? content.body : "";
+  if (title.trim().length === 0 && body.trim().length === 0) return null;
+  return {
+    title,
+    body,
+    ctaLabel:
+      typeof content.ctaLabel === "string" ? content.ctaLabel : undefined,
+    ctaUrl: typeof content.ctaUrl === "string" ? content.ctaUrl : undefined,
+  };
+};
 
 const pickOrgId = (orgId?: string) =>
   orgId ?? getSelectedOrganizationId() ?? null;

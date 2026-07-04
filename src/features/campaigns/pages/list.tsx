@@ -11,7 +11,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -27,12 +26,30 @@ import {
 
 import { cn } from "@/lib/utils";
 
+import { CampaignsAnalyticsOverview } from "../../campaigns/components/analytics-overview";
 import { CampaignsCalendar } from "../../campaigns/components/calendar";
+import { CreateCampaignSheet } from "../../campaigns/components/campaign-form/create-campaign-sheet";
 import { CampaignsTable } from "../../campaigns/components/table";
 import { campaignsService } from "../campaigns.service";
 import type { CampaignStatus } from "../types/campaign";
 import { templatesService } from "@/features/templates/templates.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+
+type ViewMode = "list" | "calendar" | "library";
+
+const normalizeStatus = (value: unknown): CampaignStatus => {
+  switch (value) {
+    case "draft":
+    case "scheduled":
+    case "sending":
+    case "sent":
+    case "paused":
+    case "failed":
+      return value;
+    default:
+      return "draft";
+  }
+};
 
 export function CampaignsListsView() {
   const router = useRouter();
@@ -42,22 +59,6 @@ export function CampaignsListsView() {
 
   const filterTriggerClassName =
     "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
-
-  type ViewMode = "list" | "calendar" | "library";
-
-  const normalizeStatus = (value: unknown): CampaignStatus => {
-    switch (value) {
-      case "draft":
-      case "scheduled":
-      case "sending":
-      case "sent":
-      case "paused":
-      case "failed":
-        return value;
-      default:
-        return "draft";
-    }
-  };
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,7 +128,8 @@ export function CampaignsListsView() {
     },
     onSuccess: (createdCampaignId) => {
       const qs = new URLSearchParams();
-      qs.set("step", "3");
+      // Step 2 is the template step in the 3-step wizard.
+      qs.set("step", "2");
       qs.set("campaign", createdCampaignId);
       router.push(`${PRIVATE_ROUTES.NEW_CAMPAIGN}?${qs.toString()}`);
     },
@@ -164,33 +166,48 @@ export function CampaignsListsView() {
   }, [campaigns, dateRange, normalizedQuery, statusFilter, typeFilter]);
 
   const hasCampaigns = filteredCampaigns.length > 0;
-  const calendarCampaigns =
-    calendarQuery.data && calendarQuery.data.length > 0
-      ? calendarQuery.data.map((item) => {
-          const scheduledFor = item.scheduledFor
-            ? new Date(String(item.scheduledFor))
-            : undefined;
-          const sentAt = item.sentAt
-            ? new Date(String(item.sentAt))
-            : undefined;
-          return {
-            id: String(item.id ?? ""),
-            name: String(item.name ?? "Untitled"),
-            type: "email-blast" as const,
-            status: normalizeStatus(item.status),
-            subject: "",
-            audience: [] as string[],
-            recipients: 0,
-            createdAt: new Date(),
-            scheduledFor:
-              scheduledFor && !Number.isNaN(scheduledFor.getTime())
-                ? scheduledFor
-                : undefined,
-            sentAt:
-              sentAt && !Number.isNaN(sentAt.getTime()) ? sentAt : undefined,
-          };
-        })
-      : campaigns;
+
+  // GET /campaigns/calendar returns only *scheduled* campaigns, so merge it
+  // with the full list — otherwise sent/draft/failed campaigns never appear
+  // on the calendar. List rows are richer (type/subject), so they win on id
+  // collisions; calendar-only rows are appended.
+  const calendarCampaigns = useMemo(() => {
+    const fromCalendar = (calendarQuery.data ?? []).map((item) => {
+      const scheduledFor = item.scheduledFor
+        ? new Date(String(item.scheduledFor))
+        : undefined;
+      const sentAt = item.sentAt ? new Date(String(item.sentAt)) : undefined;
+      return {
+        id: String(item.id ?? ""),
+        name: String(item.name ?? "Untitled"),
+        type: "email-blast" as const,
+        status: normalizeStatus(item.status),
+        subject: "",
+        audience: [] as string[],
+        recipients: 0,
+        createdAt: new Date(),
+        scheduledFor:
+          scheduledFor && !Number.isNaN(scheduledFor.getTime())
+            ? scheduledFor
+            : undefined,
+        sentAt: sentAt && !Number.isNaN(sentAt.getTime()) ? sentAt : undefined,
+      };
+    });
+    const calendarById = new Map(fromCalendar.map((c) => [c.id, c]));
+    const listIds = new Set(campaigns.map((c) => c.id));
+
+    const merged = campaigns.map((c) => {
+      const cal = calendarById.get(c.id);
+      if (!cal) return c;
+      return {
+        ...c,
+        scheduledFor: c.scheduledFor ?? cal.scheduledFor,
+        sentAt: c.sentAt ?? cal.sentAt,
+      };
+    });
+    const extras = fromCalendar.filter((c) => !listIds.has(c.id));
+    return [...merged, ...extras];
+  }, [calendarQuery.data, campaigns]);
 
   const filteredCalendarCampaigns = useMemo(() => {
     const cutoff =
@@ -310,14 +327,16 @@ export function CampaignsListsView() {
               Calendar
             </button>
           </div>
-          <Button asChild size="sm" className="rounded-xl">
-            <Link href={PRIVATE_ROUTES.NEW_CAMPAIGN}>
+          <CreateCampaignSheet>
+            <Button size="sm" className="rounded-xl">
               <PlusIcon className="mr-2 h-4 w-4" aria-hidden="true" />
               Create campaign
-            </Link>
-          </Button>
+            </Button>
+          </CreateCampaignSheet>
         </div>
       </div>
+
+      {viewMode === "list" ? <CampaignsAnalyticsOverview /> : null}
 
       {viewMode !== "library" ? (
         <div className="mx-2 mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mx-0">
@@ -551,9 +570,9 @@ export function CampaignsListsView() {
         ) : templatesQuery.data && templatesQuery.data.length > 0 ? (
           <div
             className={cn(
-              "gap-4 transition-all duration-300",
+              "gap-3 transition-all duration-300",
               templateViewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2"
+                ? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
                 : "flex flex-col"
             )}
           >
@@ -573,26 +592,34 @@ export function CampaignsListsView() {
                   className="overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:shadow-lg"
                 >
                   <div className="aspect-3/2 bg-muted relative overflow-hidden">
+                    {/* unoptimized: preview URLs come from arbitrary hosts;
+                        the image loader throws (crashing the view) for any
+                        host missing from next.config remotePatterns. */}
                     <Image
                       src={previewSrc}
                       alt={t.name}
                       fill
+                      unoptimized
                       className="object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                      }}
                     />
                   </div>
-                  <div className="flex items-center justify-between gap-3 p-4">
+                  <div className="flex items-center justify-between gap-2 p-3">
                     <div className="min-w-0">
-                      <div className="truncate font-semibold text-foreground">
+                      <div className="truncate text-sm font-semibold text-foreground">
                         {t.name}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="truncate text-xs text-muted-foreground">
                         {updated}
                       </div>
                     </div>
                     <Button
                       type="button"
                       size="sm"
-                      className="rounded-xl"
+                      className="shrink-0 rounded-xl"
                       disabled={
                         createCampaignFromTemplateMutation.isPending &&
                         createCampaignFromTemplateMutation.variables === t.id
@@ -601,7 +628,7 @@ export function CampaignsListsView() {
                         createCampaignFromTemplateMutation.mutate(t.id)
                       }
                     >
-                      Use template
+                      Use
                     </Button>
                   </div>
                 </div>
@@ -657,12 +684,12 @@ export function CampaignsListsView() {
             schedule follow-ups, and view performance in this table.
           </p>
           <div className="mt-6 flex gap-3">
-            <Button asChild className="rounded-xl">
-              <Link href={PRIVATE_ROUTES.NEW_CAMPAIGN}>
+            <CreateCampaignSheet>
+              <Button className="rounded-xl">
                 <PlusIcon className="mr-2 h-4 w-4" aria-hidden="true" />
                 Create campaign
-              </Link>
-            </Button>
+              </Button>
+            </CreateCampaignSheet>
           </div>
         </div>
       )}
