@@ -2,7 +2,7 @@
 
 import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -13,6 +13,24 @@ import type { CampaignFormData } from "../../validations";
 import { EmailMessageForm } from "./email-message-form";
 import { TemplateSelector } from "./template-selector";
 import { templatesService } from "@/features/templates/templates.service";
+
+/**
+ * Empty design document for the external email builder. Seeded via
+ * INIT_EMAIL_BUILDER when creating a new template so the editor starts blank
+ * instead of restoring the campaign's previously saved design.
+ */
+const BLANK_EDITOR_DOCUMENT = {
+  root: {
+    type: "EmailLayout",
+    data: {
+      backdropColor: "#F5F5F5",
+      canvasColor: "#FFFFFF",
+      textColor: "#262626",
+      fontFamily: "MODERN_SANS",
+      childrenIds: [],
+    },
+  },
+};
 
 /** URL-safe base64 (matches the editor page's decodeBase64Url). */
 function toBase64Url(value: string): string {
@@ -45,6 +63,9 @@ export function TemplateStep({
   senderIdentitiesLoading,
 }: TemplateStepProps) {
   const router = useRouter();
+  // Guards against out-of-order writes when templates are selected in quick
+  // succession — only the latest selection is applied to the campaign.
+  const applyTemplateSeqRef = useRef(0);
 
   const normalizedCampaignId = useMemo(
     () => (campaignId && campaignId.trim().length > 0 ? campaignId.trim() : ""),
@@ -107,9 +128,7 @@ export function TemplateStep({
                   }
                 } catch (e: unknown) {
                   const message =
-                    e instanceof Error
-                      ? e.message
-                      : "Failed to apply template";
+                    e instanceof Error ? e.message : "Failed to apply template";
                   toast.error(message);
                 }
               }
@@ -146,17 +165,34 @@ export function TemplateStep({
               if (subject) params.set("subject", subject);
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
-            onSelectTemplate={(templateId) => {
+            onSelectTemplate={async (templateId) => {
               if (!normalizedCampaignId) return;
               const clean = templateId.trim();
               if (!clean) return;
-              campaignsService
-                .setTemplate(normalizedCampaignId, { templateId: clean })
-                .catch((e: unknown) => {
-                  const message =
-                    e instanceof Error ? e.message : "Failed to apply template";
-                  toast.error(message);
+              const seq = ++applyTemplateSeqRef.current;
+              try {
+                // Selecting a template must also replace the campaign's
+                // rendered email content — setTemplate alone leaves the
+                // previously saved design in place, so preview/send would
+                // still use the old email.
+                const full = await templatesService.get(clean);
+                if (applyTemplateSeqRef.current !== seq) return;
+                const content = extractEmailContent(full);
+                await campaignsService.setTemplate(normalizedCampaignId, {
+                  templateId: clean,
                 });
+                if (applyTemplateSeqRef.current !== seq) return;
+                await campaignsService.editorSaved(normalizedCampaignId, {
+                  html: content.html,
+                  json: content.json,
+                  textVersion: content.textVersion,
+                  assets: content.assets,
+                });
+              } catch (e: unknown) {
+                const message =
+                  e instanceof Error ? e.message : "Failed to apply template";
+                toast.error(message);
+              }
             }}
             onCreateEditor={(opts) => {
               const params = new URLSearchParams();
@@ -181,6 +217,11 @@ export function TemplateStep({
               if (senderEmail) params.set("senderEmail", senderEmail);
               if (opts?.templateName)
                 params.set("templateName", opts.templateName);
+
+              const blankB64 = toBase64Url(
+                JSON.stringify(BLANK_EDITOR_DOCUMENT)
+              );
+              if (blankB64) params.set("initialJsonB64", blankB64);
 
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
