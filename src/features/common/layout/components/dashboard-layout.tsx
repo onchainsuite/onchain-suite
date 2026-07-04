@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  BoltIcon,
+  // BoltIcon,
   Cog6ToothIcon,
-  CpuChipIcon,
-  DocumentTextIcon,
-  EnvelopeIcon,
+  // CpuChipIcon,
+  // DocumentTextIcon,
+  // EnvelopeIcon,
   MegaphoneIcon,
   Squares2X2Icon,
   UserGroupIcon,
@@ -133,26 +133,28 @@ function DashboardLayoutInner({
       href: PRIVATE_ROUTES.AUDIENCE,
       icon: <UserGroupIcon className="h-4 w-4" aria-hidden="true" />,
     },
-    {
-      label: "Forms",
-      href: PRIVATE_ROUTES.FORMS,
-      icon: <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />,
-    },
-    {
-      label: "Inbox",
-      href: PRIVATE_ROUTES.INBOX,
-      icon: <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />,
-    },
-    {
-      label: "Automations",
-      href: PRIVATE_ROUTES.AUTOMATIONS,
-      icon: <BoltIcon className="h-4 w-4" aria-hidden="true" />,
-    },
-    {
-      label: "Intelligence",
-      href: PRIVATE_ROUTES.INTELLIGENCE,
-      icon: <CpuChipIcon className="h-4 w-4" aria-hidden="true" />,
-    },
+    // Hidden in production while these sections are still in development —
+    // uncomment (and the matching icon imports above) to restore.
+    // {
+    //   label: "Forms",
+    //   href: PRIVATE_ROUTES.FORMS,
+    //   icon: <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />,
+    // },
+    // {
+    //   label: "Inbox",
+    //   href: PRIVATE_ROUTES.INBOX,
+    //   icon: <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />,
+    // },
+    // {
+    //   label: "Automations",
+    //   href: PRIVATE_ROUTES.AUTOMATIONS,
+    //   icon: <BoltIcon className="h-4 w-4" aria-hidden="true" />,
+    // },
+    // {
+    //   label: "Intelligence",
+    //   href: PRIVATE_ROUTES.INTELLIGENCE,
+    //   icon: <CpuChipIcon className="h-4 w-4" aria-hidden="true" />,
+    // },
     {
       label: "Settings",
       href: PRIVATE_ROUTES.SETTINGS,
