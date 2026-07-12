@@ -10,7 +10,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-import { intelligenceService } from "../intelligence.service";
+import { getSelectedOrganizationId } from "@/lib/utils";
+
+import { billingService } from "@/features/billing/billing.service";
 
 const compact = (n: number) => {
   if (!Number.isFinite(n)) return "0";
@@ -26,16 +28,20 @@ const R = (SIZE - STROKE) / 2;
 const C = 2 * Math.PI * R;
 
 /**
- * Dynamic GoldRush API credit meter, rendered as a compact circular usage ring
- * with the AI/credit icon at its center. The numeric usage, remaining credits
- * and period detail surface on hover. MCP chat + on-chain enrichment consume
- * credits; SQL queries run against your own DB and are free. Refreshes when
- * other intelligence requests invalidate the ["intelligence","credits"] key.
+ * AI credit meter, rendered as a compact circular usage ring with the AI
+ * icon at its center. Reads the org's `meters.aiCredits` from
+ * `GET /billing/plan-usage/:organizationId` — the weighted meter that gates
+ * the assistant, SQL generation, suggestions and the MCP agent (402
+ * AI_CREDITS_EXCEEDED). Numeric usage and remaining credits surface on hover.
+ * Refreshes when other intelligence requests invalidate the
+ * ["intelligence","credits"] key prefix.
  */
 export function CreditMeter() {
+  const orgId = getSelectedOrganizationId();
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["intelligence", "credits"],
-    queryFn: () => intelligenceService.getCredits(),
+    queryKey: ["intelligence", "credits", orgId],
+    queryFn: () => billingService.getPlanUsage(orgId ?? undefined),
+    enabled: orgId !== null,
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 30_000,
@@ -46,23 +52,23 @@ export function CreditMeter() {
       <div className="h-[42px] w-[42px] animate-pulse rounded-full border border-border bg-card" />
     );
   }
-  if (isError || !data) return null;
+  const meter = data?.meters?.aiCredits;
+  if (isError || !meter) return null;
 
-  const used = Math.max(0, Number(data.used) || 0);
-  const limit = Math.max(0, Number(data.limit) || 0);
-  const remaining =
-    typeof data.remaining === "number"
-      ? Math.max(0, data.remaining)
-      : Math.max(0, limit - used);
+  const used = Math.max(0, Number(meter.used) || 0);
+  const limit = Math.max(0, Number(meter.limit) || 0);
+  const remaining = Math.max(0, limit - used);
   const percent =
-    typeof data.percent === "number"
-      ? Math.min(100, Math.max(0, data.percent))
+    typeof meter.percent === "number" && Number.isFinite(meter.percent)
+      ? Math.min(100, Math.max(0, meter.percent))
       : limit > 0
         ? Math.min(100, (used / limit) * 100)
         : 0;
 
   const status =
-    data.status === "warn" || data.status === "exceeded" ? data.status : "ok";
+    meter.status === "warn" || meter.status === "exceeded"
+      ? meter.status
+      : "ok";
   const tone =
     status === "exceeded"
       ? {
@@ -135,11 +141,11 @@ export function CreditMeter() {
           <p className="mt-1">
             {status === "exceeded"
               ? "Limit reached — upgrade to continue."
-              : `${compact(remaining)} credits remaining this ${data.period}.`}
+              : `${compact(remaining)} credits remaining this month.`}
           </p>
           <p className="mt-1 text-muted-foreground">
-            Used by MCP chat and on-chain enrichment. SQL queries run on your
-            own data and don&apos;t spend credits.
+            Used by AI chat, SQL generation, query suggestions and the MCP
+            agent. Running saved SQL against your own data is free.
           </p>
         </TooltipContent>
       </Tooltip>

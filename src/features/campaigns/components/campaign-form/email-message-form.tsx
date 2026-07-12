@@ -1,5 +1,9 @@
 "use client";
-import { EnvelopeIcon } from "@heroicons/react/24/outline";
+import {
+  EnvelopeIcon,
+  ExclamationTriangleIcon,
+} from "@heroicons/react/24/outline";
+import Link from "next/link";
 import type { UseFormReturn } from "react-hook-form";
 
 import { Button } from "@/ui/button";
@@ -31,10 +35,18 @@ export interface EmailMessageFormProps {
 export function EmailMessageForm({
   form,
   verifiedSenderIdentities,
-  senderIdentitiesLoading: _senderIdentitiesLoading,
+  senderIdentitiesLoading,
 }: EmailMessageFormProps) {
   const useReplyTo = form.watch("useReplyTo");
   const selectedSenderEmail = form.watch("senderEmail");
+
+  const trimmedSenderEmail = (selectedSenderEmail ?? "").trim().toLowerCase();
+  const matchesVerifiedSender = verifiedSenderIdentities.some(
+    (identity) => identity.email.toLowerCase() === trimmedSenderEmail
+  );
+  const fallbackSender =
+    verifiedSenderIdentities.find((identity) => identity.isDefault) ??
+    verifiedSenderIdentities[0];
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -106,15 +118,30 @@ export function EmailMessageForm({
         )}
       />
 
-      {/* <div className="flex gap-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-        <AlertCircle className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-        <p className="text-sm text-blue-600 dark:text-blue-400 leading-relaxed">
-          Editors, admins, and owners can send for the organization. If this
-          sender email matches a verified sender identity, the backend uses it;
-          otherwise it falls back to the org default sender, another verified
-          sender, or the platform sender.
-        </p>
-      </div> */}
+      {!senderIdentitiesLoading && verifiedSenderIdentities.length === 0 ? (
+        <div className="flex gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+          <ExclamationTriangleIcon
+            className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400"
+            aria-hidden="true"
+          />
+          <div className="text-sm leading-relaxed text-amber-700 dark:text-amber-400">
+            <p className="font-medium">
+              No verified sender identity — this campaign will send from the
+              platform address (DoNotReply@…azurecomm.net).
+            </p>
+            <p className="mt-1">
+              Verify your domain and add a sender address in{" "}
+              <Link
+                href="/settings?tab=account"
+                className="font-medium underline underline-offset-2"
+              >
+                Settings → Account
+              </Link>{" "}
+              so emails send from your own domain.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <FormField
         control={form.control}
@@ -133,20 +160,18 @@ export function EmailMessageForm({
                 className="h-10 rounded-xl border-border bg-background transition-all duration-300"
               />
             </FormControl>
-            {/* <FormDescription>
-              {senderIdentitiesLoading
-                ? "Loading verified sender identities for this organization."
-                : verifiedSenderIdentities.length > 0
-                  ? "Matching a verified sender identity uses that address directly; otherwise the backend falls back to the organization sender."
-                  : "No verified sender identities found yet, so the backend will fall back to the platform sender until your organization adds one."}
-            </FormDescription>
-            {selectedSenderEmail.trim().length > 0 ? (
-              <div className="text-xs text-muted-foreground">
-                {selectedVerifiedSender
-                  ? `This matches verified sender ${selectedVerifiedSender.email}.`
-                  : "This does not match a verified sender identity, so backend fallback rules will be used when sending."}
-              </div>
-            ) : null} */}
+            {trimmedSenderEmail.length > 0 &&
+            verifiedSenderIdentities.length > 0 &&
+            !matchesVerifiedSender ? (
+              <FormDescription className="text-amber-600 dark:text-amber-400">
+                This address isn&apos;t a verified sender identity, so the email
+                will be sent from{" "}
+                {fallbackSender
+                  ? `${fallbackSender.email} instead`
+                  : "the organization's verified sender instead"}
+                . Pick a verified sender below to use it directly.
+              </FormDescription>
+            ) : null}
             <FormMessage />
           </FormItem>
         )}
@@ -175,10 +200,7 @@ export function EmailMessageForm({
                   const currentSenderName = (
                     form.getValues("senderName") ?? ""
                   ).trim();
-                  if (
-                    currentSenderName.length === 0 ||
-                    currentSenderName === "Pivotup Media"
-                  ) {
+                  if (currentSenderName.length === 0) {
                     form.setValue("senderName", identity.name, {
                       shouldDirty: true,
                       shouldTouch: true,

@@ -604,6 +604,31 @@ export const campaignsService = {
   },
 
   /**
+   * Ensure the campaign has its delivery channel enabled — the launch
+   * validator rejects campaigns with an empty `channelsUsed` ("At least one
+   * channel is required"). `PUT /campaigns/{id}/channels` is documented for
+   * smart-campaign channels (inapp/telegram/discord/x), so if it rejects a
+   * value (e.g. "email"), fall back to the campaign-update path.
+   */
+  async ensureChannels(id: string, channelsUsed: string[], orgId?: string) {
+    try {
+      await request<unknown>(
+        {
+          method: "PUT",
+          url: `/campaigns/${id}/channels`,
+          data: { channelsUsed },
+        },
+        orgId
+      );
+    } catch {
+      await request<unknown>(
+        { method: "PUT", url: `/campaigns/${id}`, data: { channelsUsed } },
+        orgId
+      );
+    }
+  },
+
+  /**
    * Save the campaign's in-app push variant (title/body/CTA). Stored under
    * `channelsContent.inapp` and auto-enables the INAPP channel; consumed by
    * sendInAppPush (docs/backend.md, PUT /campaigns/{id}).

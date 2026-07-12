@@ -9,6 +9,7 @@ import { fadeInUp, staggerContainer } from "../../utils";
 import UpgradePlanDialog from "./upgrade-plan-dialog";
 import { billingService } from "@/features/billing/billing.service";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 const pickString = (...values: unknown[]) => {
   for (const value of values) {
@@ -217,8 +218,19 @@ const PlanUsage = () => {
           </div>
 
           {overviewQuery.isLoading || (isOpen && usageQuery.isLoading) ? (
-            <div className="py-8 text-center text-muted-foreground">
-              Loading billing usage...
+            <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">
+              {["emails", "contacts", "onchain"].map((key) => (
+                <div
+                  key={key}
+                  className="flex flex-col items-center rounded-2xl border border-border/60 bg-card p-6 lg:p-8"
+                >
+                  <Skeleton className="h-28 w-28 rounded-full lg:h-32 lg:w-32" />
+                  <div className="mt-4 flex flex-col items-center gap-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : isFreeFallback ? (
             <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center text-sm text-muted-foreground">

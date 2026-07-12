@@ -220,9 +220,9 @@ function Hero() {
     <section
       ref={gate.ref as React.RefObject<HTMLElement>}
       data-anim={gate.anim}
+      data-landing-hero=""
       className="relative overflow-hidden pb-10 pt-10 md:pt-12"
     >
-      <div className="grid-bg" />
       <div
         className="orb"
         style={{
@@ -1703,7 +1703,7 @@ function Cta() {
 
 export function LandingV2() {
   return (
-    <PageShell>
+    <PageShell navCtaWatchesHero>
       <Hero />
       <Networks />
       <Problem />

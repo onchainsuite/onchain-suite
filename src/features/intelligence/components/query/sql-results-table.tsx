@@ -37,7 +37,15 @@ export interface SqlResultsTableProps {
   onEmail: (email: string) => void;
 }
 
+// ISO 8601 date-times (e.g. 2026-07-12T05:55:31.554Z) as returned by the API.
+const ISO_TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/;
+
 const formatCell = (v: unknown): string => {
+  if (typeof v === "string" && ISO_TIMESTAMP_RE.test(v)) {
+    const parsed = new Date(v);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleString();
+  }
   if (typeof v === "string" || typeof v === "number") return String(v);
   if (v === null || v === undefined) return "";
   if (Array.isArray(v)) return "[array]";

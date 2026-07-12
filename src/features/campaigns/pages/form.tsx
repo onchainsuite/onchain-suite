@@ -37,18 +37,30 @@ import {
   type CampaignFormData,
   campaignFormSchema,
 } from "../../campaigns/validations";
-import { audienceService } from "@/features/audience/audience.service";
+import {
+  audienceService,
+  type AudienceTag,
+} from "@/features/audience/audience.service";
 import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { AudienceStep } from "@/features/campaigns/components/campaign-form/audience-step";
 import { ConfirmationPage } from "@/features/campaigns/components/campaign-form/campaign-confirmation";
 import { ScheduleSendDialog } from "@/features/campaigns/components/campaign-form/schedule-send-dialog";
 import { TemplateStep } from "@/features/campaigns/components/campaign-form/template-step";
-import { partitionAudienceSelection } from "@/features/campaigns/lib/audience";
+import {
+  partitionAudienceSelection,
+  resolveTagsToProfileIds,
+  tagSelectionId,
+} from "@/features/campaigns/lib/audience";
+import {
+  isRateLimitError,
+  syncAudienceSettings,
+} from "@/features/campaigns/lib/audience-sync";
 import type { List, Segment } from "@/features/campaigns/types";
 import {
   type IntelligenceSegment,
   intelligenceService,
 } from "@/features/intelligence/intelligence.service";
+import { senderIdentitiesService } from "@/features/settings/sender-identities.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import { useActiveTimezone } from "@/shared/hooks/client/use-timezones";
 
@@ -69,14 +81,6 @@ const sendOptions = new Set<CampaignFormData["sendOption"]>([
   "now",
   "schedule",
 ]);
-
-interface SenderIdentityOption {
-  id: string;
-  email: string;
-  name: string;
-  isDefault: boolean;
-  status: "verified" | "pending" | "failed";
-}
 
 interface OrganizationMemberPermissions {
   canManageMembers: boolean;
@@ -178,28 +182,6 @@ const toCampaignSegment = (value: unknown): Segment | null => {
   };
 };
 
-const toCampaignList = (value: unknown): List | null => {
-  if (!isJsonObject(value)) return null;
-  const id = pickString(value.id);
-  if (!id) return null;
-
-  const name =
-    pickString(
-      value.name,
-      value.fullName,
-      value.email,
-      value.wallet,
-      value.walletAddress
-    ) ?? id;
-
-  return {
-    id,
-    name,
-    count: 1,
-    starred: false,
-  };
-};
-
 const normalizeIntelligenceSegments = (
   payload: unknown
 ): IntelligenceSegment[] => {
@@ -212,63 +194,6 @@ const normalizeIntelligenceSegments = (
     return root.data as IntelligenceSegment[];
   }
   return [];
-};
-
-const resolveSenderStatus = (
-  ...values: unknown[]
-): SenderIdentityOption["status"] => {
-  for (const value of values) {
-    if (typeof value !== "string") continue;
-    const normalized = value.trim().toLowerCase();
-    if (normalized.includes("ver")) return "verified";
-    if (normalized.includes("pend")) return "pending";
-    if (normalized.includes("fail")) return "failed";
-  }
-  return "pending";
-};
-
-const normalizeSenderIdentities = (
-  payload: unknown
-): SenderIdentityOption[] => {
-  return toArray(payload)
-    .map((entry, index) => {
-      if (!isJsonObject(entry)) return null;
-      const email = pickString(
-        entry.email,
-        entry.senderEmail,
-        entry.address,
-        entry.fromEmail
-      );
-      if (!email) return null;
-      return {
-        id:
-          pickString(entry.id, entry.senderId, entry.identityId) ??
-          `${email}-${index}`,
-        email,
-        name:
-          pickString(entry.name, entry.senderName, entry.displayName) ??
-          email.split("@")[0] ??
-          "Sender",
-        isDefault:
-          pickBooleanLike(entry.isDefault, entry.default, entry.isPrimary) ??
-          false,
-        status: resolveSenderStatus(
-          entry.status,
-          entry.verificationStatus,
-          entry.state,
-          pickBooleanLike(entry.verified, entry.isVerified)
-            ? "verified"
-            : "pending"
-        ),
-      } satisfies SenderIdentityOption;
-    })
-    .filter((entry): entry is SenderIdentityOption => Boolean(entry))
-    .sort((left, right) => {
-      if (left.isDefault !== right.isDefault) {
-        return left.isDefault ? -1 : 1;
-      }
-      return left.email.localeCompare(right.email);
-    });
 };
 
 const normalizeMemberPermissions = (
@@ -335,6 +260,35 @@ const asSendOption = (
     : undefined;
 };
 
+/**
+ * srcDoc email preview that grows to the rendered email's height (about:srcdoc
+ * iframes are same-origin, so the content document is measurable) — the page
+ * scrolls naturally instead of trapping the email in a short inner scroller.
+ */
+function EmailPreviewFrame({ html }: { html: string }) {
+  const frameRef = useRef<HTMLIFrameElement | null>(null);
+  const [height, setHeight] = useState(600);
+  const measure = useCallback(() => {
+    const doc = frameRef.current?.contentDocument;
+    if (!doc) return;
+    const next = Math.max(
+      doc.body?.scrollHeight ?? 0,
+      doc.documentElement?.scrollHeight ?? 0
+    );
+    if (next > 0) setHeight(Math.min(Math.max(next + 16, 420), 6000));
+  }, []);
+  return (
+    <iframe
+      ref={frameRef}
+      title="Email HTML preview"
+      srcDoc={html}
+      onLoad={measure}
+      className="w-full bg-white"
+      style={{ border: "none", height }}
+    />
+  );
+}
+
 function CampaignPreviewStep({
   form,
   campaignId,
@@ -372,6 +326,21 @@ function CampaignPreviewStep({
     };
   };
 
+  const extractMissingFields = (payload: unknown): string[] => {
+    const candidates = [
+      payload,
+      isJsonObject(payload) ? payload.data : undefined,
+    ];
+    for (const candidate of candidates) {
+      if (isJsonObject(candidate) && Array.isArray(candidate.missingFields)) {
+        return candidate.missingFields.filter(
+          (f): f is string => typeof f === "string" && f.length > 0
+        );
+      }
+    }
+    return [];
+  };
+
   const getCanonicalPreview = async () => {
     if (!normalizedCampaignId) throw new Error("Missing campaign id.");
     const preview = await campaignsService.preview(
@@ -386,6 +355,7 @@ function CampaignPreviewStep({
       return {
         html: extracted.html ?? "",
         text: extracted.textVersion ?? "",
+        missingFields: extractMissingFields(preview),
       };
     }
 
@@ -400,6 +370,7 @@ function CampaignPreviewStep({
         return {
           html: extracted.html ?? "",
           text: extracted.textVersion ?? "",
+          missingFields: [] as string[],
         };
       }
     } catch (_e) {
@@ -459,6 +430,7 @@ function CampaignPreviewStep({
 
   const previewHtml = previewQuery.data?.html ?? "";
   const previewText = previewQuery.data?.text ?? "";
+  const previewMissingFields = previewQuery.data?.missingFields ?? [];
   const previewErrorMessage =
     previewQuery.error instanceof Error
       ? previewQuery.error.message
@@ -596,6 +568,38 @@ function CampaignPreviewStep({
                   : "Delivery starts immediately."}
             </p>
           </div>
+
+          {!isPush && previewMissingFields.length > 0 ? (
+            <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+              <div className="text-sm font-medium text-foreground">
+                {previewMissingFields.length} merge variable
+                {previewMissingFields.length > 1 ? "s" : ""} won&apos;t resolve
+                for this audience
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The send will be blocked until these have values or fallbacks:
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {previewMissingFields.map((field) => (
+                  <span
+                    key={field}
+                    className="rounded-full bg-background px-2 py-0.5 font-mono text-[11px] text-foreground ring-1 ring-border"
+                  >
+                    {`{{ ${field} }}`}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Edit the template and add a fallback — e.g.{" "}
+                <span className="font-mono">
+                  {'{{ ens_name | default: "there" }}'}
+                </span>{" "}
+                — or switch to a wallet-aware token like{" "}
+                <span className="font-mono">{"{{ greeting_name }}"}</span>,
+                which never renders blank.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-4">
@@ -655,21 +659,21 @@ function CampaignPreviewStep({
             </div>
           </div>
 
-          <div className="mt-4 h-[65vh] overflow-hidden rounded-xl border border-border">
+          <div className="mt-4 overflow-hidden rounded-xl border border-border">
             {!normalizedCampaignId ? (
-              <div className="flex h-full items-center justify-center bg-card p-6 text-center text-sm text-muted-foreground">
+              <div className="flex min-h-[420px] items-center justify-center bg-card p-6 text-center text-sm text-muted-foreground">
                 Missing campaign id.
               </div>
             ) : isPush ? (
               pushPreviewQuery.isLoading ? (
                 <div
-                  className="flex h-full animate-pulse flex-col items-center justify-center gap-3 bg-card p-6"
+                  className="flex min-h-[420px] animate-pulse flex-col items-center justify-center gap-3 bg-card p-6"
                   aria-hidden="true"
                 >
                   <div className="h-24 w-full max-w-sm rounded-xl bg-muted" />
                 </div>
               ) : pushPreview ? (
-                <div className="flex h-full items-center justify-center bg-muted/30 p-6">
+                <div className="flex min-h-[420px] items-center justify-center bg-muted/30 p-6">
                   {/* Mock in-app notification card */}
                   <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-lg">
                     <div className="flex items-start gap-3">
@@ -698,7 +702,7 @@ function CampaignPreviewStep({
                   </div>
                 </div>
               ) : (
-                <div className="flex h-full items-center justify-center bg-card p-6 text-center">
+                <div className="flex min-h-[420px] items-center justify-center bg-card p-6 text-center">
                   <div className="max-w-md space-y-2">
                     <div className="text-sm font-medium text-foreground">
                       No push content yet
@@ -712,7 +716,7 @@ function CampaignPreviewStep({
               )
             ) : previewQuery.isLoading ? (
               <div
-                className="flex h-full animate-pulse flex-col gap-3 bg-card p-6"
+                className="flex min-h-[420px] animate-pulse flex-col gap-3 bg-card p-6"
                 aria-hidden="true"
               >
                 <div className="h-6 w-1/3 rounded-md bg-muted" />
@@ -722,7 +726,7 @@ function CampaignPreviewStep({
                 <div className="flex-1 rounded-md bg-muted" />
               </div>
             ) : previewQuery.isError ? (
-              <div className="flex h-full items-center justify-center bg-card p-6 text-center">
+              <div className="flex min-h-[420px] items-center justify-center bg-card p-6 text-center">
                 <div className="max-w-md space-y-3">
                   <div className="text-sm font-medium text-foreground">
                     Preview unavailable
@@ -742,14 +746,9 @@ function CampaignPreviewStep({
               </div>
             ) : tab === "html" ? (
               previewHtml.trim().length > 0 ? (
-                <iframe
-                  title="Email HTML preview"
-                  srcDoc={previewHtml}
-                  className="h-full w-full bg-white"
-                  style={{ border: "none" }}
-                />
+                <EmailPreviewFrame html={previewHtml} />
               ) : (
-                <div className="flex h-full items-center justify-center bg-card p-6 text-center">
+                <div className="flex min-h-[420px] items-center justify-center bg-card p-6 text-center">
                   <div className="max-w-md space-y-2">
                     <div className="text-sm font-medium text-foreground">
                       No HTML preview available
@@ -762,7 +761,7 @@ function CampaignPreviewStep({
                 </div>
               )
             ) : (
-              <pre className="h-full overflow-auto bg-muted p-4 text-sm text-foreground whitespace-pre-wrap">
+              <pre className="max-h-[75vh] min-h-[420px] overflow-auto bg-muted p-4 text-sm text-foreground whitespace-pre-wrap">
                 {previewText.length > 0
                   ? previewText
                   : "No text preview available."}
@@ -832,7 +831,7 @@ export function CreateCampaignPage() {
       selectedTemplate: "",
       emailSubject: "",
       previewText: "",
-      senderName: "Pivotup Media",
+      senderName: "",
       senderEmail: "",
       useReplyTo: true,
       replyToEmail: "",
@@ -875,14 +874,10 @@ export function CreateCampaignPage() {
 
   const senderIdentitiesQuery = useQuery({
     queryKey: ["campaigns", "sender-identities", organizationId],
-    enabled: Boolean(organizationId && orgHeaders),
+    enabled: Boolean(organizationId),
     retry: false,
-    queryFn: async () => {
-      const response = await apiClient.get("/sender-identities", {
-        headers: orgHeaders,
-      });
-      return normalizeSenderIdentities(response.data);
-    },
+    queryFn: () =>
+      senderIdentitiesService.listSenderIdentities(organizationId ?? undefined),
   });
 
   const currentMemberAccessQuery = useQuery({
@@ -922,20 +917,40 @@ export function CreateCampaignPage() {
     staleTime: 30_000,
   });
 
-  const audienceUsersQuery = useQuery({
-    queryKey: ["audience", "profiles", "campaign-form"],
+  // Audience tags are offered in the picker as `tag:<name>` selections and
+  // expanded to profileIds at save time (the backend audience contract only
+  // knows profiles + segments).
+  const audienceTagsQuery = useQuery({
+    queryKey: ["audience", "tags", "campaign-form"],
     queryFn: async () => {
-      const response = await audienceService.listProfiles({
-        page: 1,
-        limit: 100,
-        include: "wallets,tags,health,lastAction",
-      });
-      const items = toArray(response);
-      return items.map(toCampaignList).filter((item): item is List => !!item);
+      const res = await audienceService.listTags();
+      const rows: unknown[] = Array.isArray(res)
+        ? res
+        : (res.items ?? res.data ?? []);
+      return rows
+        .filter(
+          (t): t is AudienceTag =>
+            isJsonObject(t) && typeof t.name === "string" && t.name.length > 0
+        )
+        .map(
+          (t): List => ({
+            id: tagSelectionId(t.name),
+            name: t.name,
+            count:
+              typeof t.count === "number"
+                ? t.count
+                : typeof t.profileCount === "number"
+                  ? t.profileCount
+                  : typeof t.countProfiles === "number"
+                    ? t.countProfiles
+                    : 0,
+            starred: false,
+          })
+        );
     },
     retry: false,
     refetchOnWindowFocus: false,
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
 
   const verifiedSenderIdentities = useMemo(
@@ -973,10 +988,7 @@ export function CreateCampaignPage() {
     });
 
     const currentSenderName = (form.getValues("senderName") ?? "").trim();
-    if (
-      currentSenderName.length === 0 ||
-      currentSenderName === "Pivotup Media"
-    ) {
+    if (currentSenderName.length === 0) {
       form.setValue("senderName", preferredSender.name, {
         shouldDirty: false,
         shouldTouch: false,
@@ -1325,20 +1337,15 @@ export function CreateCampaignPage() {
     try {
       if (currentStep === 1) {
         const data = form.getValues();
-        const { listIds, segmentIds, profileIds } = partitionAudienceSelection(
-          data.selectedAudiences,
-          audienceSegmentsQuery.data ?? [],
-          audienceUsersQuery.data ?? []
+        const { listIds, segmentIds, profileIds, tagNames } =
+          partitionAudienceSelection(
+            data.selectedAudiences,
+            audienceSegmentsQuery.data ?? []
+          );
+        const tagProfileIds = await resolveTagsToProfileIds(tagNames);
+        const mergedProfileIds = Array.from(
+          new Set([...profileIds, ...tagProfileIds])
         );
-
-        await campaignsService.setAudience(campaignId, {
-          listIds,
-          segmentIds,
-          profileIds,
-        });
-        await campaignsService
-          .estimateAudience(campaignId)
-          .catch(() => undefined);
         const utm: Record<string, string> = {};
         if (data.trackingParameters) {
           const addUtm = (key: string, value?: string) => {
@@ -1351,11 +1358,29 @@ export function CreateCampaignPage() {
           addUtm("term", data.utmTerm);
           addUtm("content", data.utmContent);
         }
-        await campaignsService.updateTracking(campaignId, {
-          smartSending: Boolean(data.smartSending),
-          trackingParameters: Boolean(data.trackingParameters),
-          ...(Object.keys(utm).length > 0 ? { utm } : {}),
-        });
+        const syncOptions = {
+          audience: { listIds, segmentIds, profileIds: mergedProfileIds },
+          tracking: {
+            smartSending: Boolean(data.smartSending),
+            trackingParameters: Boolean(data.trackingParameters),
+            ...(Object.keys(utm).length > 0 ? { utm } : {}),
+          },
+          skipEstimate: true,
+        };
+
+        // Shares the change cache with the audience step's live autosync, so
+        // this is usually a no-op network-wise. On a 429 (3 req/10s backend
+        // limit), wait briefly and retry — by then the autosync has typically
+        // persisted the same payload and the retry sends nothing.
+        try {
+          await syncAudienceSettings(campaignId, syncOptions);
+        } catch (e) {
+          if (!isRateLimitError(e)) throw e;
+          await new Promise((resolve) => {
+            window.setTimeout(resolve, 2_500);
+          });
+          await syncAudienceSettings(campaignId, syncOptions);
+        }
       }
 
       if (currentStep === 2) {
@@ -1420,6 +1445,9 @@ export function CreateCampaignPage() {
       // pipeline: POST /campaigns/{id}/send-inapp fans out immediately to
       // the audience's wallet-reachable contacts (no scheduled push sends).
       if (data.channel === "in-app-push") {
+        await campaignsService
+          .ensureChannels(campaignId, ["inapp"])
+          .catch(() => undefined);
         const result = await campaignsService.sendInAppPush(campaignId);
         const recipients = result.recipientCount ?? 0;
         const deliveredNow = result.deliveredNowCount ?? 0;
@@ -1438,6 +1466,13 @@ export function CreateCampaignPage() {
           data.sendOption === "schedule" ? data.scheduleTime : undefined,
         timezone: activeTimezone,
       });
+
+      // The validator requires at least one enabled channel; nothing else in
+      // the email flow sets channelsUsed, so enable EMAIL here. Non-fatal —
+      // if it fails, validation below reports the real state.
+      await campaignsService
+        .ensureChannels(campaignId, ["email"])
+        .catch(() => undefined);
 
       const validation = await campaignsService.validateCampaign(campaignId);
       if (!validation?.valid) {
@@ -1561,7 +1596,7 @@ export function CreateCampaignPage() {
                         !isHydratingCampaign &&
                         !isBootstrappingCampaign
                       }
-                      lists={audienceUsersQuery.data ?? []}
+                      tags={audienceTagsQuery.data ?? []}
                       segments={audienceSegmentsQuery.data ?? []}
                       segmentsLoading={audienceSegmentsQuery.isLoading}
                       segmentsError={

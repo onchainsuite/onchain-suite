@@ -22,14 +22,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-import {
-  type CampaignAudienceEstimate,
-  campaignsService,
-} from "../../campaigns.service";
+import { type CampaignAudienceEstimate } from "../../campaigns.service";
 import {
   getEstimatedRecipientsFromSelection,
   partitionAudienceSelection,
+  resolveTagsToProfileIds,
 } from "../../lib/audience";
+import {
+  isRateLimitError,
+  seedAudienceSyncCache,
+  syncAudienceSettings,
+} from "../../lib/audience-sync";
 import type { List, Segment } from "../../types";
 import type { CampaignFormData } from "../../validations";
 import { AudienceSelector } from "./audience-selector";
@@ -40,6 +43,8 @@ interface AudienceStepProps {
   campaignId?: string | null;
   canSync?: boolean;
   lists?: List[];
+  /** Audience tags as pickable pseudo-lists (`tag:<name>` ids). */
+  tags?: List[];
   segments?: Segment[];
   segmentsLoading?: boolean;
   segmentsError?: string | null;
@@ -65,6 +70,7 @@ export function AudienceStep({
   campaignId,
   canSync = false,
   lists = [],
+  tags = [],
   segments = [],
   segmentsLoading = false,
   segmentsError,
@@ -93,17 +99,22 @@ export function AudienceStep({
   );
   const localEstimatedRecipients = useMemo(
     () =>
-      getEstimatedRecipientsFromSelection(selectedAudiences, lists, segments),
-    [lists, segments, selectedAudiences]
+      getEstimatedRecipientsFromSelection(
+        selectedAudiences,
+        [...lists, ...tags],
+        segments
+      ),
+    [lists, tags, segments, selectedAudiences]
   );
   const unresolvedSelectionCount = useMemo(
     () =>
       selectedAudiences.filter(
         (selectedId) =>
           !lists.some((list) => list.id === selectedId) &&
+          !tags.some((tag) => tag.id === selectedId) &&
           !selectedSegmentIds.has(selectedId)
       ).length,
-    [lists, selectedAudiences, selectedSegmentIds]
+    [lists, tags, selectedAudiences, selectedSegmentIds]
   );
 
   // Assemble the UTM object sent to the backend (only when tracking is on and
@@ -130,6 +141,12 @@ export function AudienceStep({
     utmContent,
   ]);
 
+  // Live autosync. The backend rate-limits these endpoints (3 requests/10s),
+  // so this only sends payloads that actually changed (see audience-sync.ts):
+  // the first run seeds the change cache from hydrated state and just fetches
+  // the recipient estimate; later runs write only the changed settings. A 429
+  // is retried once after the limit window instead of surfacing an error.
+  const hasSeededSyncRef = useRef(false);
   useEffect(() => {
     if (!campaignId || !canSync) return;
 
@@ -138,49 +155,76 @@ export function AudienceStep({
     setIsSyncing(true);
     setSyncError(null);
 
-    const timeout = window.setTimeout(() => {
-      const { listIds, segmentIds, profileIds } = partitionAudienceSelection(
-        selectedAudiences,
-        segments,
-        lists
-      );
+    let retryTimeout: number | undefined;
 
-      Promise.all([
-        campaignsService.setAudience(campaignId, {
-          listIds,
-          segmentIds,
-          profileIds,
-        }),
-        campaignsService.updateTracking(campaignId, {
+    const buildPayloads = async () => {
+      const { listIds, segmentIds, profileIds, tagNames } =
+        partitionAudienceSelection(selectedAudiences, segments, lists);
+      // Tag selections expand to the tagged contacts' profile ids — the
+      // backend audience contract only knows profiles + segments.
+      const tagProfileIds = await resolveTagsToProfileIds(tagNames);
+      const mergedProfileIds = Array.from(
+        new Set([...profileIds, ...tagProfileIds])
+      );
+      return {
+        audience: { listIds, segmentIds, profileIds: mergedProfileIds },
+        tracking: {
           smartSending: Boolean(smartSending),
           trackingParameters: Boolean(trackingParameters),
           ...(utmParams ? { utm: utmParams } : {}),
-        }),
-      ])
-        .then(() => campaignsService.estimateAudience(campaignId))
-        .then((estimate) => {
-          if (syncSequenceRef.current !== currentSequence) return;
-          setEstimatedRecipients(getEstimatedRecipientsValue(estimate));
-        })
-        .catch((error) => {
-          if (syncSequenceRef.current !== currentSequence) return;
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Failed to sync audience settings";
-          setSyncError(message);
-        })
-        .finally(() => {
-          if (syncSequenceRef.current !== currentSequence) return;
-          setIsSyncing(false);
-        });
-    }, 350);
+        },
+      };
+    };
 
-    return () => window.clearTimeout(timeout);
+    const run = async (attempt: number) => {
+      const payloads = await buildPayloads();
+      if (syncSequenceRef.current !== currentSequence) return;
+      const isFirstRun = !hasSeededSyncRef.current;
+      if (isFirstRun) {
+        seedAudienceSyncCache(campaignId, payloads.audience, payloads.tracking);
+        hasSeededSyncRef.current = true;
+      }
+      try {
+        const { estimate } = await syncAudienceSettings(campaignId, {
+          ...payloads,
+          forceEstimate: isFirstRun,
+        });
+        if (syncSequenceRef.current !== currentSequence) return;
+        if (estimate) {
+          setEstimatedRecipients(getEstimatedRecipientsValue(estimate));
+        }
+        setIsSyncing(false);
+      } catch (error) {
+        if (syncSequenceRef.current !== currentSequence) return;
+        if (isRateLimitError(error) && attempt === 0) {
+          // The budget resets every 10s — retry once after the window.
+          retryTimeout = window.setTimeout(() => {
+            run(1).catch(() => undefined);
+          }, 11_000);
+          return;
+        }
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to sync audience settings";
+        setSyncError(message);
+        setIsSyncing(false);
+      }
+    };
+
+    const timeout = window.setTimeout(() => {
+      run(0).catch(() => undefined);
+    }, 800);
+
+    return () => {
+      window.clearTimeout(timeout);
+      if (retryTimeout !== undefined) window.clearTimeout(retryTimeout);
+    };
   }, [
     campaignId,
     canSync,
     lists,
+    tags,
     segments,
     selectedAudiences,
     smartSending,
@@ -248,15 +292,17 @@ export function AudienceStep({
                   value={field.value}
                   onChange={field.onChange}
                   lists={lists}
+                  tags={tags}
                   segments={segments}
                   isSegmentsLoading={segmentsLoading}
                   unresolvedSelectionCount={unresolvedSelectionCount}
                 />
               </FormControl>
               <FormDescription>
-                Choose audience users created in the Audience section or saved
-                segments created in Intelligence to populate campaign
-                recipients.{" "}
+                Campaigns send to segments — named groups of contacts (like
+                &quot;test-cohort&quot;) created in Intelligence → Segments.
+                Individual contacts aren&apos;t selected here; add them to a
+                segment first.{" "}
                 <a
                   href={UTM_HELP_URL}
                   target="_blank"

@@ -327,8 +327,7 @@ export default function CompanyEditForm() {
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>
-                  Project / Protocol Name{" "}
-                  <span className="text-red-500">*</span>
+                  Protocol Name <span className="text-red-500">*</span>
                 </Label>
                 <Input {...form.register("name")} placeholder="Acme Inc." />
                 {form.formState.errors.name && (
@@ -444,15 +443,6 @@ export default function CompanyEditForm() {
                     </span>
                   )}
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Phone (E.164)</Label>
-                <Input {...form.register("phone")} placeholder="+1234567890" />
-                {form.formState.errors.phone && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {form.formState.errors.phone.message}
-                  </p>
-                )}
               </div>
               <div className="space-y-2">
                 <Label>Tax ID / VAT Number</Label>
@@ -649,9 +639,7 @@ export default function CompanyEditForm() {
                     const v = data?.tokenTicker;
                     if (isNonEmptyString(v)) return v;
                     return (
-                      <span className="text-muted-foreground/50 italic">
-                        Not set
-                      </span>
+                      <span className="text-muted-foreground/50 italic">—</span>
                     );
                   })()}
                 </p>
@@ -664,9 +652,7 @@ export default function CompanyEditForm() {
                   {primaryChainsLabel.length > 0 ? (
                     primaryChainsLabel
                   ) : (
-                    <span className="text-muted-foreground/50 italic">
-                      Not set
-                    </span>
+                    <span className="text-muted-foreground/50 italic">—</span>
                   )}
                 </p>
               </div>
@@ -679,25 +665,7 @@ export default function CompanyEditForm() {
                     const email = data?.email;
                     if (isNonEmptyString(email)) return email;
                     return (
-                      <span className="text-muted-foreground/50 italic">
-                        Not set
-                      </span>
-                    );
-                  })()}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Phone
-                </p>
-                <p className="text-base">
-                  {(() => {
-                    const phone = data?.phone;
-                    if (isNonEmptyString(phone)) return phone;
-                    return (
-                      <span className="text-muted-foreground/50 italic">
-                        Not set
-                      </span>
+                      <span className="text-muted-foreground/50 italic">—</span>
                     );
                   })()}
                 </p>
@@ -710,7 +678,7 @@ export default function CompanyEditForm() {
                   {(() => {
                     const taxId = data?.taxId;
                     if (isNonEmptyString(taxId)) return taxId;
-                    return "Not set";
+                    return "—";
                   })()}
                 </p>
               </div>
@@ -723,9 +691,7 @@ export default function CompanyEditForm() {
                     const address = data?.address;
                     if (isNonEmptyString(address)) return address;
                     return (
-                      <span className="text-muted-foreground/50 italic">
-                        Not set
-                      </span>
+                      <span className="text-muted-foreground/50 italic">—</span>
                     );
                   })()}
                 </p>

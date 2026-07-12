@@ -39,16 +39,65 @@ interface Organization {
   logoUrl?: string; // Handle both cases just in case
 }
 
-const ORG_LIST_CACHE_TTL_MS = 60_000;
+const ORG_LIST_CACHE_TTL_MS = 5 * 60_000;
 const ORG_VERIFIED_SESSION_KEY = "onchain.verifiedOrgId";
+const ORG_LIST_STORAGE_KEY = "onchain.orgListCache.v1";
 let organizationListCache: Organization[] | null = null;
 let organizationListCacheExpiresAt = 0;
 let organizationListInflight: Promise<Organization[]> | null = null;
 let organizationListRateLimitedUntil = 0;
 
+/**
+ * The dashboard layout remounts on every route, so the switcher must render
+ * from cache instantly instead of re-entering a loading state per page. The
+ * module cache covers client-side navigations; sessionStorage covers full
+ * reloads within the TTL.
+ */
+const getCachedOrganizations = (): Organization[] | null => {
+  const now = Date.now();
+  if (organizationListCache && organizationListCacheExpiresAt > now) {
+    return organizationListCache;
+  }
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(ORG_LIST_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      orgs?: Organization[];
+      expiresAt?: number;
+    };
+    if (
+      !Array.isArray(parsed.orgs) ||
+      typeof parsed.expiresAt !== "number" ||
+      parsed.expiresAt <= now
+    ) {
+      return null;
+    }
+    organizationListCache = parsed.orgs;
+    organizationListCacheExpiresAt = parsed.expiresAt;
+    return parsed.orgs;
+  } catch {
+    return null;
+  }
+};
+
+const persistOrganizations = (orgs: Organization[], expiresAt: number) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      ORG_LIST_STORAGE_KEY,
+      JSON.stringify({ orgs, expiresAt })
+    );
+  } catch {
+    // Best effort — quota/private-mode failures just skip persistence.
+  }
+};
+
 export function OrganizationSwitcher() {
   const { data: session } = authClient.useSession();
-  const [organizations, setOrganizations] = React.useState<Organization[]>([]);
+  const [organizations, setOrganizations] = React.useState<Organization[]>(
+    () => getCachedOrganizations() ?? []
+  );
   const [activeOrgId, setActiveOrgId] = React.useState<string | null>(() =>
     getCookieValue(ORG_SELECTION_COOKIE)
   );
@@ -137,12 +186,9 @@ export function OrganizationSwitcher() {
   const loadOrganizations = React.useCallback(
     async (force = false) => {
       const now = Date.now();
-      if (
-        !force &&
-        organizationListCache &&
-        organizationListCacheExpiresAt > now
-      ) {
-        return organizationListCache;
+      const cached = force ? null : getCachedOrganizations();
+      if (cached) {
+        return cached;
       }
       if (!force && organizationListInflight) return organizationListInflight;
       if (!force && organizationListRateLimitedUntil > now) {
@@ -159,6 +205,7 @@ export function OrganizationSwitcher() {
           organizationListCache = orgs;
           organizationListCacheExpiresAt = Date.now() + ORG_LIST_CACHE_TTL_MS;
           organizationListRateLimitedUntil = 0;
+          persistOrganizations(orgs, organizationListCacheExpiresAt);
           return orgs;
         })
         .catch((error: unknown) => {
@@ -210,7 +257,7 @@ export function OrganizationSwitcher() {
   React.useEffect(() => {
     const fetchOrganizations = async () => {
       if (hasLoadedOrganizationsRef.current) return;
-      setIsLoading(true);
+      setIsLoading(getCachedOrganizations() === null);
       try {
         const orgs = await loadOrganizations();
         const isRateLimitedFallback =

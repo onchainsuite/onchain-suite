@@ -1,39 +1,18 @@
 import { headers } from "next/headers";
 
 import { getAuthSession } from "@/lib/guard";
-import { getFullName, isJsonObject } from "@/lib/utils";
+import { isJsonObject } from "@/lib/utils";
 
 import { NewUserFlow } from "@/features/campaigns/components/new-user";
 import { CampaignsListsView } from "@/features/campaigns/pages";
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
-import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export const dynamic = "force-dynamic";
 
-const breadcrumbs = [
-  { href: publicRoutes.HOME, label: "Home" },
-  { href: PRIVATE_ROUTES.CAMPAIGNS, label: "Campaigns" },
-];
-
 export default async function CampaignsListsPage() {
   const session = await getAuthSession();
-  const firstName =
-    typeof session?.user?.firstName === "string"
-      ? session.user.firstName
-      : undefined;
-  const lastName =
-    typeof session?.user?.lastName === "string"
-      ? session.user.lastName
-      : undefined;
-  const name =
-    typeof session?.user?.name === "string" ? session.user.name : undefined;
   const isNewUser = Boolean(session?.user?.isNewUser);
   const activeUserId =
     typeof session?.user?.id === "string" ? session.user.id : undefined;
-
-  const firstLast = getFullName(firstName, lastName);
-  const userFullName =
-    name ?? (firstLast && firstLast.length > 0 ? firstLast : undefined);
 
   const headersList = await headers();
   const cookie = headersList.get("cookie") ?? "";
@@ -110,9 +89,5 @@ export default async function CampaignsListsPage() {
     // await apiClient.put('/user/profile', { isNewUser: false });
   }
 
-  return (
-    <DashboardLayout breadcrumbs={breadcrumbs} userFullName={userFullName}>
-      {shouldShowNewUserFlow ? <NewUserFlow /> : <CampaignsListsView />}
-    </DashboardLayout>
-  );
+  return shouldShowNewUserFlow ? <NewUserFlow /> : <CampaignsListsView />;
 }

@@ -34,6 +34,7 @@ import {
   deriveDisplayName,
   extractWalletFields,
   hashHue,
+  isSyntheticWalletEmail,
   normalizeTags,
   shortenWallet,
 } from "@/features/audience/utils";
@@ -71,6 +72,8 @@ export function ProfileDetailPage() {
     "activity" | "emails" | "transactions"
   >("activity");
 
+  const hasId = id.length > 0;
+
   const profileQuery = useQuery({
     queryKey: [
       "audience",
@@ -82,13 +85,7 @@ export function ProfileDetailPage() {
       audienceService.getProfile(id, {
         include: "tags,attributes,wallets,health,lastAction",
       }) as unknown as Promise<AudienceProfile>,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const healthQuery = useQuery({
-    queryKey: ["audience", "profile", id, "health"],
-    queryFn: () => audienceService.getProfileHealth(id),
+    enabled: hasId,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -96,6 +93,7 @@ export function ProfileDetailPage() {
   const churnQuery = useQuery({
     queryKey: ["audience", "profile", id, "churn"],
     queryFn: () => audienceService.getProfileChurn(id),
+    enabled: hasId,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -104,6 +102,15 @@ export function ProfileDetailPage() {
     queryKey: ["audience", "profile", id, "contract-activity", { limit: 10 }],
     queryFn: () =>
       audienceService.getProfileContractActivity(id, { limit: 10 }),
+    enabled: hasId,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const dappStatsQuery = useQuery({
+    queryKey: ["audience", "profile", id, "dapp-stats"],
+    queryFn: () => audienceService.getProfileDappStats(id),
+    enabled: hasId,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -111,6 +118,7 @@ export function ProfileDetailPage() {
   const emailsQuery = useQuery({
     queryKey: ["audience", "profile", id, "emails", { limit: 50 }],
     queryFn: () => audienceService.getProfileEmails(id, { limit: 50 }),
+    enabled: hasId,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -118,6 +126,7 @@ export function ProfileDetailPage() {
   const transactionsQuery = useQuery({
     queryKey: ["audience", "profile", id, "transactions", { limit: 25 }],
     queryFn: () => audienceService.getProfileTransactions(id, { limit: 25 }),
+    enabled: hasId,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -125,7 +134,7 @@ export function ProfileDetailPage() {
   const activityQuery = useQuery({
     queryKey: ["audience", "profile", id, "activity", { limit: 50 }],
     queryFn: () => audienceService.getProfileActivity(id, { limit: 50 }),
-    enabled: activeTab === "activity",
+    enabled: hasId && activeTab === "activity",
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -138,6 +147,9 @@ export function ProfileDetailPage() {
   );
 
   const email = typeof profile?.email === "string" ? profile.email.trim() : "";
+  // Wallet-only contacts carry a synthetic placeholder email — treat them as
+  // having no email channel (channel-aware reachability, wallet-first).
+  const hasEmailChannel = email.length > 0 && !isSyntheticWalletEmail(email);
   const name = useMemo(() => {
     return deriveDisplayName({
       name: profile?.name,
@@ -194,6 +206,19 @@ export function ProfileDetailPage() {
   }, [emailsQuery.data, profile]);
 
   const onchainSummary = useMemo(() => {
+    // Prefer the derived dapp-stats endpoint (true totals), then any summary
+    // embedded on the profile, then fall back to the loaded transactions page.
+    const dappStats = dappStatsQuery.data;
+    if (
+      dappStats &&
+      typeof dappStats.transactions_count === "number" &&
+      typeof dappStats.total_volume_usd === "number"
+    ) {
+      return {
+        totalTxns: dappStats.transactions_count,
+        totalVolumeUsd: dappStats.total_volume_usd,
+      };
+    }
     const direct = (profile as unknown as { onchainSummary?: unknown })
       ?.onchainSummary;
     const obj = isJsonObject(direct)
@@ -211,7 +236,7 @@ export function ProfileDetailPage() {
             return sum + v;
           }, 0);
     return { totalTxns, totalVolumeUsd };
-  }, [profile, transactionsQuery.data]);
+  }, [dappStatsQuery.data, profile, transactionsQuery.data]);
 
   const copyWallet = () => {
     if (!walletFull) return;
@@ -244,7 +269,6 @@ export function ProfileDetailPage() {
 
   const isLoading =
     profileQuery.isLoading ||
-    healthQuery.isLoading ||
     churnQuery.isLoading ||
     contractActivityQuery.isLoading ||
     emailsQuery.isLoading ||
@@ -303,7 +327,7 @@ export function ProfileDetailPage() {
                 </>
               ) : (
                 <>
-                  <span>{email.length > 0 ? email : "No email"}</span>
+                  <span>{hasEmailChannel ? email : "No email"}</span>
                   {wallet.length > 0 && (
                     <>
                       <span className="text-muted-foreground/50">|</span>
@@ -353,10 +377,24 @@ export function ProfileDetailPage() {
             </div>
           </div>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-          <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />
-          Send Email
-        </button>
+        {hasEmailChannel ? (
+          <a
+            href={`mailto:${email}`}
+            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />
+            Send Email
+          </a>
+        ) : (
+          <button
+            disabled
+            title="This contact has no email channel — reach them with an in-app push instead."
+            className="flex cursor-not-allowed items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground opacity-50"
+          >
+            <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />
+            Send Email
+          </button>
+        )}
       </div>
 
       <div className="mb-10 flex flex-wrap gap-2">

@@ -55,6 +55,18 @@
   margin: 0 auto;
   padding: 0 28px;
 }
+/* wide monitors: let the hero card + sections use more of the viewport
+   (mobile/tablet keep the 1180px cap above) */
+@media (min-width: 1440px) {
+  .ocs2 .wrap {
+    max-width: 1360px;
+  }
+}
+@media (min-width: 1920px) {
+  .ocs2 .wrap {
+    max-width: 1520px;
+  }
+}
 .ocs2 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -150,6 +162,19 @@
   border-color: color-mix(in oklab, var(--acc) 40%, var(--line));
   transform: translateY(-2px);
   color: var(--acc);
+}
+/* nav CTA fades out while the hero (with its own CTA) is on screen.
+   Opacity/visibility only — the button keeps its box, so no layout shift. */
+.ocs2 .nav-cta {
+  transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1), background 0.18s,
+    box-shadow 0.25s, border-color 0.18s, color 0.18s, opacity 0.25s ease,
+    visibility 0.25s;
+}
+.ocs2 .nav-cta-hidden {
+  opacity: 0;
+  transform: translateY(-4px);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* ----- cards ----- */

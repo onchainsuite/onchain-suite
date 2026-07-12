@@ -81,7 +81,7 @@ export function ConfirmationPage({
   }, [isScheduled, tz]);
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-2 relative overflow-hidden">
+    <div className="relative flex justify-center overflow-hidden bg-background px-2 py-8">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
@@ -108,23 +108,23 @@ export function ConfirmationPage({
         )}
       </div>
 
-      <div className="max-w-2xl w-full relative">
+      <div className="relative w-full max-w-lg">
         {/* Success Icon Animation */}
-        <div className="flex justify-center mb-8">
+        <div className="mb-5 flex justify-center">
           <div
             className={`relative transition-all duration-700 ${mounted ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}
           >
             <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-            <div className="relative bg-primary rounded-full p-6">
+            <div className="relative rounded-full bg-primary p-4">
               {isScheduled ? (
                 <CalendarIcon
                   aria-hidden="true"
-                  className="w-8 h-8 text-primary-foreground animate-bounce-in"
+                  className="w-6 h-6 text-primary-foreground animate-bounce-in"
                 />
               ) : (
                 <CheckCircleIcon
                   aria-hidden="true"
-                  className="w-8 h-8 text-primary-foreground animate-bounce-in"
+                  className="w-6 h-6 text-primary-foreground animate-bounce-in"
                 />
               )}
             </div>
@@ -133,14 +133,14 @@ export function ConfirmationPage({
 
         {/* Main Card */}
         <div
-          className={`bg-card rounded-2xl shadow-2xl shadow-primary/10 p-8 md:p-12 border border-border transition-all duration-700 delay-200 ${mounted ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}
+          className={`bg-card rounded-2xl shadow-xl shadow-primary/10 p-6 md:p-8 border border-border transition-all duration-700 delay-200 ${mounted ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}
         >
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2 text-balance">
               {isScheduled ? "Campaign Scheduled!" : "Campaign Sent!"}
             </h1>
-            <p className="text-lg text-muted-foreground text-balance">
+            <p className="text-sm text-muted-foreground text-balance">
               {isScheduled
                 ? "Your campaign is scheduled and ready to go"
                 : "Your campaign has been sent successfully to all recipients"}
@@ -149,7 +149,7 @@ export function ConfirmationPage({
 
           {/* Details Card */}
           <div
-            className={`bg-muted rounded-xl p-6 mb-8 border border-border transition-all duration-700 delay-500 ${showDetails ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
+            className={`bg-muted rounded-xl p-4 mb-5 border border-border transition-all duration-700 delay-500 ${showDetails ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
           >
             <div className="space-y-4">
               {isScheduled ? (
@@ -204,7 +204,7 @@ export function ConfirmationPage({
 
           {/* Info Box */}
           <div
-            className={`bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-6 mb-8 transition-all duration-700 delay-700 ${showDetails ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
+            className={`bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-xl p-4 mb-5 transition-all duration-700 delay-700 ${showDetails ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
           >
             <p className="text-sm text-muted-foreground leading-relaxed">
               {isScheduled ? (
@@ -232,7 +232,7 @@ export function ConfirmationPage({
           <div
             className={`flex flex-col sm:flex-row gap-3 transition-all duration-700 delay-900 ${showDetails ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
           >
-            <Button asChild size="lg" className="flex-1 group">
+            <Button asChild className="flex-1 group">
               <Link href={PRIVATE_ROUTES.DASHBOARD}>
                 View Dashboard
                 <ArrowRightIcon
@@ -241,12 +241,7 @@ export function ConfirmationPage({
                 />
               </Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="flex-1 bg-transparent"
-            >
+            <Button asChild variant="outline" className="flex-1 bg-transparent">
               <Link href={PRIVATE_ROUTES.NEW_CAMPAIGN}>
                 Create Another Campaign
               </Link>

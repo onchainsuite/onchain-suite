@@ -153,6 +153,9 @@ export function TemplateStep({
               const subject = form.getValues("emailSubject");
               if (subject) params.set("subject", subject);
               if (designB64) params.set("initialJsonB64", designB64);
+              if (form.getValues("channel") === "in-app-push") {
+                params.set("channel", "in-app-push");
+              }
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
             onEditTemplate={(templateId, templateName) => {
@@ -169,6 +172,9 @@ export function TemplateStep({
               if (templateName) params.set("templateName", templateName);
               const subject = form.getValues("emailSubject");
               if (subject) params.set("subject", subject);
+              if (form.getValues("channel") === "in-app-push") {
+                params.set("channel", "in-app-push");
+              }
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
             onSelectTemplate={async (templateId) => {
@@ -242,6 +248,9 @@ export function TemplateStep({
               );
               if (blankB64) params.set("initialJsonB64", blankB64);
 
+              if (form.getValues("channel") === "in-app-push") {
+                params.set("channel", "in-app-push");
+              }
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
           />

@@ -28,9 +28,13 @@ export function OnboardingLayout({
       <LayoutHeader />
 
       <main className="mx-auto max-w-7xl">
-        {currentStep === 7 ? (
-          // Full width for plan selection
-          <div className="min-h-[calc(100vh-140px)] px-8 py-12">{children}</div>
+        {/* The plan-selection step (last step of the 2-step flow) needs the
+            full width for its pricing cards; earlier steps keep the split
+            form + illustration layout. */}
+        {currentStep >= totalSteps ? (
+          <div className="min-h-[calc(100vh-140px)] px-4 py-8 sm:px-8">
+            {children}
+          </div>
         ) : (
           <div className="grid min-h-[calc(100vh-140px)] grid-cols-1 lg:grid-cols-2">
             {/* Form Section */}

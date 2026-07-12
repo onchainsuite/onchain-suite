@@ -23,6 +23,12 @@ export interface OnchainVariable {
   description: string;
   /** Realistic sample used for previews and template thumbnails. */
   sample: string;
+  /**
+   * Safe fallback baked into templates as `| default: "..."` so a missing
+   * value never blocks a send (the backend validator rejects unresolved
+   * variables without a default).
+   */
+  fallback?: string;
   /** Which family the variable belongs to. */
   group: VariableGroup;
 }
@@ -34,6 +40,7 @@ export const WEB3_VARIABLES: OnchainVariable[] = [
     label: "Name",
     tag: "{{ name }}",
     key: "name",
+    fallback: "there",
     description: "Display name if known, otherwise a friendly fallback.",
     sample: "Alex Rivera",
     group: "web3",
@@ -43,6 +50,7 @@ export const WEB3_VARIABLES: OnchainVariable[] = [
     label: "ENS name",
     tag: "{{ ens_name }}",
     key: "ens_name",
+    fallback: "there",
     description: "Primary ENS (or resolved name) for the wallet.",
     sample: "alex.eth",
     group: "web3",
@@ -52,6 +60,7 @@ export const WEB3_VARIABLES: OnchainVariable[] = [
     label: "Wallet address",
     tag: "{{ wallet }}",
     key: "wallet",
+    fallback: "your wallet",
     description: "Full checksummed wallet address.",
     sample: "0x8d35C0e1b3A2F1c9D4e5A6b7C8d9E0f1A2b3C4d5",
     group: "web3",
@@ -61,6 +70,7 @@ export const WEB3_VARIABLES: OnchainVariable[] = [
     label: "Wallet (short)",
     tag: "{{ wallet_short }}",
     key: "wallet_short",
+    fallback: "your wallet",
     description: "Truncated address, e.g. 0x8d35…C4d5.",
     sample: "0x8d35…C4d5",
     group: "web3",
@@ -70,6 +80,7 @@ export const WEB3_VARIABLES: OnchainVariable[] = [
     label: "Protocol",
     tag: "{{ protocol }}",
     key: "protocol",
+    fallback: "our protocol",
     description: "Your protocol / project name.",
     sample: "Onchain Suite",
     group: "web3",
@@ -79,6 +90,7 @@ export const WEB3_VARIABLES: OnchainVariable[] = [
     label: "Chain",
     tag: "{{ chain }}",
     key: "chain",
+    fallback: "the network",
     description: "Network the contact is most active on.",
     sample: "Ethereum",
     group: "web3",
@@ -88,6 +100,7 @@ export const WEB3_VARIABLES: OnchainVariable[] = [
     label: "Token symbol",
     tag: "{{ token_symbol }}",
     key: "token_symbol",
+    fallback: "tokens",
     description: "Ticker of your token or the relevant asset.",
     sample: "OCS",
     group: "web3",
@@ -97,6 +110,7 @@ export const WEB3_VARIABLES: OnchainVariable[] = [
     label: "Amount",
     tag: "{{ amount }}",
     key: "amount",
+    fallback: "some",
     description: "Contextual amount (reward, balance, allocation).",
     sample: "250",
     group: "web3",
@@ -128,6 +142,7 @@ export const WEB2_VARIABLES: OnchainVariable[] = [
     label: "First name",
     tag: "{{ first_name }}",
     key: "first_name",
+    fallback: "there",
     description: "Contact's first name.",
     sample: "Alex",
     group: "web2",
@@ -155,6 +170,7 @@ export const WEB2_VARIABLES: OnchainVariable[] = [
     label: "Company",
     tag: "{{ company }}",
     key: "company",
+    fallback: "your team",
     description: "Company or organization name.",
     sample: "Rivera Labs",
     group: "web2",
@@ -233,18 +249,49 @@ export function renderMergeTags(
   options: { blankUnknown?: boolean } = {}
 ): string {
   if (!input) return input;
-  return input.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (match, rawKey) => {
-    const key = String(rawKey);
-    if (Object.prototype.hasOwnProperty.call(values, key)) return values[key];
-    return options.blankUnknown ? "" : match;
-  });
+  return input.replace(
+    /{{\s*([a-zA-Z0-9_]+)\s*(?:\|[^}]*)?}}/g,
+    (match, rawKey) => {
+      const key = String(rawKey);
+      if (Object.prototype.hasOwnProperty.call(values, key)) {
+        return values[key];
+      }
+      return options.blankUnknown ? "" : match;
+    }
+  );
 }
 
 /** List every distinct variable key referenced by a string. */
 export function extractUsedVariableKeys(input: string): string[] {
   const found = new Set<string>();
-  const re = /{{\s*([a-zA-Z0-9_]+)\s*}}/g;
+  const re = /{{\s*([a-zA-Z0-9_]+)\s*(?:\|[^}]*)?}}/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(input)) !== null) found.add(m[1]);
   return [...found];
+}
+
+const FALLBACKS_BY_KEY: Record<string, string> = ALL_VARIABLES.reduce<
+  Record<string, string>
+>((acc, v) => {
+  if (typeof v.fallback === "string") acc[v.key] = v.fallback;
+  return acc;
+}, {});
+
+/**
+ * Rewrite bare `{{ key }}` tokens to `{{ key | default: "..." }}` for every
+ * variable that has a safe fallback. Tokens that already carry a pipe
+ * (existing defaults/filters) are left untouched. This keeps starter
+ * templates sendable to any audience — the backend refuses to send when a
+ * variable resolves blank without a default.
+ */
+export function withMergeTagDefaults(input: string): string {
+  if (!input) return input;
+  return input.replace(
+    /{{\s*([a-zA-Z0-9_]+)\s*}}/g,
+    (match, rawKey: string) => {
+      const fallback = FALLBACKS_BY_KEY[rawKey];
+      if (!fallback) return match;
+      return `{{ ${rawKey} | default: "${fallback}" }}`;
+    }
+  );
 }

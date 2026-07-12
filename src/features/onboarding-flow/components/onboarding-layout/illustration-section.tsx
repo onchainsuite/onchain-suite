@@ -182,8 +182,8 @@ const CAPTIONS = {
 };
 
 export function IllustrationSection({ currentStep }: IllustrationSectionProps) {
-  let art = <AudienceArt />;
-  let caption: string = CAPTIONS.audience;
+  let art: React.ReactNode;
+  let caption: string;
 
   switch (currentStep) {
     case 2:

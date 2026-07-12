@@ -1,5 +1,6 @@
 import { ProtectedLayout } from "@/lib/guard";
 
+import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 export default async function DashboardGroupLayout({
@@ -12,7 +13,7 @@ export default async function DashboardGroupLayout({
       requireOrganization
       redirectTo={`${AUTH_ROUTES.LOGIN}?redirectTo=${encodeURIComponent(PRIVATE_ROUTES.DASHBOARD)}`}
     >
-      {children}
+      <DashboardLayout>{children}</DashboardLayout>
     </ProtectedLayout>
   );
 }

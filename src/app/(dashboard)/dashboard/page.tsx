@@ -1,7 +1,6 @@
 import { getAuthSession } from "@/lib/guard";
 import { getFullName } from "@/lib/utils";
 
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { MainDashboard } from "@/features/dashboard/page";
 
 export const dynamic = "force-dynamic";
@@ -48,9 +47,5 @@ export default async function DashboardPage() {
     fullName,
     timezone,
   };
-  return (
-    <DashboardLayout>
-      <MainDashboard userData={userData} />
-    </DashboardLayout>
-  );
+  return <MainDashboard userData={userData} />;
 }

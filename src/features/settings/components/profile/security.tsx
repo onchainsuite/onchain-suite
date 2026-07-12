@@ -18,6 +18,7 @@ import TwoFactorAuthModal from "../two-factor-auth-modal";
 import { useUserProfile } from "./use-user-profile";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import { Badge } from "@/shared/components/ui/badge";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 const formatSecurityDate = (value?: string) => {
   if (!value) return null;
@@ -101,12 +102,22 @@ const Security = () => {
           </div>
         }
       >
-        {profileQuery.isLoading ? (
-          <motion.div
-            variants={fadeInUp}
-            className="text-sm text-muted-foreground"
-          >
-            Loading security settings...
+        {profileQuery.isPending ? (
+          <motion.div variants={fadeInUp} className="space-y-6">
+            <div className="flex items-center justify-end">
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+            <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-5 w-48" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-4 w-44" />
+              </div>
+            </div>
           </motion.div>
         ) : profileQuery.isError ? (
           <motion.div variants={fadeInUp} className="space-y-3">

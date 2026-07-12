@@ -71,7 +71,10 @@ const extractList = (payload: unknown): unknown[] => {
 
 const normalizeNotification = (raw: unknown): NotificationItem => {
   const obj = isJsonObject(raw) ? raw : {};
+  // Spread first so the normalized fields below always win — the backend row
+  // may use isRead/readAt instead of read, and body instead of message.
   return {
+    ...obj,
     id: String(obj.id ?? ""),
     title: obj.title ? String(obj.title) : undefined,
     message: obj.message
@@ -80,9 +83,15 @@ const normalizeNotification = (raw: unknown): NotificationItem => {
         ? String(obj.body)
         : undefined,
     type: obj.type ? String(obj.type) : undefined,
-    read: obj.read !== undefined ? Boolean(obj.read) : undefined,
+    read:
+      obj.read !== undefined
+        ? Boolean(obj.read)
+        : obj.isRead !== undefined
+          ? Boolean(obj.isRead)
+          : obj.readAt !== undefined && obj.readAt !== null
+            ? true
+            : undefined,
     createdAt: obj.createdAt ? String(obj.createdAt) : undefined,
-    ...obj,
   };
 };
 

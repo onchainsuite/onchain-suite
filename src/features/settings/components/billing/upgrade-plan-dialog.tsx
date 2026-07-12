@@ -22,6 +22,10 @@ import {
   type BillingPlanName,
   billingService,
 } from "@/features/billing/billing.service";
+import {
+  openCheckoutInNewTab,
+  startPlanCheckout,
+} from "@/features/billing/checkout";
 
 interface UpgradePlanDialogProps {
   currentPlan?: string;
@@ -93,17 +97,44 @@ export default function UpgradePlanDialog({
   });
 
   const upgradeMutation = useMutation({
-    mutationFn: (plan: BillingPlanName) => billingService.upgradeFiat({ plan }),
-    onSuccess: (res) => {
-      const checkoutUrl =
-        isJsonObject(res) && typeof res.checkoutUrl === "string"
-          ? res.checkoutUrl
-          : "";
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
+    // Crypto-first: Blockradar checkout is the payment rail (fiat checkout
+    // is disabled server-side in production, and cards are intentionally not
+    // offered for now).
+    mutationFn: async (plan: string) => {
+      try {
+        return await startPlanCheckout(plan);
+      } catch (checkoutError) {
+        // Fall back to the legacy fiat upgrade only if it can actually
+        // produce a checkout link (e.g. non-production environments).
+        const res = await billingService
+          .upgradeFiat({ plan: plan as BillingPlanName })
+          .catch(() => null);
+        const checkoutUrl =
+          isJsonObject(res) && typeof res.checkoutUrl === "string"
+            ? res.checkoutUrl
+            : "";
+        if (checkoutUrl) return { paymentUrl: checkoutUrl, reference: "" };
+        throw checkoutError instanceof Error
+          ? checkoutError
+          : new Error("Couldn't start the upgrade.");
+      }
+    },
+    onSuccess: (checkout) => {
+      if (checkout?.paymentUrl) {
+        // New tab keeps the app alive so the pending-checkout banner can
+        // confirm the payment; same-tab fallback when popups are blocked.
+        if (openCheckoutInNewTab(checkout.paymentUrl)) {
+          toast.success(
+            "Complete your payment in the new tab — your plan unlocks automatically once it confirms."
+          );
+          setOpen(false);
+        } else {
+          window.location.href = checkout.paymentUrl;
+        }
         return;
       }
-      toast.success("Plan updated. Your new limits are now active.");
+      // No self-serve checkout for this plan (e.g. Enterprise).
+      toast.info("Contact sales to activate this plan.");
       queryClient.invalidateQueries({ queryKey: ["billing"] });
       setOpen(false);
     },
@@ -196,9 +227,7 @@ export default function UpgradePlanDialog({
                   type="button"
                   variant={featured ? "default" : "outline"}
                   disabled={isCurrent || upgradeMutation.isPending}
-                  onClick={() =>
-                    upgradeMutation.mutate(name as BillingPlanName)
-                  }
+                  onClick={() => upgradeMutation.mutate(plan.slug ?? name)}
                   className="mt-5 w-full rounded-xl"
                 >
                   {isCurrent

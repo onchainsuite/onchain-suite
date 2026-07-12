@@ -27,7 +27,6 @@ import { cn, isJsonObject } from "@/lib/utils";
 
 import type { Notification, NotificationType } from "@/types/notification";
 
-import { initialNotifications } from "@/data/notifications";
 import { notificationsService } from "@/features/notifications/notifications.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
@@ -70,7 +69,7 @@ export function NotificationBell() {
               : "info",
         };
       })
-    : initialNotifications;
+    : [];
 
   const unreadCount = notifications.filter(
     (notification) => !notification.read
