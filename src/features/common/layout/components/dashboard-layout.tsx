@@ -15,8 +15,6 @@ import { usePathname } from "next/navigation";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 
-import { CommandPaletteProvider } from "@/components/common/command-palette";
-
 import { authClient } from "@/lib/auth-client";
 import {
   cn,
@@ -33,6 +31,7 @@ import { OrganizationStatusBanner } from "./organization-status-banner";
 import { PendingCheckoutBanner } from "@/features/billing/components/pending-checkout-banner";
 import { notificationsService } from "@/features/notifications/notifications.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { isWipHref, SHOW_WIP_SECTIONS } from "@/shared/config/wip-sections";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -163,7 +162,7 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
       href: PRIVATE_ROUTES.SETTINGS,
       icon: <Cog6ToothIcon className="h-4 w-4" aria-hidden="true" />,
     },
-  ];
+  ].filter((item) => SHOW_WIP_SECTIONS || !isWipHref(item.href));
 
   return (
     <div className="relative min-h-screen">
@@ -238,12 +237,8 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
 }
 
 export function DashboardLayout(props: DashboardLayoutProps) {
-  // Server state lives on the root QueryClient (see RootProviders), which
-  // survives navigations — a nested client here would reset the cache on
-  // every mount.
-  return (
-    <CommandPaletteProvider>
-      <DashboardLayoutInner {...props} />
-    </CommandPaletteProvider>
-  );
+  // Server state lives on the root QueryClient and the command palette on the
+  // root CommandPaletteProvider (see RootProviders) — both survive
+  // navigations; mounting either here would duplicate them per layout.
+  return <DashboardLayoutInner {...props} />;
 }
