@@ -26,6 +26,7 @@ import {
   CommandOption,
   CommandSeparator,
 } from "@kmenu/react";
+import { useQuery } from "@tanstack/react-query";
 import { fuzzyFilter } from "kmenu";
 import { useRouter } from "next/navigation";
 import {
@@ -45,19 +46,24 @@ import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { authClient } from "@/lib/auth-client";
 import { getSelectedOrganizationId } from "@/lib/utils";
 
+import { aiSearchService } from "@/features/ai-search/ai-search.service";
+import { isWipHref, SHOW_WIP_SECTIONS } from "@/shared/config/wip-sections";
+
 const AI_TIMEOUT_MS = 60_000;
 
 type PaletteOptionData =
   | { kind: "navigate"; href: string }
-  | { kind: "ai"; query: string };
+  | { kind: "ai"; query: string }
+  | { kind: "result"; href: string };
 
 type PaletteOption = {
   id: string;
   label: string;
-  group: "ai" | "navigate" | "actions";
+  group: "ai" | "navigate" | "actions" | "search";
   keywords?: string[];
   icon: React.ReactNode;
   hint?: string;
+  description?: string;
   data: PaletteOptionData;
 };
 
@@ -312,8 +318,15 @@ function PaletteRow({ option }: { option: PaletteOption }) {
       >
         {option.icon}
       </span>
-      <span className="min-w-0 flex-1 truncate font-medium leading-snug">
-        {option.label}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium leading-snug">
+          {option.label}
+        </span>
+        {option.description ? (
+          <span className="block truncate text-xs text-muted-foreground">
+            {option.description}
+          </span>
+        ) : null}
       </span>
       {option.hint ? (
         <span className="shrink-0 text-[11px] text-muted-foreground opacity-0 transition-opacity group-data-[active=true]:opacity-100">
@@ -341,6 +354,7 @@ export function CommandPaletteProvider({
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const lastShortcutAtRef = useRef<number>(0);
@@ -361,6 +375,31 @@ export function CommandPaletteProvider({
     stopStreaming();
     setView("commands");
   }, [stopStreaming]);
+
+  // Debounce the semantic-search input; skip when closed or in answer view.
+  useEffect(() => {
+    if (!open || view !== "commands") return;
+    const t = window.setTimeout(() => setDebouncedQuery(query.trim()), 350);
+    return () => window.clearTimeout(t);
+  }, [open, view, query]);
+
+  // Live semantic search over the org's ingested content — plain vector
+  // search (no LLM, no AI-credit spend). Fails silently: no results group.
+  const siteSearchQuery = useQuery({
+    queryKey: ["palette", "site-search", debouncedQuery],
+    enabled: open && view === "commands" && debouncedQuery.length >= 3,
+    staleTime: 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+    queryFn: () => aiSearchService.search(debouncedQuery, 5),
+  });
+  const searchResults = useMemo(
+    () =>
+      debouncedQuery.length >= 3 && siteSearchQuery.isSuccess
+        ? siteSearchQuery.data
+        : [],
+    [debouncedQuery, siteSearchQuery.isSuccess, siteSearchQuery.data]
+  );
 
   const api = useMemo<CommandPaletteApi>(
     () => ({
@@ -500,7 +539,12 @@ export function CommandPaletteProvider({
         },
       }).catch((e: unknown) => {
         if (controller.signal.aborted) return; // user stop or timeout
-        const message = e instanceof Error ? e.message : "AI request failed";
+        const raw = e instanceof Error ? e.message : "AI request failed";
+        const message = raw.includes("(402)")
+          ? "Your organization is out of AI credits for this period — upgrade your plan or wait for the monthly reset."
+          : raw.includes("(404)") || raw.includes("(501)")
+            ? "AI search isn't available yet for this workspace."
+            : raw;
         setAiError(message);
         setAiLoading(false);
       });
@@ -510,7 +554,26 @@ export function CommandPaletteProvider({
 
   const options = useMemo<PaletteOption[]>(() => {
     const q = query.trim();
-    const all = [...NAVIGATE_OPTIONS, ...ACTION_OPTIONS];
+    // WIP sections are hidden from production builds (see wip-sections.ts).
+    const all = [...NAVIGATE_OPTIONS, ...ACTION_OPTIONS].filter(
+      (option) =>
+        SHOW_WIP_SECTIONS ||
+        option.data.kind !== "navigate" ||
+        !isWipHref(option.data.href)
+    );
+    // Semantic-search hits. The current query is added to keywords so the
+    // fuzzy filter never drops them (titles rarely contain the query text).
+    for (const [index, result] of searchResults.entries()) {
+      all.push({
+        id: `search-${index}-${result.sourceUri}`,
+        label: result.title,
+        group: "search",
+        keywords: [q],
+        icon: <MagnifyingGlassIcon className="h-4 w-4" aria-hidden="true" />,
+        description: result.snippet,
+        data: { kind: "result", href: result.sourceUri },
+      });
+    }
     if (q.length > 0) {
       all.unshift({
         id: "ask-ai",
@@ -523,13 +586,23 @@ export function CommandPaletteProvider({
       });
     }
     return all;
-  }, [query]);
+  }, [query, searchResults]);
 
   const handleSelect = useCallback(
     (opt: PaletteOption) => {
       if (opt.data.kind === "navigate") {
         setOpen(false);
         router.push(opt.data.href);
+        return;
+      }
+      if (opt.data.kind === "result") {
+        const { href } = opt.data;
+        setOpen(false);
+        if (href.startsWith("/")) {
+          router.push(href);
+        } else {
+          window.open(href, "_blank", "noopener,noreferrer");
+        }
         return;
       }
       askAi(opt.data.query);
@@ -702,6 +775,19 @@ export function CommandPaletteProvider({
                   <CommandGroup heading="Ask" className={GROUP_HEADING_CLASSES}>
                     {options
                       .filter((o) => o.group === "ai")
+                      .map((o) => (
+                        <PaletteRow key={o.id} option={o} />
+                      ))}
+                  </CommandGroup>
+                ) : null}
+
+                {options.some((o) => o.group === "search") ? (
+                  <CommandGroup
+                    heading="From your workspace"
+                    className={GROUP_HEADING_CLASSES}
+                  >
+                    {options
+                      .filter((o) => o.group === "search")
                       .map((o) => (
                         <PaletteRow key={o.id} option={o} />
                       ))}

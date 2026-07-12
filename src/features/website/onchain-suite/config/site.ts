@@ -10,7 +10,7 @@ export const SITE_CONFIG = {
   twitterImage:
     "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
   twitterHandle: "@0nchainsuite",
-  logo: "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761094220/onchain_light_wylceb.png",
+  logo: "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761093444/onchain_suite_bf926w.png",
   social: {
     twitter: "https://twitter.com/0nchainsuite",
     discord: "https://discord.gg/onchainsuite",
