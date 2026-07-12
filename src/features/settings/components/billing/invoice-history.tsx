@@ -14,6 +14,7 @@ import { isJsonObject } from "@/lib/utils";
 import { fadeInUp, staggerContainer } from "../../utils";
 import { billingService } from "@/features/billing/billing.service";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 const InvoiceHistory = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -130,8 +131,24 @@ const InvoiceHistory = () => {
               Expand this section to load live invoices.
             </div>
           ) : invoicesQuery.isLoading ? (
-            <div className="py-8 text-center text-muted-foreground">
-              Loading invoices...
+            <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <div className="grid grid-cols-4 gap-4 border-b border-border/40 bg-muted/50 px-6 py-4">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-20 justify-self-end" />
+              </div>
+              {["a", "b", "c"].map((key) => (
+                <div
+                  key={key}
+                  className="grid grid-cols-4 items-center gap-4 border-b border-border/40 px-6 py-4 last:border-0"
+                >
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-8 w-8 justify-self-end rounded-md" />
+                </div>
+              ))}
             </div>
           ) : invoicesQuery.isError ? (
             <div className="py-8 text-center text-muted-foreground">

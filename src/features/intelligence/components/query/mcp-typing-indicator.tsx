@@ -74,7 +74,7 @@ export function McpTypingIndicator({
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[16px] border border-primary/20 bg-primary/10 text-[10px] font-semibold text-primary">
           AI
         </div>
-        <div className="rounded-[22px_22px_22px_8px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,21,38,0.98),rgba(8,13,26,0.98))] px-4 py-3 shadow-[0_18px_50px_-30px_rgba(45,102,255,0.6)]">
+        <div className="rounded-[22px_22px_22px_8px] border border-border bg-card px-4 py-3 shadow-[0_18px_50px_-30px_rgba(45,102,255,0.6)]">
           <div className="flex items-center gap-2">
             <span className="flex gap-1" aria-hidden="true">
               {[0, 1, 2].map((d) => (
@@ -94,7 +94,7 @@ export function McpTypingIndicator({
           </div>
 
           {/* matrix shimmer */}
-          <div className="mt-2 overflow-hidden rounded-md border border-primary/15 bg-[#060c18] px-2 py-1">
+          <div className="mt-2 overflow-hidden rounded-md border border-primary/15 bg-muted/60 px-2 py-1">
             <div
               className={`truncate font-mono text-[10px] tracking-[0.12em] text-primary/75 ${
                 reduced ? "" : "ocs-anim-hash-flicker"

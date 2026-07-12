@@ -32,9 +32,13 @@ export interface BillingUsage {
 
 export interface BillingPlan {
   name?: string;
+  /** Catalog slug (e.g. "growth", "pro_plus") when the backend provides one. */
+  slug?: string;
   status?: string;
+  description?: string;
   price?: string | number;
   interval?: "month" | "year" | string;
+  features?: unknown;
   [key: string]: unknown;
 }
 
@@ -42,6 +46,118 @@ export interface BillingPlansResponse {
   plans?: BillingPlan[];
   [key: string]: unknown;
 }
+
+export type PlanUsageMeterStatus = "ok" | "warn" | "exceeded" | string;
+
+/** One usage meter from `GET /billing/plan-usage/:organizationId`. */
+export interface PlanUsageMeter {
+  used: number;
+  limit: number;
+  percent: number;
+  status: PlanUsageMeterStatus;
+}
+
+/**
+ * Known meter keys returned by `GET /billing/plan-usage/:organizationId`
+ * (docs/backend.md 2026-07-03 pricing system + 2026-07-11 trackedWallets).
+ */
+export interface PlanUsageMeters {
+  contacts?: PlanUsageMeter;
+  emailsPerMonth?: PlanUsageMeter;
+  aiCredits?: PlanUsageMeter;
+  goldrushCredits?: PlanUsageMeter;
+  seats?: PlanUsageMeter;
+  automations?: PlanUsageMeter;
+  apiKeys?: PlanUsageMeter;
+  trackedWallets?: PlanUsageMeter;
+}
+
+/** Response of `GET /billing/plan-usage/:organizationId`. */
+export interface PlanUsageResponse {
+  plan?: string;
+  meters?: PlanUsageMeters;
+  [key: string]: unknown;
+}
+
+const pickPlanString = (...values: unknown[]): string | undefined => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return undefined;
+};
+
+const pickPlanPrice = (...values: unknown[]): string | number | undefined => {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim().length > 0) return value;
+  }
+  return undefined;
+};
+
+/** Known catalog limit keys → short human-readable feature lines. */
+const describePlanLimits = (limits: unknown): string[] => {
+  if (!isJsonObject(limits)) return [];
+  const out: string[] = [];
+  const add = (key: string, format: (n: number) => string) => {
+    const raw = limits[key];
+    if (typeof raw === "number" && Number.isFinite(raw)) out.push(format(raw));
+    else if (raw === null) out.push(format(Number.POSITIVE_INFINITY));
+  };
+  const count = (n: number) =>
+    Number.isFinite(n) ? n.toLocaleString() : "Unlimited";
+  add("contacts", (n) => `${count(n)} contacts`);
+  add("emailsPerMonth", (n) => `${count(n)} messages / month`);
+  add("seats", (n) => `${count(n)} team seats`);
+  add("automations", (n) => `${count(n)} automations`);
+  add("aiCredits", (n) => `${count(n)} AI credits / month`);
+  return out;
+};
+
+/**
+ * Normalize GET /billing/plans into a predictable BillingPlan[] regardless of
+ * response nesting (root array, {plans}, {items}, {data}) and field naming
+ * (price/priceUsd/amount/monthlyPrice, interval/cycle). Prices shown in the
+ * UI come from here — no hardcoded catalog when the backend answers.
+ */
+export const normalizeBillingPlans = (payload: unknown): BillingPlan[] => {
+  const root =
+    isJsonObject(payload) && !Array.isArray(payload)
+      ? (payload.plans ?? payload.items ?? payload.data ?? payload)
+      : payload;
+  const list = Array.isArray(root) ? root : [];
+
+  return list
+    .map((raw): BillingPlan | null => {
+      if (!isJsonObject(raw)) return null;
+      const name = pickPlanString(raw.name, raw.title, raw.plan, raw.slug);
+      if (!name) return null;
+      const features = Array.isArray(raw.features)
+        ? raw.features.filter((f): f is string => typeof f === "string")
+        : describePlanLimits(raw.limits);
+      return {
+        ...raw,
+        name,
+        slug: pickPlanString(raw.slug, raw.id, raw.plan)?.toLowerCase(),
+        description: pickPlanString(raw.description, raw.tagline),
+        price: pickPlanPrice(
+          raw.price,
+          raw.priceUsd,
+          raw.monthlyPrice,
+          raw.priceMonthly,
+          raw.amount
+        ),
+        interval:
+          pickPlanString(raw.interval, raw.cycle, raw.billingCycle)?.replace(
+            /ly$/,
+            ""
+          ) ?? "month",
+        features,
+      };
+    })
+    .filter((plan): plan is BillingPlan => plan !== null);
+};
 
 export interface UpgradeFiatRequest {
   plan: BillingPlanName;
@@ -58,6 +174,30 @@ export interface BillingUpgradeResponse {
   reference?: string;
   message?: string;
   data?: unknown;
+  [key: string]: unknown;
+}
+
+/** Catalog slugs accepted by POST /billing/checkout/plan (docs/backend.md). */
+export type PlanCheckoutSlug = "starter" | "growth" | "pro" | "pro_plus";
+
+export interface PlanCheckoutRequest {
+  plan: PlanCheckoutSlug;
+  organizationId: string;
+  billingCycle?: "monthly" | "annual";
+}
+
+/**
+ * Response of POST /billing/checkout/plan — Blockradar crypto checkout.
+ * `mode: "static_link"` means paymentUrl is the hosted static payment link
+ * (pre-filled amount); the webhook matches the echoed reference either way.
+ */
+export interface PlanCheckoutResponse {
+  mode?: "static_link" | string;
+  paymentUrl?: string;
+  reference?: string;
+  plan?: string;
+  cycle?: string;
+  amount?: number | string;
   [key: string]: unknown;
 }
 
@@ -252,26 +392,6 @@ const billingRequest = async <T>(
 
   return limiter.schedule(async () => {
     const startedAt = Date.now();
-    // #region debug-point B:billing-request-start
-    fetch("http://127.0.0.1:7777/event", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        sessionId: "settings-profile-billing",
-        runId: "pre-fix",
-        hypothesisId: "B",
-        location: "billing.service.ts:256",
-        msg: "[DEBUG] billing request start",
-        data: {
-          method: safeMeta.method,
-          url: safeMeta.url,
-          orgIdPresent: safeMeta.orgIdPresent,
-          withCredentials: true,
-        },
-        ts: Date.now(),
-      }),
-    }).catch(() => undefined);
-    // #endregion
     try {
       const res = await requestWithRetry<T>({ ...config, headers });
       logBillingEvent({
@@ -283,33 +403,6 @@ const billingRequest = async <T>(
       const envelope = res.data as unknown;
       const data =
         isJsonObject(envelope) && "data" in envelope ? envelope.data : envelope;
-      // #region debug-point B:billing-request-success
-      fetch("http://127.0.0.1:7777/event", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "settings-profile-billing",
-          runId: "pre-fix",
-          hypothesisId: "B",
-          location: "billing.service.ts:271",
-          msg: "[DEBUG] billing request success",
-          data: {
-            method: safeMeta.method,
-            url: safeMeta.url,
-            status: res.status,
-            envelopeKeys: isJsonObject(envelope)
-              ? Object.keys(envelope).slice(0, 20)
-              : [],
-            dataKeys: isJsonObject(data)
-              ? Object.keys(data).slice(0, 20)
-              : Array.isArray(data)
-                ? ["array"]
-                : [],
-          },
-          ts: Date.now(),
-        }),
-      }).catch(() => undefined);
-      // #endregion
       return data as T;
     } catch (error) {
       const e = error as AxiosError<unknown>;
@@ -319,31 +412,6 @@ const billingRequest = async <T>(
         status: e?.response?.status ?? null,
         ms: Date.now() - startedAt,
       });
-      // #region debug-point B:billing-request-error
-      fetch("http://127.0.0.1:7777/event", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          sessionId: "settings-profile-billing",
-          runId: "pre-fix",
-          hypothesisId: "B",
-          location: "billing.service.ts:281",
-          msg: "[DEBUG] billing request error",
-          data: {
-            method: safeMeta.method,
-            url: safeMeta.url,
-            status: e?.response?.status ?? null,
-            responseKeys: isJsonObject(e?.response?.data)
-              ? Object.keys(e.response?.data as Record<string, unknown>).slice(
-                  0,
-                  20
-                )
-              : [],
-          },
-          ts: Date.now(),
-        }),
-      }).catch(() => undefined);
-      // #endregion
       throw new Error(toFriendlyMessage(error), { cause: error });
     }
   });
@@ -380,6 +448,27 @@ export const billingService = {
   },
 
   /**
+   * Per-meter plan usage (`GET /billing/plan-usage/:organizationId`) —
+   * `{ plan, meters: { contacts, emailsPerMonth, aiCredits, goldrushCredits,
+   * seats, automations, apiKeys, trackedWallets } }`, each meter
+   * `{ used, limit, percent, status }`. The `aiCredits` meter is the one that
+   * gates the AI assistant / SQL generation / MCP agent (402
+   * AI_CREDITS_EXCEEDED).
+   */
+  getPlanUsage(organizationId?: string, options?: BillingServiceOptions) {
+    const orgId = organizationId ?? pickOrgId(options);
+    if (!orgId) {
+      return Promise.reject(
+        new Error("No organization selected for plan usage.")
+      );
+    }
+    return billingRequest<PlanUsageResponse>(
+      { method: "GET", url: `/billing/plan-usage/${orgId}` },
+      { ...options, orgId }
+    );
+  },
+
+  /**
    * Get current plan and upgrade options.
    */
   getPlan(options?: BillingServiceOptions) {
@@ -393,9 +482,13 @@ export const billingService = {
    * List all available plans.
    */
   getPlans(options?: BillingServiceOptions) {
-    return billingRequest<BillingPlansResponse>(
+    return billingRequest<unknown>(
       { method: "GET", url: "/billing/plans" },
       options
+    ).then(
+      (payload): BillingPlansResponse => ({
+        plans: normalizeBillingPlans(payload),
+      })
     );
   },
 
@@ -408,6 +501,19 @@ export const billingService = {
   upgradeFiat(body: UpgradeFiatRequest, options?: BillingServiceOptions) {
     return billingRequest<BillingUpgradeResponse>(
       { method: "POST", url: "/billing/upgrade", data: body },
+      options
+    );
+  },
+
+  /**
+   * Start a Blockradar crypto checkout for an org plan
+   * (POST /billing/checkout/plan → { paymentUrl, reference, plan, cycle,
+   * amount }). This is the primary payment path — fiat checkout is disabled
+   * in production unless BILLING_FIAT_ENABLED is set server-side.
+   */
+  checkoutPlan(body: PlanCheckoutRequest, options?: BillingServiceOptions) {
+    return billingRequest<PlanCheckoutResponse>(
+      { method: "POST", url: "/billing/checkout/plan", data: body },
       options
     );
   },

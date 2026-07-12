@@ -17,9 +17,15 @@ import {
   UserPlusIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -63,6 +69,7 @@ import {
   getHealthColor,
   getStatusIcon,
   hashHue,
+  isSyntheticWalletEmail,
   normalizeTags,
 } from "@/features/audience/utils";
 import { PageHeader } from "@/shared/components/page/page-header";
@@ -159,6 +166,7 @@ export function AudiencePages(): ReactElement {
     "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
 
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [sortField, setSortField] = useState<
@@ -172,24 +180,31 @@ export function AudiencePages(): ReactElement {
   const [isRefreshSpinning, setIsRefreshSpinning] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [profileScopeFilter, setProfileScopeFilter] = useState<
     "all" | "verified" | "pending" | "unverified"
   >("all");
   const [engagementFilter, setEngagementFilter] = useState<
     "all" | "active" | "cooling" | "cold"
   >("all");
-  const [tagFilter, setTagFilter] = useState<
-    "all" | "whale" | "active-trader" | "nft-collector"
-  >("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
 
   const itemsPerPage = 10;
-  const normalizedQuery = searchQuery.trim();
+  const normalizedQuery = debouncedSearchQuery.trim();
   const sortParam =
     sortField === "lastAction"
       ? "lastActionAt"
       : sortField === "healthScore"
         ? "healthScore"
         : "name";
+
+  // Debounce user-driven search (~350ms) so we don't fetch on every keystroke.
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 350);
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -202,6 +217,25 @@ export function AudiencePages(): ReactElement {
     sortField,
     sortDirection,
   ]);
+
+  const tagsQuery = useQuery({
+    queryKey: ["audience", "tags"],
+    queryFn: async () => {
+      const res = await audienceService.listTags();
+      const rows: unknown[] = Array.isArray(res)
+        ? res
+        : (res.items ?? res.data ?? []);
+      return rows
+        .map((row) =>
+          isJsonObject(row) && typeof row.name === "string" ? row.name : ""
+        )
+        .filter((name) => name.length > 0);
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
+  const availableTags = tagsQuery.data ?? [];
 
   const profilesQuery = useQuery<{
     items: AudienceProfile[];
@@ -256,6 +290,7 @@ export function AudiencePages(): ReactElement {
       }
       return { items: [], meta: null };
     },
+    placeholderData: keepPreviousData,
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -267,7 +302,9 @@ export function AudiencePages(): ReactElement {
     refetchOnWindowFocus: false,
   });
 
-  const showPureLoading = profilesQuery.isLoading || profilesQuery.isFetching;
+  // Full skeleton only for the initial load; page/filter changes keep the
+  // previous rows rendered (keepPreviousData) instead of flashing a skeleton.
+  const showPureLoading = profilesQuery.isPending;
 
   const profiles = useMemo(() => {
     if (profilesQuery.isSuccess && Array.isArray(profilesQuery.data?.items)) {
@@ -278,7 +315,9 @@ export function AudiencePages(): ReactElement {
             ? p.id
             : `${idx + 1}`;
         const id = idRaw.trim();
-        const email = typeof p.email === "string" ? p.email.trim() : "";
+        const emailRaw = typeof p.email === "string" ? p.email.trim() : "";
+        // Synthetic wallet placeholder emails are not a real email channel.
+        const email = isSyntheticWalletEmail(emailRaw) ? "" : emailRaw;
         const { walletFull, wallet } = extractWalletFields(p);
         const name = deriveDisplayName({
           name: p.name,
@@ -424,8 +463,10 @@ export function AudiencePages(): ReactElement {
     const engagementTrend = Math.round(
       (activeCount / Math.max(1, scored.length)) * 100 - 50
     );
-    const onchainTrend = 8;
-    const opensTrend = -3;
+    // The backend overview does not expose period-over-period trend data yet,
+    // so we do not fabricate on-chain/opens trends.
+    const onchainTrend = 0;
+    const opensTrend = 0;
     return {
       avgHealth,
       activeCount,
@@ -476,14 +517,16 @@ export function AudiencePages(): ReactElement {
     );
   };
 
-  const handleRefreshCerebra = () => {
+  const handleRefreshCerebra = async () => {
     setIsRefreshSpinning(true);
     setIsGeneratingSummary(true);
     setAnimatedScore(0);
-    setTimeout(() => {
+    try {
+      await Promise.all([overviewQuery.refetch(), profilesQuery.refetch()]);
+    } finally {
       setIsGeneratingSummary(false);
       setIsRefreshSpinning(false);
-    }, 1500);
+    }
   };
 
   const deleteProfilesMutation = useMutation({
@@ -661,13 +704,16 @@ export function AudiencePages(): ReactElement {
                       <span className="text-sm font-medium text-primary">
                         → Target cooling users before they go inactive
                       </span>
-                      <button className="group/btn inline-flex items-center gap-2 rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10">
+                      <Link
+                        href="/automations"
+                        className="group/btn inline-flex items-center gap-2 rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+                      >
                         Create Automation
                         <ArrowRightIcon
                           className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5"
                           aria-hidden="true"
                         />
-                      </button>
+                      </Link>
                     </div>
                   </motion.div>
                 )}
@@ -834,13 +880,7 @@ export function AudiencePages(): ReactElement {
                           className={filterTriggerClassName}
                         >
                           <span>
-                            {tagFilter === "all"
-                              ? "All tags"
-                              : tagFilter === "whale"
-                                ? "Whale"
-                                : tagFilter === "active-trader"
-                                  ? "Active Trader"
-                                  : "NFT Collector"}
+                            {tagFilter === "all" ? "All tags" : tagFilter}
                           </span>
                           <ChevronDownIcon
                             className="h-4 w-4 text-muted-foreground"
@@ -854,28 +894,25 @@ export function AudiencePages(): ReactElement {
                       >
                         <DropdownMenuRadioGroup
                           value={tagFilter}
-                          onValueChange={(value) =>
-                            setTagFilter(
-                              value as
-                                | "all"
-                                | "whale"
-                                | "active-trader"
-                                | "nft-collector"
-                            )
-                          }
+                          onValueChange={(value) => setTagFilter(value)}
                         >
                           <DropdownMenuRadioItem value="all">
                             All tags
                           </DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="whale">
-                            Whale
-                          </DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="active-trader">
-                            Active Trader
-                          </DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="nft-collector">
-                            NFT Collector
-                          </DropdownMenuRadioItem>
+                          {availableTags.map((tagName) => (
+                            <DropdownMenuRadioItem
+                              key={tagName}
+                              value={tagName}
+                            >
+                              {tagName}
+                            </DropdownMenuRadioItem>
+                          ))}
+                          {availableTags.length === 0 ? (
+                            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                              No tags yet — add tags to profiles to filter by
+                              them.
+                            </div>
+                          ) : null}
                         </DropdownMenuRadioGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -1075,7 +1112,9 @@ export function AudiencePages(): ReactElement {
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            window.location.href = `/audience/${profile.id}`;
+                                            router.push(
+                                              `/audience/${encodeURIComponent(profile.id)}`
+                                            );
                                           }}
                                           className="font-medium text-foreground transition-colors hover:text-accent hover:underline"
                                         >
@@ -1294,6 +1333,19 @@ export function AudiencePages(): ReactElement {
                                       colSpan={6}
                                       className="bg-muted/30 px-4 py-4"
                                     >
+                                      <div className="mb-3 flex justify-end">
+                                        <Link
+                                          href={`/audience/${encodeURIComponent(profile.id)}`}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/50"
+                                        >
+                                          View full profile
+                                          <ChevronRightIcon
+                                            className="h-3.5 w-3.5"
+                                            aria-hidden="true"
+                                          />
+                                        </Link>
+                                      </div>
                                       <div className="grid gap-4 sm:grid-cols-3">
                                         <div className="rounded-lg border border-border bg-card p-4">
                                           <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -1362,13 +1414,13 @@ export function AudiencePages(): ReactElement {
                                             {profile.tags.map((tag: string) => (
                                               <span
                                                 key={tag}
-                                                className="rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent"
+                                                className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-primary/20"
                                               >
                                                 {tag}
                                               </span>
                                             ))}
                                             {profile.engagement.length > 0 && (
-                                              <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                                              <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground ring-1 ring-border">
                                                 {profile.engagement} Engagement
                                               </span>
                                             )}

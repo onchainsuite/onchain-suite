@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 
 import { fadeInUp } from "../../utils";
 import InvoiceHistory from "./invoice-history";
-import PaymentMethod from "./payment-method";
 import PlanUsage from "./plan-usage";
 
 export default function BillingSettings() {
@@ -17,9 +16,9 @@ export default function BillingSettings() {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
+      {/* Payment methods are intentionally not shown — payments run through
+          the Blockradar crypto checkout, so there is nothing to save here. */}
       <PlanUsage />
-
-      <PaymentMethod />
 
       <InvoiceHistory />
     </motion.div>

@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { ChainLogo } from "@/components/common/chain-logo";
 import { Button } from "@/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
@@ -32,7 +33,6 @@ import {
   type IntelligenceGoldrushMcpStructuredResult,
   intelligenceService,
 } from "../../intelligence.service";
-import { CachePanel } from "./cache-panel";
 import { McpTypingIndicator } from "./mcp-typing-indicator";
 import { SqlBlockchainLoader } from "./sql-blockchain-loader";
 import { SqlResultsTable } from "./sql-results-table";
@@ -82,10 +82,18 @@ const asNumber = (value: unknown): number | null => {
   return null;
 };
 
+// ISO 8601 date-times (e.g. 2026-07-12T05:55:31.554Z) as returned by the API.
+const ISO_TIMESTAMP_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/;
+
 const asDisplayText = (value: unknown) => {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "number") return value.toLocaleString();
   if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "string" && ISO_TIMESTAMP_RE.test(value)) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleString();
+  }
   return String(value);
 };
 
@@ -431,12 +439,55 @@ const toStreamFinalResponse = (
 
 interface MpcFailureReport {
   message: string;
+  /** Actionable explanation for known failure modes (config, quota, …). */
+  guidance?: string;
   statusCode?: number;
   requestId?: string;
   conversationId?: string;
   prompt?: string;
   at: string;
 }
+
+/**
+ * Translate known backend failure messages into guidance the user can act
+ * on — a bare "503 … not configured" tells them nothing.
+ */
+const MCP_FAILURE_GUIDANCE: Array<{ match: RegExp; guidance: string }> = [
+  {
+    match: /mcp routing is not configured/i,
+    guidance:
+      "The on-chain data agent (GoldRush MCP) isn't enabled on this backend environment — an operator needs to configure the GoldRush API key and MCP routing on the server. Until then, Chat and SQL modes still answer questions over your own audience and campaign data.",
+  },
+  {
+    match: /unknown variant `?developer`?/i,
+    guidance:
+      'The backend\'s AI agent sent a message role ("developer") that its configured LLM provider doesn\'t accept. This is a backend configuration bug — the agent needs to use the "system" role (or an LLM endpoint that supports "developer") for this environment\'s model. Nothing on your side; flag it to the backend team.',
+  },
+  {
+    match: /plan_limit_exceeded|credit/i,
+    guidance:
+      "Your organization has used its GoldRush/AI credit allowance for this period. Upgrade the plan in Settings → Billing or wait for the monthly reset.",
+  },
+  {
+    match: /rate limit|too many requests/i,
+    guidance:
+      "You're sending requests faster than the API allows. Wait a few seconds and try again.",
+  },
+];
+
+const guidanceForMcpFailure = (
+  message: string,
+  statusCode?: number
+): string | undefined => {
+  const matched = MCP_FAILURE_GUIDANCE.find((entry) =>
+    entry.match.test(message)
+  );
+  if (matched) return matched.guidance;
+  if (statusCode === 503) {
+    return "The on-chain agent is temporarily unavailable. Try again shortly — if this persists, the backend service may need attention.";
+  }
+  return undefined;
+};
 
 const toMcpFailureReport = (
   error: unknown,
@@ -502,6 +553,7 @@ const toMcpFailureReport = (
 
   return {
     message,
+    guidance: guidanceForMcpFailure(message, statusCode),
     statusCode,
     requestId,
     conversationId,
@@ -512,6 +564,8 @@ const toMcpFailureReport = (
 
 const formatMcpFailureReport = (report: MpcFailureReport) =>
   [
+    report.guidance ?? null,
+    report.guidance ? "" : null,
     `Time: ${report.at}`,
     typeof report.statusCode === "number"
       ? `Status: ${report.statusCode}`
@@ -549,6 +603,7 @@ interface ChatMessage {
   }>;
   mode?: string;
   conversationId?: string;
+  queryId?: string;
   structuredResult?: IntelligenceGoldrushMcpStructuredResult | null;
 }
 
@@ -1056,15 +1111,21 @@ export function QueryTab({
         setActiveConversationId(res.conversationId);
       }
       const assistantToolSteps = Array.isArray(res.steps)
-        ? res.steps.slice(0, 4).map((step) => ({
-            toolName:
-              typeof step.toolName === "string" ? step.toolName : undefined,
-            title: typeof step.title === "string" ? step.title : undefined,
-            description:
-              typeof step.description === "string"
-                ? step.description
-                : undefined,
-          }))
+        ? res.steps
+            .map((step) => ({
+              toolName:
+                typeof step.toolName === "string" ? step.toolName : undefined,
+              title: typeof step.title === "string" ? step.title : undefined,
+              description:
+                typeof step.description === "string"
+                  ? step.description
+                  : undefined,
+            }))
+            // Steps with no content render as bare "Step N" boxes — drop them.
+            .filter(
+              (step) => step.title ?? step.toolName ?? step.description ?? false
+            )
+            .slice(0, 4)
         : undefined;
       const structuredResult = isStructuredResult(res.structuredResult)
         ? {
@@ -1108,6 +1169,10 @@ export function QueryTab({
                     : undefined,
                 queryReady:
                   typeof res.queryId === "string" && res.queryId.length > 0,
+                queryId:
+                  typeof res.queryId === "string" && res.queryId.length > 0
+                    ? res.queryId
+                    : undefined,
                 toolSteps: assistantToolSteps,
                 mode: res.mode,
                 conversationId: res.conversationId,
@@ -1462,46 +1527,63 @@ export function QueryTab({
         : getFallbackReasoningActivity(streamFallbackUsed),
     [streamActivity, streamFallbackUsed]
   );
-  const renderConversionActions = () => (
-    <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-      <div className="mb-3">
-        <div className="text-sm font-medium text-foreground">
-          Convert this result
+  const renderConversionActions = (forQueryId?: string) => {
+    // Point the shared query-scoped mutations at this message's result before
+    // the dialog confirms, so actions on older messages target the right run.
+    const targetQuery = () => {
+      if (forQueryId) setQueryId(forQueryId);
+    };
+    return (
+      <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+        <div className="mb-3">
+          <div className="text-sm font-medium text-foreground">
+            Use this result
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Add these rows to your reports, or turn the wallets into a segment
+            or campaign.
+          </div>
         </div>
-        <div className="text-xs text-muted-foreground">
-          Save the analysis or move it straight into activation.
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              targetQuery();
+              openNameDialog("report");
+            }}
+            disabled={saveReportMutation.isPending}
+            className="justify-start rounded-xl"
+          >
+            Add to reports
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              targetQuery();
+              openNameDialog("segment");
+            }}
+            disabled={createSegmentMutation.isPending}
+            className="justify-start rounded-xl"
+          >
+            Create segment
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              targetQuery();
+              openNameDialog("campaign");
+            }}
+            disabled={createCampaignMutation.isPending}
+            className="justify-start rounded-xl"
+          >
+            Launch campaign
+          </Button>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => openNameDialog("report")}
-          disabled={saveReportMutation.isPending}
-          className="justify-start rounded-xl"
-        >
-          Save report
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => openNameDialog("segment")}
-          disabled={createSegmentMutation.isPending}
-          className="justify-start rounded-xl"
-        >
-          Create segment
-        </Button>
-        <Button
-          type="button"
-          onClick={() => openNameDialog("campaign")}
-          disabled={createCampaignMutation.isPending}
-          className="justify-start rounded-xl"
-        >
-          Launch campaign
-        </Button>
-      </div>
-    </div>
-  );
+    );
+  };
   const renderStructuredRowsTable = (
     structuredRows: StructuredResultRow[],
     preferredColumns?: string[]
@@ -1687,7 +1769,7 @@ export function QueryTab({
                     Ranked holders
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Stable table view powered by `structuredResult.rows`
+                    Top holders ranked by balance
                   </div>
                 </div>
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
@@ -1770,20 +1852,23 @@ export function QueryTab({
                     <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                       Coverage
                     </div>
-                    <div className="mt-2 text-sm font-medium text-foreground">
-                      {chainColumn && structuredRows[0]
-                        ? asDisplayText(structuredRows[0][chainColumn])
-                        : chainCoverageLabel}
+                    <div className="mt-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                      {chainColumn && structuredRows[0] ? (
+                        <>
+                          <ChainLogo
+                            chain={asDisplayText(
+                              structuredRows[0][chainColumn]
+                            )}
+                          />
+                          {asDisplayText(structuredRows[0][chainColumn])}
+                        </>
+                      ) : (
+                        chainCoverageLabel
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
-              {renderStructuredRowsTable(structuredRows, [
-                holderColumn ?? "",
-                amountColumn ?? "",
-                shareColumn ?? "",
-                chainColumn ?? "",
-              ])}
             </div>
           </div>
         );
@@ -1795,10 +1880,20 @@ export function QueryTab({
       case "bitcoin_hd_wallet_balances":
       case "bitcoin_non_hd_wallet_balances":
       case "portfolio_value": {
+        // Collapse dust: hide zero-balance rows behind a single summary line
+        // instead of rendering empty cards and table rows.
+        const isZeroBalanceRow = (row: StructuredResultRow) => {
+          const amount = amountColumn ? asNumber(row[amountColumn]) : null;
+          const usd = usdValueColumn ? asNumber(row[usdValueColumn]) : null;
+          return (amount ?? 0) === 0 && (usd ?? 0) === 0;
+        };
+        const heldRows = structuredRows.filter((row) => !isZeroBalanceRow(row));
+        const displayRows = heldRows.length > 0 ? heldRows : structuredRows;
+        const hiddenCount = structuredRows.length - displayRows.length;
         return (
           <div className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {structuredRows.slice(0, 6).map((row, index) => {
+              {displayRows.slice(0, 6).map((row, index) => {
                 const rowKey = createStructuredRowKey(
                   row,
                   [assetColumn, chainColumn, amountColumn, usdValueColumn],
@@ -1816,10 +1911,18 @@ export function QueryTab({
                             ? asDisplayText(row[assetColumn])
                             : `Asset ${index + 1}`}
                         </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {chainColumn
-                            ? asDisplayText(row[chainColumn])
-                            : chainCoverageLabel}
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {chainColumn ? (
+                            <>
+                              <ChainLogo
+                                chain={asDisplayText(row[chainColumn])}
+                                size={12}
+                              />
+                              {asDisplayText(row[chainColumn])}
+                            </>
+                          ) : (
+                            chainCoverageLabel
+                          )}
                         </div>
                       </div>
                       <span className="rounded-full border border-border bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
@@ -1838,12 +1941,18 @@ export function QueryTab({
                 );
               })}
             </div>
-            {renderStructuredRowsTable(structuredRows, [
+            {renderStructuredRowsTable(displayRows, [
               assetColumn ?? "",
               amountColumn ?? "",
               usdValueColumn ?? "",
               chainColumn ?? "",
             ])}
+            {hiddenCount > 0 ? (
+              <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-2.5 text-xs text-muted-foreground">
+                {hiddenCount} zero-balance token{hiddenCount === 1 ? "" : "s"}{" "}
+                hidden
+              </div>
+            ) : null}
           </div>
         );
       }
@@ -1883,7 +1992,11 @@ export function QueryTab({
                           : "Transaction"}
                       </span>
                       {chainColumn ? (
-                        <span className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-1 text-[11px] text-muted-foreground">
+                          <ChainLogo
+                            chain={asDisplayText(row[chainColumn])}
+                            size={12}
+                          />
                           {asDisplayText(row[chainColumn])}
                         </span>
                       ) : null}
@@ -2149,13 +2262,13 @@ export function QueryTab({
             </div>
 
             <div className="overflow-y-auto px-5 py-6">
-              <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+              <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
                 {chatMessages.length > 0 ? (
                   <>
                     {chatMessages.map((message) =>
                       message.role === "user" ? (
                         <div key={message.id} className="flex justify-end">
-                          <div className="max-w-[78%] rounded-[28px_28px_12px_28px] border border-primary/20 bg-[linear-gradient(180deg,rgba(92,112,255,0.28),rgba(66,88,224,0.4))] px-4 py-3 text-sm text-primary-foreground shadow-[0_22px_60px_-28px_rgba(86,112,255,0.7)] backdrop-blur">
+                          <div className="max-w-[78%] rounded-[28px_28px_12px_28px] border border-primary/30 bg-primary px-4 py-3 text-sm text-primary-foreground shadow-[0_22px_60px_-28px_rgba(86,112,255,0.7)]">
                             <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-primary-foreground/75">
                               You
                             </div>
@@ -2211,19 +2324,13 @@ export function QueryTab({
                                       <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div>
                                           <div className="text-[11px] uppercase tracking-[0.16em] text-primary/80">
-                                            Stable UI contract
+                                            Result
                                           </div>
                                           <div className="mt-1 text-sm font-medium text-foreground">
                                             {message.structuredResult.title ??
                                               prettifyColumnLabel(
                                                 message.structuredResult.kind
                                               )}
-                                          </div>
-                                          <div className="mt-1 text-xs text-muted-foreground">
-                                            Stable renderer:{" "}
-                                            {prettifyColumnLabel(
-                                              message.structuredResult.kind
-                                            )}
                                           </div>
                                         </div>
                                         <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
@@ -2247,7 +2354,7 @@ export function QueryTab({
                                     )}
 
                                     {message.queryReady
-                                      ? renderConversionActions()
+                                      ? renderConversionActions(message.queryId)
                                       : null}
                                   </div>
                                 ) : message.content.trim().length > 0 ? (
@@ -2259,7 +2366,7 @@ export function QueryTab({
                                 {message.rationale ? (
                                   <div className="rounded-[24px] border border-border bg-muted/30 p-4">
                                     <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                                      Reasoning frame
+                                      How I got this
                                     </div>
                                     <p className="mt-2 text-sm leading-6 text-muted-foreground">
                                       {message.rationale}
@@ -2366,8 +2473,11 @@ export function QueryTab({
                                           </div>
                                           <div className="text-sm font-medium text-foreground">
                                             {step.title ??
-                                              step.toolName ??
-                                              `Step ${index + 1}`}
+                                              (step.toolName
+                                                ? prettifyColumnLabel(
+                                                    step.toolName
+                                                  )
+                                                : `Step ${index + 1}`)}
                                           </div>
                                         </div>
                                         {step.description ? (
@@ -2387,8 +2497,8 @@ export function QueryTab({
                                       aria-hidden="true"
                                     />
                                     {message.mode === "deterministic_fallback"
-                                      ? "Deterministic fallback"
-                                      : "Dynamic MCP routing"}
+                                      ? "Standard lookup"
+                                      : "Live onchain lookup"}
                                   </span>
                                   {message.queryReady ? (
                                     <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-primary">
@@ -2844,106 +2954,133 @@ export function QueryTab({
         />
       )}
 
-      {activeSurface === "sql" ? <CachePanel /> : null}
-
-      {activeSurface === "sql" &&
-        (() => {
-          const items = (historyQuery.data ?? [])
-            .map((h) => (isJsonObject(h) ? (h as Record<string, unknown>) : {}))
-            .map((item) => ({
+      {(() => {
+        const items = (historyQuery.data ?? [])
+          .map((h) => (isJsonObject(h) ? (h as Record<string, unknown>) : {}))
+          .map((item) => {
+            const provider =
+              typeof item.provider === "string"
+                ? item.provider.toLowerCase()
+                : "";
+            return {
               qid:
                 typeof item.queryId === "string"
                   ? item.queryId
                   : typeof item.id === "string"
                     ? item.id
                     : "",
-              q: typeof item.query === "string" ? item.query : "",
+              q:
+                typeof item.query === "string" && item.query.length > 0
+                  ? item.query
+                  : typeof item.name === "string" && item.name.length > 0
+                    ? item.name
+                    : typeof item.summary === "string"
+                      ? item.summary
+                      : "",
+              isMcp: provider.includes("goldrush") || provider.includes("mcp"),
               status: typeof item.status === "string" ? item.status : "",
               createdAt:
-                typeof item.createdAt === "string" ? item.createdAt : "",
-            }))
-            .filter((x) => x.qid && x.q.length > 0)
-            .slice(0, 12);
-          if (items.length === 0) return null;
-          return (
-            <div className="overflow-hidden rounded-xl border border-border bg-card/40">
-              <button
-                type="button"
-                aria-expanded={historyOpen}
-                onClick={() => setHistoryOpen((v) => !v)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
-              >
-                <ClockIcon
-                  className="h-4 w-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <span className="text-sm font-medium text-foreground">
-                  History
-                </span>
-                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                  {items.length}
-                </span>
-                <ChevronUpIcon
-                  className={`ml-auto h-4 w-4 text-muted-foreground transition-transform duration-300 ${
-                    historyOpen ? "" : "rotate-180"
-                  }`}
-                  aria-hidden="true"
-                />
-              </button>
-              <div
-                className={`grid transition-[grid-template-rows] duration-300 ease-out ${
-                  historyOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                typeof item.createdAt === "string"
+                  ? item.createdAt
+                  : typeof item.timestamp === "string"
+                    ? item.timestamp
+                    : "",
+            };
+          })
+          .filter((x) => x.qid && x.q.length > 0)
+          .slice(0, 12);
+        if (items.length === 0) return null;
+        return (
+          <div className="overflow-hidden rounded-xl border border-border bg-card/40">
+            <button
+              type="button"
+              aria-expanded={historyOpen}
+              onClick={() => setHistoryOpen((v) => !v)}
+              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+            >
+              <ClockIcon
+                className="h-4 w-4 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="text-sm font-medium text-foreground">
+                History
+              </span>
+              <span className="text-xs text-muted-foreground">
+                MCP &amp; SQL runs
+              </span>
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {items.length}
+              </span>
+              <ChevronUpIcon
+                className={`ml-auto h-4 w-4 text-muted-foreground transition-transform duration-300 ${
+                  historyOpen ? "" : "rotate-180"
                 }`}
-              >
-                <div className="overflow-hidden">
-                  <ul className="max-h-80 space-y-1.5 overflow-y-auto px-3 pb-3">
-                    {items.map((it) => {
-                      const ok = it.status === "completed";
-                      const failed = it.status === "failed";
-                      return (
-                        <li key={it.qid}>
-                          <button
-                            type="button"
-                            className="group flex w-full items-start gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition-colors hover:border-border hover:bg-background"
-                            onClick={() => {
-                              setSqlQuery(it.q);
-                              setQueryId(it.qid);
-                              setHasRunQuery(true);
-                            }}
-                          >
-                            <span
-                              className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${
-                                ok
-                                  ? "bg-emerald-500"
-                                  : failed
-                                    ? "bg-rose-500"
-                                    : "bg-amber-500"
-                              }`}
-                            />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate font-mono text-xs text-foreground">
-                                {it.q.replace(/\s+/g, " ").trim()}
-                              </span>
-                              {it.createdAt ? (
-                                <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                                  {new Date(it.createdAt).toLocaleString()}
-                                </span>
-                              ) : null}
+                aria-hidden="true"
+              />
+            </button>
+            <div
+              className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+                historyOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <ul className="max-h-80 space-y-1.5 overflow-y-auto px-3 pb-3">
+                  {items.map((it) => {
+                    const ok = it.status === "completed";
+                    const failed = it.status === "failed";
+                    return (
+                      <li key={it.qid}>
+                        <button
+                          type="button"
+                          className="group flex w-full items-start gap-3 rounded-lg border border-transparent px-3 py-2 text-left transition-colors hover:border-border hover:bg-background"
+                          onClick={() => {
+                            if (it.isMcp) {
+                              // Replay an MCP run: reload the prompt into
+                              // the chat composer for the user to resend.
+                              setChatPrompt(it.q);
+                              return;
+                            }
+                            setSqlQuery(it.q);
+                            setQueryId(it.qid);
+                            setHasRunQuery(true);
+                          }}
+                        >
+                          <span
+                            className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${
+                              ok
+                                ? "bg-emerald-500"
+                                : failed
+                                  ? "bg-rose-500"
+                                  : "bg-amber-500"
+                            }`}
+                          />
+                          <span className="mt-0.5 shrink-0 rounded-full border border-border/60 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                            {it.isMcp ? "MCP" : "SQL"}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-mono text-xs text-foreground">
+                              {it.q.replace(/\s+/g, " ").trim()}
                             </span>
-                            <ArrowUturnLeftIcon
-                              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                              aria-hidden="true"
-                            />
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
+                            {it.createdAt ? (
+                              <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                                {new Date(it.createdAt).toLocaleString()}
+                              </span>
+                            ) : null}
+                          </span>
+                          <ArrowUturnLeftIcon
+                            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-hidden="true"
+                          />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             </div>
-          );
-        })()}
+          </div>
+        );
+      })()}
 
       <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
         <DialogContent className="max-w-[420px]">

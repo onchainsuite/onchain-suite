@@ -1,8 +1,14 @@
 import z from "zod";
 
+/**
+ * Delivery channel for a campaign. Smart campaigns currently support in-app
+ * push only; social channels (Telegram, Discord, X) will be added later.
+ */
+export const campaignChannels = ["email", "in-app-push"] as const;
+
 export const campaignFormSchema = z
   .object({
-    // Step 1: Campaign Details
+    // Campaign details (collected in the create-campaign sheet)
     campaignName: z.string().min(1, "Campaign name is required"),
     campaignType: z.enum([
       "email-blast",
@@ -13,8 +19,9 @@ export const campaignFormSchema = z
       "announcement",
       "automation",
     ]),
+    channel: z.enum(campaignChannels).default("email"),
 
-    // Step 2: Audience & Tracking
+    // Step 1: Audience & Tracking
     selectedAudiences: z
       .array(z.string())
       .min(1, "Select at least one audience"),
@@ -27,25 +34,53 @@ export const campaignFormSchema = z
     utmTerm: z.string().optional(),
     utmContent: z.string().optional(),
 
-    // Step 3: Template & Email Message
+    // Step 2: Template & Message. The subject doubles as the push title for
+    // in-app push campaigns; sender fields only apply to email (validated in
+    // superRefine below).
     selectedTemplate: z.string().optional(),
     emailSubject: z.string().min(1, "Subject line is required"),
     previewText: z.string().optional(),
-    senderName: z.string().min(1, "Sender name is required"),
-    senderEmail: z.email("Please enter a valid email address"),
+    senderName: z.string().optional(),
+    senderEmail: z
+      .email("Please enter a valid email address")
+      .optional()
+      .or(z.literal("")),
     useReplyTo: z.boolean().default(true),
     replyToEmail: z
       .email("Please enter a valid email address")
       .optional()
       .or(z.literal("")),
 
-    // Step 4: Schedule
+    // Send timing (chosen on the template step: send now or schedule)
     sendOption: z.enum(["now", "schedule"]),
     scheduleDate: z.date().optional(),
     scheduleTime: z.string().optional(),
     timezone: z.string().default("UTC"),
   })
   .superRefine((data, ctx) => {
+    if (data.channel !== "in-app-push") {
+      if (
+        typeof data.senderName !== "string" ||
+        data.senderName.trim().length === 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["senderName"],
+          message: "Sender name is required",
+        });
+      }
+      if (
+        typeof data.senderEmail !== "string" ||
+        data.senderEmail.trim().length === 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["senderEmail"],
+          message: "Please enter a valid email address",
+        });
+      }
+    }
+
     if (data.sendOption !== "schedule") return;
     if (!(data.scheduleDate instanceof Date)) {
       ctx.addIssue({
@@ -67,3 +102,4 @@ export const campaignFormSchema = z
   });
 
 export type CampaignFormData = z.input<typeof campaignFormSchema>;
+export type CampaignChannel = (typeof campaignChannels)[number];

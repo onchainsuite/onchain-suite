@@ -20,8 +20,6 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { useCommandPalette } from "@/components/common/command-palette";
-
 import { useOnboardingTracking } from "../../onboarding-flow/hooks";
 
 const tasks = [
@@ -125,7 +123,6 @@ const tasks = [
 ];
 
 export function GetStartedSection() {
-  const palette = useCommandPalette();
   const [currentIndex, setCurrentIndex] = useState(0);
   const completedCount = tasks.filter((t) => t.completed).length;
   const { progress, isLoading } = useOnboardingTracking();
@@ -236,10 +233,6 @@ export function GetStartedSection() {
                       <Link
                         key={task.title}
                         href={task.href}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          palette.open(task.title);
-                        }}
                         className="group flex flex-col rounded-xl border border-border bg-background p-5 text-left transition-all hover:shadow-md md:p-6"
                       >
                         <div

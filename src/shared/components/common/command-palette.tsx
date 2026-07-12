@@ -1,10 +1,21 @@
 "use client";
 
 import {
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  BoltIcon,
   Cog6ToothIcon,
+  CpuChipIcon,
+  DocumentTextIcon,
   EnvelopeIcon,
+  FunnelIcon,
   MagnifyingGlassIcon,
+  MegaphoneIcon,
+  PlusCircleIcon,
   SparklesIcon,
+  Squares2X2Icon,
+  UserGroupIcon,
+  UserPlusIcon,
 } from "@heroicons/react/24/outline";
 import {
   Command,
@@ -16,7 +27,7 @@ import {
   CommandSeparator,
 } from "@kmenu/react";
 import { fuzzyFilter } from "kmenu";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -26,33 +37,27 @@ import {
   useRef,
   useState,
 } from "react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
-import { ScrollArea } from "@/ui/scroll-area";
 
 import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { authClient } from "@/lib/auth-client";
 import { getSelectedOrganizationId } from "@/lib/utils";
 
+const AI_TIMEOUT_MS = 60_000;
+
 type PaletteOptionData =
-  | {
-      kind: "action";
-      href?: string;
-      run?: () => void;
-    }
-  | {
-      kind: "ai";
-      query: string;
-    };
+  | { kind: "navigate"; href: string }
+  | { kind: "ai"; query: string };
 
 type PaletteOption = {
   id: string;
   label: string;
+  group: "ai" | "navigate" | "actions";
   keywords?: string[];
-  icon?: "mail" | "settings" | "sparkles" | "search";
-  shortcut?: string[];
+  icon: React.ReactNode;
+  hint?: string;
   data: PaletteOptionData;
 };
 
@@ -70,42 +75,18 @@ export function useCommandPalette() {
   return ctx;
 }
 
-function iconFor(option: PaletteOption) {
-  switch (option.icon) {
-    case "mail":
-      return (
-        <EnvelopeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      );
-    case "settings":
-      return (
-        <Cog6ToothIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      );
-    case "sparkles":
-      return (
-        <SparklesIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      );
-    default:
-      return (
-        <MagnifyingGlassIcon
-          className="h-3.5 w-3.5 shrink-0"
-          aria-hidden="true"
-        />
-      );
-  }
-}
-
 function Kbd({ keys }: { keys: string[] }) {
   return (
-    <div className="flex items-center gap-1" aria-hidden="true">
+    <span className="flex items-center gap-1" aria-hidden="true">
       {keys.map((k) => (
         <kbd
           key={k}
-          className="pointer-events-none inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-md border border-border bg-muted px-1.5 font-mono text-[10px] font-semibold text-muted-foreground shadow-[inset_0_-1px_0_rgba(0,0,0,0.08)]"
+          className="pointer-events-none inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-md border border-border bg-muted px-1.5 font-mono text-[10px] font-semibold text-muted-foreground"
         >
           {k}
         </kbd>
       ))}
-    </div>
+    </span>
   );
 }
 
@@ -201,27 +182,191 @@ async function streamQueryText(args: {
   }
 }
 
+const NAVIGATE_OPTIONS: PaletteOption[] = [
+  {
+    id: "nav-dashboard",
+    label: "Dashboard",
+    group: "navigate",
+    keywords: ["home", "overview"],
+    icon: <Squares2X2Icon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.DASHBOARD },
+  },
+  {
+    id: "nav-campaigns",
+    label: "Campaigns",
+    group: "navigate",
+    keywords: ["email", "send", "broadcast"],
+    icon: <MegaphoneIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.CAMPAIGNS },
+  },
+  {
+    id: "nav-audience",
+    label: "Audience",
+    group: "navigate",
+    keywords: ["contacts", "wallets", "users"],
+    icon: <UserGroupIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.AUDIENCE },
+  },
+  {
+    id: "nav-forms",
+    label: "Forms",
+    group: "navigate",
+    keywords: ["signup", "capture"],
+    icon: <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.FORMS },
+  },
+  {
+    id: "nav-inbox",
+    label: "Inbox",
+    group: "navigate",
+    keywords: ["email", "messages", "replies"],
+    icon: <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.INBOX },
+  },
+  {
+    id: "nav-automations",
+    label: "Automations",
+    group: "navigate",
+    keywords: ["workflow", "triggers", "plays"],
+    icon: <BoltIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.AUTOMATIONS },
+  },
+  {
+    id: "nav-intelligence",
+    label: "Intelligence",
+    group: "navigate",
+    keywords: ["ai", "query", "reports", "segments", "sql"],
+    icon: <CpuChipIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.INTELLIGENCE },
+  },
+  {
+    id: "nav-settings",
+    label: "Settings",
+    group: "navigate",
+    keywords: ["preferences", "billing", "profile", "account"],
+    icon: <Cog6ToothIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.SETTINGS },
+  },
+];
+
+const ACTION_OPTIONS: PaletteOption[] = [
+  {
+    id: "action-new-campaign",
+    label: "Create campaign",
+    group: "actions",
+    keywords: ["new", "campaign", "send", "email"],
+    icon: <PlusCircleIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.NEW_CAMPAIGN },
+  },
+  {
+    id: "action-new-automation",
+    label: "Create automation",
+    group: "actions",
+    keywords: ["new", "automation", "workflow"],
+    icon: <BoltIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: PRIVATE_ROUTES.NEW_AUTOMATION },
+  },
+  {
+    id: "action-create-segment",
+    label: "Create segment",
+    group: "actions",
+    keywords: ["new", "segment", "audience", "filter"],
+    icon: <FunnelIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: "/intelligence/segments/create" },
+  },
+  {
+    id: "action-import-contacts",
+    label: "Import contacts",
+    group: "actions",
+    keywords: ["import", "csv", "wallets", "upload"],
+    icon: <UserPlusIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: "/audience/import-export" },
+  },
+  {
+    id: "action-personalize",
+    label: "Personalize workspace",
+    group: "actions",
+    keywords: ["onboarding", "setup"],
+    icon: <SparklesIcon className="h-4 w-4" aria-hidden="true" />,
+    data: { kind: "navigate", href: "/onboarding" },
+  },
+];
+
+function PaletteRow({ option }: { option: PaletteOption }) {
+  const isAi = option.group === "ai";
+  return (
+    <CommandOption
+      value={option}
+      className="group relative flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm text-foreground transition-colors hover:bg-muted/40 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+    >
+      <span
+        aria-hidden="true"
+        className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary opacity-0 transition-opacity group-data-[active=true]:opacity-100"
+      />
+      <span
+        className={
+          isAi
+            ? "flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"
+            : "flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors group-data-[active=true]:border-primary/30 group-data-[active=true]:bg-primary/15 group-data-[active=true]:text-primary"
+        }
+      >
+        {option.icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate font-medium leading-snug">
+        {option.label}
+      </span>
+      {option.hint ? (
+        <span className="shrink-0 text-[11px] text-muted-foreground opacity-0 transition-opacity group-data-[active=true]:opacity-100">
+          {option.hint}
+        </span>
+      ) : null}
+    </CommandOption>
+  );
+}
+
+const GROUP_HEADING_CLASSES =
+  "px-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-muted-foreground";
+
 export function CommandPaletteProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const { data: session } = authClient.useSession();
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<"commands" | "answer">("commands");
   const [query, setQuery] = useState("");
+  const [askedQuestion, setAskedQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState("");
-  const [aiDone, setAiDone] = useState<StreamDonePayload | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<number | null>(null);
   const lastShortcutAtRef = useRef<number>(0);
   const openRef = useRef<boolean>(false);
+  const viewRef = useRef<"commands" | "answer">("commands");
+
+  const stopStreaming = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setAiLoading(false);
+  }, []);
+
+  const backToCommands = useCallback(() => {
+    stopStreaming();
+    setView("commands");
+  }, [stopStreaming]);
 
   const api = useMemo<CommandPaletteApi>(
     () => ({
       open: (prefill) => {
+        setView("commands");
         setAiAnswer("");
-        setAiDone(null);
         setAiError(null);
         setAiLoading(false);
         if (typeof prefill === "string") setQuery(prefill);
@@ -236,6 +381,9 @@ export function CommandPaletteProvider({
   useEffect(() => {
     openRef.current = open;
   }, [open]);
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -283,20 +431,21 @@ export function CommandPaletteProvider({
 
         setOpen(true);
       }
-      if (e.key === "Escape") {
-        setOpen(false);
-      }
     };
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () =>
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, []);
 
+  // Reset transient state when the palette closes; abort in-flight streams.
   useEffect(() => {
     if (!open) {
-      abortRef.current?.abort();
-      abortRef.current = null;
-      setAiLoading(false);
+      stopStreaming();
+      setView("commands");
+      setQuery("");
+      setAskedQuestion("");
+      setAiAnswer("");
+      setAiError(null);
       return;
     }
     const t = window.setTimeout(() => {
@@ -306,71 +455,32 @@ export function CommandPaletteProvider({
       input?.focus();
     }, 0);
     return () => window.clearTimeout(t);
-  }, [open]);
+  }, [open, stopStreaming]);
 
-  const options = useMemo<PaletteOption[]>(() => {
-    const base: PaletteOption[] = [
-      {
-        id: "connect-email",
-        label: "Connect email",
-        keywords: ["email", "inbox", "connect"],
-        icon: "mail",
-        shortcut: ["⌘", "E"],
-        data: { kind: "action", href: PRIVATE_ROUTES.INBOX },
-      },
-      {
-        id: "open-settings",
-        label: "Open settings",
-        keywords: ["settings", "preferences"],
-        icon: "settings",
-        shortcut: ["⌘", ","],
-        data: { kind: "action", href: PRIVATE_ROUTES.SETTINGS },
-      },
-      {
-        id: "personalize",
-        label: "Personalize workspace",
-        keywords: ["onboarding", "personalize"],
-        icon: "sparkles",
-        shortcut: ["⌘", "P"],
-        data: { kind: "action", href: "/onboarding" },
-      },
-    ];
-
-    const q = query.trim();
-    if (q.length > 0) {
-      base.unshift({
-        id: "ask-ai",
-        label: `Ask AI: ${q}`,
-        keywords: ["ai", "ask", "help", "search"],
-        icon: "search",
-        shortcut: ["↵"],
-        data: { kind: "ai", query: q },
-      });
-    }
-
-    return base;
-  }, [query]);
-
-  const handleSelect = useCallback(
-    (opt: PaletteOption) => {
-      if (opt.data.kind === "action") {
-        setOpen(false);
-        if (opt.data.run) opt.data.run();
-        if (opt.data.href) window.location.href = opt.data.href;
-        return;
-      }
-
-      const orgId = getSelectedOrganizationId();
+  const askAi = useCallback(
+    (question: string) => {
       const controller = new AbortController();
       abortRef.current?.abort();
       abortRef.current = controller;
+      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
 
+      setView("answer");
+      setAskedQuestion(question);
       setAiAnswer("");
-      setAiDone(null);
       setAiError(null);
       setAiLoading(true);
 
-      const enriched = buildPersonalizedQuery(opt.data.query, session?.user);
+      // Bound the stream — never hang forever.
+      timeoutRef.current = window.setTimeout(() => {
+        if (abortRef.current === controller) {
+          controller.abort();
+          setAiError("The AI took too long to respond. Try again.");
+          setAiLoading(false);
+        }
+      }, AI_TIMEOUT_MS);
+
+      const enriched = buildPersonalizedQuery(question, session?.user);
+      const orgId = getSelectedOrganizationId();
 
       streamQueryText({
         query: enriched,
@@ -379,23 +489,53 @@ export function CommandPaletteProvider({
         signal: controller.signal,
         onToken: (t) => setAiAnswer((prev) => prev + t),
         onDone: (d) => {
-          setAiDone(d);
           if (typeof d.answer === "string" && d.answer.length > 0) {
             setAiAnswer(d.answer);
           }
           setAiLoading(false);
+          if (timeoutRef.current !== null) {
+            window.clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
         },
       }).catch((e: unknown) => {
+        if (controller.signal.aborted) return; // user stop or timeout
         const message = e instanceof Error ? e.message : "AI request failed";
         setAiError(message);
         setAiLoading(false);
-        toast.error(message);
       });
     },
     [session?.user]
   );
 
-  const aiVisible = aiLoading || aiAnswer.length > 0 || aiError !== null;
+  const options = useMemo<PaletteOption[]>(() => {
+    const q = query.trim();
+    const all = [...NAVIGATE_OPTIONS, ...ACTION_OPTIONS];
+    if (q.length > 0) {
+      all.unshift({
+        id: "ask-ai",
+        label: `Ask AI: “${q}”`,
+        group: "ai",
+        keywords: ["ai", "ask", "help", "search"],
+        icon: <SparklesIcon className="h-4 w-4" aria-hidden="true" />,
+        hint: "Enter",
+        data: { kind: "ai", query: q },
+      });
+    }
+    return all;
+  }, [query]);
+
+  const handleSelect = useCallback(
+    (opt: PaletteOption) => {
+      if (opt.data.kind === "navigate") {
+        setOpen(false);
+        router.push(opt.data.href);
+        return;
+      }
+      askAi(opt.data.query);
+    },
+    [askAi, router]
+  );
 
   return (
     <CommandPaletteContext.Provider value={api}>
@@ -404,41 +544,145 @@ export function CommandPaletteProvider({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           showCloseButton={false}
-          className="max-w-[600px] gap-0 overflow-hidden rounded-2xl border border-border/70 bg-background/95 p-0 shadow-[0_40px_120px_-40px_rgba(15,23,42,0.65)] ring-1 ring-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 sm:max-w-[600px]"
+          onEscapeKeyDown={(e) => {
+            // Esc steps back from the answer view instead of closing.
+            if (viewRef.current === "answer") {
+              e.preventDefault();
+              backToCommands();
+            }
+          }}
+          className="max-w-[640px] gap-0 overflow-hidden rounded-2xl border border-border/70 bg-background/95 p-0 shadow-[0_40px_120px_-40px_rgba(15,23,42,0.65)] ring-1 ring-black/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 sm:max-w-[640px]"
         >
           <DialogHeader className="sr-only">
             <DialogTitle>Command palette</DialogTitle>
           </DialogHeader>
-          <Command
-            options={options}
-            filter={fuzzyFilter}
-            value={query}
-            onValueChange={setQuery}
-            onSelect={(selected) => handleSelect(selected as PaletteOption)}
-          >
-            {/* Search row */}
-            <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3">
-              <MagnifyingGlassIcon
-                className="h-5 w-5 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <CommandInput
-                placeholder="Search commands or ask AI anything…"
-                aria-label="Command palette input"
-                className="h-7 flex-1 bg-transparent text-[15px] font-medium text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/60"
-              />
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Close command palette"
-                className="shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
-              >
-                Esc
-              </button>
-            </div>
 
-            <ScrollArea className="max-h-[min(60vh,420px)]">
-              <CommandList className="px-2 pb-2 pt-1.5">
+          {view === "answer" ? (
+            <div className="flex flex-col">
+              {/* Answer header */}
+              <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2.5">
+                <button
+                  type="button"
+                  onClick={backToCommands}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                >
+                  <ArrowLeftIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  Back
+                </button>
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <SparklesIcon
+                    className="h-3.5 w-3.5 text-primary"
+                    aria-hidden="true"
+                  />
+                  AI answer
+                </div>
+                <div className="ml-auto">
+                  {aiLoading ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={stopStreaming}
+                    >
+                      Stop
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Question */}
+              <div className="border-b border-border/60 bg-muted/20 px-4 py-2.5">
+                <p className="line-clamp-2 text-sm font-medium text-foreground">
+                  {askedQuestion}
+                </p>
+              </div>
+
+              {/* Answer body */}
+              <div className="max-h-[min(50vh,360px)] overflow-y-auto">
+                <div
+                  className="px-4 py-4 text-sm leading-relaxed text-foreground"
+                  aria-live="polite"
+                >
+                  {aiError ? (
+                    <div className="space-y-3">
+                      <p className="text-destructive">{aiError}</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => askAi(askedQuestion)}
+                      >
+                        <ArrowPathIcon
+                          className="mr-1.5 h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                        Try again
+                      </Button>
+                    </div>
+                  ) : aiAnswer.length > 0 ? (
+                    <div className="whitespace-pre-wrap">{aiAnswer}</div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <span className="flex gap-1" aria-hidden="true">
+                        {[0, 1, 2].map((d) => (
+                          <span
+                            key={d}
+                            className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary"
+                            style={{ animationDelay: `${d * 0.18}s` }}
+                          />
+                        ))}
+                      </span>
+                      Thinking…
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Answer footer */}
+              <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Kbd keys={["Esc"]} />
+                  Back to commands
+                </span>
+                <span>AI answers can be wrong — verify important data.</span>
+              </div>
+            </div>
+          ) : (
+            <Command
+              options={options}
+              filter={fuzzyFilter}
+              value={query}
+              onValueChange={setQuery}
+              onSelect={(selected) => handleSelect(selected as PaletteOption)}
+            >
+              {/* Search row */}
+              <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3">
+                <MagnifyingGlassIcon
+                  className="h-5 w-5 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <CommandInput
+                  placeholder="Search, jump to a page, or ask AI…"
+                  aria-label="Command palette input"
+                  className="h-7 flex-1 bg-transparent text-[15px] font-medium text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/60"
+                />
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close command palette"
+                  className="shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+                >
+                  Esc
+                </button>
+              </div>
+
+              {/* CommandList must be its own scroll container — kmenu scrolls
+                  this element directly for keyboard navigation. Its internal
+                  `.command-active-indicator` div is unstyled (we don't ship
+                  kmenu's CSS) and would occupy flow space, so hide it — the
+                  active row is styled via data-[active=true] instead. */}
+              <CommandList className="max-h-[min(60vh,420px)] overflow-y-auto px-2 pb-2 pt-1.5 [&_.command-active-indicator]:hidden">
                 <CommandEmpty>
                   <div className="flex flex-col items-center gap-1.5 px-2 py-10 text-center">
                     <MagnifyingGlassIcon
@@ -446,156 +690,68 @@ export function CommandPaletteProvider({
                       aria-hidden="true"
                     />
                     <p className="text-sm font-medium text-foreground">
-                      No results found
+                      No matching commands
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Press{" "}
-                      <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
-                        ↵
-                      </kbd>{" "}
-                      to ask AI instead.
+                      Press <Kbd keys={["↵"]} /> to ask AI instead.
                     </p>
                   </div>
                 </CommandEmpty>
 
-                <CommandGroup
-                  heading="General"
-                  className="px-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-1 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-muted-foreground"
-                >
+                {options.some((o) => o.group === "ai") ? (
+                  <CommandGroup heading="Ask" className={GROUP_HEADING_CLASSES}>
+                    {options
+                      .filter((o) => o.group === "ai")
+                      .map((o) => (
+                        <PaletteRow key={o.id} option={o} />
+                      ))}
+                  </CommandGroup>
+                ) : null}
+
+                <CommandGroup heading="Go to" className={GROUP_HEADING_CLASSES}>
                   {options
-                    .filter((o) => o.id !== "ask-ai")
+                    .filter((o) => o.group === "navigate")
                     .map((o) => (
-                      <CommandOption
-                        key={o.id}
-                        value={o}
-                        className="group relative flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary opacity-0 transition-opacity group-data-[active=true]:opacity-100"
-                        />
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors group-data-[active=true]:border-primary/30 group-data-[active=true]:bg-primary/15 group-data-[active=true]:text-primary">
-                          {iconFor(o)}
-                        </div>
-                        <span className="flex-1 font-medium leading-snug">
-                          {o.label}
-                        </span>
-                        {o.shortcut && o.shortcut.length > 0 ? (
-                          <Kbd keys={o.shortcut} />
-                        ) : null}
-                      </CommandOption>
+                      <PaletteRow key={o.id} option={o} />
                     ))}
                 </CommandGroup>
 
-                {options.some((o) => o.id === "ask-ai") ? (
-                  <>
-                    <CommandSeparator className="my-2 h-px bg-border/60" />
-                    <CommandGroup
-                      heading="AI"
-                      className="px-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em] [&_[cmdk-group-heading]]:text-muted-foreground"
-                    >
-                      {options
-                        .filter((o) => o.id === "ask-ai")
-                        .map((o) => (
-                          <CommandOption
-                            key={o.id}
-                            value={o}
-                            className="group relative flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/40 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
-                          >
-                            <span
-                              aria-hidden="true"
-                              className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary opacity-0 transition-opacity group-data-[active=true]:opacity-100"
-                            />
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-                              {iconFor(o)}
-                            </div>
-                            <span className="flex-1 font-medium leading-snug">
-                              {o.label}
-                            </span>
-                            {o.shortcut && o.shortcut.length > 0 ? (
-                              <Kbd keys={o.shortcut} />
-                            ) : null}
-                          </CommandOption>
-                        ))}
-                    </CommandGroup>
-                  </>
-                ) : null}
+                <CommandSeparator className="my-2 h-px bg-border/60" />
+
+                <CommandGroup
+                  heading="Actions"
+                  className={GROUP_HEADING_CLASSES}
+                >
+                  {options
+                    .filter((o) => o.group === "actions")
+                    .map((o) => (
+                      <PaletteRow key={o.id} option={o} />
+                    ))}
+                </CommandGroup>
               </CommandList>
-            </ScrollArea>
 
-            {aiVisible ? (
-              <div className="border-t border-border/60 bg-muted/10 px-4 py-3">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                      <SparklesIcon
-                        className="h-3.5 w-3.5 text-primary"
-                        aria-hidden="true"
-                      />
-                      AI response
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => {
-                        abortRef.current?.abort();
-                        abortRef.current = null;
-                        setAiLoading(false);
-                      }}
-                      disabled={!aiLoading}
-                    >
-                      Stop
-                    </Button>
-                  </div>
-
-                  <ScrollArea className="max-h-[180px] rounded-xl border border-border/60 bg-muted/20">
-                    <div
-                      className="p-3 text-[13px] leading-relaxed text-foreground"
-                      aria-live="polite"
-                    >
-                      <div className="whitespace-pre-wrap">
-                        {aiError ?? (aiAnswer.length > 0 ? aiAnswer : "…")}
-                      </div>
-                    </div>
-                  </ScrollArea>
-
-                  {aiDone?.queryLogId ? (
-                    <div className="text-xs text-muted-foreground">
-                      <span>queryLogId:</span> {aiDone.queryLogId}
-                    </div>
-                  ) : null}
-                  <div className="text-xs text-muted-foreground">
-                    <Link href="/settings" className="hover:underline">
-                      Change organization or permissions in Settings
-                    </Link>
-                  </div>
+              {/* Footer hints */}
+              <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1.5">
+                    <Kbd keys={["↑", "↓"]} />
+                    Navigate
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Kbd keys={["↵"]} />
+                    Select
+                  </span>
                 </div>
-              </div>
-            ) : null}
-
-            {/* Footer hints */}
-            <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
-              <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5">
-                  <Kbd keys={["↑", "↓"]} />
-                  Navigate
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Kbd keys={["↵"]} />
-                  Select
+                  <SparklesIcon
+                    className="h-3.5 w-3.5 text-primary"
+                    aria-hidden="true"
+                  />
+                  Type a question to ask AI
                 </span>
               </div>
-              <span className="flex items-center gap-1.5">
-                <SparklesIcon
-                  className="h-3.5 w-3.5 text-primary"
-                  aria-hidden="true"
-                />
-                Type anything to ask AI
-              </span>
-            </div>
-          </Command>
+            </Command>
+          )}
         </DialogContent>
       </Dialog>
     </CommandPaletteContext.Provider>

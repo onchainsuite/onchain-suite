@@ -312,15 +312,35 @@ function DevelopersMenu() {
 
 type MenuId = "platform" | "developers";
 
-export function Nav() {
+export function Nav({ ctaWatchesHero = false }: { ctaWatchesHero?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
+  // While the hero (which has its own CTA) is on screen, the nav CTA stays
+  // hidden; it fades in once the user scrolls past the hero. Defaults to the
+  // prop so the first paint is correct on both the landing page and pages
+  // without a hero (pricing, legal, …).
+  const [heroInView, setHeroInView] = useState(ctaWatchesHero);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+  useEffect(() => {
+    if (!ctaWatchesHero) return;
+    const hero = document.querySelector("[data-landing-hero]");
+    if (!hero) {
+      setHeroInView(false);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroInView(entry.isIntersecting),
+      // offset the sticky nav height so the CTA appears as the hero slides under it
+      { rootMargin: "-72px 0px 0px 0px" }
+    );
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, [ctaWatchesHero]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpenMenu(null);
@@ -415,7 +435,12 @@ export function Nav() {
             Sign in
           </Link>
           */}
-          <Link href={SIGNUP} className="btn btn-primary">
+          <Link
+            href={SIGNUP}
+            className={`btn btn-primary nav-cta${heroInView ? " nav-cta-hidden" : ""}`}
+            aria-hidden={heroInView}
+            tabIndex={heroInView ? -1 : undefined}
+          >
             Get early access
           </Link>
         </div>
@@ -651,10 +676,17 @@ export function Footer() {
 }
 
 /** Shared page chrome for every marketing route (scope + nav + footer). */
-export function PageShell({ children }: { children: ReactNode }) {
+export function PageShell({
+  children,
+  navCtaWatchesHero = false,
+}: {
+  children: ReactNode;
+  /** Hide the nav CTA while the landing hero (with its own CTA) is in view. */
+  navCtaWatchesHero?: boolean;
+}) {
   return (
     <div className="ocs2 min-h-screen">
-      <Nav />
+      <Nav ctaWatchesHero={navCtaWatchesHero} />
       <main>{children}</main>
       <Footer />
     </div>

@@ -39,6 +39,7 @@ import {
 } from "@/lib/utils";
 
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 type InAppEnvironment = "production" | "staging" | "development";
 type SecretKeyEnvironment = "live" | "test";
@@ -560,12 +561,14 @@ const InAppIntegration = () => {
                   Publishable keys
                 </div>
                 <div className="mt-2 text-sm text-foreground">
-                  {statusQuery.isLoading
-                    ? "Loading…"
-                    : status.publishableKeys.production ||
-                        status.publishableKeys.test
-                      ? "Configured"
-                      : "Not available yet"}
+                  {statusQuery.isLoading ? (
+                    <Skeleton className="h-5 w-24" />
+                  ) : status.publishableKeys.production ||
+                    status.publishableKeys.test ? (
+                    "Configured"
+                  ) : (
+                    "Not available yet"
+                  )}
                 </div>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
@@ -573,9 +576,11 @@ const InAppIntegration = () => {
                   Secret keys
                 </div>
                 <div className="mt-2 text-sm text-foreground">
-                  {statusQuery.isLoading
-                    ? "Loading…"
-                    : `${status.secretKeys.length} created`}
+                  {statusQuery.isLoading ? (
+                    <Skeleton className="h-5 w-20" />
+                  ) : (
+                    `${status.secretKeys.length} created`
+                  )}
                 </div>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
@@ -583,9 +588,11 @@ const InAppIntegration = () => {
                   Allowed origins
                 </div>
                 <div className="mt-2 text-sm text-foreground">
-                  {originsQuery.isLoading
-                    ? "Loading…"
-                    : `${origins.length} added`}
+                  {originsQuery.isLoading ? (
+                    <Skeleton className="h-5 w-16" />
+                  ) : (
+                    `${origins.length} added`
+                  )}
                 </div>
               </div>
             </div>
@@ -605,12 +612,14 @@ const InAppIntegration = () => {
                     Publishable keys
                   </div>
                   <div className="mt-2 text-sm text-foreground">
-                    {statusQuery.isLoading
-                      ? "Loading…"
-                      : status.publishableKeys.production ||
-                          status.publishableKeys.test
-                        ? "Configured"
-                        : "Not available yet"}
+                    {statusQuery.isLoading ? (
+                      <Skeleton className="h-5 w-24" />
+                    ) : status.publishableKeys.production ||
+                      status.publishableKeys.test ? (
+                      "Configured"
+                    ) : (
+                      "Not available yet"
+                    )}
                   </div>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
@@ -618,9 +627,11 @@ const InAppIntegration = () => {
                     Secret keys
                   </div>
                   <div className="mt-2 text-sm text-foreground">
-                    {statusQuery.isLoading
-                      ? "Loading…"
-                      : `${status.secretKeys.length} created`}
+                    {statusQuery.isLoading ? (
+                      <Skeleton className="h-5 w-20" />
+                    ) : (
+                      `${status.secretKeys.length} created`
+                    )}
                   </div>
                 </div>
                 <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
@@ -628,9 +639,11 @@ const InAppIntegration = () => {
                     Allowed origins
                   </div>
                   <div className="mt-2 text-sm text-foreground">
-                    {originsQuery.isLoading
-                      ? "Loading…"
-                      : `${origins.length} added`}
+                    {originsQuery.isLoading ? (
+                      <Skeleton className="h-5 w-16" />
+                    ) : (
+                      `${origins.length} added`
+                    )}
                   </div>
                 </div>
               </div>
@@ -646,9 +659,11 @@ const InAppIntegration = () => {
                       only when needed.
                     </p>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {statusQuery.isLoading
-                        ? "Loading key status…"
-                        : `${status.publishableKeys.production || status.publishableKeys.test ? "Publishable keys configured" : "Publishable keys unavailable"} • ${status.secretKeys.length} secret key${status.secretKeys.length === 1 ? "" : "s"}`}
+                      {statusQuery.isLoading ? (
+                        <Skeleton className="h-4 w-56" />
+                      ) : (
+                        `${status.publishableKeys.production || status.publishableKeys.test ? "Publishable keys configured" : "Publishable keys unavailable"} • ${status.secretKeys.length} secret key${status.secretKeys.length === 1 ? "" : "s"}`
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -749,13 +764,15 @@ const InAppIntegration = () => {
                           </Button>
                         </div>
                         <code className="mt-3 block w-full rounded-xl border border-border/80 bg-card px-3 py-3 font-mono text-xs text-foreground">
-                          {statusQuery.isLoading
-                            ? "Loading…"
-                            : showPublishable
-                              ? (status.publishableKeys.production ?? "—")
-                              : status.publishableKeys.production
-                                ? maskKey(status.publishableKeys.production)
-                                : "—"}
+                          {statusQuery.isLoading ? (
+                            <Skeleton className="h-4 w-44" />
+                          ) : showPublishable ? (
+                            (status.publishableKeys.production ?? "—")
+                          ) : status.publishableKeys.production ? (
+                            maskKey(status.publishableKeys.production)
+                          ) : (
+                            "—"
+                          )}
                         </code>
                       </div>
 
@@ -796,13 +813,15 @@ const InAppIntegration = () => {
                           </Button>
                         </div>
                         <code className="mt-3 block w-full rounded-xl border border-border/80 bg-card px-3 py-3 font-mono text-xs text-foreground">
-                          {statusQuery.isLoading
-                            ? "Loading…"
-                            : showPublishable
-                              ? (status.publishableKeys.test ?? "—")
-                              : status.publishableKeys.test
-                                ? maskKey(status.publishableKeys.test)
-                                : "—"}
+                          {statusQuery.isLoading ? (
+                            <Skeleton className="h-4 w-44" />
+                          ) : showPublishable ? (
+                            (status.publishableKeys.test ?? "—")
+                          ) : status.publishableKeys.test ? (
+                            maskKey(status.publishableKeys.test)
+                          ) : (
+                            "—"
+                          )}
                         </code>
                       </div>
                     </div>
@@ -818,9 +837,10 @@ const InAppIntegration = () => {
 
                       <div className="mt-4 space-y-3">
                         {statusQuery.isLoading ? (
-                          <div className="text-sm text-muted-foreground">
-                            Loading…
-                          </div>
+                          <>
+                            <Skeleton className="h-16 w-full rounded-2xl" />
+                            <Skeleton className="h-16 w-full rounded-2xl" />
+                          </>
                         ) : status.secretKeys.length === 0 ? (
                           <div className="rounded-2xl border border-dashed border-border/70 bg-background/60 p-4 text-sm text-muted-foreground">
                             No secret keys created yet.
@@ -877,9 +897,11 @@ const InAppIntegration = () => {
                       and request delivery.
                     </p>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {originsQuery.isLoading
-                        ? "Loading origins…"
-                        : `${origins.length} origin${origins.length === 1 ? "" : "s"} configured`}
+                      {originsQuery.isLoading ? (
+                        <Skeleton className="h-4 w-36" />
+                      ) : (
+                        `${origins.length} origin${origins.length === 1 ? "" : "s"} configured`
+                      )}
                     </div>
                   </div>
                   <Button
@@ -955,9 +977,10 @@ const InAppIntegration = () => {
 
                     <div className="space-y-3">
                       {originsQuery.isLoading ? (
-                        <div className="text-sm text-muted-foreground">
-                          Loading…
-                        </div>
+                        <>
+                          <Skeleton className="h-16 w-full rounded-2xl" />
+                          <Skeleton className="h-16 w-full rounded-2xl" />
+                        </>
                       ) : originsQuery.isError ? (
                         <div className="text-sm text-destructive">
                           Failed to load origins

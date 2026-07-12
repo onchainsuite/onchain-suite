@@ -45,6 +45,30 @@ interface UseOnboardingTracking {
   }) => Promise<void>;
 }
 
+const isRateLimited = (error: unknown) =>
+  isJsonObject(error) &&
+  isJsonObject(error.response) &&
+  error.response.status === 429;
+
+/**
+ * POST that retries once after the backend's rate-limit window (3 requests /
+ * 10 seconds) when it hits a 429, instead of failing immediately.
+ */
+async function postWithRateLimitRetry(
+  url: string,
+  body: Record<string, unknown>
+): Promise<void> {
+  try {
+    await apiClient.post(url, body);
+  } catch (error) {
+    if (!isRateLimited(error)) throw error;
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 10_500);
+    });
+    await apiClient.post(url, body);
+  }
+}
+
 const STEP_MAPPING: Record<number, OnboardingStep> = {
   1: "personal_info",
   2: "business_address",
@@ -157,40 +181,44 @@ export function useOnboardingTracking(): UseOnboardingTracking {
         return;
       }
 
-      try {
-        const updatedStepData = payload.stepData ?? {};
+      const updatedStepData = payload.stepData ?? {};
 
-        await apiClient.post("/onboarding/track", {
-          stepName: payload.stepName,
-          action: payload.action,
-          timeSpentSeconds: payload.timeSpentSeconds,
-          currentStep: payload.currentStep,
-          stepData: updatedStepData,
-          flowVersion: payload.flowVersion ?? "frontend-v1",
-          metadata: payload.metadata,
-        });
+      // Update local progress immediately — tracking is telemetry and must
+      // never gate the user's step transition.
+      const completionFromMeta =
+        isJsonObject(payload.metadata) &&
+        typeof payload.metadata.completionPercentage === "number"
+          ? payload.metadata.completionPercentage
+          : undefined;
+      const completionPercentage =
+        completionFromMeta ?? COMPLETION_PERCENTAGES[payload.stepName] ?? 0;
 
-        const completionFromMeta =
-          isJsonObject(payload.metadata) &&
-          typeof payload.metadata.completionPercentage === "number"
-            ? payload.metadata.completionPercentage
-            : undefined;
-        const completionPercentage =
-          completionFromMeta ?? COMPLETION_PERCENTAGES[payload.stepName] ?? 0;
+      setProgress((prev) => ({
+        current_step: payload.currentStep ?? payload.stepName,
+        completion_percentage: completionPercentage,
+        step_data: {
+          ...(prev?.step_data ?? {}),
+          ...updatedStepData,
+        },
+        is_completed: false,
+      }));
 
-        setProgress((prev) => ({
-          current_step: payload.currentStep ?? payload.stepName,
-          completion_percentage: completionPercentage,
-          step_data: {
-            ...(prev?.step_data ?? {}),
-            ...updatedStepData,
-          },
-          is_completed: false,
-        }));
-      } catch (error) {
-        console.error("Error tracking onboarding step:", error);
-        toast.error("Failed to save progress");
-      }
+      // Fire-and-forget: the backend rate-limits at 3 requests / 10s, and a
+      // step transition can fire multiple track events on top of the flow's
+      // real API calls. A 429 (or any failure) must not surface an error or
+      // block onboarding — retry once after the limit window, then give up
+      // quietly.
+      postWithRateLimitRetry("/onboarding/track", {
+        stepName: payload.stepName,
+        action: payload.action,
+        timeSpentSeconds: payload.timeSpentSeconds,
+        currentStep: payload.currentStep,
+        stepData: updatedStepData,
+        flowVersion: payload.flowVersion ?? "frontend-v1",
+        metadata: payload.metadata,
+      }).catch((error) => {
+        console.warn("Onboarding step tracking failed (non-fatal):", error);
+      });
     },
     [user?.id]
   );
@@ -210,7 +238,9 @@ export function useOnboardingTracking(): UseOnboardingTracking {
       try {
         const completeStepData = payload.stepData ?? {};
 
-        await apiClient.post("/onboarding/complete", {
+        // Completion is a real state change (unlike track), so we await it —
+        // but ride out a rate-limit window instead of failing outright.
+        await postWithRateLimitRetry("/onboarding/complete", {
           totalTimeSeconds: payload.totalTimeSeconds,
           currentStep: payload.currentStep,
           stepData: completeStepData,

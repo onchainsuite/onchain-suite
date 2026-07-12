@@ -68,7 +68,7 @@ import {
   WaitNode,
   WebhookNode,
 } from "./nodes";
-import { PropertySelect } from "./property-select";
+import { PropertySelect, type PropertySelectOption } from "./property-select";
 import {
   actionNodes,
   emailTemplates as fallbackEmailTemplates,
@@ -88,6 +88,7 @@ import {
   resolveContractCatalog,
 } from "@/features/automation/utils/contracts";
 import { projectSettingsService } from "@/features/settings/project-settings.service";
+import { senderIdentitiesService } from "@/features/settings/sender-identities.service";
 
 // This is a known benign error with ReactFlow that can be safely ignored
 if (typeof window === "undefined") {
@@ -726,6 +727,25 @@ const CreateAutomationContent = () => {
     refetchOnWindowFocus: false,
   });
 
+  // Verified sender identities feed the send_email node's "Sender" picker.
+  // The backend resolves node `senderEmail` → org default identity →
+  // most-recently-verified identity → platform fallback (docs/backend.md).
+  const senderIdentitiesQuery = useQuery({
+    queryKey: ["automations", "builder", "sender-identities"],
+    queryFn: () => senderIdentitiesService.listSenderIdentities(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
+
+  const verifiedSenderIdentities = useMemo(
+    () =>
+      (senderIdentitiesQuery.data ?? []).filter(
+        (identity) => identity.status === "verified"
+      ),
+    [senderIdentitiesQuery.data]
+  );
+
   const contractCatalog = useMemo(() => {
     return resolveContractCatalog(
       projectSettingsQuery.data?.contractAddresses,
@@ -1103,6 +1123,57 @@ const CreateAutomationContent = () => {
       updateSelectedNodeData({ [field.key]: value });
     },
     [updateSelectedNodeData]
+  );
+
+  // The email node's explicit sender override. The runtime accepts either
+  // `senderEmail` or `from` in node data — `senderEmail` is canonical here,
+  // but a graph loaded with `from` (template/older build) stays readable and
+  // both keys are kept in sync on write so the stale one can't win at runtime.
+  const selectedNodeSenderEmail = pickText(
+    selectedNodeData.senderEmail,
+    selectedNodeData.from
+  );
+
+  const senderSelectOptions = useMemo<PropertySelectOption[]>(() => {
+    const options: PropertySelectOption[] = [
+      {
+        value: "",
+        label: "Organization default",
+        hint: "resolved at send time",
+      },
+      ...verifiedSenderIdentities.map((identity) => ({
+        value: identity.email,
+        label: identity.email,
+        ...(identity.isDefault ? { hint: "Default" } : {}),
+      })),
+    ];
+    // Preserve a pre-existing free-text override (e.g. from an applied
+    // template) as a selectable option instead of silently dropping it.
+    if (
+      selectedNodeSenderEmail.length > 0 &&
+      !verifiedSenderIdentities.some(
+        (identity) => identity.email === selectedNodeSenderEmail
+      )
+    ) {
+      options.push({
+        value: selectedNodeSenderEmail,
+        label: selectedNodeSenderEmail,
+        hint: "custom",
+      });
+    }
+    return options;
+  }, [selectedNodeSenderEmail, verifiedSenderIdentities]);
+
+  const updateSenderEmail = useCallback(
+    (next: string) => {
+      const value = next.trim().length > 0 ? next.trim() : undefined;
+      updateSelectedNodeData({
+        senderEmail: value,
+        // Only mirror onto `from` when the node already carries that alias.
+        ...("from" in selectedNodeData ? { from: value } : {}),
+      });
+    },
+    [selectedNodeData, updateSelectedNodeData]
   );
 
   // Branch rules, normalized from either `branches` (builder key) or `rules`
@@ -2130,6 +2201,38 @@ const CreateAutomationContent = () => {
                               ) : null}
                             </div>
                           ) : null}
+                          <div className="space-y-2">
+                            <label className={PROPERTY_LABEL_CLASS}>
+                              Sender
+                            </label>
+                            <PropertySelect
+                              placeholder={
+                                senderIdentitiesQuery.isLoading
+                                  ? "Loading senders…"
+                                  : "Organization default"
+                              }
+                              value={selectedNodeSenderEmail}
+                              options={senderSelectOptions}
+                              onChange={updateSenderEmail}
+                            />
+                            {!senderIdentitiesQuery.isLoading &&
+                            verifiedSenderIdentities.length === 0 ? (
+                              <p className={PROPERTY_HINT_CLASS}>
+                                No verified sender identity yet — emails from
+                                this node will use the platform fallback sender
+                                (DoNotReply@…azurecomm.net). Verify a domain and
+                                add a sender in Settings to send from your own
+                                address.
+                              </p>
+                            ) : (
+                              <p className={PROPERTY_HINT_CLASS}>
+                                Verified sender used as the From address.
+                                &quot;Organization default&quot; lets the
+                                backend pick your org&apos;s default identity at
+                                send time.
+                              </p>
+                            )}
+                          </div>
                           <div className="rounded-2xl border border-border bg-card p-3">
                             <p className="mb-2 text-xs font-medium text-muted-foreground">
                               Preview

@@ -1,55 +1,44 @@
 "use client";
 
 import {
-  // BoltIcon,
+  BoltIcon,
   Cog6ToothIcon,
-  // CpuChipIcon,
-  // DocumentTextIcon,
-  // EnvelopeIcon,
+  CpuChipIcon,
+  DocumentTextIcon,
+  EnvelopeIcon,
   MegaphoneIcon,
   Squares2X2Icon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { CommandPaletteProvider } from "@/components/common/command-palette";
 
 import { authClient } from "@/lib/auth-client";
 import {
   cn,
+  getFullName,
   getSelectedOrganizationId,
+  isJsonObject,
   isOrganizationConfirmed,
 } from "@/lib/utils";
 
+import { getBreadcrumbsForPath } from "./breadcrumbs";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardNavbar } from "./dashboard-navbar";
 import { OrganizationStatusBanner } from "./organization-status-banner";
+import { PendingCheckoutBanner } from "@/features/billing/components/pending-checkout-banner";
 import { notificationsService } from "@/features/notifications/notifications.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
-import { queryClientDefaults } from "@/shared/providers";
-
-type BreadcrumbItem = { href: string; label: string };
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  breadcrumbs?: BreadcrumbItem[];
-  userFullName?: string;
 }
 
-export const dynamic = "force-dynamic";
-
-function DashboardLayoutInner({
-  children,
-  breadcrumbs,
-  userFullName,
-}: DashboardLayoutProps) {
+function DashboardLayoutInner({ children }: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const pathname = usePathname();
@@ -107,8 +96,22 @@ function DashboardLayoutInner({
     ? notificationsQuery.data.filter((n) => !n.read).length
     : 0;
 
+  const breadcrumbs = useMemo(
+    () => getBreadcrumbsForPath(pathname ?? "/"),
+    [pathname]
+  );
+
+  // Some accounts have no display name — fall back to first/last name the way
+  // the campaigns page did before the shell was hoisted to the group layout.
+  const rawUser: unknown = session?.user;
+  const firstLast = isJsonObject(rawUser)
+    ? getFullName(
+        typeof rawUser.firstName === "string" ? rawUser.firstName : undefined,
+        typeof rawUser.lastName === "string" ? rawUser.lastName : undefined
+      )
+    : "";
   const fullName = hasActiveOrganization
-    ? (userFullName ?? session?.user?.name ?? undefined)
+    ? (session?.user?.name ?? (firstLast.length > 0 ? firstLast : undefined))
     : undefined;
   const userId = hasActiveOrganization
     ? (session?.user?.id ?? undefined)
@@ -133,28 +136,26 @@ function DashboardLayoutInner({
       href: PRIVATE_ROUTES.AUDIENCE,
       icon: <UserGroupIcon className="h-4 w-4" aria-hidden="true" />,
     },
-    // Hidden in production while these sections are still in development —
-    // uncomment (and the matching icon imports above) to restore.
-    // {
-    //   label: "Forms",
-    //   href: PRIVATE_ROUTES.FORMS,
-    //   icon: <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />,
-    // },
-    // {
-    //   label: "Inbox",
-    //   href: PRIVATE_ROUTES.INBOX,
-    //   icon: <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />,
-    // },
-    // {
-    //   label: "Automations",
-    //   href: PRIVATE_ROUTES.AUTOMATIONS,
-    //   icon: <BoltIcon className="h-4 w-4" aria-hidden="true" />,
-    // },
-    // {
-    //   label: "Intelligence",
-    //   href: PRIVATE_ROUTES.INTELLIGENCE,
-    //   icon: <CpuChipIcon className="h-4 w-4" aria-hidden="true" />,
-    // },
+    {
+      label: "Forms",
+      href: PRIVATE_ROUTES.FORMS,
+      icon: <DocumentTextIcon className="h-4 w-4" aria-hidden="true" />,
+    },
+    {
+      label: "Inbox",
+      href: PRIVATE_ROUTES.INBOX,
+      icon: <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />,
+    },
+    {
+      label: "Automations",
+      href: PRIVATE_ROUTES.AUTOMATIONS,
+      icon: <BoltIcon className="h-4 w-4" aria-hidden="true" />,
+    },
+    {
+      label: "Intelligence",
+      href: PRIVATE_ROUTES.INTELLIGENCE,
+      icon: <CpuChipIcon className="h-4 w-4" aria-hidden="true" />,
+    },
     {
       label: "Settings",
       href: PRIVATE_ROUTES.SETTINGS,
@@ -202,6 +203,7 @@ function DashboardLayoutInner({
         )}
       >
         {hasActiveOrganization ? <OrganizationStatusBanner /> : null}
+        <PendingCheckoutBanner />
         <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8">
           {hasActiveOrganization ? (
             children
@@ -234,15 +236,12 @@ function DashboardLayoutInner({
 }
 
 export function DashboardLayout(props: DashboardLayoutProps) {
-  const [queryClient] = useState(
-    () => new QueryClient({ defaultOptions: queryClientDefaults })
-  );
-
+  // Server state lives on the root QueryClient (see RootProviders), which
+  // survives navigations — a nested client here would reset the cache on
+  // every mount.
   return (
-    <QueryClientProvider client={queryClient}>
-      <CommandPaletteProvider>
-        <DashboardLayoutInner {...props} />
-      </CommandPaletteProvider>
-    </QueryClientProvider>
+    <CommandPaletteProvider>
+      <DashboardLayoutInner {...props} />
+    </CommandPaletteProvider>
   );
 }

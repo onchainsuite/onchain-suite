@@ -5,8 +5,10 @@ import {
   BoltIcon,
   CheckIcon,
   StarIcon,
+  TagIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,8 @@ interface AudienceSelectorProps {
   value: string[];
   onChange: (value: string[]) => void;
   lists: CampaignList[];
+  /** Audience tags as pickable groups (`tag:<name>` ids). */
+  tags?: CampaignList[];
   segments: Segment[];
   isSegmentsLoading?: boolean;
   unresolvedSelectionCount?: number;
@@ -41,6 +45,7 @@ export function AudienceSelector({
   value,
   onChange,
   lists,
+  tags = [],
   segments,
   isSegmentsLoading = false,
   unresolvedSelectionCount = 0,
@@ -70,8 +75,8 @@ export function AudienceSelector({
             )}
           >
             {value.length > 0
-              ? `${value.length} audience${value.length > 1 ? "s" : ""} selected`
-              : "Select audience users or intelligence segments"}
+              ? `${value.length} segment${value.length > 1 ? "s" : ""} selected`
+              : "Select audience segments"}
           </span>
           <ArrowsUpDownIcon
             aria-hidden="true"
@@ -85,16 +90,17 @@ export function AudienceSelector({
       >
         <Command className="rounded-xl">
           <CommandInput
-            placeholder="Search audience users or intelligence segments"
+            placeholder="Search segments (e.g. test-cohort)"
             className="h-12 border-0 focus:ring-0"
           />
           <CommandList className="max-h-[400px]">
-            <CommandEmpty>No saved audience sources found.</CommandEmpty>
+            <CommandEmpty>No matching segments found.</CommandEmpty>
 
-            {/* Lists Group */}
-            <CommandGroup heading="List" className="p-2">
-              {lists.length > 0 ? (
-                lists.map((list) => (
+            {/* Lists Group — only when a real list source exists. Individual
+                contacts are never listed here; audiences are segments. */}
+            {lists.length > 0 ? (
+              <CommandGroup heading="List" className="p-2">
+                {lists.map((list) => (
                   <CommandItem
                     key={list.id}
                     value={`${list.name} ${list.id}`}
@@ -132,13 +138,50 @@ export function AudienceSelector({
                       />
                     ) : null}
                   </CommandItem>
-                ))
-              ) : (
-                <div className="rounded-lg border border-dashed border-border/70 bg-muted/30 px-3 py-3 text-sm text-muted-foreground">
-                  No audience users available yet.
-                </div>
-              )}
-            </CommandGroup>
+                ))}
+              </CommandGroup>
+            ) : null}
+
+            {/* Tags Group — audience tags from the Audience page; expanded
+                to the tagged contacts at save time. */}
+            {tags.length > 0 ? (
+              <CommandGroup heading="Tag" className="p-2">
+                {tags.map((tag) => (
+                  <CommandItem
+                    key={tag.id}
+                    value={`${tag.name} ${tag.id}`}
+                    onSelect={() => toggleAudience(tag.id)}
+                    className="flex items-center justify-between rounded-lg px-3 py-2.5 cursor-pointer transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex items-center justify-center h-4 w-4 border-2 rounded transition-all duration-300",
+                          value.includes(tag.id)
+                            ? "bg-primary border-primary"
+                            : "border-border bg-background"
+                        )}
+                      >
+                        {value.includes(tag.id) && (
+                          <CheckIcon
+                            aria-hidden="true"
+                            className="h-3 w-3 text-primary-foreground"
+                          />
+                        )}
+                      </div>
+                      <TagIcon
+                        aria-hidden="true"
+                        className="h-4 w-4 text-muted-foreground"
+                      />
+                      <span className="text-sm font-medium text-foreground">
+                        {tag.name}
+                        {tag.count > 0 ? ` (${tag.count})` : ""}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ) : null}
 
             {/* Segments Group */}
             <CommandGroup heading="Segment" className="p-2">
@@ -188,7 +231,14 @@ export function AudienceSelector({
                 ))
               ) : (
                 <div className="rounded-lg border border-dashed border-border/70 bg-muted/30 px-3 py-3 text-sm text-muted-foreground">
-                  No intelligence segments available yet.
+                  No segments yet. Create one in{" "}
+                  <Link
+                    href="/intelligence/segments/create"
+                    className="font-medium text-primary underline underline-offset-2"
+                  >
+                    Intelligence → Segments
+                  </Link>{" "}
+                  to group your contacts (e.g. test-cohort).
                 </div>
               )}
             </CommandGroup>
@@ -196,8 +246,7 @@ export function AudienceSelector({
               <div className="border-t border-border/60 px-3 py-3 text-sm text-muted-foreground">
                 {unresolvedSelectionCount} saved audience selection
                 {unresolvedSelectionCount > 1 ? "s are" : " is"} attached to
-                this campaign but cannot be resolved into current audience users
-                or intelligence segments.
+                this campaign but cannot be resolved into current segments.
               </div>
             ) : null}
           </CommandList>

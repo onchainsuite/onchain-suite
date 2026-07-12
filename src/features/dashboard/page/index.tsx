@@ -76,9 +76,9 @@ export function MainDashboard({ userData }: MainDashboardProps) {
   }, [userData.isNewUser, userData.userType]);
 
   return (
-    <div className="min-h-screen rounded-2xl bg-linear-to-b from-background via-primary/10 to-secondary/5">
+    <div className="min-h-screen rounded-2xl bg-background">
       <div className="space-y-6">
-        <div className="mx-auto max-w-6xl rounded-2xl border border-border bg-linear-to-r from-muted to-primary/10 px-4 py-8 text-center md:px-6">
+        <div className="mx-auto max-w-6xl rounded-2xl border border-border bg-card px-4 py-8 text-center md:px-6">
           <div className="text-2xl font-semibold">
             {`Good ${getGreeting(userData.timezone)}, ${userData.fullName ?? "there"}!`}
           </div>

@@ -167,7 +167,7 @@ export const ProtocolTemplatesList = ({
         <h2 className="text-lg font-semibold tracking-tight text-foreground">
           Protocol playbooks
         </h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Onchain-native automations that work out of the box. Filter by goal,
           then pick one to build a ready-to-run flow.
         </p>

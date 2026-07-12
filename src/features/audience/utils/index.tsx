@@ -70,6 +70,19 @@ export function normalizeTags(input: unknown): NormalizedTag[] {
     .filter((t) => t.length > 0);
 }
 
+/**
+ * Wallet-only contacts are stored with a synthetic placeholder email
+ * (`…@wallet.onchainsuite.local`). Treat those as "no email channel" —
+ * wallets with zero channels are valid and must not be rendered as
+ * email-reachable.
+ */
+export function isSyntheticWalletEmail(email: unknown): boolean {
+  return (
+    typeof email === "string" &&
+    email.trim().toLowerCase().endsWith("@wallet.onchainsuite.local")
+  );
+}
+
 export function shortenWallet(input: unknown): string {
   if (typeof input !== "string") return "";
   const s = input.trim();

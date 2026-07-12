@@ -24,6 +24,7 @@ import {
 } from "./use-user-profile";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import { Badge } from "@/shared/components/ui/badge";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 import { Switch } from "@/shared/components/ui/switch";
 import { useTimezones } from "@/shared/hooks/client/use-timezones";
 
@@ -116,7 +117,7 @@ const PersonalDetails = () => {
     typeof profileQuery.data?.fullName === "string" &&
     profileQuery.data.fullName.trim().length > 0
       ? profileQuery.data.fullName
-      : "Not set";
+      : "—";
   const timezoneLabel =
     typeof profileData.timezone === "string" && profileData.timezone.length > 0
       ? profileData.timezone
@@ -139,27 +140,61 @@ const PersonalDetails = () => {
               <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 Full name
               </p>
-              <p className="mt-1 text-sm font-medium text-foreground">
-                {fullNameLabel}
-              </p>
+              {profileQuery.isPending ? (
+                <Skeleton className="mt-1 h-5 w-36" />
+              ) : (
+                <p className="mt-1 text-sm font-medium text-foreground">
+                  {fullNameLabel}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
                 Email
               </p>
-              <p className="mt-1 text-sm text-foreground">
-                {profileData.email || "Not set"}
-              </p>
+              {profileQuery.isPending ? (
+                <Skeleton className="mt-1 h-5 w-44" />
+              ) : (
+                <p className="mt-1 text-sm text-foreground">
+                  {profileData.email || "—"}
+                </p>
+              )}
             </div>
           </div>
         }
       >
-        {profileQuery.isLoading ? (
-          <motion.div
-            variants={fadeInUp}
-            className="text-sm text-muted-foreground"
-          >
-            Loading your profile...
+        {profileQuery.isPending ? (
+          <motion.div variants={fadeInUp} className="space-y-6">
+            <div className="flex items-center justify-end">
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+            <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-5 w-40" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-5 w-52" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-5 w-32" />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+              <Skeleton className="mb-3 h-4 w-32" />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-4 w-56" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-4 w-44" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+              </div>
+            </div>
           </motion.div>
         ) : profileQuery.isError ? (
           <motion.div variants={fadeInUp} className="space-y-3">
@@ -357,7 +392,7 @@ const PersonalDetails = () => {
                   Email
                 </p>
                 <p className="text-base text-foreground">
-                  {profileData.email || "Not set"}
+                  {profileData.email || "—"}
                 </p>
               </div>
               <div>

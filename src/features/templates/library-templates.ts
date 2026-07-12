@@ -1,4 +1,8 @@
-import { ONCHAIN_VARIABLES, type OnchainVariable } from "./onchain-variables";
+import {
+  ONCHAIN_VARIABLES,
+  type OnchainVariable,
+  withMergeTagDefaults,
+} from "./onchain-variables";
 
 /**
  * Built-in, production-grade email templates for the Email Library.
@@ -486,8 +490,11 @@ export function buildTemplateSeedPayload(template: LibraryEmailTemplate): {
   return {
     name: template.name,
     content: {
-      html: template.html,
-      text: template.text,
+      // Bake safe defaults into every merge tag so the template can be sent
+      // to any audience — unresolved variables without a default block the
+      // send at validation.
+      html: withMergeTagDefaults(template.html),
+      text: withMergeTagDefaults(template.text),
       subject: template.subject,
       previewText: template.previewText,
       category: template.category,

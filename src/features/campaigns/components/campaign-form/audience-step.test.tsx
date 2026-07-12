@@ -98,7 +98,7 @@ describe("AudienceStep links", () => {
     );
   });
 
-  it("explains that recipients come from audience users or intelligence segments", () => {
+  it("explains that recipients come from segments, not individual contacts", () => {
     const client = new QueryClient();
     render(
       <QueryClientProvider client={client}>
@@ -106,11 +106,9 @@ describe("AudienceStep links", () => {
       </QueryClientProvider>
     );
 
+    expect(screen.getByText(/Campaigns send to segments/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/audience users created in the Audience section/i)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/segments created in Intelligence/i)
+      screen.getByText(/Individual contacts aren't selected here/i)
     ).toBeInTheDocument();
   });
 });

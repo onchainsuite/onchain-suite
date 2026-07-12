@@ -6,9 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { getZonedDateTimeParts, zonedWallTimeToUtcDate } from "@/lib/timezone";
 
-import type { Campaign } from "../../../campaigns/types";
+import type { Campaign, CampaignStatus } from "../../../campaigns/types";
 import {
   generateCalendarDays,
+  getCampaignCalendarDate,
   getCampaignsForDate,
   isToday,
   MONTH_NAMES,
@@ -28,9 +29,31 @@ interface CampaignsCalendarProps {
 export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
   const { timezone } = useActiveTimezone();
 
+  // Legend doubles as a status filter; empty selection means "show all".
+  const [activeStatuses, setActiveStatuses] = useState<Set<CampaignStatus>>(
+    new Set()
+  );
+  const toggleStatus = (status: CampaignStatus) => {
+    setActiveStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  };
+  const visibleCampaigns = useMemo(
+    () =>
+      activeStatuses.size === 0
+        ? campaigns
+        : campaigns.filter((c) => activeStatuses.has(c.status)),
+    [activeStatuses, campaigns]
+  );
+
   const initialMonth = useMemo(() => {
-    const first = campaigns.find((c) => c.scheduledFor)?.scheduledFor;
-    const base = first ? new Date(first) : new Date();
+    const first = campaigns.find((c) => getCampaignCalendarDate(c));
+    const base = first
+      ? new Date(getCampaignCalendarDate(first) as Date)
+      : new Date();
     const parts = getZonedDateTimeParts(base, timezone);
     return { year: parts.year, month: parts.month - 1 };
   }, [campaigns, timezone]);
@@ -70,7 +93,7 @@ export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
 
   const handleDateClick = (day: number) => {
     const dayCampaigns = getCampaignsForDate(
-      campaigns,
+      visibleCampaigns,
       currentYear,
       monthIndex,
       day,
@@ -85,7 +108,7 @@ export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
   const calendarDays = generateCalendarDays(currentYear, monthIndex, timezone);
   const selectedDateCampaigns = selectedDate
     ? getCampaignsForDate(
-        campaigns,
+        visibleCampaigns,
         selectedDate.year,
         selectedDate.month,
         selectedDate.day,
@@ -136,7 +159,7 @@ export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
               {calendarDays.map((day, index) => {
                 const dayCampaigns = day
                   ? getCampaignsForDate(
-                      campaigns,
+                      visibleCampaigns,
                       currentYear,
                       monthIndex,
                       day,
@@ -156,7 +179,10 @@ export function CampaignsCalendar({ campaigns }: CampaignsCalendarProps) {
               })}
             </div>
 
-            <CalendarLegend />
+            <CalendarLegend
+              activeStatuses={activeStatuses}
+              onToggleStatus={toggleStatus}
+            />
           </div>
         </CardContent>
       </Card>

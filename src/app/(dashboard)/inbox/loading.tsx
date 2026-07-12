@@ -1,28 +1,19 @@
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import {
   PageHeaderSkeleton,
   TableSkeleton,
 } from "@/shared/components/page/page-skeleton";
-import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
-
-const breadcrumbs = [
-  { href: publicRoutes.HOME, label: "Home" },
-  { href: PRIVATE_ROUTES.INBOX, label: "Inbox" },
-];
 
 export default function Loading() {
   return (
-    <DashboardLayout breadcrumbs={breadcrumbs}>
-      <div className="space-y-4">
-        <PageHeaderSkeleton />
-        {/* Two-pane shell: list + reading pane */}
-        <div className="grid gap-4 lg:grid-cols-[20rem_1fr]">
-          <TableSkeleton rows={6} />
-          <div className="hidden rounded-2xl border border-border bg-card p-6 lg:block">
-            <TableSkeleton rows={4} className="border-0" />
-          </div>
+    <div className="space-y-4">
+      <PageHeaderSkeleton />
+      {/* Two-pane shell: list + reading pane */}
+      <div className="grid gap-4 lg:grid-cols-[20rem_1fr]">
+        <TableSkeleton rows={6} />
+        <div className="hidden rounded-2xl border border-border bg-card p-6 lg:block">
+          <TableSkeleton rows={4} className="border-0" />
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

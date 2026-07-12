@@ -9,10 +9,10 @@ export const SITE_CONFIG = {
     "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
   twitterImage:
     "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761105693/Banner_Option_-_2_ppdgtf.png",
-  twitterHandle: "@onchainsuite",
-  logo: "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761093444/onchain_suite_bf926w.png",
+  twitterHandle: "@0nchainsuite",
+  logo: "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761094220/onchain_light_wylceb.png",
   social: {
-    twitter: "https://twitter.com/onchainsuite",
+    twitter: "https://twitter.com/0nchainsuite",
     discord: "https://discord.gg/onchainsuite",
     telegram: "https://t.me/onchainsuite",
   },

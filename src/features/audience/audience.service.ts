@@ -167,6 +167,12 @@ export interface AudienceProfileContractActivity {
   txCount: number;
 }
 
+export interface AudienceProfileDappStats {
+  total_volume_usd: number;
+  transactions_count: number;
+  active_days: number;
+}
+
 export interface AudienceSegment {
   id: string;
   name: string;
@@ -415,6 +421,17 @@ export const audienceService = {
       {
         method: "GET",
         url: `/audience/profiles/${id}/contract-activity`,
+        params,
+      },
+      orgId
+    );
+  },
+
+  getProfileDappStats(id: string, params?: { chain?: string }, orgId?: string) {
+    return request<AudienceProfileDappStats>(
+      {
+        method: "GET",
+        url: `/audience/profiles/${encodeURIComponent(id)}/dapp-stats`,
         params,
       },
       orgId

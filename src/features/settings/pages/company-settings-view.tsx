@@ -24,6 +24,7 @@ import CompanyEditForm from "@/features/settings/components/account/company-edit
 import InviteUser from "@/features/settings/components/invite-user";
 import LogoUpload from "@/features/settings/components/logo-upload";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import { senderIdentitiesService } from "@/features/settings/sender-identities.service";
 import { fadeInUp } from "@/features/settings/utils";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
@@ -88,17 +89,6 @@ interface DomainStatusState {
   checks: DomainStatusCheck[];
 }
 
-interface SenderIdentityRow {
-  id: string;
-  email: string;
-  name: string;
-  domain: string;
-  dkim: boolean;
-  spf: boolean;
-  status: SenderStatus;
-  isDefault: boolean;
-}
-
 interface TeamPermissions {
   canManageMembers: boolean;
   canManageSenderIdentities: boolean;
@@ -141,6 +131,28 @@ const unwrapData = (payload: unknown): unknown => {
     return payload.data ?? payload;
   }
   return payload;
+};
+
+/**
+ * Pull the backend's explanation out of an axios error instead of the
+ * generic "Request failed with status code NNN". Returns the HTTP status
+ * too so callers can special-case conflicts.
+ */
+const apiErrorInfo = (
+  error: unknown
+): { status: number | null; message: string | null } => {
+  if (!isJsonObject(error)) return { status: null, message: null };
+  const response = isJsonObject(error.response) ? error.response : undefined;
+  const status = typeof response?.status === "number" ? response.status : null;
+  const data = isJsonObject(response?.data) ? response.data : undefined;
+  const nested = isJsonObject(data?.error) ? data.error : undefined;
+  const message =
+    pickString(
+      isJsonObject(nested) ? nested.message : undefined,
+      data?.message,
+      data?.error
+    ) ?? null;
+  return { status, message };
 };
 
 const toArray = (payload: unknown): unknown[] => {
@@ -249,7 +261,9 @@ const pickBooleanLike = (...values: unknown[]) => {
   return undefined;
 };
 
-const resolveStatus = (...values: unknown[]): SenderStatus => {
+const resolveExplicitStatus = (
+  ...values: unknown[]
+): SenderStatus | undefined => {
   for (const value of values) {
     if (typeof value !== "string") continue;
     const normalized = value.trim().toLowerCase();
@@ -257,7 +271,7 @@ const resolveStatus = (...values: unknown[]): SenderStatus => {
     if (normalized.includes("pend")) return "pending";
     if (normalized.includes("fail")) return "failed";
   }
-  return "pending";
+  return undefined;
 };
 
 const resolveAuthBooleans = ({
@@ -280,20 +294,6 @@ const resolveAuthBooleans = ({
     dkim: dkim ?? false,
     spf: spf ?? false,
   };
-};
-
-const resolveDomainRowStatus = ({
-  dkim,
-  spf,
-  fallbackStatus,
-}: {
-  dkim: boolean;
-  spf: boolean;
-  fallbackStatus: SenderStatus;
-}): SenderStatus => {
-  if (dkim && spf) return "verified";
-  if (!dkim || !spf) return "pending";
-  return fallbackStatus;
 };
 
 const getBackendAssetOrigin = () => {
@@ -355,17 +355,16 @@ const extractDomainMap = (payload: unknown) => {
         entry.spfVerified,
         entry.spfStatus
       );
-      const status = resolveStatus(
-        entry.status,
-        entry.verificationStatus,
-        entry.state,
-        dkim && spf ? "verified" : dkim || spf ? "pending" : "failed"
-      );
-      const authState = resolveAuthBooleans({ dkim, spf, status });
+      // Only record what the rollup explicitly states — fabricated statuses
+      // here would be mistaken for backend truth by normalizeDomains.
       map.set(domain, {
-        dkim: authState.dkim,
-        spf: authState.spf,
-        status,
+        dkim,
+        spf,
+        status: resolveExplicitStatus(
+          entry.status,
+          entry.verificationStatus,
+          entry.state
+        ),
       });
     }
     return map;
@@ -386,17 +385,14 @@ const extractDomainMap = (payload: unknown) => {
       value.spfVerified,
       value.spfStatus
     );
-    const status = resolveStatus(
-      value.status,
-      value.verificationStatus,
-      value.state,
-      dkim && spf ? "verified" : dkim || spf ? "pending" : "failed"
-    );
-    const authState = resolveAuthBooleans({ dkim, spf, status });
     map.set(domain, {
-      dkim: authState.dkim,
-      spf: authState.spf,
-      status,
+      dkim,
+      spf,
+      status: resolveExplicitStatus(
+        value.status,
+        value.verificationStatus,
+        value.state
+      ),
     });
   }
   return map;
@@ -464,44 +460,39 @@ const normalizeDomains = (
       );
       if (!domain) return null;
       const authState = domainMap.get(domain);
+      // Keep dkim/spf as "unknown" (undefined) until the status is known —
+      // coercing them to false here made resolveAuthBooleans unable to apply
+      // its verified→passed default, and VERIFIED domains rendered as
+      // Pending + Fail/Fail. The backend's explicit status is authoritative.
       const dkim =
         pickBoolean(
           entry.dkim,
           entry.dkimValid,
           entry.dkimVerified,
           entry.dkimStatus
-        ) ??
-        authState?.dkim ??
-        false;
+        ) ?? authState?.dkim;
       const spf =
         pickBoolean(
           entry.spf,
           entry.spfValid,
           entry.spfVerified,
           entry.spfStatus
-        ) ??
-        authState?.spf ??
-        false;
-      const status = resolveStatus(
-        entry.status,
-        entry.verificationStatus,
-        entry.state,
-        authState?.status,
-        dkim && spf ? "verified" : dkim || spf ? "pending" : "failed"
-      );
+        ) ?? authState?.spf;
+      const status =
+        resolveExplicitStatus(
+          entry.status,
+          entry.verificationStatus,
+          entry.state,
+          authState?.status
+        ) ?? (dkim && spf ? "verified" : "pending");
       const resolvedAuth = resolveAuthBooleans({ dkim, spf, status });
-      const resolvedStatus = resolveDomainRowStatus({
-        dkim: resolvedAuth.dkim,
-        spf: resolvedAuth.spf,
-        fallbackStatus: status,
-      });
 
       return {
         id: pickString(entry.id, entry.domainId) ?? `${domain}-${index}`,
         domain,
         dkim: resolvedAuth.dkim,
         spf: resolvedAuth.spf,
-        status: resolvedStatus,
+        status,
       } satisfies DomainRow;
     })
     .filter((row): row is DomainRow => Boolean(row));
@@ -511,33 +502,46 @@ const normalizeDomains = (
   return Array.from(domainMap.entries()).map(([domain, authState], index) => {
     const status =
       authState.status ??
-      (authState.dkim && authState.spf
-        ? "verified"
-        : authState.dkim || authState.spf
-          ? "pending"
-          : "failed");
+      (authState.dkim && authState.spf ? "verified" : "pending");
     const resolvedAuth = resolveAuthBooleans({
       dkim: authState.dkim,
       spf: authState.spf,
       status,
-    });
-    const resolvedStatus = resolveDomainRowStatus({
-      dkim: resolvedAuth.dkim,
-      spf: resolvedAuth.spf,
-      fallbackStatus: status,
     });
     return {
       id: `${domain}-${index}`,
       domain,
       dkim: resolvedAuth.dkim,
       spf: resolvedAuth.spf,
-      status: resolvedStatus,
+      status,
     };
   });
 };
 
+/**
+ * Collect DNS record entries from the `GET /domain/{id}/dns` response. The
+ * records may arrive as a plain array, nested under records/verificationRecords,
+ * or — Azure ACS style — as an object keyed by record purpose
+ * (`{ Domain: {...}, DKIM: {...}, DKIM2: {...}, SPF: {...} }`).
+ */
+const collectDnsEntries = (payload: unknown): Record<string, unknown>[] => {
+  const root = unwrapData(payload);
+  const nested = isJsonObject(root)
+    ? (root.records ?? root.verificationRecords ?? root.dns ?? root)
+    : root;
+  if (Array.isArray(nested)) return nested.filter(isJsonObject);
+  if (isJsonObject(nested)) {
+    return Object.entries(nested)
+      .filter((pair): pair is [string, Record<string, unknown>] =>
+        isJsonObject(pair[1])
+      )
+      .map(([purpose, record]) => ({ purpose, ...record }));
+  }
+  return [];
+};
+
 const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
-  return toArray(payload)
+  return collectDnsEntries(payload)
     .map((entry, index): DomainDnsRow | null => {
       if (!isJsonObject(entry)) return null;
       const host = pickString(
@@ -623,18 +627,26 @@ const normalizeDomainStatus = (payload: unknown): DomainStatusState => {
     },
   ];
 
-  return {
-    status: resolveStatus(
+  const status =
+    resolveExplicitStatus(
       source.status,
       source.verificationStatus,
-      source.state,
-      checks.every((check) => check.passed === true)
-        ? "verified"
-        : checks.some((check) => check.passed === false)
-          ? "failed"
-          : "pending"
-    ),
-    checks,
+      source.state
+    ) ??
+    (checks.every((check) => check.passed === true)
+      ? "verified"
+      : checks.some((check) => check.passed === false)
+        ? "failed"
+        : "pending");
+
+  return {
+    status,
+    // A VERIFIED domain implies its record checks passed even when the
+    // status payload omits per-record booleans.
+    checks:
+      status === "verified"
+        ? checks.map((check) => ({ ...check, passed: check.passed ?? true }))
+        : checks,
   };
 };
 
@@ -658,71 +670,6 @@ const inferDnsCheckKey = (record: DomainDnsRow): string | null => {
     return "spf";
   }
   return null;
-};
-
-const normalizeSenders = (
-  payload: unknown,
-  domainMap: Map<string, { dkim?: boolean; spf?: boolean }>
-): SenderIdentityRow[] => {
-  return toArray(payload)
-    .map((entry, index) => {
-      if (!isJsonObject(entry)) return null;
-      const email = pickString(
-        entry.email,
-        entry.senderEmail,
-        entry.address,
-        entry.fromEmail
-      );
-      if (!email) return null;
-      const domain = email.includes("@") ? (email.split("@").pop() ?? "") : "";
-      const domainState = domainMap.get(domain);
-      const dkim =
-        pickBoolean(
-          entry.dkim,
-          entry.dkimValid,
-          entry.dkimVerified,
-          entry.dkimStatus
-        ) ??
-        domainState?.dkim ??
-        false;
-      const spf =
-        pickBoolean(
-          entry.spf,
-          entry.spfValid,
-          entry.spfVerified,
-          entry.spfStatus
-        ) ??
-        domainState?.spf ??
-        false;
-      const status = resolveStatus(
-        entry.status,
-        entry.verificationStatus,
-        entry.state,
-        dkim && spf ? "verified" : dkim || spf ? "pending" : "failed"
-      );
-      return {
-        id:
-          pickString(entry.id, entry.senderId, entry.identityId) ??
-          `${email}-${index}`,
-        email,
-        name:
-          pickString(entry.name, entry.senderName, entry.displayName) ??
-          email.split("@")[0] ??
-          "Sender",
-        domain,
-        dkim,
-        spf,
-        status,
-        isDefault:
-          pickBooleanLike(entry.isDefault, entry.default, entry.isPrimary) ??
-          false,
-      } satisfies SenderIdentityRow;
-    })
-    .filter((row): row is SenderIdentityRow => Boolean(row))
-    .sort((left, right) => {
-      if (left.isDefault !== right.isDefault) return left.isDefault ? -1 : 1;
-      return left.email.localeCompare(right.email);
-    });
 };
 
 const normalizeMembers = (payload: unknown): TeamRow[] => {
@@ -910,20 +857,8 @@ export default function CompanySettingsView() {
     queryKey: ["project-settings", "senders", organizationId],
     enabled: Boolean(organizationId && orgHeaders),
     retry: false,
-    queryFn: async () => {
-      const [identitiesRes, domainsRes] = await Promise.all([
-        apiClient.get("/sender-identities", { headers: orgHeaders }),
-        apiClient
-          .get("/sender-identities/domains/authentication", {
-            headers: orgHeaders,
-          })
-          .catch(() => ({ data: [] })),
-      ]);
-      return normalizeSenders(
-        identitiesRes.data,
-        extractDomainMap(domainsRes.data)
-      );
-    },
+    queryFn: () =>
+      senderIdentitiesService.listSenderIdentities(organizationId ?? undefined),
   });
 
   const domainQuery = useQuery({
@@ -995,13 +930,19 @@ export default function CompanySettingsView() {
   const addSenderMutation = useMutation({
     mutationFn: async () => {
       if (!orgHeaders) throw new Error("No active organization selected");
-      if (senderEmail.trim().length === 0) {
+      const cleanedEmail = senderEmail.trim().toLowerCase();
+      if (cleanedEmail.length === 0) {
         throw new Error("Sender email is required");
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanedEmail)) {
+        throw new Error(
+          "Enter a valid email address, e.g. support@yourdomain.com"
+        );
       }
       return apiClient.post(
         "/sender-identities",
         {
-          email: senderEmail.trim(),
+          email: cleanedEmail,
           name: senderName.trim() || undefined,
         },
         { headers: orgHeaders }
@@ -1017,6 +958,23 @@ export default function CompanySettingsView() {
       toast.success("Sender added");
     },
     onError: (error: unknown) => {
+      const { status, message } = apiErrorInfo(error);
+      if (message) {
+        toast.error(message);
+        return;
+      }
+      if (status === 400) {
+        // The API rejects senders on domains that aren't registered and
+        // verified for this organization.
+        toast.error(
+          "Couldn't add this sender. Make sure its domain is added and verified under Domains first, then try again."
+        );
+        return;
+      }
+      if (status === 409) {
+        toast.error("This sender address has already been added.");
+        return;
+      }
       toast.error(
         error instanceof Error ? error.message : "Failed to add sender"
       );
@@ -1030,8 +988,12 @@ export default function CompanySettingsView() {
         .trim()
         .toLowerCase()
         .replace(/^https?:\/\//, "")
+        .replace(/^www\./, "")
         .replace(/\/.*$/, "");
       if (!cleanedDomain) throw new Error("Domain is required");
+      if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(cleanedDomain)) {
+        throw new Error("Enter a valid domain, e.g. yourprotocol.xyz");
+      }
       return apiClient.post(
         "/domain",
         { domain: cleanedDomain },
@@ -1046,9 +1008,51 @@ export default function CompanySettingsView() {
       });
       toast.success("Domain added");
     },
+    onError: async (error: unknown) => {
+      const { status, message } = apiErrorInfo(error);
+      if (status === 409) {
+        // Conflict: the domain is already registered. If it belongs to this
+        // org it's in the list (refresh it) — point the user at Recheck
+        // instead of leaving them with a bare status code.
+        setAddDomainOpen(false);
+        setDomainName("");
+        await queryClient.invalidateQueries({
+          queryKey: ["project-settings", "domains", organizationId],
+        });
+        toast.error(
+          message ??
+            "This domain is already registered. If it's yours, it's in the list below — use Recheck to re-run verification."
+        );
+        return;
+      }
+      toast.error(
+        message ??
+          (error instanceof Error ? error.message : "Failed to add domain")
+      );
+    },
+  });
+
+  const setDefaultSenderMutation = useMutation({
+    mutationFn: async (senderIdentityId: string) => {
+      if (!orgHeaders) throw new Error("No active organization selected");
+      await apiClient.put(
+        "/sender-identities/default",
+        { senderIdentityId },
+        { headers: orgHeaders }
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["project-settings", "senders", organizationId],
+      });
+      toast.success("Default sender updated");
+    },
     onError: (error: unknown) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to add domain"
+        apiErrorInfo(error).message ??
+          (error instanceof Error
+            ? error.message
+            : "Failed to set default sender")
       );
     },
   });
@@ -1070,7 +1074,8 @@ export default function CompanySettingsView() {
     },
     onError: (error: unknown) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to recheck sender"
+        apiErrorInfo(error).message ??
+          (error instanceof Error ? error.message : "Failed to recheck sender")
       );
     },
   });
@@ -1092,41 +1097,17 @@ export default function CompanySettingsView() {
     },
     onError: (error: unknown) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to recheck domain"
+        apiErrorInfo(error).message ??
+          (error instanceof Error ? error.message : "Failed to recheck domain")
       );
     },
   });
 
-  const autoConfigureDomainDnsMutation = useMutation({
-    mutationFn: async (domainId: string) => {
-      if (!orgHeaders) throw new Error("No active organization selected");
-      await apiClient.post(
-        `/domain/${domainId}/dns/auto`,
-        {},
-        { headers: orgHeaders }
-      );
-    },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["project-settings", "domains", organizationId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: [
-            "project-settings",
-            "domain-dns",
-            domainDnsDialog.domainId,
-          ],
-        }),
-      ]);
-      toast.success("DNS auto-configuration started");
-    },
-    onError: (error: unknown) => {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to auto-configure DNS"
-      );
-    },
-  });
+  // Auto-configure DNS is disabled for now (button commented out in the DNS
+  // dialog below). POST /domain/{id}/dns/auto supports Cloudflare, GoDaddy,
+  // Namecheap, and Porkbun but requires a `{ provider, credentials }` body —
+  // this mutation posted an empty body and could never succeed. Re-add with a
+  // provider/credentials form once that contract is documented.
 
   const branding = brandingQuery.data ?? defaultBrandingState;
   const domains = useMemo(() => domainQuery.data ?? [], [domainQuery.data]);
@@ -1555,32 +1536,52 @@ export default function CompanySettingsView() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 rounded-lg px-2"
-                            disabled={
-                              !sender.id ||
-                              recheckSenderMutation.isPending ||
-                              !canManageSenderIdentities
-                            }
-                            onClick={() =>
-                              recheckSenderMutation.mutate(sender.id)
-                            }
-                          >
-                            {recheckSenderMutation.isPending ? (
-                              <ArrowPathIcon
-                                aria-hidden="true"
-                                className="mr-2 h-3.5 w-3.5 animate-spin"
-                              />
-                            ) : (
-                              <ArrowPathIcon
-                                aria-hidden="true"
-                                className="mr-2 h-3.5 w-3.5"
-                              />
-                            )}
-                            Recheck
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 rounded-lg px-2"
+                              disabled={
+                                !sender.id ||
+                                recheckSenderMutation.isPending ||
+                                !canManageSenderIdentities
+                              }
+                              onClick={() =>
+                                recheckSenderMutation.mutate(sender.id)
+                              }
+                            >
+                              {recheckSenderMutation.isPending ? (
+                                <ArrowPathIcon
+                                  aria-hidden="true"
+                                  className="mr-2 h-3.5 w-3.5 animate-spin"
+                                />
+                              ) : (
+                                <ArrowPathIcon
+                                  aria-hidden="true"
+                                  className="mr-2 h-3.5 w-3.5"
+                                />
+                              )}
+                              Recheck
+                            </Button>
+                            {!sender.isDefault &&
+                            sender.status === "verified" ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 rounded-lg px-2"
+                                disabled={
+                                  !sender.id ||
+                                  setDefaultSenderMutation.isPending ||
+                                  !canManageSenderIdentities
+                                }
+                                onClick={() =>
+                                  setDefaultSenderMutation.mutate(sender.id)
+                                }
+                              >
+                                Make default
+                              </Button>
+                            ) : null}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -2083,6 +2084,10 @@ export default function CompanySettingsView() {
             >
               Close
             </Button>
+            {/* Auto-configure DNS is disabled for now: the backend supports
+                POST /domain/{id}/dns/auto for Cloudflare, GoDaddy, Namecheap,
+                and Porkbun, but the per-provider `credentials` payload isn't
+                documented yet — re-enable once that contract is pinned down.
             <Button
               variant="outline"
               disabled={
@@ -2103,6 +2108,7 @@ export default function CompanySettingsView() {
               ) : null}
               Auto-configure DNS
             </Button>
+            */}
             <Button
               disabled={
                 !domainDnsDialog.domainId ||

@@ -97,8 +97,11 @@ export function getZonedDateTimeParts(
   date: Date,
   timeZone: string
 ): ZonedDateTimeParts {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
+  // Intl throws RangeError on an Invalid Date or an unknown timezone string
+  // (both reachable from API data, e.g. a bad `scheduledFor` or a stored
+  // timezone). Fall back instead of crashing the calling view.
+  const safeDate = Number.isFinite(date.getTime()) ? date : new Date();
+  const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -106,7 +109,19 @@ export function getZonedDateTimeParts(
     minute: "2-digit",
     second: "2-digit",
     hourCycle: "h23",
-  }).formatToParts(date);
+  };
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-US", {
+      ...options,
+      timeZone,
+    }).formatToParts(safeDate);
+  } catch {
+    parts = new Intl.DateTimeFormat("en-US", {
+      ...options,
+      timeZone: "UTC",
+    }).formatToParts(safeDate);
+  }
 
   const map = new Map(parts.map((p) => [p.type, p.value]));
 

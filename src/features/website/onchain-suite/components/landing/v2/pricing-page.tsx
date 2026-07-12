@@ -5,6 +5,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -12,6 +13,10 @@ import { useMemo, useState } from "react";
 import "./landing-v2.css";
 import { Counter, Reveal, Stagger, StaggerItem } from "./primitives";
 import { Heading, PageShell, SIGNUP } from "./shared";
+import {
+  type BillingPlan,
+  billingService,
+} from "@/features/billing/billing.service";
 
 /* Indicative usage model (matches the reference's order-of-magnitude). */
 const BASE_FEE = 19;
@@ -19,6 +24,8 @@ const PER_WALLET = 0.012; // $ per tracked wallet / mo
 const PER_SUB = 0.05; // $ per email subscriber / mo
 
 function estimate(wallets: number, subs: number) {
+  // No usage at all costs nothing — the base fee only kicks in with usage.
+  if (wallets === 0 && subs === 0) return 0;
   return Math.round(BASE_FEE + wallets * PER_WALLET + subs * PER_SUB);
 }
 
@@ -35,7 +42,7 @@ function Calculator() {
             <Slider
               label="Tracked wallets"
               hint="On-chain wallets you monitor"
-              min={500}
+              min={0}
               max={50000}
               step={500}
               value={wallets}
@@ -174,78 +181,190 @@ const PROFILES = [
   },
 ];
 
+const planPriceLabel = (price: BillingPlan["price"]) => {
+  if (typeof price === "number") return `$${price.toLocaleString()}`;
+  if (typeof price === "string" && price.trim().length > 0) return price;
+  return "—";
+};
+
+/** Live plan catalog cards (GET /billing/plans), same visual language as the
+ * illustrative profiles they replace when the backend answers. */
+function CatalogPlans({ plans }: { plans: BillingPlan[] }) {
+  return (
+    <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {plans.map((plan, idx) => {
+        const name = plan.name ?? `Plan ${idx + 1}`;
+        const popular = plan.slug === "pro" || idx === 2;
+        const isCustom =
+          typeof plan.price === "string" &&
+          plan.price.toLowerCase().includes("custom");
+        const features = Array.isArray(plan.features)
+          ? plan.features.filter((f): f is string => typeof f === "string")
+          : [];
+        return (
+          <StaggerItem key={name}>
+            <div
+              className="card relative flex h-full flex-col p-5 transition-transform duration-200 hover:-translate-y-1"
+              style={
+                popular
+                  ? {
+                      borderColor:
+                        "color-mix(in oklab, var(--acc) 45%, var(--line))",
+                      boxShadow: "var(--shadow-acc)",
+                    }
+                  : undefined
+              }
+            >
+              {popular ? (
+                <span
+                  className="mono absolute -top-2.5 left-5 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+                  style={{ background: "var(--acc)" }}
+                >
+                  POPULAR
+                </span>
+              ) : null}
+              <span className="text-[13px] font-semibold t-ink">{name}</span>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span
+                  className="font-semibold tracking-tight t-ink"
+                  style={{ fontSize: "1.8rem" }}
+                >
+                  {planPriceLabel(plan.price)}
+                </span>
+                {!isCustom ? (
+                  <span className="text-[13px] t-muted">
+                    /{plan.interval ?? "mo"}
+                  </span>
+                ) : null}
+              </div>
+              {plan.description ? (
+                <p className="mt-1 text-[12.5px] t-muted">{plan.description}</p>
+              ) : null}
+              {features.length > 0 ? (
+                <div
+                  className="my-4 space-y-1.5 border-y py-3 text-[12.5px]"
+                  style={{ borderColor: "var(--line-2)" }}
+                >
+                  {features.slice(0, 4).map((feature) => (
+                    <div key={feature} className="flex items-start gap-1.5">
+                      <CheckIcon
+                        aria-hidden="true"
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                        style={{ color: "var(--acc)" }}
+                      />
+                      <span className="t-muted">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="my-4 flex-1" />
+              )}
+              <Link
+                href={isCustom ? "mailto:info@onchainsuite.com" : SIGNUP}
+                className={`mt-auto btn ${popular ? "btn-primary" : "btn-ghost"} w-full`}
+              >
+                {isCustom ? "Talk to us" : "Get early access"}
+              </Link>
+            </div>
+          </StaggerItem>
+        );
+      })}
+    </Stagger>
+  );
+}
+
 function Profiles() {
+  // Live catalog prices when the API is reachable (it may require a session
+  // — anonymous visitors then keep the illustrative fallback below).
+  const plansQuery = useQuery({
+    queryKey: ["billing", "plans", "public-pricing"],
+    queryFn: () => billingService.getPlans(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 10 * 60 * 1000,
+  });
+  const catalogPlans = plansQuery.data?.plans ?? [];
+  const hasCatalog = catalogPlans.length > 0;
+
   return (
     <section className="py-16">
       <div className="wrap">
         <Heading
-          eyebrow="Reference profiles"
+          eyebrow={hasCatalog ? "Plans" : "Reference profiles"}
           title={
             <>
               Where teams typically <span className="grad">land.</span>
             </>
           }
-          sub="Illustrative points on a continuous curve, not fixed packages. Your exact price comes from your own wallet and subscriber counts."
+          sub={
+            hasCatalog
+              ? "Live prices from our plan catalog — pay in USDC via crypto checkout, upgrade or downgrade anytime."
+              : "Illustrative points on a continuous curve, not fixed packages. Your exact price comes from your own wallet and subscriber counts."
+          }
         />
-        <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {PROFILES.map((p) => (
-            <StaggerItem key={p.name}>
-              <div
-                className="card relative flex h-full flex-col p-5 transition-transform duration-200 hover:-translate-y-1"
-                style={
-                  p.popular
-                    ? {
-                        borderColor:
-                          "color-mix(in oklab, var(--acc) 45%, var(--line))",
-                        boxShadow: "var(--shadow-acc)",
-                      }
-                    : undefined
-                }
-              >
-                {p.popular ? (
-                  <span
-                    className="mono absolute -top-2.5 left-5 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white"
-                    style={{ background: "var(--acc)" }}
-                  >
-                    POPULAR
-                  </span>
-                ) : null}
-                <span className="text-[13px] font-semibold t-ink">
-                  {p.name}
-                </span>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span
-                    className="font-semibold tracking-tight t-ink"
-                    style={{ fontSize: "1.8rem" }}
-                  >
-                    {p.price}
-                  </span>
-                  <span className="text-[13px] t-muted">/mo</span>
-                </div>
-                <p className="mt-1 text-[12.5px] t-muted">{p.who}</p>
+        {hasCatalog ? (
+          <CatalogPlans plans={catalogPlans} />
+        ) : (
+          <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {PROFILES.map((p) => (
+              <StaggerItem key={p.name}>
                 <div
-                  className="my-4 space-y-1.5 border-y py-3 text-[12.5px]"
-                  style={{ borderColor: "var(--line-2)" }}
+                  className="card relative flex h-full flex-col p-5 transition-transform duration-200 hover:-translate-y-1"
+                  style={
+                    p.popular
+                      ? {
+                          borderColor:
+                            "color-mix(in oklab, var(--acc) 45%, var(--line))",
+                          boxShadow: "var(--shadow-acc)",
+                        }
+                      : undefined
+                  }
                 >
-                  <div className="flex justify-between">
-                    <span className="t-muted">tracked wallets</span>
-                    <span className="mono font-medium t-ink2">{p.w}</span>
+                  {p.popular ? (
+                    <span
+                      className="mono absolute -top-2.5 left-5 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+                      style={{ background: "var(--acc)" }}
+                    >
+                      POPULAR
+                    </span>
+                  ) : null}
+                  <span className="text-[13px] font-semibold t-ink">
+                    {p.name}
+                  </span>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span
+                      className="font-semibold tracking-tight t-ink"
+                      style={{ fontSize: "1.8rem" }}
+                    >
+                      {p.price}
+                    </span>
+                    <span className="text-[13px] t-muted">/mo</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="t-muted">subscribers</span>
-                    <span className="mono font-medium t-ink2">{p.s}</span>
+                  <p className="mt-1 text-[12.5px] t-muted">{p.who}</p>
+                  <div
+                    className="my-4 space-y-1.5 border-y py-3 text-[12.5px]"
+                    style={{ borderColor: "var(--line-2)" }}
+                  >
+                    <div className="flex justify-between">
+                      <span className="t-muted">tracked wallets</span>
+                      <span className="mono font-medium t-ink2">{p.w}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="t-muted">subscribers</span>
+                      <span className="mono font-medium t-ink2">{p.s}</span>
+                    </div>
                   </div>
+                  <Link
+                    href={p.href}
+                    className={`mt-auto btn ${p.popular ? "btn-primary" : "btn-ghost"} w-full`}
+                  >
+                    {p.cta}
+                  </Link>
                 </div>
-                <Link
-                  href={p.href}
-                  className={`mt-auto btn ${p.popular ? "btn-primary" : "btn-ghost"} w-full`}
-                >
-                  {p.cta}
-                </Link>
-              </div>
-            </StaggerItem>
-          ))}
-        </Stagger>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        )}
       </div>
     </section>
   );

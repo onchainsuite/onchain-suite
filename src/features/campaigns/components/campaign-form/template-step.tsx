@@ -12,7 +12,10 @@ import { campaignsService } from "../../campaigns.service";
 import type { CampaignFormData } from "../../validations";
 import { EmailMessageForm } from "./email-message-form";
 import { TemplateSelector } from "./template-selector";
-import { templatesService } from "@/features/templates/templates.service";
+import {
+  extractTemplatePushContent,
+  templatesService,
+} from "@/features/templates/templates.service";
 
 /**
  * Empty design document for the external email builder. Seeded via
@@ -100,6 +103,9 @@ export function TemplateStep({
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <TemplateSelector
             form={form}
+            channel={
+              form.watch("channel") === "in-app-push" ? "in-app-push" : "email"
+            }
             onUseTemplate={async (templateId, templateName) => {
               const clean = templateId.trim();
               form.setValue("selectedTemplate", clean, { shouldDirty: true });
@@ -139,14 +145,17 @@ export function TemplateStep({
               params.set(
                 "returnTo",
                 normalizedCampaignId
-                  ? `/campaigns/new?campaign=${encodeURIComponent(normalizedCampaignId)}&step=3`
-                  : "/campaigns/new?step=3"
+                  ? `/campaigns/new?campaign=${encodeURIComponent(normalizedCampaignId)}&step=2`
+                  : "/campaigns/new?step=2"
               );
               if (clean) params.set("template", clean);
               if (templateName) params.set("templateName", templateName);
               const subject = form.getValues("emailSubject");
               if (subject) params.set("subject", subject);
               if (designB64) params.set("initialJsonB64", designB64);
+              if (form.getValues("channel") === "in-app-push") {
+                params.set("channel", "in-app-push");
+              }
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
             onEditTemplate={(templateId, templateName) => {
@@ -156,13 +165,16 @@ export function TemplateStep({
               }
               const returnTo =
                 campaignId && campaignId.trim().length > 0
-                  ? `/campaigns/new?campaign=${encodeURIComponent(campaignId)}&step=3`
-                  : "/campaigns/new?step=3";
+                  ? `/campaigns/new?campaign=${encodeURIComponent(campaignId)}&step=2`
+                  : "/campaigns/new?step=2";
               params.set("returnTo", returnTo);
               params.set("template", templateId);
               if (templateName) params.set("templateName", templateName);
               const subject = form.getValues("emailSubject");
               if (subject) params.set("subject", subject);
+              if (form.getValues("channel") === "in-app-push") {
+                params.set("channel", "in-app-push");
+              }
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
             onSelectTemplate={async (templateId) => {
@@ -172,16 +184,29 @@ export function TemplateStep({
               const seq = ++applyTemplateSeqRef.current;
               try {
                 // Selecting a template must also replace the campaign's
-                // rendered email content — setTemplate alone leaves the
-                // previously saved design in place, so preview/send would
-                // still use the old email.
+                // stored content — setTemplate alone leaves the previously
+                // saved design in place, so preview/send would still use the
+                // old message.
                 const full = await templatesService.get(clean);
                 if (applyTemplateSeqRef.current !== seq) return;
-                const content = extractEmailContent(full);
                 await campaignsService.setTemplate(normalizedCampaignId, {
                   templateId: clean,
                 });
                 if (applyTemplateSeqRef.current !== seq) return;
+
+                // In-app templates carry { title, body, cta } instead of
+                // html — save them as the campaign's push variant
+                // (channelsContent.inapp), which send-inapp consumes.
+                const push = extractTemplatePushContent(full);
+                if (push) {
+                  await campaignsService.setPushContent(
+                    normalizedCampaignId,
+                    push
+                  );
+                  return;
+                }
+
+                const content = extractEmailContent(full);
                 await campaignsService.editorSaved(normalizedCampaignId, {
                   html: content.html,
                   json: content.json,
@@ -204,8 +229,8 @@ export function TemplateStep({
                 params.set("campaign", campaignId);
               }
               const returnTo = normalizedCampaignId
-                ? `/campaigns/new?campaign=${encodeURIComponent(normalizedCampaignId)}&step=3`
-                : "/campaigns/new?step=3";
+                ? `/campaigns/new?campaign=${encodeURIComponent(normalizedCampaignId)}&step=2`
+                : "/campaigns/new?step=2";
               params.set("returnTo", returnTo);
 
               const subject = form.getValues("emailSubject");
@@ -223,6 +248,9 @@ export function TemplateStep({
               );
               if (blankB64) params.set("initialJsonB64", blankB64);
 
+              if (form.getValues("channel") === "in-app-push") {
+                params.set("channel", "in-app-push");
+              }
               router.push(`/campaigns/editor?${params.toString()}`);
             }}
           />

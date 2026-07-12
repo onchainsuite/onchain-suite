@@ -156,7 +156,7 @@ function HeroEmailForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@protocol.xyz"
           aria-label="Work email"
-          className="h-12 flex-1 rounded-xl border bg-white px-4 text-[14px] t-ink shadow-sm outline-none transition-colors placeholder:t-muted2 focus:border-[color:var(--acc)] focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--acc)_20%,transparent)]"
+          className="h-12 min-h-12 rounded-xl border bg-white px-4 text-[14px] t-ink shadow-sm outline-none transition-colors placeholder:t-muted2 focus:border-[color:var(--acc)] focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--acc)_20%,transparent)] sm:flex-1"
           style={{ borderColor: "var(--line)" }}
         />
         <button
@@ -220,9 +220,9 @@ function Hero() {
     <section
       ref={gate.ref as React.RefObject<HTMLElement>}
       data-anim={gate.anim}
+      data-landing-hero=""
       className="relative overflow-hidden pb-10 pt-10 md:pt-12"
     >
-      <div className="grid-bg" />
       <div
         className="orb"
         style={{
@@ -1703,7 +1703,7 @@ function Cta() {
 
 export function LandingV2() {
   return (
-    <PageShell>
+    <PageShell navCtaWatchesHero>
       <Hero />
       <Networks />
       <Problem />

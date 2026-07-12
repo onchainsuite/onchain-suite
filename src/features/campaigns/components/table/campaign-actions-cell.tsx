@@ -28,6 +28,7 @@ import {
 
 import { campaignsService } from "../../../campaigns/campaigns.service";
 import type { Campaign } from "../../../campaigns/types";
+import { CampaignAnalyticsDialog } from "./campaign-analytics-dialog";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface CampaignActionsCellProps {
@@ -38,6 +39,7 @@ export function CampaignActionsCell({ campaign }: CampaignActionsCellProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
 
   const campaignWizardBaseUrl = useMemo(() => {
     const qs = new URLSearchParams();
@@ -115,7 +117,10 @@ export function CampaignActionsCell({ campaign }: CampaignActionsCellProps) {
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem onClick={handleCopyId}>Copy ID</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => openWizardStep(4)}>
+          <DropdownMenuItem onClick={() => setAnalyticsOpen(true)}>
+            View analytics
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openWizardStep(3)}>
             View details
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => openWizardStep(1)}>
@@ -137,6 +142,13 @@ export function CampaignActionsCell({ campaign }: CampaignActionsCellProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <CampaignAnalyticsDialog
+        campaignId={campaign.id}
+        campaignName={campaign.name}
+        open={analyticsOpen}
+        onOpenChange={setAnalyticsOpen}
+      />
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>

@@ -16,16 +16,9 @@ import {
 } from "@/lib/utils";
 
 import { campaignsService } from "@/features/campaigns/campaigns.service";
-import { DashboardLayout } from "@/features/common/layout/components/dashboard-layout";
 import { templatesService } from "@/features/templates/templates.service";
-import { PRIVATE_ROUTES, publicRoutes } from "@/shared/config/app-routes";
 
 export const dynamic = "force-dynamic";
-
-const breadcrumbs = [
-  { href: publicRoutes.HOME, label: "Home" },
-  { href: PRIVATE_ROUTES.CAMPAIGNS, label: "Campaigns" },
-];
 
 const DEFAULT_EDITOR_ORIGIN_PROD = "https://editor.onchainsuite.com";
 const DEFAULT_EDITOR_ORIGIN_DEV = DEFAULT_EDITOR_ORIGIN_PROD;
@@ -103,6 +96,37 @@ const decodeBase64Url = (value: string) => {
   }
 };
 
+/** Pull a push notification payload ({title, body, cta}) out of a builder save message. */
+const extractPushPayload = (
+  raw: unknown
+): {
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+} | null => {
+  if (!isJsonObject(raw)) return null;
+  const candidates = [
+    raw.push,
+    isJsonObject(raw.data) ? raw.data.push : undefined,
+  ];
+  for (const candidate of candidates) {
+    if (!isJsonObject(candidate)) continue;
+    const title = typeof candidate.title === "string" ? candidate.title : "";
+    const body = typeof candidate.body === "string" ? candidate.body : "";
+    if (title.trim().length === 0 && body.trim().length === 0) continue;
+    return {
+      title,
+      body,
+      ctaLabel:
+        typeof candidate.ctaLabel === "string" ? candidate.ctaLabel : undefined,
+      ctaUrl:
+        typeof candidate.ctaUrl === "string" ? candidate.ctaUrl : undefined,
+    };
+  }
+  return null;
+};
+
 const parseMaybeJson = (raw: string) => {
   const trimmed = raw.trim();
   if (trimmed.length === 0) return null;
@@ -135,6 +159,9 @@ export default function CampaignEditorPage() {
 
   const campaignId = (searchParams?.get("campaign") ?? "").trim();
   const returnTo = (searchParams?.get("returnTo") ?? "").trim();
+  // In-app push campaigns author a pop-up notification in the builder's push
+  // panel instead of an email — saves skip the email render pipeline.
+  const isPushMode = (searchParams?.get("channel") ?? "") === "in-app-push";
   const templateNameParam = (searchParams?.get("templateName") ?? "").trim();
   const subjectParam = (searchParams?.get("subject") ?? "").trim();
   const previewTextParam = (searchParams?.get("previewText") ?? "").trim();
@@ -555,7 +582,7 @@ export default function CampaignEditorPage() {
       return `${url.pathname}?${url.searchParams.toString()}`;
     }
     const url = new URL("/campaigns/new", "http://localhost");
-    url.searchParams.set("step", "4");
+    url.searchParams.set("step", "3");
     if (campaignId) url.searchParams.set("campaign", campaignId);
     return `${url.pathname}?${url.searchParams.toString()}`;
   }, [campaignId, returnTo]);
@@ -563,7 +590,7 @@ export default function CampaignEditorPage() {
   const prevWizardUrl = useMemo(() => {
     const base = returnTo.length > 0 ? returnTo : "/campaigns/new";
     const url = new URL(base, "http://localhost");
-    url.searchParams.set("step", "3");
+    url.searchParams.set("step", "2");
     if (campaignId) url.searchParams.set("campaign", campaignId);
     return `${url.pathname}?${url.searchParams.toString()}`;
   }, [campaignId, returnTo]);
@@ -845,6 +872,44 @@ export default function CampaignEditorPage() {
         (async () => {
           try {
             if (!campaignId) throw new Error("Missing campaign id.");
+
+            // Push campaigns: persist the pop-up notification variant and
+            // return to the wizard — there is no email to render/confirm.
+            if (isPushMode) {
+              const pushPayload = extractPushPayload(messageData);
+              if (pushPayload) {
+                await campaignsService.editorSaved(campaignId, {
+                  push: pushPayload,
+                });
+              }
+              // The builder may also save the push variant itself via its
+              // editor-token API — verify the campaign has one either way.
+              const saved = await campaignsService
+                .getEditorContent(campaignId)
+                .catch(() => null);
+              const savedPush =
+                isJsonObject(saved) && isJsonObject(saved.push)
+                  ? saved.push
+                  : null;
+              const hasStoredPush = Boolean(
+                savedPush &&
+                ((typeof savedPush.title === "string" &&
+                  savedPush.title.trim().length > 0) ||
+                  (typeof savedPush.body === "string" &&
+                    savedPush.body.trim().length > 0))
+              );
+              if (!pushPayload && !hasStoredPush) {
+                throw new Error(
+                  "No push notification content was saved. Author the pop-up in the builder's push panel, then save again."
+                );
+              }
+              setLastConfirmedSaveAt(new Date().toISOString());
+              toast.success("Push notification saved");
+              hasRedirectedRef.current = true;
+              router.push(nextWizardUrl);
+              return;
+            }
+
             const sleep = (ms: number) =>
               new Promise<void>((resolve) => {
                 window.setTimeout(resolve, ms);
@@ -1009,92 +1074,91 @@ export default function CampaignEditorPage() {
     senderEmailParam,
     senderNameParam,
     subjectParam,
+    isPushMode,
   ]);
 
   return (
-    <DashboardLayout breadcrumbs={breadcrumbs}>
-      <div className="mx-auto w-full max-w-[1720px] px-4 py-1">
-        {!campaignId ? (
-          <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
-            Missing campaign id.
-          </div>
-        ) : (
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="rounded-full"
-                onClick={() => router.push(backUrl)}
-                disabled={isConfirmingSave || isSavingTemplate}
-              >
-                <ArrowLeftIcon aria-hidden="true" className="mr-1 h-4 w-4" />
-                Back
-              </Button>
-
-              <div className="flex items-center gap-2">
-                {lastConfirmedSaveAt ? (
-                  <div className="hidden rounded-full border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground sm:block">
-                    Saved {new Date(lastConfirmedSaveAt).toLocaleTimeString()}
-                  </div>
-                ) : null}
-                {lastTemplateId ? (
-                  <div className="hidden rounded-full border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground sm:block">
-                    Template {lastTemplateId}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-
-            <div
-              ref={containerRef}
-              className={cn(
-                "relative h-[calc(100vh-116px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
-              )}
+    <div className="mx-auto -mt-4 w-full max-w-[1720px] px-4 pb-1">
+      {!campaignId ? (
+        <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
+          Missing campaign id.
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="rounded-full"
+              onClick={() => router.push(backUrl)}
+              disabled={isConfirmingSave || isSavingTemplate}
             >
-              {iframeFailed ? (
-                <div className="absolute inset-0 z-10 flex h-full w-full flex-col items-center justify-center gap-3 bg-background px-6 text-center">
-                  <div className="text-sm font-medium">
-                    Editor failed to load.
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {iframeDiagnostics?.origin
-                      ? `Tried: ${iframeDiagnostics.origin}`
-                      : "The editor URL is invalid."}
-                  </div>
-                  {iframeSrc ? (
-                    <a
-                      className="text-xs text-primary underline underline-offset-2"
-                      href={iframeSrc}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Open editor URL
-                    </a>
-                  ) : null}
+              <ArrowLeftIcon aria-hidden="true" className="mr-1 h-4 w-4" />
+              Back
+            </Button>
+
+            <div className="flex items-center gap-2">
+              {lastConfirmedSaveAt ? (
+                <div className="hidden rounded-full border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground sm:block">
+                  Saved {new Date(lastConfirmedSaveAt).toLocaleTimeString()}
                 </div>
               ) : null}
-              <iframe
-                key={iframeSrc}
-                src={iframeSrc}
-                title="Email editor"
-                className="h-full w-full"
-                style={{ border: "none" }}
-                referrerPolicy="strict-origin-when-cross-origin"
-                ref={iframeRef}
-                onLoad={() => {
-                  setIframeFailed(false);
-                  setIframeLoaded(true);
-                  postIframeConfig();
-                }}
-                onError={() => setIframeFailed(true)}
-                allow="fullscreen"
-              />
+              {lastTemplateId ? (
+                <div className="hidden rounded-full border border-border bg-card px-2 py-1 text-[11px] text-muted-foreground sm:block">
+                  Template {lastTemplateId}
+                </div>
+              ) : null}
             </div>
           </div>
-        )}
-      </div>
-    </DashboardLayout>
+
+          <div
+            ref={containerRef}
+            className={cn(
+              "relative h-[calc(100vh-96px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+            )}
+          >
+            {iframeFailed ? (
+              <div className="absolute inset-0 z-10 flex h-full w-full flex-col items-center justify-center gap-3 bg-background px-6 text-center">
+                <div className="text-sm font-medium">
+                  Editor failed to load.
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {iframeDiagnostics?.origin
+                    ? `Tried: ${iframeDiagnostics.origin}`
+                    : "The editor URL is invalid."}
+                </div>
+                {iframeSrc ? (
+                  <a
+                    className="text-xs text-primary underline underline-offset-2"
+                    href={iframeSrc}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Open editor URL
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+            <iframe
+              key={iframeSrc}
+              src={iframeSrc}
+              title="Email editor"
+              className="h-full w-full"
+              style={{ border: "none" }}
+              referrerPolicy="strict-origin-when-cross-origin"
+              ref={iframeRef}
+              onLoad={() => {
+                setIframeFailed(false);
+                setIframeLoaded(true);
+                postIframeConfig();
+              }}
+              onError={() => setIframeFailed(true)}
+              allow="fullscreen"
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
