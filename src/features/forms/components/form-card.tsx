@@ -99,7 +99,9 @@ export const FormCard = memo(function FormCard({
           className="h-7 text-xs"
           onClick={(e) => {
             e.stopPropagation();
-            void navigator.clipboard.writeText(form.embedCode);
+            navigator.clipboard
+              .writeText(form.embedCode)
+              .catch(() => undefined);
             toast.success("Embed code copied");
           }}
         >
