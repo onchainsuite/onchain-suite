@@ -53,6 +53,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/ui/dropdown-menu";
+import { Skeleton } from "@/ui/skeleton";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -73,7 +74,7 @@ import {
   normalizeTags,
 } from "@/features/audience/utils";
 import { PageHeader } from "@/shared/components/page/page-header";
-import { DashboardSkeleton } from "@/shared/components/page/page-skeleton";
+import { TableSkeleton } from "@/shared/components/page/page-skeleton";
 
 type SocialIconLinkProps = {
   href: string;
@@ -731,7 +732,21 @@ export function AudiencePages(): ReactElement {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
             >
-              <DashboardSkeleton variant="table" withTabs={false} />
+              {/* The real PageHeader is already rendered above — only the
+                  toolbar + table regions are pending, so skeleton just those
+                  (a second header skeleton here caused a duplicate-header
+                  flash after the route-level loading state). */}
+              <div className="space-y-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <Skeleton className="h-10 w-full rounded-lg sm:w-64" />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Skeleton className="h-10 w-32 rounded-lg" />
+                    <Skeleton className="h-10 w-36 rounded-lg" />
+                    <Skeleton className="h-10 w-28 rounded-lg" />
+                  </div>
+                </div>
+                <TableSkeleton rows={8} />
+              </div>
             </motion.div>
           ) : profilesQuery.isError ? (
             <motion.div

@@ -8,7 +8,11 @@ import { useSession } from "@/lib/auth-client";
 
 import { OrganizationSetupStep, PlanSelectionStep } from "./components";
 import { OnboardingLayout } from "./components/onboarding-layout";
-import { useOnboardingPersistence, useOnboardingTracking } from "./hooks";
+import {
+  resolveResumeFlowStep,
+  useOnboardingPersistence,
+  useOnboardingTracking,
+} from "./hooks";
 import { type OnboardingData } from "./types";
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
@@ -48,10 +52,14 @@ export function OnboardingFlow() {
     setData,
   } = useOnboardingPersistence<OnboardingData>();
 
-  const { progress, trackStep, completeOnboarding } = useOnboardingTracking();
+  const { progress, resume, trackStep, completeOnboarding } =
+    useOnboardingTracking();
   const [stepStartedAtMs, setStepStartedAtMs] = React.useState<number>(
     Date.now()
   );
+  // The server-side resume block seeds the starting step exactly once per
+  // mount; afterwards local navigation + progress sync own the step.
+  const resumeAppliedRef = React.useRef(false);
 
   const handleStepComplete = async (stepData: Partial<OnboardingData>) => {
     const now = Date.now();
@@ -131,14 +139,23 @@ export function OnboardingFlow() {
     } catch (error) {
       console.error("Error completing onboarding:", error);
     }
-    push(PRIVATE_ROUTES.CAMPAIGNS);
+    push(PRIVATE_ROUTES.DASHBOARD);
   };
 
   React.useEffect(() => {
     if (!user?.id) return;
     if (!progress || progress.is_completed) return;
 
-    const stepNumber = progress.current_step === "plan_selection" ? 2 : 1;
+    // Resumable onboarding: an `in_progress` resume block wins for the
+    // initial step (cross-device continuity), then progress sync takes over.
+    const useResume =
+      !resumeAppliedRef.current && resume?.status === "in_progress";
+    resumeAppliedRef.current = true;
+    const stepNumber = useResume
+      ? resolveResumeFlowStep(resume.step)
+      : progress.current_step === "plan_selection"
+        ? 2
+        : 1;
     if (stepNumber !== currentStep) {
       setStep(stepNumber);
       setStepStartedAtMs(Date.now());
@@ -147,7 +164,7 @@ export function OnboardingFlow() {
     if (progress.step_data && Object.keys(progress.step_data).length > 0) {
       setData(progress.step_data as Partial<OnboardingData>);
     }
-  }, [user?.id, progress, currentStep, setData, setStep]);
+  }, [user?.id, progress, resume, currentStep, setData, setStep]);
 
   React.useEffect(() => {
     if (!user?.id) return;

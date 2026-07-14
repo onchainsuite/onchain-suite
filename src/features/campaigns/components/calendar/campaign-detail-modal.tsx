@@ -1,3 +1,7 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
@@ -9,6 +13,7 @@ import {
   getCampaignStatusColor,
   getCampaignTypeColor,
 } from "../../../campaigns/utils/campaign";
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface CampaignDetailModalProps {
   open: boolean;
@@ -25,6 +30,22 @@ export function CampaignDetailModal({
   campaigns,
   timezone,
 }: CampaignDetailModalProps) {
+  const router = useRouter();
+
+  // Same destinations as the list view's row actions: sent/sending campaigns
+  // open the wizard's review step ("View details"), everything else opens the
+  // editable first step ("Edit campaign").
+  const openCampaign = (campaign: Campaign) => {
+    const qs = new URLSearchParams();
+    qs.set("campaign", campaign.id);
+    qs.set(
+      "step",
+      campaign.status === "sent" || campaign.status === "sending" ? "3" : "1"
+    );
+    onOpenChange(false);
+    router.push(`${PRIVATE_ROUTES.NEW_CAMPAIGN}?${qs.toString()}`);
+  };
+
   const formatDateTime = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
@@ -57,7 +78,17 @@ export function CampaignDetailModal({
           {campaigns.map((campaign) => (
             <Card
               key={campaign.id}
-              className="border-border bg-card rounded-xl overflow-hidden"
+              role="button"
+              tabIndex={0}
+              aria-label={`Open campaign ${campaign.name}`}
+              onClick={() => openCampaign(campaign)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openCampaign(campaign);
+                }
+              }}
+              className="border-border bg-card rounded-xl overflow-hidden cursor-pointer transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20"
             >
               <CardContent className="p-6">
                 <div className="space-y-4">
@@ -106,7 +137,9 @@ export function CampaignDetailModal({
                         Recipients
                       </p>
                       <p className="text-sm font-medium text-foreground">
-                        {campaign.recipients.toLocaleString()}
+                        {typeof campaign.recipients === "number"
+                          ? campaign.recipients.toLocaleString()
+                          : "—"}
                       </p>
                     </div>
 

@@ -554,12 +554,14 @@ export function CommandPaletteProvider({
 
   const options = useMemo<PaletteOption[]>(() => {
     const q = query.trim();
-    // WIP sections are hidden from production builds (see wip-sections.ts).
-    const all = [...NAVIGATE_OPTIONS, ...ACTION_OPTIONS].filter(
-      (option) =>
-        SHOW_WIP_SECTIONS ||
-        option.data.kind !== "navigate" ||
-        !isWipHref(option.data.href)
+    // WIP sections stay listed in production but flagged — their routes
+    // render a coming-soon panel until they ship (see wip-sections.ts).
+    const all = [...NAVIGATE_OPTIONS, ...ACTION_OPTIONS].map((option) =>
+      !SHOW_WIP_SECTIONS &&
+      option.data.kind === "navigate" &&
+      isWipHref(option.data.href)
+        ? { ...option, hint: "Coming in v1" }
+        : option
     );
     // Semantic-search hits. The current query is added to keywords so the
     // fuzzy filter never drops them (titles rarely contain the query text).

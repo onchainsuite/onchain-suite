@@ -25,13 +25,18 @@ import {
 } from "@/lib/utils";
 
 import { getBreadcrumbsForPath } from "./breadcrumbs";
+import { ComingSoonSection } from "./coming-soon-section";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardNavbar } from "./dashboard-navbar";
 import { OrganizationStatusBanner } from "./organization-status-banner";
 import { PendingCheckoutBanner } from "@/features/billing/components/pending-checkout-banner";
 import { notificationsService } from "@/features/notifications/notifications.service";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
-import { isWipHref, SHOW_WIP_SECTIONS } from "@/shared/config/wip-sections";
+import {
+  getWipSection,
+  isWipHref,
+  SHOW_WIP_SECTIONS,
+} from "@/shared/config/wip-sections";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -160,7 +165,14 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
       href: PRIVATE_ROUTES.SETTINGS,
       icon: <Cog6ToothIcon className="h-4 w-4" aria-hidden="true" />,
     },
-  ].filter((item) => SHOW_WIP_SECTIONS || !isWipHref(item.href));
+    // WIP sections stay visible in production but faded, and their routes
+    // render a coming-soon panel (see below) until they ship in v1.
+  ].map((item) => ({
+    ...item,
+    wip: !SHOW_WIP_SECTIONS && isWipHref(item.href),
+  }));
+
+  const wipSection = SHOW_WIP_SECTIONS ? null : getWipSection(pathname ?? "/");
 
   return (
     <div className="relative min-h-screen">
@@ -205,7 +217,11 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
         <PendingCheckoutBanner />
         <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8">
           {hasActiveOrganization ? (
-            children
+            wipSection ? (
+              <ComingSoonSection section={wipSection} />
+            ) : (
+              children
+            )
           ) : (
             <div className="mx-auto mt-8 flex min-h-[62vh] max-w-3xl items-center justify-center">
               <div className="relative w-full overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-card/90 via-card/70 to-card/40 p-12 shadow-2xl shadow-primary/10 backdrop-blur-sm">

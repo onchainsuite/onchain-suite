@@ -179,9 +179,11 @@ const resolveExplicitStatus = (
   for (const value of values) {
     if (typeof value !== "string") continue;
     const normalized = value.trim().toLowerCase();
-    if (normalized.includes("ver")) return "verified";
+    // Check pending/failed BEFORE verified: "pending_verification" contains
+    // "ver" and would otherwise be misread as verified.
     if (normalized.includes("pend")) return "pending";
     if (normalized.includes("fail")) return "failed";
+    if (normalized.includes("ver")) return "verified";
   }
   return undefined;
 };

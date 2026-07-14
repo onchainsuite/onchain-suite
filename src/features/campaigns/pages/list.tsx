@@ -184,7 +184,8 @@ export function CampaignsListsView() {
         status: normalizeStatus(item.status),
         subject: "",
         audience: [] as string[],
-        recipients: 0,
+        // Calendar rows carry no audience info; undefined renders as "—".
+        recipients: undefined as number | undefined,
         createdAt: new Date(),
         scheduledFor:
           scheduledFor && !Number.isNaN(scheduledFor.getTime())

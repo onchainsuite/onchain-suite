@@ -6,6 +6,7 @@ import {
   BoltIcon,
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
+  CheckIcon,
   ChevronUpIcon,
   ClipboardDocumentIcon,
   ClockIcon,
@@ -38,6 +39,15 @@ import { SqlBlockchainLoader } from "./sql-blockchain-loader";
 import { SqlResultsTable } from "./sql-results-table";
 
 const DEFAULT_SQL_QUERY = "";
+
+/**
+ * Ceiling for SQL status polling. Every async op must be bounded — if the
+ * backend never reports `completed`/`failed` within this window we stop
+ * polling and render an explicit timeout state in the results area instead of
+ * spinning forever.
+ */
+const SQL_STATUS_POLL_TIMEOUT_MS = 90_000;
+const SQL_STATUS_POLL_INTERVAL_MS = 1_000;
 
 /**
  * Normalize the editor SQL into what the backend accepts:
@@ -763,8 +773,17 @@ export function QueryTab({
 }: QueryTabProps) {
   const queryClient = useQueryClient();
   const [sqlQuery, setSqlQuery] = useState(DEFAULT_SQL_QUERY);
+  // Transient "Copied" feedback on the SQL copy button (repo idiom: small
+  // state + timeout, cleared on unmount so it never fires after teardown).
+  const [sqlCopied, setSqlCopied] = useState(false);
+  const sqlCopiedTimeoutRef = useRef<number | null>(null);
   const [queryId, setQueryId] = useState<string | null>(null);
   const [hasRunQuery, setHasRunQuery] = useState(false);
+  // Bounded status polling: once the poll exceeds SQL_STATUS_POLL_TIMEOUT_MS
+  // we stop and show an explicit timeout error (with a retry) in the results
+  // area — a run must never end with nothing visible.
+  const [sqlPollTimedOut, setSqlPollTimedOut] = useState(false);
+  const sqlPollStartedAtRef = useRef<number | null>(null);
   const [page, setPage] = useState(1);
   const limit = 50;
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -794,6 +813,33 @@ export function QueryTab({
   const [activeSuggestionId, setActiveSuggestionId] = useState<string | null>(
     null
   );
+  const handleCopySql = useCallback(() => {
+    navigator.clipboard
+      .writeText(sqlQuery)
+      .then(() => {
+        setSqlCopied(true);
+        if (sqlCopiedTimeoutRef.current !== null) {
+          window.clearTimeout(sqlCopiedTimeoutRef.current);
+        }
+        sqlCopiedTimeoutRef.current = window.setTimeout(() => {
+          setSqlCopied(false);
+          sqlCopiedTimeoutRef.current = null;
+        }, 2000);
+      })
+      .catch(() => {
+        toast.error("Failed to copy SQL to clipboard");
+      });
+  }, [sqlQuery]);
+
+  useEffect(
+    () => () => {
+      if (sqlCopiedTimeoutRef.current !== null) {
+        window.clearTimeout(sqlCopiedTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   // What we actually send to validate/run — leading comments stripped so the
   // backend sees a query that starts with SELECT/WITH.
   const executableSql = toExecutableSql(sqlQuery);
@@ -1339,9 +1385,25 @@ export function QueryTab({
     refetchOnWindowFocus: false,
     refetchInterval: (q) => {
       const s = (q.state.data as { status?: string } | null)?.status;
-      return s === "completed" || s === "failed" ? false : 1000;
+      if (s === "completed" || s === "failed") return false;
+      const startedAt = sqlPollStartedAtRef.current;
+      if (
+        startedAt !== null &&
+        Date.now() - startedAt >= SQL_STATUS_POLL_TIMEOUT_MS
+      ) {
+        // Bounded polling: give up and surface an explicit timeout state.
+        setSqlPollTimedOut(true);
+        return false;
+      }
+      return SQL_STATUS_POLL_INTERVAL_MS;
     },
   });
+
+  // Every new run restarts the polling clock and clears a previous timeout.
+  useEffect(() => {
+    sqlPollStartedAtRef.current = queryId ? Date.now() : null;
+    setSqlPollTimedOut(false);
+  }, [queryId]);
 
   const resultsQuery = useQuery({
     queryKey: ["intelligence", "query", queryId, "results", { page, limit }],
@@ -1447,16 +1509,52 @@ export function QueryTab({
 
   const latestRunData = runMutation.data;
   const status = statusQuery.data?.status ?? latestRunData?.status ?? "";
+  // A run is settled only at a terminal status (or once the bounded poll gave
+  // up). Anything else — "running", "queued", a status endpoint that errors
+  // between polls — keeps the loader up instead of a silent blank area.
+  const sqlStatusSettled =
+    status === "completed" || status === "failed" || sqlPollTimedOut;
   const isQueryRunning =
     runMutation.isPending ||
     mcpMutation.isPending ||
-    status === "running" ||
-    statusQuery.isFetching;
+    (!!queryId && !sqlStatusSettled);
 
   const isSqlRunning =
     runMutation.isPending ||
-    (!mcpMutation.isPending &&
-      (status === "running" || statusQuery.isFetching));
+    (!mcpMutation.isPending && !!queryId && !sqlStatusSettled);
+
+  // Backend message for a rejected run (4xx/5xx, e.g. "Only SELECT queries
+  // are allowed") — rendered as an explicit panel in the results area, not
+  // just a toast. Scoped to the SQL surface; the chat surface reports MCP
+  // failures inline in the thread.
+  const sqlRunError =
+    activeSurface === "sql" && runMutation.isError
+      ? runMutation.error instanceof Error
+        ? runMutation.error.message
+        : "Failed to run query"
+      : null;
+
+  // The backend's `error` field from GET /intelligence/query/{id}/status when
+  // the run reaches `failed` — shown verbatim.
+  const statusFailureDetail =
+    typeof statusQuery.data?.error === "string" &&
+    statusQuery.data.error.trim().length > 0
+      ? statusQuery.data.error
+      : null;
+
+  // Inline validation feedback for the SQL editor (invalid SQL or a rejected
+  // validate call) — the toast alone disappears too quickly.
+  const validationIssue = validateMutation.isError
+    ? validateMutation.error instanceof Error
+      ? validateMutation.error.message
+      : "Failed to validate query"
+    : validateMutation.data && validateMutation.data.valid !== true
+      ? (Array.isArray(validateMutation.data.suggestions)
+          ? validateMutation.data.suggestions
+              .filter((s) => s.trim().length > 0)
+              .join(" ")
+          : "") || "Query needs a tweak before it can run."
+      : null;
 
   const rows = useMemo(() => {
     const raw = resultsQuery.data?.rows ?? latestRunData?.rows ?? [];
@@ -2665,14 +2763,18 @@ export function QueryTab({
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => navigator.clipboard.writeText(sqlQuery)}
+                  onClick={handleCopySql}
                   className="rounded-md p-1.5 text-primary transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label="Copy SQL"
+                  aria-label={sqlCopied ? "Copied" : "Copy SQL"}
                 >
-                  <ClipboardDocumentIcon
-                    className="h-3.5 w-3.5"
-                    aria-hidden="true"
-                  />
+                  {sqlCopied ? (
+                    <CheckIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : (
+                    <ClipboardDocumentIcon
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                  )}
                 </button>
 
                 <Popover>
@@ -2921,38 +3023,157 @@ export function QueryTab({
                 · {sqlQuery.length} chars
               </span>
             </div>
+            {validationIssue ? (
+              <div
+                role="alert"
+                className="relative border-t border-destructive/30 bg-destructive/5 px-4 py-2.5 text-xs text-destructive"
+              >
+                {validationIssue}
+              </div>
+            ) : null}
           </div>
         </>
       )}
 
       {isSqlRunning ? <SqlBlockchainLoader query={sqlQuery} /> : null}
 
-      {hasRunQuery && !isSqlRunning && (
-        <SqlResultsTable
-          rows={rows}
-          columns={columns}
-          columnLabels={columnLabels}
-          selectedRows={selectedRows}
-          onToggleAll={toggleAllRows}
-          onToggleRow={toggleRowSelection}
-          onClearSelection={clearSelection}
-          totalRows={typeof totalRows === "number" ? totalRows : 0}
-          winbackPotential={summaryQuery.data?.winbackPotential}
-          queryId={queryId}
-          status={status}
-          page={page}
-          pageCount={pageCount}
-          onPrevPage={goPrevPage}
-          onNextPage={goNextPage}
-          onSaveReport={handleSaveReport}
-          onCreateSegment={handleCreateSegment}
-          onCreateCampaign={handleCreateCampaign}
-          savePending={saveReportMutation.isPending}
-          segmentPending={createSegmentMutation.isPending}
-          campaignPending={createCampaignMutation.isPending}
-          onEmail={handleEmailRow}
-        />
-      )}
+      {/*
+        Running SQL must always end in exactly one visible outcome: results,
+        or an explicit human-readable error/empty state in this region.
+      */}
+      {!isSqlRunning && sqlRunError ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/40 bg-destructive/5 px-5 py-6"
+        >
+          <div className="text-sm font-medium text-destructive">
+            Query failed to run
+          </div>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground/90">
+            {sqlRunError}
+          </p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Fix the SQL above and run it again.
+          </p>
+        </div>
+      ) : null}
+
+      {hasRunQuery && !isSqlRunning && !sqlRunError ? (
+        status === "failed" ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-destructive/40 bg-destructive/5 px-5 py-6"
+          >
+            <div className="text-sm font-medium text-destructive">
+              Query failed
+            </div>
+            <p className="mt-2 whitespace-pre-wrap break-words font-mono text-sm text-foreground/90">
+              {statusFailureDetail ??
+                "The query failed to execute, and the backend returned no further detail."}
+            </p>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Fix the SQL above and run it again.
+            </p>
+          </div>
+        ) : sqlPollTimedOut && status !== "completed" ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-destructive/40 bg-destructive/5 px-5 py-6"
+          >
+            <div className="text-sm font-medium text-destructive">
+              Query timed out
+            </div>
+            <p className="mt-2 text-sm text-foreground/90">
+              The query was still running after{" "}
+              {Math.round(SQL_STATUS_POLL_TIMEOUT_MS / 1000)} seconds, so we
+              stopped waiting.
+              {statusQuery.error instanceof Error
+                ? ` Last status check failed: ${statusQuery.error.message}`
+                : ""}
+            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  sqlPollStartedAtRef.current = Date.now();
+                  setSqlPollTimedOut(false);
+                  statusQuery.refetch().catch(() => undefined);
+                }}
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40"
+              >
+                Check again
+              </button>
+              <span className="text-xs text-muted-foreground">
+                or simplify the query and run it again.
+              </span>
+            </div>
+          </div>
+        ) : resultsQuery.isError ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-destructive/40 bg-destructive/5 px-5 py-6"
+          >
+            <div className="text-sm font-medium text-destructive">
+              Couldn&apos;t load results
+            </div>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground/90">
+              {resultsQuery.error instanceof Error
+                ? resultsQuery.error.message
+                : "Failed to load query results"}
+            </p>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  resultsQuery.refetch().catch(() => undefined);
+                }}
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        ) : rows.length === 0 && !resultsQuery.isSuccess ? (
+          // Terminal status reached but the paginated results are still on
+          // their way — keep the loader up rather than flashing an empty table.
+          <SqlBlockchainLoader query={sqlQuery} />
+        ) : rows.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card px-5 py-8 text-center">
+            <div className="text-sm font-medium text-foreground">
+              Query ran successfully — 0 rows returned
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              The SQL executed without errors but matched no rows. Adjust the
+              filters and run it again.
+            </p>
+          </div>
+        ) : (
+          <SqlResultsTable
+            rows={rows}
+            columns={columns}
+            columnLabels={columnLabels}
+            selectedRows={selectedRows}
+            onToggleAll={toggleAllRows}
+            onToggleRow={toggleRowSelection}
+            onClearSelection={clearSelection}
+            totalRows={typeof totalRows === "number" ? totalRows : 0}
+            winbackPotential={summaryQuery.data?.winbackPotential}
+            queryId={queryId}
+            status={status}
+            page={page}
+            pageCount={pageCount}
+            onPrevPage={goPrevPage}
+            onNextPage={goNextPage}
+            onSaveReport={handleSaveReport}
+            onCreateSegment={handleCreateSegment}
+            onCreateCampaign={handleCreateCampaign}
+            savePending={saveReportMutation.isPending}
+            segmentPending={createSegmentMutation.isPending}
+            campaignPending={createCampaignMutation.isPending}
+            onEmail={handleEmailRow}
+          />
+        )
+      ) : null}
 
       {(() => {
         const items = (historyQuery.data ?? [])

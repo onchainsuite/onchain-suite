@@ -27,6 +27,8 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  /** Work-in-progress section: rendered faded, routes to a coming-soon panel. */
+  wip?: boolean;
 }
 
 interface DashboardNavbarProps {
@@ -144,7 +146,8 @@ export function DashboardNavbar({
                           isCollapsed ? "h-10 w-10" : "h-10 w-full px-3",
                           active
                             ? "bg-accent text-(--brand-oxford-blue) dark:text-foreground shadow-[0_6px_20px_rgba(34,42,53,0.12)]"
-                            : "text-(--brand-oxford-blue) dark:text-muted-foreground hover:bg-muted"
+                            : "text-(--brand-oxford-blue) dark:text-muted-foreground hover:bg-muted",
+                          item.wip && "opacity-50 hover:opacity-80"
                         )}
                       >
                         <div className="h-4 w-4 text-(--brand-blue) dark:text-inherit">
@@ -160,7 +163,9 @@ export function DashboardNavbar({
                         )}
                       </Link>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
+                    <TooltipContent side="right">
+                      {item.wip ? `${item.label} — coming in v1` : item.label}
+                    </TooltipContent>
                   </Tooltip>
                 );
               })}

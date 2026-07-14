@@ -21,11 +21,24 @@ export const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const WEEK_DAYS_MOBILE = ["S", "M", "T", "W", "T", "F", "S"];
 
 /**
- * The date a campaign occupies on the calendar: its scheduled slot, or —
- * for send-now campaigns that never had a schedule — the time it was sent.
+ * The date a campaign occupies on the calendar, chosen per status:
+ * - sent/sending: when it (started to) send — `sentAt`, falling back to the
+ *   scheduled slot for scheduled sends whose `sentAt` isn't populated;
+ * - scheduled/paused: the scheduled slot;
+ * - draft/failed: the scheduled slot if one was saved, else when it was
+ *   created — so drafts without a schedule still show up on the calendar.
  */
 export function getCampaignCalendarDate(campaign: Campaign): Date | undefined {
-  return campaign.scheduledFor ?? campaign.sentAt;
+  switch (campaign.status) {
+    case "sent":
+    case "sending":
+      return campaign.sentAt ?? campaign.scheduledFor ?? campaign.createdAt;
+    case "scheduled":
+    case "paused":
+      return campaign.scheduledFor ?? campaign.createdAt;
+    default:
+      return campaign.scheduledFor ?? campaign.sentAt ?? campaign.createdAt;
+  }
 }
 
 export function getCampaignsForDate(
