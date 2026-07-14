@@ -99,7 +99,9 @@ export const FormsTable = memo(function FormsTable({
                   aria-label={`Copy embed code for ${form.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    void navigator.clipboard.writeText(form.embedCode);
+                    navigator.clipboard
+                      .writeText(form.embedCode)
+                      .catch(() => undefined);
                     toast.success("Embed code copied");
                   }}
                 >

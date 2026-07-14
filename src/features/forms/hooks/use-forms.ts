@@ -28,7 +28,9 @@ export function useCreateForm(onSuccess?: (form: CaptureForm) => void) {
     mutationFn: (input: CreateFormInput) => formsService.createForm(input),
     onSuccess: (form) => {
       toast.success("Form created");
-      void queryClient.invalidateQueries({ queryKey: FORMS_KEY });
+      queryClient
+        .invalidateQueries({ queryKey: FORMS_KEY })
+        .catch(() => undefined);
       onSuccess?.(form);
     },
     onError: (e) =>
@@ -43,7 +45,9 @@ export function useUpdateForm(onSuccess?: (form: CaptureForm) => void) {
       formsService.updateForm(id, input),
     onSuccess: (form) => {
       toast.success("Form updated");
-      void queryClient.invalidateQueries({ queryKey: FORMS_KEY });
+      queryClient
+        .invalidateQueries({ queryKey: FORMS_KEY })
+        .catch(() => undefined);
       onSuccess?.(form);
     },
     onError: (e) =>
@@ -57,7 +61,9 @@ export function useConnectForm(onSuccess?: (form: CaptureForm) => void) {
     mutationFn: (id: string) => formsService.connectForm(id),
     onSuccess: (form) => {
       toast.success("Connected to API — ZK encryption enabled");
-      void queryClient.invalidateQueries({ queryKey: FORMS_KEY });
+      queryClient
+        .invalidateQueries({ queryKey: FORMS_KEY })
+        .catch(() => undefined);
       onSuccess?.(form);
     },
     onError: (e) =>
@@ -71,7 +77,9 @@ export function useDeleteForm(onSuccess?: () => void) {
     mutationFn: (id: string) => formsService.deleteForm(id),
     onSuccess: () => {
       toast.success("Form deleted");
-      void queryClient.invalidateQueries({ queryKey: FORMS_KEY });
+      queryClient
+        .invalidateQueries({ queryKey: FORMS_KEY })
+        .catch(() => undefined);
       onSuccess?.();
     },
     onError: (e) =>

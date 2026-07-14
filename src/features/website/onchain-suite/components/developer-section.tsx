@@ -59,7 +59,7 @@ export function DeveloperSection() {
   const current = SNIPPETS.find((s) => s.id === active) ?? SNIPPETS[0];
 
   const copy = () => {
-    void navigator.clipboard.writeText(current.code);
+    navigator.clipboard.writeText(current.code).catch(() => undefined);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };

@@ -67,11 +67,12 @@ export const helpService = {
       params: { q, limit },
       signal,
     });
-    const list = isJsonObject(data) && Array.isArray(data.suggestions)
-      ? data.suggestions
-      : Array.isArray(data)
-        ? data
-        : [];
+    const list =
+      isJsonObject(data) && Array.isArray(data.suggestions)
+        ? data.suggestions
+        : Array.isArray(data)
+          ? data
+          : [];
     return list
       .map(toSuggestion)
       .filter((s): s is HelpSuggestion => s !== null);

@@ -44,8 +44,9 @@ export function FieldsEditor({
   );
 
   const add = useCallback(() => {
+    const taken = new Set(fields.map((f) => f.key));
     let key = `field_${fields.length + 1}`;
-    while (fields.some((f) => f.key === key)) key = `${key}_1`;
+    while (taken.has(key)) key = `${key}_1`;
     onChange([...fields, { key, label: "", type: "text", required: false }]);
   }, [fields, onChange]);
 

@@ -22,7 +22,7 @@ export function EmbedSnippet({
   const [copied, setCopied] = useState<"embed" | "url" | null>(null);
 
   const copy = useCallback((which: "embed" | "url", value: string) => {
-    void navigator.clipboard.writeText(value);
+    navigator.clipboard.writeText(value).catch(() => undefined);
     setCopied(which);
     toast.success(
       which === "embed" ? "Embed code copied" : "Submit URL copied"

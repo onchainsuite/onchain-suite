@@ -1,0 +1,41 @@
+# CodeRabbit configuration — https://docs.coderabbit.ai/reference/yaml-template
+language: en-US
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    base_branches: [dev, main]
+  path_filters:
+    - "!pnpm-lock.yaml"
+    - "!public/**"
+    - "!docs/backend.md"
+  path_instructions:
+    - path: "src/**/*.{ts,tsx}"
+      instructions: |
+        This repo's conventions live in CLAUDE.md — enforce them:
+        - Server Components by default; "use client" boundaries as small as
+          possible (leaf, not page).
+        - One typed service per API family; unwrap the { success, data }
+          envelope once in the service; never `any`; components never call
+          axios directly.
+        - React Query keys are hierarchical arrays including every input;
+          no per-query refetchOnWindowFocus without justification.
+        - Every long/streaming call needs a timeout and an abort path.
+        - Lists that can exceed ~100 rows must be paginated or virtualized.
+        - Tailwind semantic tokens only (bg-card, text-foreground, …) — flag
+          hardcoded hex/rgba theme colors; light and dark must both work.
+        - Heroicons per-icon named imports only; no dynamic icon registries.
+        - Contacts are wallet-first: walletAddress is the identity; email and
+          other channels are optional. Flag any UI gated on email existing.
+    - path: "src/features/**/*.service.ts"
+      instructions: |
+        Verify request/response contracts against docs/backend.md when the
+        endpoint appears there. Field-name mismatches with the documented
+        shape are bugs, not nitpicks.
+
+chat:
+  auto_reply: true
