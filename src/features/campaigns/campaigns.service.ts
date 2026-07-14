@@ -343,6 +343,64 @@ const extractList = (payload: unknown): unknown[] => {
   return [];
 };
 
+const toFiniteNumber = (value: unknown): number | undefined => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+};
+
+/**
+ * Recipient count for a campaign row — never NaN.
+ *
+ * The backend's `recipients` field is untyped (`recipients?: any` per
+ * docs/backend.md `POST /campaigns`) and may be a count, a numeric string, an
+ * explicit selection (`{ wallets: [...] }` / an array), or absent. Coercing it
+ * with `Number(...)` produced NaN for object shapes, which rendered as "NaN"
+ * in the Recipients column. Resolution order:
+ *  1. numeric `recipients` / `recipientCount` / `totalRecipients` /
+ *     `audienceCount` on the row,
+ *  2. the length of an explicit recipients selection,
+ *  3. for sent campaigns, the analytics sent count when the row already
+ *     embeds it (no extra per-row fetches),
+ *  4. otherwise `undefined` — the UI renders an em dash.
+ */
+const toRecipientCount = (
+  obj: Record<string, unknown>,
+  status: Campaign["status"]
+): number | undefined => {
+  const direct =
+    toFiniteNumber(obj.recipients) ??
+    toFiniteNumber(obj.recipientCount) ??
+    toFiniteNumber(obj.totalRecipients) ??
+    toFiniteNumber(obj.audienceCount);
+  if (direct !== undefined) return direct;
+
+  if (Array.isArray(obj.recipients)) return obj.recipients.length;
+  if (isJsonObject(obj.recipients) && Array.isArray(obj.recipients.wallets)) {
+    return obj.recipients.wallets.length;
+  }
+
+  if (status === "sent" && isJsonObject(obj.analytics)) {
+    const email = isJsonObject(obj.analytics.email)
+      ? obj.analytics.email
+      : undefined;
+    const totals = isJsonObject(obj.analytics.totals)
+      ? obj.analytics.totals
+      : undefined;
+    const sent =
+      (email ? toFiniteNumber(email.sent) : undefined) ??
+      (totals ? toFiniteNumber(totals.messagesSent) : undefined);
+    if (sent !== undefined) return sent;
+  }
+
+  return undefined;
+};
+
 const toCampaign = (raw: unknown): Campaign => {
   const obj = isJsonObject(raw) ? raw : {};
   const createdAt = obj.createdAt
@@ -362,7 +420,7 @@ const toCampaign = (raw: unknown): Campaign => {
     status,
     subject: String(obj.subject ?? ""),
     audience: Array.isArray(obj.audience) ? obj.audience.map(String) : [],
-    recipients: Number(obj.recipients ?? obj.recipientCount ?? 0),
+    recipients: toRecipientCount(obj, status),
     openRate: obj.openRate !== undefined ? Number(obj.openRate) : undefined,
     clickRate: obj.clickRate !== undefined ? Number(obj.clickRate) : undefined,
     createdAt,

@@ -16,6 +16,8 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { CopyButton } from "@/components/common/copy-button";
+
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
@@ -24,6 +26,12 @@ import CompanyEditForm from "@/features/settings/components/account/company-edit
 import InviteUser from "@/features/settings/components/invite-user";
 import LogoUpload from "@/features/settings/components/logo-upload";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
+import {
+  type AssignableRole,
+  type OrganizationInvite,
+  type OrganizationMember,
+  organizationMembersService,
+} from "@/features/settings/organization-members.service";
 import { senderIdentitiesService } from "@/features/settings/sender-identities.service";
 import { fadeInUp } from "@/features/settings/utils";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
@@ -39,7 +47,15 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { Switch } from "@/shared/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -76,17 +92,6 @@ interface DomainDnsRow {
   verified?: boolean;
   status?: SenderStatus | "unknown";
   databaseField?: string;
-}
-
-interface DomainStatusCheck {
-  key: string;
-  label: string;
-  passed: boolean | null;
-}
-
-interface DomainStatusState {
-  status: SenderStatus;
-  checks: DomainStatusCheck[];
 }
 
 interface TeamPermissions {
@@ -267,9 +272,11 @@ const resolveExplicitStatus = (
   for (const value of values) {
     if (typeof value !== "string") continue;
     const normalized = value.trim().toLowerCase();
-    if (normalized.includes("ver")) return "verified";
+    // Check pending/failed BEFORE verified: "pending_verification" contains
+    // "ver" and would otherwise be misread as verified.
     if (normalized.includes("pend")) return "pending";
     if (normalized.includes("fail")) return "failed";
+    if (normalized.includes("ver")) return "verified";
   }
   return undefined;
 };
@@ -598,132 +605,33 @@ const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
     .filter((row): row is DomainDnsRow => row !== null);
 };
 
-const normalizeDomainStatus = (payload: unknown): DomainStatusState => {
-  const root = unwrapData(payload);
-  const source = isJsonObject(root) ? root : {};
+/** Map a typed service member row into the table's {@link TeamRow} shape. */
+const memberToTeamRow = (member: OrganizationMember): TeamRow => ({
+  id: member.userId,
+  name: member.name,
+  email: member.email,
+  role: member.role,
+  roleLabel: member.roleLabel,
+  avatar: member.name.charAt(0).toUpperCase(),
+  twoFactorEnabled: member.twoFactorEnabled,
+  isEnabled: member.isEnabled,
+  kind: "member",
+  permissions: member.permissions ?? undefined,
+});
 
-  const checks: DomainStatusCheck[] = [
-    {
-      key: "dkim",
-      label: "DKIM",
-      passed:
-        pickBooleanLike(
-          source.dkim,
-          source.dkimValid,
-          source.dkimVerified,
-          source.dkimStatus
-        ) ?? null,
-    },
-    {
-      key: "spf",
-      label: "SPF",
-      passed:
-        pickBooleanLike(
-          source.spf,
-          source.spfValid,
-          source.spfVerified,
-          source.spfStatus
-        ) ?? null,
-    },
-  ];
-
-  const status =
-    resolveExplicitStatus(
-      source.status,
-      source.verificationStatus,
-      source.state
-    ) ??
-    (checks.every((check) => check.passed === true)
-      ? "verified"
-      : checks.some((check) => check.passed === false)
-        ? "failed"
-        : "pending");
-
-  return {
-    status,
-    // A VERIFIED domain implies its record checks passed even when the
-    // status payload omits per-record booleans.
-    checks:
-      status === "verified"
-        ? checks.map((check) => ({ ...check, passed: check.passed ?? true }))
-        : checks,
-  };
-};
-
-const inferDnsCheckKey = (record: DomainDnsRow): string | null => {
-  const haystack = [
-    record.databaseField,
-    record.host,
-    record.type,
-    record.value,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  if (haystack.includes("domainkey") || haystack.includes("dkim"))
-    return "dkim";
-  if (
-    haystack.includes("spf") ||
-    (record.type.toUpperCase() === "TXT" && haystack.includes("v=spf1"))
-  ) {
-    return "spf";
-  }
-  return null;
-};
-
-const normalizeMembers = (payload: unknown): TeamRow[] => {
-  return toArray(payload)
-    .map((entry, index) => {
-      if (!isJsonObject(entry)) return null;
-      const email = pickString(entry.email, entry.userEmail);
-      if (!email) return null;
-      const name =
-        pickString(entry.name, entry.fullName, entry.userName) ?? email;
-      return {
-        id: pickString(entry.userId, entry.id) ?? `${email}-${index}`,
-        name,
-        email,
-        role:
-          pickString(entry.role)?.toUpperCase() ??
-          pickString(entry.roleLabel)?.toUpperCase() ??
-          "VIEWER",
-        roleLabel: normalizeRoleLabel(entry.roleLabel ?? entry.role),
-        avatar: name.charAt(0).toUpperCase(),
-        twoFactorEnabled:
-          pickBoolean(entry.twoFactorEnabled, entry.twoFAEnabled) ?? false,
-        isEnabled: pickBoolean(entry.isEnabled, entry.enabled, true) ?? true,
-        kind: "member",
-        permissions: normalizePermissions(entry.permissions),
-      } satisfies TeamRow;
-    })
-    .filter(Boolean) as TeamRow[];
-};
-
-const normalizeInvites = (payload: unknown): TeamRow[] => {
-  return toArray(payload)
-    .map((entry, index) => {
-      if (!isJsonObject(entry)) return null;
-      const email = pickString(entry.email);
-      if (!email) return null;
-      const role = pickString(entry.role) ?? "Viewer";
-      return {
-        id: pickString(entry.id, entry.inviteId) ?? `${email}-${index}`,
-        name: pickString(entry.name, entry.invitedName) ?? "Pending invite",
-        email,
-        role: pickString(entry.role)?.toUpperCase() ?? "VIEWER",
-        roleLabel: normalizeRoleLabel(entry.roleLabel ?? role),
-        avatar: email.charAt(0).toUpperCase(),
-        twoFactorEnabled: null,
-        isEnabled: true,
-        kind: "invite",
-        permissions: normalizePermissions(
-          entry.plannedPermissions ?? entry.permissions
-        ),
-      } satisfies TeamRow;
-    })
-    .filter(Boolean) as TeamRow[];
-};
+/** Map a typed service invite row into the table's {@link TeamRow} shape. */
+const inviteToTeamRow = (invite: OrganizationInvite): TeamRow => ({
+  id: invite.id,
+  name: "Pending invite",
+  email: invite.email,
+  role: invite.role,
+  roleLabel: invite.roleLabel,
+  avatar: invite.email.charAt(0).toUpperCase(),
+  twoFactorEnabled: null,
+  isEnabled: true,
+  kind: "invite",
+  permissions: invite.permissions ?? undefined,
+});
 
 const statusCell = (passed: boolean) => (
   <span
@@ -798,6 +706,7 @@ export default function CompanySettingsView() {
     type: LogoType;
   }>({ open: false, type: "primary" });
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<TeamRow | null>(null);
   const [addDomainOpen, setAddDomainOpen] = useState(false);
   const [addSenderOpen, setAddSenderOpen] = useState(false);
   const [domainName, setDomainName] = useState("");
@@ -890,18 +799,11 @@ export default function CompanySettingsView() {
     ),
     retry: false,
     queryFn: async () => {
-      const [dnsResponse, statusResponse] = await Promise.all([
-        apiClient.get(`/domain/${domainDnsDialog.domainId}/dns`, {
-          headers: orgHeaders,
-        }),
-        apiClient.get(`/domain/${domainDnsDialog.domainId}/status`, {
-          headers: orgHeaders,
-        }),
-      ]);
-      return {
-        records: normalizeDomainDns(dnsResponse.data),
-        status: normalizeDomainStatus(statusResponse.data),
-      };
+      const dnsResponse = await apiClient.get(
+        `/domain/${domainDnsDialog.domainId}/dns`,
+        { headers: orgHeaders }
+      );
+      return { records: normalizeDomainDns(dnsResponse.data) };
     },
   });
 
@@ -910,20 +812,13 @@ export default function CompanySettingsView() {
     enabled: Boolean(organizationId && orgHeaders),
     retry: false,
     queryFn: async () => {
-      const [membersRes, invitesRes] = await Promise.all([
-        apiClient.get(`/organizations/${organizationId}/members`, {
-          headers: orgHeaders,
-        }),
-        apiClient
-          .get(`/organizations/${organizationId}/invites`, {
-            headers: orgHeaders,
-          })
-          .catch(() => ({ data: [] })),
+      if (!organizationId) return [] as TeamRow[];
+      // Invites are Owner/Admin-only — a 403 must not sink the member list.
+      const [members, invites] = await Promise.all([
+        organizationMembersService.listMembers(organizationId),
+        organizationMembersService.listInvites(organizationId).catch(() => []),
       ]);
-      return [
-        ...normalizeMembers(membersRes.data),
-        ...normalizeInvites(invitesRes.data),
-      ];
+      return [...members.map(memberToTeamRow), ...invites.map(inviteToTeamRow)];
     },
   });
 
@@ -1103,6 +998,75 @@ export default function CompanySettingsView() {
     },
   });
 
+  const invalidateMembers = () =>
+    queryClient.invalidateQueries({
+      queryKey: ["project-settings", "members", organizationId],
+    });
+
+  const updateMemberMutation = useMutation({
+    mutationFn: async (input: {
+      userId: string;
+      role?: AssignableRole;
+      isEnabled?: boolean;
+    }) => {
+      if (!organizationId) throw new Error("No active organization selected");
+      await organizationMembersService.updateMember(
+        organizationId,
+        input.userId,
+        { role: input.role, isEnabled: input.isEnabled }
+      );
+      return input;
+    },
+    onSuccess: async (input) => {
+      await invalidateMembers();
+      toast.success(
+        input.role
+          ? "Member role updated"
+          : input.isEnabled
+            ? "Member enabled"
+            : "Member disabled"
+      );
+    },
+    onError: (error: unknown) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update member"
+      );
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      if (!organizationId) throw new Error("No active organization selected");
+      await organizationMembersService.removeMember(organizationId, userId);
+    },
+    onSuccess: async () => {
+      setRemoveTarget(null);
+      await invalidateMembers();
+      toast.success("Member removed");
+    },
+    onError: (error: unknown) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to remove member"
+      );
+    },
+  });
+
+  const resendInviteMutation = useMutation({
+    mutationFn: async (inviteId: string) => {
+      if (!organizationId) throw new Error("No active organization selected");
+      await organizationMembersService.resendInvite(organizationId, inviteId);
+    },
+    onSuccess: () => {
+      toast.success("Invite email resent");
+    },
+    onError: (error: unknown) => {
+      // A 429 here carries the friendly 5/min rate-limit message.
+      toast.error(
+        error instanceof Error ? error.message : "Failed to resend invite"
+      );
+    },
+  });
+
   // Auto-configure DNS is disabled for now (button commented out in the DNS
   // dialog below). POST /domain/{id}/dns/auto supports Cloudflare, GoDaddy,
   // Namecheap, and Porkbun but requires a `{ provider, credentials }` body —
@@ -1112,7 +1076,6 @@ export default function CompanySettingsView() {
   const branding = brandingQuery.data ?? defaultBrandingState;
   const domains = useMemo(() => domainQuery.data ?? [], [domainQuery.data]);
   const domainDnsRecords = domainDnsQuery.data?.records ?? [];
-  const domainDnsStatus = domainDnsQuery.data?.status;
   const senders = useMemo(() => senderQuery.data ?? [], [senderQuery.data]);
   const teamMembers = useMemo(() => {
     const rows = membersQuery.data ?? [];
@@ -1179,11 +1142,6 @@ export default function CompanySettingsView() {
     }),
     [domains]
   );
-  const failingDomainChecks = useMemo(
-    () =>
-      (domainDnsStatus?.checks ?? []).filter((check) => check.passed === false),
-    [domainDnsStatus]
-  );
   const teamSummary = useMemo(() => {
     const activeMembers = teamMembers.filter(
       (member) => member.kind === "member"
@@ -1223,6 +1181,10 @@ export default function CompanySettingsView() {
   }, [session?.user?.email, teamMembers]);
   const canManageSenderIdentities =
     currentMemberPermissions?.canManageSenderIdentities !== false;
+  // Backend enforces Owner/Admin-only management (and last-owner protection);
+  // this only hides controls that would be rejected anyway.
+  const canManageMembers = currentMemberPermissions?.canManageMembers !== false;
+  const sessionEmail = pickString(session?.user?.email)?.toLowerCase();
 
   return (
     <>
@@ -1624,9 +1586,6 @@ export default function CompanySettingsView() {
                 <div className="mt-2 text-2xl font-semibold text-foreground">
                   {teamSummary.sendCapableMembers}
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Members with `canSendEmail`
-                </div>
               </div>
               <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
                 <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -1675,83 +1634,180 @@ export default function CompanySettingsView() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teamMembers.map((member) => (
-                    <TableRow key={member.email}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 ring-1 ring-border/70">
-                            <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
-                              {member.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <div className="font-medium text-foreground">
-                              {member.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {member.email}
+                  {teamMembers.map((member) => {
+                    const isSelf =
+                      Boolean(sessionEmail) &&
+                      member.email.toLowerCase() === sessionEmail;
+                    // Owners can't be downgraded/removed (backend-enforced);
+                    // keep self-management off the table too.
+                    const manageable =
+                      member.kind === "member" &&
+                      canManageMembers &&
+                      member.role !== "OWNER" &&
+                      !isSelf;
+                    return (
+                      <TableRow key={member.email}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 ring-1 ring-border/70">
+                              <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
+                                {member.avatar}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="font-medium text-foreground">
+                                {member.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {member.email}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={
-                            member.twoFactorEnabled
-                              ? "inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400"
-                              : "inline-flex items-center gap-1 text-muted-foreground"
-                          }
-                        >
-                          {member.twoFactorEnabled ? (
-                            <CheckIcon
-                              aria-hidden="true"
-                              className="h-3.5 w-3.5"
-                            />
-                          ) : member.twoFactorEnabled === null ? (
-                            <span className="h-2 w-2 rounded-full bg-amber-500" />
-                          ) : (
-                            <span className="h-2 w-2 rounded-full bg-current" />
-                          )}
-                          {member.twoFactorEnabled === null
-                            ? "Pending"
-                            : member.twoFactorEnabled
-                              ? "Enabled"
-                              : "Disabled"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="rounded-full">
-                          {member.roleLabel}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {member.kind === "invite" ? (
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            <div>Pending invite</div>
-                            {member.permissions?.canSendEmail ? (
-                              <div>Can send after acceptance</div>
-                            ) : null}
-                          </div>
-                        ) : member.isEnabled ? (
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            <div>Active member</div>
-                            {member.permissions?.canSendEmail ? (
-                              <div>Can send for the organization</div>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={
+                              member.twoFactorEnabled
+                                ? "inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400"
+                                : "inline-flex items-center gap-1 text-muted-foreground"
+                            }
+                          >
+                            {member.twoFactorEnabled ? (
+                              <CheckIcon
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5"
+                              />
+                            ) : member.twoFactorEnabled === null ? (
+                              <span className="h-2 w-2 rounded-full bg-amber-500" />
                             ) : (
-                              <div>Cannot send email with this role</div>
+                              <span className="h-2 w-2 rounded-full bg-current" />
                             )}
-                            {member.permissions?.canLaunchCampaigns ? (
-                              <div>Can launch campaigns</div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            Disabled
+                            {member.twoFactorEnabled === null
+                              ? "Pending"
+                              : member.twoFactorEnabled
+                                ? "Enabled"
+                                : "Disabled"}
                           </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          {manageable ? (
+                            <Select
+                              value={
+                                member.role === "ADMIN" ||
+                                member.role === "EDITOR" ||
+                                member.role === "VIEWER"
+                                  ? member.role
+                                  : "VIEWER"
+                              }
+                              disabled={updateMemberMutation.isPending}
+                              onValueChange={(value) =>
+                                updateMemberMutation.mutate({
+                                  userId: member.id,
+                                  role: value as AssignableRole,
+                                })
+                              }
+                            >
+                              <SelectTrigger
+                                className="h-8 w-28 rounded-full text-xs"
+                                aria-label={`Role for ${member.email}`}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ADMIN">Admin</SelectItem>
+                                <SelectItem value="EDITOR">Editor</SelectItem>
+                                <SelectItem value="VIEWER">Viewer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant="outline" className="rounded-full">
+                              {member.roleLabel}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {member.kind === "invite" ? (
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className="space-y-1 text-xs text-muted-foreground">
+                                <div>Pending invite</div>
+                                {member.permissions?.canSendEmail ? (
+                                  <div>Can send after acceptance</div>
+                                ) : null}
+                              </div>
+                              {canManageMembers ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 rounded-full text-xs"
+                                  disabled={resendInviteMutation.isPending}
+                                  onClick={() =>
+                                    resendInviteMutation.mutate(member.id)
+                                  }
+                                >
+                                  {resendInviteMutation.isPending ? (
+                                    <ArrowPathIcon
+                                      aria-hidden="true"
+                                      className="mr-1 h-3.5 w-3.5 animate-spin"
+                                    />
+                                  ) : null}
+                                  Resend
+                                </Button>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-3">
+                              <div className="space-y-1 text-xs text-muted-foreground">
+                                {member.isEnabled ? (
+                                  <>
+                                    <div>Active member</div>
+                                    {member.permissions?.canSendEmail ? (
+                                      <div>Can send for the organization</div>
+                                    ) : (
+                                      <div>
+                                        Cannot send email with this role
+                                      </div>
+                                    )}
+                                    {member.permissions?.canLaunchCampaigns ? (
+                                      <div>Can launch campaigns</div>
+                                    ) : null}
+                                  </>
+                                ) : (
+                                  <div>Disabled</div>
+                                )}
+                              </div>
+                              {manageable ? (
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={member.isEnabled}
+                                    disabled={updateMemberMutation.isPending}
+                                    aria-label={
+                                      member.isEnabled
+                                        ? `Disable ${member.email}`
+                                        : `Enable ${member.email}`
+                                    }
+                                    onCheckedChange={(checked) =>
+                                      updateMemberMutation.mutate({
+                                        userId: member.id,
+                                        isEnabled: checked,
+                                      })
+                                    }
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 rounded-full text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+                                    onClick={() => setRemoveTarget(member)}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
@@ -1786,6 +1842,51 @@ export default function CompanySettingsView() {
           });
         }}
       />
+      <Dialog
+        open={removeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-medium">
+              Remove team member
+            </DialogTitle>
+            <DialogDescription>
+              {removeTarget
+                ? `${removeTarget.name} (${removeTarget.email}) will lose access to this organization. This does not delete their account.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRemoveTarget(null)}
+              disabled={removeMemberMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={removeMemberMutation.isPending || !removeTarget}
+              onClick={() => {
+                if (removeTarget) {
+                  removeMemberMutation.mutate(removeTarget.id);
+                }
+              }}
+            >
+              {removeMemberMutation.isPending ? (
+                <ArrowPathIcon
+                  aria-hidden="true"
+                  className="mr-2 h-4 w-4 animate-spin"
+                />
+              ) : null}
+              Remove member
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={addSenderOpen} onOpenChange={setAddSenderOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -1915,52 +2016,6 @@ export default function CompanySettingsView() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-medium text-foreground">
-                        Backend verification state
-                      </div>
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        These are the checks the backend still considers true or
-                        false in the database.
-                      </div>
-                    </div>
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getSenderStatusTone(
-                        domainDnsStatus?.status ?? "pending"
-                      )}`}
-                    >
-                      {(domainDnsStatus?.status ?? "pending")
-                        .charAt(0)
-                        .toUpperCase() +
-                        (domainDnsStatus?.status ?? "pending").slice(1)}
-                    </span>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                    {(domainDnsStatus?.checks ?? []).map((check) => (
-                      <div key={check.key}>
-                        {check.passed === null ? (
-                          <span className="inline-flex items-center gap-1 text-muted-foreground">
-                            <span className="h-2 w-2 rounded-full bg-current" />
-                            {check.label} unknown
-                          </span>
-                        ) : (
-                          statusCell(check.passed)
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {failingDomainChecks.length > 0 ? (
-                    <div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/5 px-3 py-2 text-sm text-rose-700 dark:text-rose-300">
-                      Still false in database:{" "}
-                      {failingDomainChecks
-                        .map((check) => check.label)
-                        .join(", ")}
-                    </div>
-                  ) : null}
-                </div>
-
                 {domainDnsRecords.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-border/70 bg-background/50 p-6 text-sm text-muted-foreground">
                     DNS records are not available yet for this domain.
@@ -1968,49 +2023,6 @@ export default function CompanySettingsView() {
                 ) : (
                   <div className="space-y-3">
                     {domainDnsRecords.map((record) => {
-                      const linkedCheck = inferDnsCheckKey(record);
-                      const hasExplicitRecordVerification =
-                        typeof record.verified === "boolean";
-                      const databaseCheck =
-                        linkedCheck === null
-                          ? null
-                          : ((domainDnsStatus?.checks ?? []).find(
-                              (check) => check.key === linkedCheck
-                            ) ?? null);
-                      const recordStatus =
-                        record.verified === true
-                          ? {
-                              label: "Verified",
-                              tone: getSenderStatusTone("verified"),
-                              helper:
-                                "Pass reported directly by the backend for this record.",
-                            }
-                          : record.verified === false
-                            ? {
-                                label: "Failed",
-                                tone: getSenderStatusTone("failed"),
-                                helper:
-                                  "Fail reported directly by the backend for this record.",
-                              }
-                            : databaseCheck?.passed === false
-                              ? {
-                                  label: "Inferred fail",
-                                  tone: getSenderStatusTone("failed"),
-                                  helper: `${databaseCheck.label} is still false in backend domain status, but this DNS record itself did not include a direct verification result.`,
-                                }
-                              : databaseCheck?.passed === true
-                                ? {
-                                    label: "Inferred pass",
-                                    tone: getSenderStatusTone("verified"),
-                                    helper: `${databaseCheck.label} is passing in backend domain status, but this DNS record itself did not include a direct verification result.`,
-                                  }
-                                : {
-                                    label: "No backend result",
-                                    tone: "bg-muted text-muted-foreground",
-                                    helper:
-                                      "This record does not include a pass/fail result from the backend yet.",
-                                  };
-
                       return (
                         <div
                           key={record.id}
@@ -2020,28 +2032,50 @@ export default function CompanySettingsView() {
                             <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
                               {record.type}
                             </div>
-                            <span
-                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${recordStatus.tone}`}
-                            >
-                              {recordStatus.label}
-                            </span>
+                            {/* Pass/Fail only when the backend reported it
+                                for this record — never inferred. */}
+                            {record.verified === true ? (
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getSenderStatusTone("verified")}`}
+                              >
+                                Pass
+                              </span>
+                            ) : record.verified === false ? (
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getSenderStatusTone("failed")}`}
+                              >
+                                Fail
+                              </span>
+                            ) : null}
                           </div>
                           <div className="mt-3 space-y-2">
                             <div>
                               <div className="text-xs text-muted-foreground">
                                 Host
                               </div>
-                              <code className="mt-1 block break-all rounded-lg bg-muted px-2 py-1 text-xs text-foreground">
-                                {record.host}
-                              </code>
+                              <div className="mt-1 flex items-start gap-1.5">
+                                <code className="block min-w-0 flex-1 break-all rounded-lg bg-muted px-2 py-1 text-xs text-foreground">
+                                  {record.host}
+                                </code>
+                                <CopyButton
+                                  value={record.host}
+                                  label="Copy host"
+                                />
+                              </div>
                             </div>
                             <div>
                               <div className="text-xs text-muted-foreground">
                                 Value
                               </div>
-                              <code className="mt-1 block break-all rounded-lg bg-muted px-2 py-1 text-xs text-foreground">
-                                {record.value}
-                              </code>
+                              <div className="mt-1 flex items-start gap-1.5">
+                                <code className="block min-w-0 flex-1 break-all rounded-lg bg-muted px-2 py-1 text-xs text-foreground">
+                                  {record.value}
+                                </code>
+                                <CopyButton
+                                  value={record.value}
+                                  label="Copy value"
+                                />
+                              </div>
                             </div>
                             {record.ttl || record.priority ? (
                               <div className="text-xs text-muted-foreground">
@@ -2055,17 +2089,6 @@ export default function CompanySettingsView() {
                                   .join(" • ")}
                               </div>
                             ) : null}
-                            <div className="text-xs text-muted-foreground">
-                              Source:{" "}
-                              {hasExplicitRecordVerification
-                                ? "backend record result"
-                                : databaseCheck
-                                  ? "inferred from backend domain status"
-                                  : "not provided by backend"}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {recordStatus.helper}
-                            </div>
                           </div>
                         </div>
                       );

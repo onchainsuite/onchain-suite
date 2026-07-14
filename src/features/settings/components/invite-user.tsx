@@ -4,9 +4,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
-import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
+import { getSelectedOrganizationId } from "@/lib/utils";
 
 import { fadeInUp } from "../utils";
+import {
+  type AssignableRole,
+  organizationMembersService,
+} from "@/features/settings/organization-members.service";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
@@ -35,11 +39,12 @@ interface InviteUserProps {
 const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
   const { data: session } = authClient.useSession();
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("editor");
+  const [inviteRole, setInviteRole] = useState<AssignableRole>("EDITOR");
   const [saving, setSaving] = useState(false);
 
   const handleSendInvite = async () => {
-    if (!inviteEmail) return;
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) return;
     const orgId =
       getSelectedOrganizationId() ?? session?.session?.activeOrganizationId;
     if (!orgId) {
@@ -49,26 +54,12 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
 
     setSaving(true);
     try {
-      const response = await fetch(`/api/v1/organizations/${orgId}/invites`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-org-id": orgId,
-        },
-        body: JSON.stringify({
-          email: inviteEmail,
-          role: inviteRole.toUpperCase(),
-        }),
+      // Rate-limited at 5 invites/minute — a 429 surfaces the service's
+      // friendly wait-a-moment message below.
+      await organizationMembersService.createInvite(orgId, {
+        email,
+        role: inviteRole,
       });
-
-      if (!response.ok) {
-        const data: unknown = await response.json().catch(() => undefined);
-        const message =
-          isJsonObject(data) && typeof data.message === "string"
-            ? data.message
-            : "Failed to send invitation";
-        throw new Error(message);
-      }
 
       toast.success("Invitation sent successfully");
       onOpenChange(false);
@@ -114,14 +105,17 @@ const InviteUser = ({ open, onOpenChange, onSuccess }: InviteUserProps) => {
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">Role</Label>
-            <Select value={inviteRole} onValueChange={setInviteRole}>
+            <Select
+              value={inviteRole}
+              onValueChange={(value) => setInviteRole(value as AssignableRole)}
+            >
               <SelectTrigger className="h-12 border-border/80">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="editor">Editor</SelectItem>
-                <SelectItem value="viewer">Viewer</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="EDITOR">Editor</SelectItem>
+                <SelectItem value="VIEWER">Viewer</SelectItem>
               </SelectContent>
             </Select>
           </div>

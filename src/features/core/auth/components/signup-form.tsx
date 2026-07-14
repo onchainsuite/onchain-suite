@@ -4,6 +4,7 @@ import { EnvelopeIcon, UserIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,12 +37,17 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
 
   const { setValue } = useLocalStorage<SignUpFormData | null>("user", null);
 
+  const searchParams = useSearchParams();
+  // Prefill email when arriving from the sign-in "no account" flow
+  // (/auth/signup?email=...).
+  const prefilledEmail = searchParams?.get("email")?.trim() ?? "";
+
   const form = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
-      email: "",
+      email: prefilledEmail,
       password: "",
       confirmPassword: "",
       acceptTerms: false,

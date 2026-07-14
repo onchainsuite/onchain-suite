@@ -7,9 +7,10 @@ import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
 
 import type { Campaign } from "../../../campaigns/types";
-import { formatDate, formatPercentage } from "../../../campaigns/utils";
+import { formatDate } from "../../../campaigns/utils";
 import { CampaignActionsCell } from "./campaign-actions-cell";
 import { CampaignNameCell } from "./campaign-name-cell";
+import { CampaignRateCell } from "./campaign-rate-cell";
 import { CampaignStatusCell } from "./campaign-status-cell";
 import { CampaignTypeCell } from "./campaign-type-cell";
 
@@ -85,10 +86,10 @@ export const columns: ColumnDef<Campaign>[] = [
       );
     },
     cell: ({ row }) => {
-      const recipients = row.getValue("recipients") as number;
+      const recipients = row.getValue("recipients") as number | undefined;
       return (
         <div className="text-sm text-foreground">
-          {recipients.toLocaleString()}
+          {typeof recipients === "number" ? recipients.toLocaleString() : "—"}
         </div>
       );
     },
@@ -107,13 +108,9 @@ export const columns: ColumnDef<Campaign>[] = [
         </Button>
       );
     },
-    cell: ({ row }) => {
-      return (
-        <div className="text-sm text-foreground">
-          {formatPercentage(row.original.openRate)}
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <CampaignRateCell campaign={row.original} metric="openRate" />
+    ),
   },
   {
     accessorKey: "clickRate",
@@ -129,13 +126,9 @@ export const columns: ColumnDef<Campaign>[] = [
         </Button>
       );
     },
-    cell: ({ row }) => {
-      return (
-        <div className="text-sm text-foreground">
-          {formatPercentage(row.original.clickRate)}
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <CampaignRateCell campaign={row.original} metric="clickRate" />
+    ),
   },
   {
     accessorKey: "createdAt",

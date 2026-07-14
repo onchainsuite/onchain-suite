@@ -3,12 +3,15 @@
 import {
   ClipboardDocumentIcon,
   EnvelopeIcon,
+  InformationCircleIcon,
   PlusIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "framer-motion";
 import { memo, useMemo, useRef } from "react";
+
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip";
 
 import { isJsonObject } from "@/lib/utils";
 
@@ -112,11 +115,30 @@ function SqlResultsTableImpl({
             {totalRows.toLocaleString()} results
           </span>
           {winbackPotential ? (
-            <span className="text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
               Win-back potential:{" "}
               <span className="font-medium text-primary">
                 {winbackPotential}
               </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="What is win-back potential?"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <InformationCircleIcon
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  Estimated value of re-engaging the dormant contacts in this
+                  result — how much activity could be recovered with a win-back
+                  campaign.
+                </TooltipContent>
+              </Tooltip>
             </span>
           ) : null}
         </div>

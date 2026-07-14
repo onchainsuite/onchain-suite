@@ -25,8 +25,25 @@ interface OnboardingProgress {
   is_completed: boolean;
 }
 
+export type OnboardingResumeStatus =
+  | "not_started"
+  | "in_progress"
+  | "completed";
+
+/**
+ * Resumable-onboarding block from `GET /onboarding/progress`
+ * (docs/backend.md 2026-07-14 follow-up 4): route `in_progress` users back to
+ * `resume.step` on login.
+ */
+export interface OnboardingResume {
+  status: OnboardingResumeStatus;
+  step: string | number | null;
+  lastSeenAt: string | null;
+}
+
 interface UseOnboardingTracking {
   progress: OnboardingProgress | null;
+  resume: OnboardingResume | null;
   isLoading: boolean;
   trackStep: (payload: {
     stepName: OnboardingStep;
@@ -91,10 +108,43 @@ const COMPLETION_PERCENTAGES: Record<OnboardingStep, number> = {
   plan_selection: 100,
 };
 
+const normalizeResume = (value: unknown): OnboardingResume | null => {
+  if (!isJsonObject(value)) return null;
+  const { status } = value;
+  if (
+    status !== "not_started" &&
+    status !== "in_progress" &&
+    status !== "completed"
+  ) {
+    return null;
+  }
+  return {
+    status,
+    step:
+      typeof value.step === "string" || typeof value.step === "number"
+        ? value.step
+        : null,
+    lastSeenAt: typeof value.lastSeenAt === "string" ? value.lastSeenAt : null,
+  };
+};
+
+/**
+ * Map the backend's `resume.step` (step name or numeric index) onto the
+ * routed onboarding flow's two screens: 1 = organization setup,
+ * 2 = plan selection. Unknown values fall back to step 1 — restarting a
+ * screen early is safe, skipping one is not.
+ */
+export function resolveResumeFlowStep(step: OnboardingResume["step"]): 1 | 2 {
+  const stepName =
+    typeof step === "number" ? STEP_MAPPING[step] : (step ?? undefined);
+  return stepName === "plan_selection" ? 2 : 1;
+}
+
 export function useOnboardingTracking(): UseOnboardingTracking {
   const { data: session } = useSession();
   const user = session?.user;
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);
+  const [resume, setResume] = useState<OnboardingResume | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load existing progress on mount
@@ -121,6 +171,14 @@ export function useOnboardingTracking(): UseOnboardingTracking {
           dataObj ??
           data;
         const p = isJsonObject(pCandidate) ? pCandidate : undefined;
+
+        // The `resume` block rides alongside the progress payload (it may be
+        // at the envelope level or nested with the progress object).
+        setResume(
+          normalizeResume(dataObj?.resume) ??
+            normalizeResume(nestedData?.resume) ??
+            normalizeResume(isJsonObject(p) ? p.resume : undefined)
+        );
 
         if (
           p &&
@@ -269,6 +327,7 @@ export function useOnboardingTracking(): UseOnboardingTracking {
 
   return {
     progress,
+    resume,
     isLoading,
     trackStep,
     completeOnboarding,

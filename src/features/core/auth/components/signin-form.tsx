@@ -22,7 +22,27 @@ import {
   PasswordField,
 } from "./shared";
 import { type SignInFormData, signInSchema } from "@/auth/validation";
-import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
+
+/**
+ * Detects "account does not exist" sign-in failures.
+ *
+ * Note: better-auth deliberately returns the same generic
+ * `INVALID_EMAIL_OR_PASSWORD` (401) for both unknown-email and
+ * wrong-password (anti-enumeration), so this only matches if the backend
+ * surfaces a distinct code/message. The generic case is handled by the
+ * inline "Don't have an account?" affordance after a failed attempt.
+ */
+const isUserNotFoundError = (error: {
+  code?: string;
+  message?: string;
+}): boolean => {
+  if (error.code === "USER_NOT_FOUND") return true;
+  const message = error.message ?? "";
+  return /user\s+not\s+found|no\s+account|not\s+registered|account\s+does\s+not\s+exist/i.test(
+    message
+  );
+};
 
 interface SignInFormProps {
   onSwitchToSignUp: () => void;
@@ -81,8 +101,13 @@ export function SignInForm({
   onSwitchToForgotPassword,
 }: SignInFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [failedEmail, setFailedEmail] = useState<string | null>(null);
   const { push } = useRouter();
   const searchParams = useSearchParams();
+
+  const goToSignUpWithEmail = (email: string) => {
+    push(`${AUTH_ROUTES.REGISTER}?email=${encodeURIComponent(email)}`);
+  };
 
   const form = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -109,6 +134,7 @@ export function SignInForm({
 
   const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
+    setFailedEmail(null);
     try {
       const { error } = await authClient.signIn.email({
         email: data.email,
@@ -117,6 +143,15 @@ export function SignInForm({
       });
 
       if (error) {
+        if (isUserNotFoundError(error)) {
+          toast.info("No account found for this email — create one");
+          goToSignUpWithEmail(data.email);
+          return;
+        }
+        // Backend returns a generic invalid-credentials error for both
+        // unknown-email and wrong-password — surface a sign-up affordance
+        // instead of guessing which one it was.
+        setFailedEmail(data.email);
         toast.error(
           pickNonEmptyString(error.message) ?? "Invalid email or password"
         );
@@ -197,6 +232,19 @@ export function SignInForm({
             <LoadingButton isLoading={isLoading} disabled={isLoading}>
               Sign In
             </LoadingButton>
+
+            {failedEmail ? (
+              <div className="border-border bg-muted text-muted-foreground rounded-md border p-3 text-sm">
+                Don&apos;t have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => goToSignUpWithEmail(failedEmail)}
+                  className="text-primary font-medium hover:underline"
+                >
+                  Sign up with {failedEmail}
+                </button>
+              </div>
+            ) : null}
           </form>
         </Form>
       </motion.div>

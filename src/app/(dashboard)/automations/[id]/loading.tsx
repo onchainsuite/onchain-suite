@@ -1,34 +1,33 @@
-"use client";
-
 import { Skeleton } from "@/components/ui/skeleton";
 
+/**
+ * Mirrors CreateAutomation (the flow builder): one full-height rounded-[24px]
+ * card with an h-20 header bar (back button, title, actions) over the canvas
+ * area, matching the builder's h-[calc(100vh-…)] shell so there is no jump
+ * when ReactFlow mounts.
+ */
 export default function AutomationDetailLoading() {
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="space-y-3">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-10 w-full max-w-[520px]" />
-          <Skeleton className="h-4 w-full max-w-[420px]" />
+    <div className="flex h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-sm md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-8rem)]">
+      {/* Builder header bar */}
+      <div className="flex h-20 items-center justify-between border-b border-border px-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-xl" />
+          <div>
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="mt-2 h-3 w-32" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-24 rounded-lg" />
+          <Skeleton className="h-9 w-24 rounded-lg" />
+          <Skeleton className="h-9 w-32 rounded-lg" />
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <div
-            // eslint-disable-next-line react/no-array-index-key
-            key={`skeleton-${i}`}
-            className="rounded-2xl border border-border bg-card p-4"
-          >
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="mt-3 h-8 w-16" />
-            <Skeleton className="mt-2 h-4 w-28" />
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <Skeleton className="h-64 w-full" />
+      {/* Canvas area */}
+      <div className="flex-1 p-6">
+        <Skeleton className="h-full w-full rounded-2xl" />
       </div>
     </div>
   );

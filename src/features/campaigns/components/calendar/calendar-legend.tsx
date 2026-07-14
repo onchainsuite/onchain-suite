@@ -4,14 +4,18 @@ import { cn } from "@/lib/utils";
 
 import type { CampaignStatus } from "../../types/campaign";
 
+// One entry per real campaign status (Campaign["status"]), so the legend can
+// filter everything the calendar can actually show.
 const LEGEND_STATUSES: Array<{
   status: CampaignStatus;
   label: string;
   dotClass: string;
 }> = [
   { status: "sent", label: "Sent", dotClass: "bg-green-500" },
+  { status: "sending", label: "Sending", dotClass: "bg-sky-500" },
   { status: "scheduled", label: "Scheduled", dotClass: "bg-blue-500" },
   { status: "draft", label: "Draft", dotClass: "bg-yellow-500" },
+  { status: "paused", label: "Paused", dotClass: "bg-gray-400" },
   { status: "failed", label: "Failed", dotClass: "bg-red-500" },
 ];
 

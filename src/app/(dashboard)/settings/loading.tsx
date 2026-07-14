@@ -1,24 +1,29 @@
-"use client";
-
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function AccountLoading() {
+import { PageHeaderSkeleton } from "@/shared/components/page/page-skeleton";
+
+/**
+ * Mirrors SettingsPage: header → PageTabs pill bar (Profile / Account /
+ * Billing / Integrations / Rewards) → centered max-w-6xl stack of section
+ * cards.
+ */
+export default function SettingsLoading() {
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-72" />
+      <PageHeaderSkeleton />
+
+      {/* Tab pill bar */}
+      <div className="inline-flex items-center gap-1 rounded-xl border border-border bg-card p-1">
+        {Array.from({ length: 5 }, (_, i) => i).map((i) => (
+          <Skeleton key={`tab-${i}`} className="h-9 w-24 rounded-lg" />
+        ))}
       </div>
-      <div className="flex gap-3">
-        <Skeleton className="h-9 w-24" />
-        <Skeleton className="h-9 w-24" />
-        <Skeleton className="h-9 w-24" />
-        <Skeleton className="h-9 w-24" />
-      </div>
-      <div className="space-y-4">
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-40 w-full" />
+
+      {/* Section cards */}
+      <div className="mx-auto w-full max-w-6xl space-y-4">
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
     </div>
   );
