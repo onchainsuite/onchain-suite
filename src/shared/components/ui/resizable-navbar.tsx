@@ -241,7 +241,7 @@ export const MobileNavToggle = ({
 };
 
 export const NavbarLogo = () => {
-  const { lightIcon, darkIcon } = useGetLogo();
+  const { lightIcon, darkIcon, isCustom } = useGetLogo();
 
   return (
     <Link
@@ -254,6 +254,7 @@ export const NavbarLogo = () => {
         height={40}
         alt={"Onchain Logo"}
         className="dark:hidden"
+        unoptimized={isCustom}
       />
       <Image
         src={darkIcon}
@@ -261,6 +262,7 @@ export const NavbarLogo = () => {
         height={40}
         alt={"Onchain Logo"}
         className="hidden dark:block"
+        unoptimized={isCustom}
       />
     </Link>
   );

@@ -504,7 +504,7 @@ function PricingCta() {
       <div className="wrap">
         <Reveal>
           <div
-            className="relative overflow-hidden rounded-3xl px-8 py-14 text-center"
+            className="relative overflow-hidden rounded-3xl px-5 py-12 text-center sm:px-8 sm:py-14"
             style={{
               background: "linear-gradient(135deg, var(--acc), var(--acc-h))",
             }}

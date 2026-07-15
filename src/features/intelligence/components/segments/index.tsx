@@ -37,12 +37,16 @@ interface SegmentsTabProps {
 }
 
 const toUiSegment = (input: IntelligenceSegment): Segment => {
+  // `size` comes derived on the list response: a number for wallet-list
+  // segments, `null` for rule segments resolved lazily on use.
   const size =
-    typeof input.size === "number"
-      ? input.size
-      : typeof input.matchCount === "number"
-        ? input.matchCount
-        : undefined;
+    input.size === null
+      ? null
+      : typeof input.size === "number"
+        ? input.size
+        : typeof input.matchCount === "number"
+          ? input.matchCount
+          : undefined;
   const lastUpdated =
     typeof input.updatedAt === "string"
       ? input.updatedAt
@@ -52,11 +56,20 @@ const toUiSegment = (input: IntelligenceSegment): Segment => {
   return {
     id: input.id,
     name: input.name,
-    matchCount: size,
+    size,
+    sourceQueryId:
+      typeof input.sourceQueryId === "string" && input.sourceQueryId.length > 0
+        ? input.sourceQueryId
+        : undefined,
+    matchCount: typeof size === "number" ? size : undefined,
     lastUpdated,
     isEmailable: true,
   };
 };
+
+/** "N members" for wallet-list segments, "Resolved on use" for rule segments. */
+const formatSegmentSize = (size: number | null | undefined): string =>
+  size === null ? "Resolved on use" : `${(size ?? 0).toLocaleString()} members`;
 
 export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -109,26 +122,10 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
     },
   });
 
-  const segmentDetailQuery = useQuery({
-    queryKey: ["intelligence", "segments", selectedSegmentId],
-    queryFn: async () => {
-      if (!selectedSegmentId) return null;
-      return intelligenceService.getSegment(selectedSegmentId);
-    },
-    enabled: !!selectedSegmentId,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const segmentSize =
-    typeof segmentDetailQuery.data?.size === "number"
-      ? segmentDetailQuery.data.size
-      : (selectedSegment?.matchCount ?? 0);
-
   return (
-    <div className="flex gap-6">
-      <div className="flex-1 space-y-4">
-        <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 lg:flex-row">
+      <div className="min-w-0 flex-1 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:w-64">
             <MagnifyingGlassIcon
               className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -144,7 +141,7 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
           </div>
           <Link
             href="/intelligence/segments/create"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg"
+            className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg sm:self-auto"
           >
             <PlusIcon className="h-4 w-4" aria-hidden="true" />
             New segment
@@ -187,123 +184,215 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
               )}
             </div>
           ) : (
-            <table className="w-full hidden md:table">
-              <thead>
-                <tr className="border-b border-border bg-secondary/30 text-left text-xs font-medium text-muted-foreground">
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Profiles</th>
-                  <th className="px-4 py-3">Match Rate</th>
-                  <th className="px-4 py-3">Revenue</th>
-                  <th className="px-4 py-3">Last Updated</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* Mobile: stacked list (the table below is hidden under md). */}
+              <ul className="divide-y divide-border/50 md:hidden">
                 {(segmentsQuery.data ?? []).map((segment) => (
-                  <tr
-                    key={segment.id}
-                    className={`border-b border-border/50 transition-colors ${
-                      selectedSegmentId === segment.id
-                        ? "bg-primary/5"
-                        : "hover:bg-secondary/30"
-                    } cursor-pointer`}
-                    onClick={() => setSelectedSegmentId(segment.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        setSelectedSegmentId(segment.id);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <CpuChipIcon className="h-4 w-4" aria-hidden="true" />
-                        </div>
-                        <div>
-                          <Link
-                            href={`/intelligence/segments/detail/${segment.id}`}
-                            className="text-sm font-medium hover:underline"
+                  <li key={segment.id} className="flex items-start gap-3 p-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <CpuChipIcon className="h-4 w-4" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/intelligence/segments/detail/${segment.id}`}
+                        className="block truncate text-sm font-medium hover:underline"
+                      >
+                        {segment.name}
+                      </Link>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {formatSegmentSize(segment.size)}
+                        {segment.lastUpdated ? ` · ${segment.lastUpdated}` : ""}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                          Segment
+                        </span>
+                        <span className="inline-flex items-center rounded bg-secondary px-1.5 py-0.5 text-xs font-medium text-secondary-foreground">
+                          Emailable
+                        </span>
+                        {segment.sourceQueryId && (
+                          <span
+                            className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
+                            title={`Created from query ${segment.sourceQueryId}`}
                           >
-                            {segment.name}
-                          </Link>
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                              Segment
-                            </span>
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground">
-                              Emailable
-                            </span>
+                            From query
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          disabled={deleteMutation.isPending}
+                          aria-label={`Delete segment ${segment.name}`}
+                          className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <TrashIcon className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete segment</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Delete segment &quot;{segment.name}&quot;? This
+                            cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteMutation.mutate(segment.id)}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </li>
+                ))}
+              </ul>
+              <table className="w-full hidden md:table">
+                <thead>
+                  <tr className="border-b border-border bg-secondary/30 text-left text-xs font-medium text-muted-foreground">
+                    <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3">Profiles</th>
+                    <th className="px-4 py-3">Match Rate</th>
+                    <th className="px-4 py-3">Revenue</th>
+                    <th className="px-4 py-3">Last Updated</th>
+                    <th className="px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(segmentsQuery.data ?? []).map((segment) => (
+                    <tr
+                      key={segment.id}
+                      className={`border-b border-border/50 transition-colors ${
+                        selectedSegmentId === segment.id
+                          ? "bg-primary/5"
+                          : "hover:bg-secondary/30"
+                      } cursor-pointer`}
+                      onClick={() => setSelectedSegmentId(segment.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setSelectedSegmentId(segment.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <CpuChipIcon
+                              className="h-4 w-4"
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <div>
+                            <Link
+                              href={`/intelligence/segments/detail/${segment.id}`}
+                              className="text-sm font-medium hover:underline"
+                            >
+                              {segment.name}
+                            </Link>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+                                Segment
+                              </span>
+                              <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground">
+                                Emailable
+                              </span>
+                              {segment.sourceQueryId && (
+                                <span
+                                  className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground"
+                                  title={`Created from query ${segment.sourceQueryId}`}
+                                >
+                                  From query
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-medium text-foreground">
-                        {(segment.matchCount ?? 0).toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-20 rounded-full bg-secondary">
-                          <div className="h-full rounded-full bg-primary" />
-                        </div>
-                        <span className="text-sm font-medium text-primary">
-                          —
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={
+                            segment.size === null
+                              ? "text-sm text-muted-foreground"
+                              : "text-sm font-medium text-foreground"
+                          }
+                        >
+                          {formatSegmentSize(segment.size)}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-medium text-primary">
-                        {segment.revenue ?? "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs text-muted-foreground">
-                        {segment.lastUpdated ?? "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            onClick={(e) => e.stopPropagation()}
-                            disabled={deleteMutation.isPending}
-                            className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <TrashIcon className="h-4 w-4" aria-hidden="true" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete segment</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Delete segment &quot;{segment.name}&quot;? This
-                              cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteMutation.mutate(segment.id)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-20 rounded-full bg-secondary">
+                            <div className="h-full rounded-full bg-primary" />
+                          </div>
+                          <span className="text-sm font-medium text-primary">
+                            —
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-medium text-primary">
+                          {segment.revenue ?? "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-muted-foreground">
+                          {segment.lastUpdated ?? "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={deleteMutation.isPending}
+                              className="rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                             >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                              <TrashIcon
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete segment
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Delete segment &quot;{segment.name}&quot;? This
+                                cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() =>
+                                  deleteMutation.mutate(segment.id)
+                                }
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
         </div>
       </div>
 
       {selectedSegment && (
-        <div className="w-[360px] shrink-0 space-y-4 hidden lg:block">
+        <div className="w-full space-y-4 lg:w-[360px] lg:shrink-0">
           <div className="rounded-xl border border-border bg-card p-5">
             <h3 className="text-lg font-semibold text-foreground">
               {selectedSegment.name}
@@ -311,8 +400,16 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">Profiles</p>
-                <p className="text-xl font-semibold">
-                  {segmentSize.toLocaleString()}
+                <p
+                  className={
+                    selectedSegment.size === null
+                      ? "text-sm font-medium text-muted-foreground"
+                      : "text-xl font-semibold"
+                  }
+                >
+                  {selectedSegment.size === null
+                    ? "Resolved on use"
+                    : (selectedSegment.size ?? 0).toLocaleString()}
                 </p>
               </div>
               <div>

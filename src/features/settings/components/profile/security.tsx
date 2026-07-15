@@ -15,6 +15,7 @@ import { authClient } from "@/lib/auth-client";
 
 import { fadeInUp, staggerContainer } from "../../utils";
 import TwoFactorAuthModal from "../two-factor-auth-modal";
+import PasskeysSection from "./passkeys-section";
 import { useUserProfile } from "./use-user-profile";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import { Badge } from "@/shared/components/ui/badge";
@@ -247,6 +248,8 @@ const Security = () => {
                 </div>
               </div>
             </div>
+
+            <PasskeysSection />
           </motion.div>
         )}
       </SettingsSectionCard>

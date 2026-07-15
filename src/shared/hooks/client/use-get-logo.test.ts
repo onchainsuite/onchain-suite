@@ -1,9 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { readBrandingData } from "./use-get-logo";
 
 describe("readBrandingData", () => {
-  it("prefers logoPreview URLs from the branding response", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_BACKEND_URL", "http://backend.test/api/v1");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("prefers logoPreview URLs and resolves backend-relative paths", () => {
     expect(
       readBrandingData({
         success: true,
@@ -18,9 +26,9 @@ describe("readBrandingData", () => {
         },
       })
     ).toEqual({
-      primary: "/logos/primary.png",
-      dark: "/logos/dark.png",
-      favicon: "/logos/favicon.png",
+      primary: "http://backend.test/logos/primary.png",
+      dark: "http://backend.test/logos/dark.png",
+      favicon: "http://backend.test/logos/favicon.png",
     });
   });
 
@@ -35,9 +43,26 @@ describe("readBrandingData", () => {
         },
       })
     ).toEqual({
-      primary: "/legacy-primary.png",
-      dark: "/legacy-dark.png",
-      favicon: "/legacy-favicon.png",
+      primary: "http://backend.test/legacy-primary.png",
+      dark: "http://backend.test/legacy-dark.png",
+      favicon: "http://backend.test/legacy-favicon.png",
+    });
+  });
+
+  it("passes absolute URLs through untouched", () => {
+    expect(
+      readBrandingData({
+        success: true,
+        data: {
+          logoPreview: {
+            primaryUrl: "https://cdn.example.com/logos/primary.png",
+          },
+        },
+      })
+    ).toEqual({
+      primary: "https://cdn.example.com/logos/primary.png",
+      dark: undefined,
+      favicon: undefined,
     });
   });
 });

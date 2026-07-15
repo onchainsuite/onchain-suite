@@ -16,6 +16,7 @@ import {
   StopIcon,
 } from "@heroicons/react/24/outline";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -32,6 +33,7 @@ import {
   type IntelligenceGoldrushMcpStep,
   type IntelligenceGoldrushMcpStreamEvent,
   type IntelligenceGoldrushMcpStructuredResult,
+  type IntelligenceGoldrushMcpStructuredResultKind,
   intelligenceService,
 } from "../../intelligence.service";
 import { McpTypingIndicator } from "./mcp-typing-indicator";
@@ -629,31 +631,38 @@ const buildMatrixFrame = (rows = 10, columns = 30) =>
   );
 
 const getFallbackReasoningActivity = (
-  recovering: boolean
-): StreamActivityEntry[] => [
-  {
-    id: "session",
-    label: "Session handshake",
-    detail:
-      "Opening the MCP session, loading the best route, and checking which onchain tool family fits the ask.",
-    tone: "default",
-  },
-  {
-    id: "coverage",
-    label: "Coverage scan",
-    detail:
-      "Testing protocol, chain, and wallet context before the live tool run starts.",
-    tone: "default",
-  },
-  {
-    id: "result-path",
-    label: recovering ? "Recovery path" : "Authoritative result path",
-    detail: recovering
-      ? "The live stream recovered, and the durable query endpoint is now finishing the answer."
-      : "The durable query endpoint is preparing the final structured result.",
-    tone: recovering ? "warning" : "success",
-  },
-];
+  recovering: boolean,
+  prompt?: string
+): StreamActivityEntry[] => {
+  const trimmed = (prompt ?? "").replace(/\s+/g, " ").trim();
+  const questionRef =
+    trimmed.length > 0
+      ? `“${trimmed.length > 72 ? `${trimmed.slice(0, 72)}…` : trimmed}”`
+      : "your question";
+  return [
+    {
+      id: "session",
+      label: "Reading your question",
+      detail: `Working out what ${questionRef} needs from live onchain data.`,
+      tone: "default",
+    },
+    {
+      id: "coverage",
+      label: "Fetching onchain data",
+      detail:
+        "Pulling the wallets, tokens, and activity your answer depends on across the covered chains.",
+      tone: "default",
+    },
+    {
+      id: "result-path",
+      label: recovering ? "Almost there" : "Writing your answer",
+      detail: recovering
+        ? "The connection recovered — finishing your answer now."
+        : "Turning the data into a clear answer.",
+      tone: recovering ? "warning" : "success",
+    },
+  ];
+};
 
 const isStructuredResult = (
   value: unknown
@@ -661,6 +670,64 @@ const isStructuredResult = (
   isJsonObject(value) &&
   typeof value.kind === "string" &&
   Array.isArray(value.rows);
+
+/**
+ * Backend answers occasionally dump the raw tool envelope
+ * ("Rendered multichain_transactions result: { ... }") instead of prose —
+ * never show those to users.
+ */
+const isRawToolDump = (text: string) => {
+  const trimmed = text.trim();
+  return (
+    /^rendered\s+\S+\s+result\s*:/i.test(trimmed) || trimmed.startsWith("{")
+  );
+};
+
+/**
+ * API envelope/pagination fields that sometimes leak through as "rows"
+ * (e.g. a single row of { updated_at, cursor_after, quote_currency, items }
+ * when a lookup returns no items). Rows with only these columns carry no
+ * information a user can read.
+ */
+const ENVELOPE_COLUMNS = new Set([
+  "updated_at",
+  "cursor_after",
+  "cursor_before",
+  "quote_currency",
+  "items",
+  "links",
+  "pagination",
+  "next_update_at",
+]);
+
+const meaningfulStructuredRows = (
+  rows: StructuredResultRow[]
+): StructuredResultRow[] => {
+  const informativeColumns = columnsFromRows(rows).filter(
+    (column) => !ENVELOPE_COLUMNS.has(column.toLowerCase())
+  );
+  return informativeColumns.length === 0 ? [] : rows;
+};
+
+/** Plain-language "nothing found" line, phrased for the result kind. */
+const emptyResultMessage = (
+  kind: IntelligenceGoldrushMcpStructuredResultKind
+) => {
+  const normalized = String(kind).toLowerCase();
+  if (normalized.includes("transaction") || normalized.includes("transfer")) {
+    return "No transactions were found for this wallet on the covered chains.";
+  }
+  if (normalized.includes("holder")) {
+    return "No holders were found for this token.";
+  }
+  if (normalized.includes("balance") || normalized.includes("portfolio")) {
+    return "No balances were found for this wallet on the covered chains.";
+  }
+  if (normalized.includes("nft")) {
+    return "No NFTs were found for this wallet.";
+  }
+  return "Nothing was found for this lookup — there's no matching onchain activity.";
+};
 
 const normalizeStructuredRows = (
   rows: IntelligenceGoldrushMcpStructuredResult["rows"]
@@ -764,21 +831,32 @@ interface QueryTabProps {
   activeSurface: "chat" | "sql";
   openEmailComposer: (recipient: unknown) => void;
   setActiveTab: (tab: string) => void;
+  // Seed the editor with a previously saved run (Reports tab "Open" action).
+  // Mirrors the history-panel click-through: with a queryId the status poll +
+  // results fetch re-open the saved run's data; with a chat prompt the MCP
+  // composer is pre-filled for a resend. Read once on mount.
+  initialQueryId?: string | null;
+  initialSql?: string;
+  initialChatPrompt?: string;
 }
 
 export function QueryTab({
   activeSurface,
   openEmailComposer,
   setActiveTab,
+  initialQueryId,
+  initialSql,
+  initialChatPrompt,
 }: QueryTabProps) {
   const queryClient = useQueryClient();
-  const [sqlQuery, setSqlQuery] = useState(DEFAULT_SQL_QUERY);
+  const router = useRouter();
+  const [sqlQuery, setSqlQuery] = useState(initialSql ?? DEFAULT_SQL_QUERY);
   // Transient "Copied" feedback on the SQL copy button (repo idiom: small
   // state + timeout, cleared on unmount so it never fires after teardown).
   const [sqlCopied, setSqlCopied] = useState(false);
   const sqlCopiedTimeoutRef = useRef<number | null>(null);
-  const [queryId, setQueryId] = useState<string | null>(null);
-  const [hasRunQuery, setHasRunQuery] = useState(false);
+  const [queryId, setQueryId] = useState<string | null>(initialQueryId ?? null);
+  const [hasRunQuery, setHasRunQuery] = useState(Boolean(initialQueryId));
   // Bounded status polling: once the poll exceeds SQL_STATUS_POLL_TIMEOUT_MS
   // we stop and show an explicit timeout error (with a retry) in the results
   // area — a run must never end with nothing visible.
@@ -792,7 +870,7 @@ export function QueryTab({
     "report" | "segment" | "campaign"
   >("report");
   const [nameDialogValue, setNameDialogValue] = useState("");
-  const [chatPrompt, setChatPrompt] = useState("");
+  const [chatPrompt, setChatPrompt] = useState(initialChatPrompt ?? "");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -1477,7 +1555,9 @@ export function QueryTab({
         metadata: { destination: "segment" },
       });
       setActiveTab("segments");
-      window.location.href = `/intelligence/segments/detail/${res.segmentId}`;
+      // Client-side navigation keeps the persistent dashboard layout (and the
+      // just-invalidated segments cache) instead of a full reload.
+      router.push(`/intelligence/segments/detail/${res.segmentId}`);
     },
     onError: (err) => {
       const message =
@@ -1622,8 +1702,11 @@ export function QueryTab({
     () =>
       streamActivity.length > 0
         ? streamActivity.slice(-4)
-        : getFallbackReasoningActivity(streamFallbackUsed),
-    [streamActivity, streamFallbackUsed]
+        : getFallbackReasoningActivity(
+            streamFallbackUsed,
+            lastSubmittedChatPrompt
+          ),
+    [streamActivity, streamFallbackUsed, lastSubmittedChatPrompt]
   );
   const renderConversionActions = (forQueryId?: string) => {
     // Point the shared query-scoped mutations at this message's result before
@@ -1843,10 +1926,10 @@ export function QueryTab({
       "low",
     ]);
 
-    if (structuredRows.length === 0) {
+    if (meaningfulStructuredRows(structuredRows).length === 0) {
       return (
         <div className="rounded-2xl border border-dashed border-border/60 bg-background/40 px-4 py-8 text-sm text-muted-foreground">
-          This result was answered, but there were no structured rows to render.
+          {emptyResultMessage(structuredResult.kind)}
         </div>
       );
     }
@@ -1915,7 +1998,7 @@ export function QueryTab({
                           />
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left md:text-right">
                         <div className="text-sm font-medium text-foreground">
                           {amountColumn
                             ? formatCompactNumber(row[amountColumn])
@@ -2333,7 +2416,7 @@ export function QueryTab({
         <div className="relative overflow-hidden rounded-[32px] border border-primary/15 bg-card shadow-[0_44px_140px_-72px_rgba(55,98,255,0.78)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(88,123,255,0.2),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(46,164,255,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_24%,transparent_76%,rgba(255,255,255,0.02))]" />
           <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(119,137,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(119,137,255,0.12)_1px,transparent_1px)] [background-size:28px_28px]" />
-          <div className="relative grid min-h-[760px] grid-rows-[auto_1fr_auto]">
+          <div className="relative grid min-h-[560px] grid-rows-[auto_1fr_auto] md:min-h-[760px]">
             <div className="flex items-start justify-between border-b border-border/70 px-5 py-4">
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -2388,63 +2471,56 @@ export function QueryTab({
                               {message.kind === "error" ? "!" : "AI"}
                             </div>
                             <div className="overflow-hidden rounded-[28px_28px_28px_12px] border border-border bg-card shadow-[0_28px_90px_-46px_rgba(45,102,255,0.5)]">
-                              <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-5 py-4">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                                  <SparklesIcon
-                                    className="h-4 w-4"
-                                    aria-hidden="true"
-                                  />
-                                </div>
-                                <div className="text-sm font-medium text-foreground">
-                                  {message.kind === "question"
-                                    ? "I needs one detail"
-                                    : message.kind === "error"
-                                      ? "I hit an error"
-                                      : "I replied"}
-                                </div>
-                                {typeof message.confidence === "number" ? (
-                                  <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
-                                    Confidence{" "}
-                                    {Math.round(message.confidence * 100)}%
-                                  </span>
-                                ) : null}
-                                {message.queryReady ? (
-                                  <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-300">
-                                    Query ready
-                                  </span>
-                                ) : null}
-                              </div>
-
                               <div className="space-y-5 px-5 py-5">
                                 {message.structuredResult ? (
                                   <div className="space-y-4">
                                     <div className="rounded-[24px] border border-primary/15 bg-card p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                                      <div className="flex flex-wrap items-center justify-between gap-3">
-                                        <div>
-                                          <div className="text-[11px] uppercase tracking-[0.16em] text-primary/80">
-                                            Result
-                                          </div>
-                                          <div className="mt-1 text-sm font-medium text-foreground">
-                                            {message.structuredResult.title ??
-                                              prettifyColumnLabel(
-                                                message.structuredResult.kind
-                                              )}
-                                          </div>
-                                        </div>
-                                        <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
-                                          {message.structuredResult.rows.length.toLocaleString()}{" "}
-                                          rows
-                                        </span>
-                                      </div>
-                                      {message.content.trim().length > 0 ? (
-                                        <p className="mt-3 text-sm leading-6 text-foreground/90">
-                                          {message.content}
-                                        </p>
-                                      ) : message.structuredResult.summary ? (
-                                        <p className="mt-3 text-sm leading-6 text-foreground/90">
-                                          {message.structuredResult.summary}
-                                        </p>
-                                      ) : null}
+                                      {(() => {
+                                        const structured =
+                                          message.structuredResult;
+                                        const rowCount =
+                                          meaningfulStructuredRows(
+                                            normalizeStructuredRows(
+                                              structured.rows
+                                            )
+                                          ).length;
+                                        const title =
+                                          structured.title &&
+                                          !structured.title.includes("_")
+                                            ? structured.title
+                                            : prettifyColumnLabel(
+                                                structured.kind
+                                              );
+                                        // Prefer human prose; never render raw
+                                        // tool-envelope dumps as the answer.
+                                        const prose = !isRawToolDump(
+                                          message.content
+                                        )
+                                          ? message.content.trim()
+                                          : (structured.summary?.trim() ?? "");
+                                        return (
+                                          <>
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                              <div className="text-sm font-medium text-foreground">
+                                                {title}
+                                              </div>
+                                              {rowCount > 0 ? (
+                                                <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
+                                                  {rowCount.toLocaleString()}{" "}
+                                                  {rowCount === 1
+                                                    ? "result"
+                                                    : "results"}
+                                                </span>
+                                              ) : null}
+                                            </div>
+                                            {prose.length > 0 ? (
+                                              <p className="mt-3 text-sm leading-6 text-foreground/90">
+                                                {prose}
+                                              </p>
+                                            ) : null}
+                                          </>
+                                        );
+                                      })()}
                                     </div>
 
                                     {renderStructuredResult(
@@ -2458,17 +2534,6 @@ export function QueryTab({
                                 ) : message.content.trim().length > 0 ? (
                                   <div className="text-[15px] leading-7 text-foreground/95">
                                     {message.content}
-                                  </div>
-                                ) : null}
-
-                                {message.rationale ? (
-                                  <div className="rounded-[24px] border border-border bg-muted/30 p-4">
-                                    <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                                      How I got this
-                                    </div>
-                                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                      {message.rationale}
-                                    </p>
                                   </div>
                                 ) : null}
 
@@ -2744,7 +2809,7 @@ export function QueryTab({
             {/* ambient glow */}
             <div className="ocs-anim-float-glow pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-primary/25 blur-3xl" />
             {/* editor window header */}
-            <div className="relative flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <div className="relative flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5" aria-hidden="true">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
@@ -2761,7 +2826,7 @@ export function QueryTab({
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={handleCopySql}
                   className="rounded-md p-1.5 text-primary transition-colors hover:bg-muted hover:text-foreground"
@@ -2793,7 +2858,7 @@ export function QueryTab({
                   </PopoverTrigger>
                   <PopoverContent
                     align="end"
-                    className="w-[420px] rounded-2xl border-border/70 bg-card/95 p-4 backdrop-blur"
+                    className="w-[min(420px,calc(100vw-2rem))] rounded-2xl border-border/70 bg-card/95 p-4 backdrop-blur"
                   >
                     <div className="space-y-4">
                       <div>
@@ -3014,7 +3079,7 @@ export function QueryTab({
               />
             </div>
             {/* footer */}
-            <div className="relative flex items-center justify-between border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+            <div className="relative flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
               <span>Read-only SELECT against your organization data.</span>
               <span className="font-mono">
                 {sqlQuery.length === 0
@@ -3304,7 +3369,7 @@ export function QueryTab({
       })()}
 
       <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
-        <DialogContent className="max-w-[420px]">
+        <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle>
               {nameDialogKind === "report"

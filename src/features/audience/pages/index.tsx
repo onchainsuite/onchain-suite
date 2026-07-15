@@ -65,13 +65,15 @@ import {
   deriveDisplayName,
   extractSocialHandles,
   extractWalletFields,
+  formatAttributeValue,
   getChainMeta,
-  getHealthBarColor,
   getHealthColor,
   getStatusIcon,
   hashHue,
+  HealthBar,
   isSyntheticWalletEmail,
   normalizeTags,
+  prettifyKey,
 } from "@/features/audience/utils";
 import { PageHeader } from "@/shared/components/page/page-header";
 import { TableSkeleton } from "@/shared/components/page/page-skeleton";
@@ -590,7 +592,10 @@ export function AudiencePages(): ReactElement {
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="space-y-6" aria-busy={showPureLoading}>
+      <div
+        className="mx-auto w-full max-w-[1600px] space-y-6"
+        aria-busy={showPureLoading}
+      >
         <PageHeader
           title="Audience"
           description={
@@ -631,10 +636,10 @@ export function AudiencePages(): ReactElement {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="overflow-hidden"
             >
-              <div className="group relative rounded-2xl border border-border bg-card py-6 px-8 shadow-sm transition-colors hover:border-primary/20">
+              <div className="group relative rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/20 sm:py-6 sm:px-8">
                 <button
                   onClick={handleRefreshCerebra}
-                  className="absolute right-6 top-6 p-2 text-muted-foreground transition-colors hover:text-foreground"
+                  className="absolute right-4 top-4 p-2 text-muted-foreground transition-colors hover:text-foreground sm:right-6 sm:top-6"
                   aria-label="Refresh Cerebra summary"
                 >
                   <ArrowPathIcon
@@ -665,8 +670,8 @@ export function AudiencePages(): ReactElement {
                         <span
                           className={
                             aggregatedStats.engagementTrend >= 0
-                              ? "text-emerald-600/70"
-                              : "text-red-600/70"
+                              ? "text-emerald-700 dark:text-emerald-300"
+                              : "text-rose-700 dark:text-rose-300"
                           }
                         >
                           {aggregatedStats.engagementTrend >= 0 ? "+" : ""}
@@ -676,8 +681,8 @@ export function AudiencePages(): ReactElement {
                         <span
                           className={
                             aggregatedStats.onchainTrend >= 0
-                              ? "text-emerald-600/70"
-                              : "text-red-600/70"
+                              ? "text-emerald-700 dark:text-emerald-300"
+                              : "text-rose-700 dark:text-rose-300"
                           }
                         >
                           {aggregatedStats.onchainTrend >= 0 ? "+" : ""}
@@ -687,8 +692,8 @@ export function AudiencePages(): ReactElement {
                         <span
                           className={
                             aggregatedStats.opensTrend >= 0
-                              ? "text-emerald-600/70"
-                              : "text-red-600/70"
+                              ? "text-emerald-700 dark:text-emerald-300"
+                              : "text-rose-700 dark:text-rose-300"
                           }
                         >
                           {aggregatedStats.opensTrend >= 0 ? "+" : ""}
@@ -809,7 +814,7 @@ export function AudiencePages(): ReactElement {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="end"
-                        className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                        className="rounded-lg shadow-md"
                       >
                         <DropdownMenuRadioGroup
                           value={profileScopeFilter}
@@ -862,7 +867,7 @@ export function AudiencePages(): ReactElement {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="end"
-                        className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                        className="rounded-lg shadow-md"
                       >
                         <DropdownMenuRadioGroup
                           value={engagementFilter}
@@ -905,7 +910,7 @@ export function AudiencePages(): ReactElement {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="end"
-                        className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                        className="rounded-lg shadow-md"
                       >
                         <DropdownMenuRadioGroup
                           value={tagFilter}
@@ -1155,7 +1160,7 @@ export function AudiencePages(): ReactElement {
                                           );
                                           if (!chainMeta) return null;
                                           return (
-                                            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-secondary/40 px-2 py-1 text-xs font-medium text-muted-foreground">
+                                            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                                               <span className="shrink-0">
                                                 {chainMeta.icon}
                                               </span>
@@ -1293,14 +1298,13 @@ export function AudiencePages(): ReactElement {
                                         Not scored
                                       </span>
                                     )}
-                                    <div className="h-1.5 w-16 overflow-hidden rounded-full bg-secondary">
-                                      <div
-                                        className={`h-full rounded-full ${getHealthBarColor(typeof profile.healthScore === "number" ? profile.healthScore : 0)}`}
-                                        style={{
-                                          width: `${typeof profile.healthScore === "number" ? profile.healthScore : 0}%`,
-                                        }}
-                                      />
-                                    </div>
+                                    <HealthBar
+                                      score={
+                                        typeof profile.healthScore === "number"
+                                          ? profile.healthScore
+                                          : null
+                                      }
+                                    />
                                   </div>
                                 </td>
                                 <td className="hidden px-4 py-4 md:table-cell">
@@ -1404,13 +1408,15 @@ export function AudiencePages(): ReactElement {
                                                     className="flex items-center justify-between gap-3 text-sm"
                                                   >
                                                     <span className="truncate text-muted-foreground">
-                                                      {k}
+                                                      {prettifyKey(k)}
                                                     </span>
-                                                    <span className="truncate font-medium text-foreground">
-                                                      {typeof v === "string" ||
-                                                      typeof v === "number"
-                                                        ? String(v)
-                                                        : ""}
+                                                    <span
+                                                      className="truncate font-medium text-foreground"
+                                                      title={formatAttributeValue(
+                                                        v
+                                                      )}
+                                                    >
+                                                      {formatAttributeValue(v)}
                                                     </span>
                                                   </div>
                                                 ))}
@@ -1453,7 +1459,7 @@ export function AudiencePages(): ReactElement {
                     </div>
 
                     {/* Pagination */}
-                    <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
                       <p className="text-sm text-muted-foreground">
                         Showing{" "}
                         {totalItems === 0
@@ -1469,7 +1475,7 @@ export function AudiencePages(): ReactElement {
                           }
                           disabled={currentPage === 1}
                           aria-label="Previous page"
-                          className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed sm:h-9 sm:w-9"
                         >
                           <ChevronLeftIcon
                             className="h-4 w-4"
@@ -1508,7 +1514,7 @@ export function AudiencePages(): ReactElement {
                           }
                           disabled={currentPage === totalPages}
                           aria-label="Next page"
-                          className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed sm:h-9 sm:w-9"
                         >
                           <ChevronRightIcon
                             className="h-4 w-4"
@@ -1529,7 +1535,7 @@ export function AudiencePages(): ReactElement {
                       exit={{ y: 100, opacity: 0 }}
                       className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2"
                     >
-                      <div className="flex items-center gap-4 rounded-2xl border border-border bg-card px-6 py-3 shadow-xl">
+                      <div className="flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-2xl border border-border bg-card px-3 py-3 shadow-xl sm:gap-4 sm:px-6">
                         <span className="text-sm font-medium text-foreground">
                           {selectedIds.length} selected
                         </span>

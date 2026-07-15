@@ -47,7 +47,7 @@ const Thread = ({ thread }: ThreadProps) => {
                           .slice(0, 1)
                           .toUpperCase()}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div
                       className={`rounded-2xl px-4 py-3 ${
                         isYou
@@ -55,7 +55,7 @@ const Thread = ({ thread }: ThreadProps) => {
                           : "rounded-bl-md bg-card text-foreground border border-border"
                       }`}
                     >
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
                         {message.content}
                       </p>
                     </div>

@@ -20,6 +20,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { ChainLogo } from "@/components/common/chain-logo";
+import { CopyButton } from "@/components/common/copy-button";
+
 import { isJsonObject } from "@/lib/utils";
 
 import {
@@ -33,9 +36,14 @@ import {
 import {
   deriveDisplayName,
   extractWalletFields,
+  formatAttributeValue,
+  formatDateTime,
+  formatRelativeTime,
   hashHue,
+  isAddressLike,
   isSyntheticWalletEmail,
   normalizeTags,
+  prettifyKey,
   shortenWallet,
 } from "@/features/audience/utils";
 
@@ -63,13 +71,26 @@ const activityIconForType = (type: string) => {
   return ArrowsRightLeftIcon;
 };
 
+const RegionHeading = ({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) => (
+  <div className="mb-4">
+    <h2 className="text-sm font-medium text-foreground">{title}</h2>
+    <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+  </div>
+);
+
 export function ProfileDetailPage() {
   const params = useParams();
   const id = typeof params?.id === "string" ? params.id : "";
 
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "activity" | "emails" | "transactions"
+    "activity" | "attributes" | "emails" | "transactions"
   >("activity");
 
   const hasId = id.length > 0;
@@ -177,6 +198,11 @@ export function ProfileDetailPage() {
     return (fromDirect.length ? fromDirect : fromAttr) as string[];
   }, [profile]);
 
+  const profileAttributes = useMemo(() => {
+    const attrs = isJsonObject(profile?.attributes) ? profile.attributes : {};
+    return Object.entries(attrs);
+  }, [profile?.attributes]);
+
   const emailStats = useMemo(() => {
     const direct = (profile as unknown as { emailStats?: unknown })?.emailStats;
     const obj = isJsonObject(direct)
@@ -248,11 +274,11 @@ export function ProfileDetailPage() {
   const getStatusStyles = (value: string) => {
     switch (value) {
       case "verified":
-        return "bg-primary/10 text-primary border-primary/20";
+        return "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
       case "pending":
-        return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+        return "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300";
       default:
-        return "bg-destructive/10 text-destructive border-destructive/20";
+        return "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300";
     }
   };
 
@@ -275,7 +301,10 @@ export function ProfileDetailPage() {
     transactionsQuery.isLoading;
 
   return (
-    <div className="space-y-6" aria-busy={isLoading}>
+    <div
+      className="mx-auto w-full max-w-[1600px] space-y-6"
+      aria-busy={isLoading}
+    >
       <Link
         href="/audience"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -284,8 +313,8 @@ export function ProfileDetailPage() {
         Back to Audience
       </Link>
 
-      <div className="mb-8 flex items-start justify-between">
-        <div className="flex items-center gap-4">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
           {isLoading ? (
             <div className="h-14 w-14 rounded-full skeleton-wave" />
           ) : (
@@ -298,13 +327,13 @@ export function ProfileDetailPage() {
               {name.charAt(0).toUpperCase()}
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
               {isLoading ? (
                 <div className="h-7 w-56 rounded skeleton-wave" />
               ) : (
                 <>
-                  <h1 className="text-2xl font-light tracking-tight text-foreground">
+                  <h1 className="break-all text-2xl font-light tracking-tight text-foreground">
                     {name}
                   </h1>
                   {status.length > 0 && (
@@ -318,7 +347,7 @@ export function ProfileDetailPage() {
                 </>
               )}
             </div>
-            <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
               {isLoading ? (
                 <>
                   <div className="h-4 w-40 rounded skeleton-wave" />
@@ -327,12 +356,14 @@ export function ProfileDetailPage() {
                 </>
               ) : (
                 <>
-                  <span>{hasEmailChannel ? email : "No email"}</span>
+                  <span className="break-all">
+                    {hasEmailChannel ? email : "No email"}
+                  </span>
                   {wallet.length > 0 && (
                     <>
                       <span className="text-muted-foreground/50">|</span>
                       <span
-                        className="font-mono text-xs text-muted-foreground/70"
+                        className="font-mono text-xs text-muted-foreground"
                         title={walletFull}
                       >
                         {wallet}
@@ -348,7 +379,7 @@ export function ProfileDetailPage() {
                       >
                         {copiedWallet ? (
                           <CheckCircleIcon
-                            className="h-3.5 w-3.5 text-primary"
+                            className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
                             aria-hidden="true"
                           />
                         ) : (
@@ -380,7 +411,7 @@ export function ProfileDetailPage() {
         {hasEmailChannel ? (
           <a
             href={`mailto:${email}`}
-            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="flex shrink-0 items-center gap-2 self-start rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />
             Send Email
@@ -389,7 +420,7 @@ export function ProfileDetailPage() {
           <button
             disabled
             title="This contact has no email channel — reach them with an in-app push instead."
-            className="flex cursor-not-allowed items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground opacity-50"
+            className="flex shrink-0 cursor-not-allowed items-center gap-2 self-start rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground opacity-50"
           >
             <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />
             Send Email
@@ -418,12 +449,12 @@ export function ProfileDetailPage() {
         )}
       </div>
 
-      <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="mb-10 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
         {intelligenceSegments.length > 0 && (
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <CursorArrowRaysIcon
-                className="h-5 w-5 text-secondary"
+                className="h-5 w-5 text-sky-600 dark:text-sky-400"
                 aria-hidden="true"
               />
               <h3 className="text-sm font-medium text-foreground">
@@ -434,7 +465,7 @@ export function ProfileDetailPage() {
               {intelligenceSegments.map((seg) => (
                 <span
                   key={seg}
-                  className="rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary"
+                  className="rounded-full bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-700 ring-1 ring-sky-500/20 dark:text-sky-300"
                 >
                   {seg}
                 </span>
@@ -444,49 +475,92 @@ export function ProfileDetailPage() {
         )}
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="mb-1 flex items-center gap-2">
             <CubeIcon className="h-5 w-5 text-primary" aria-hidden="true" />
             <h3 className="text-sm font-medium text-foreground">
               Contract Activity
             </h3>
           </div>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Contracts this wallet has interacted with on tracked chains.
+          </p>
           <div className="space-y-3">
-            {isLoading ? (
+            {contractActivityQuery.isLoading ? (
               <>
-                <div className="h-5 w-full rounded skeleton-wave" />
-                <div className="h-5 w-full rounded skeleton-wave" />
-                <div className="h-5 w-2/3 rounded skeleton-wave" />
+                <div className="h-9 w-full rounded skeleton-wave" />
+                <div className="h-9 w-full rounded skeleton-wave" />
+                <div className="h-9 w-2/3 rounded skeleton-wave" />
               </>
             ) : (contractActivityQuery.data?.items ?? []).length > 0 ? (
-              (contractActivityQuery.data?.items ?? []).map(
-                (cl: AudienceProfileContractActivity) => (
-                  <div
-                    key={cl.contractAddress}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate font-medium text-foreground">
-                        {cl.contractName?.length
-                          ? cl.contractName
-                          : shortenWallet(cl.contractAddress)}
-                      </span>
-                      {cl.label?.length ? (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                          {cl.label}
-                        </span>
-                      ) : null}
+              <>
+                {(contractActivityQuery.data?.items ?? []).map(
+                  (cl: AudienceProfileContractActivity) => (
+                    <div
+                      key={cl.contractAddress}
+                      className="flex items-start justify-between gap-3 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          {cl.chain ? (
+                            <ChainLogo chain={cl.chain} size={14} />
+                          ) : null}
+                          <span className="truncate font-medium text-foreground">
+                            {cl.contractName?.length
+                              ? cl.contractName
+                              : shortenWallet(cl.contractAddress)}
+                          </span>
+                          {cl.label?.length ? (
+                            <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary ring-1 ring-primary/20">
+                              {cl.label}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1">
+                          <code
+                            className="font-mono text-xs text-muted-foreground"
+                            title={cl.contractAddress}
+                          >
+                            {shortenWallet(cl.contractAddress)}
+                          </code>
+                          <CopyButton
+                            value={cl.contractAddress}
+                            label="Copy contract address"
+                          />
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="font-medium text-foreground">
+                          {typeof cl.txCount === "number"
+                            ? `${cl.txCount.toLocaleString()} ${cl.txCount === 1 ? "interaction" : "interactions"}`
+                            : "—"}
+                        </p>
+                        {typeof cl.volumeUsd === "number" ? (
+                          <p className="text-xs text-muted-foreground">
+                            {formatUsd(cl.volumeUsd)}
+                          </p>
+                        ) : null}
+                        {cl.lastInteractionAt ? (
+                          <p
+                            className="text-xs text-muted-foreground"
+                            title={formatDateTime(cl.lastInteractionAt)}
+                          >
+                            {formatRelativeTime(cl.lastInteractionAt)}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    <span className="text-muted-foreground">
-                      {typeof cl.volumeUsd === "number"
-                        ? formatUsd(cl.volumeUsd)
-                        : ""}
-                    </span>
-                  </div>
-                )
-              )
+                  )
+                )}
+                {contractActivityQuery.data?.refreshedAt ? (
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    Updated{" "}
+                    {formatDateTime(contractActivityQuery.data.refreshedAt)}
+                  </p>
+                ) : null}
+              </>
             ) : (
               <div className="text-sm text-muted-foreground">
-                No contract activity
+                No contract activity recorded yet
               </div>
             )}
           </div>
@@ -497,10 +571,10 @@ export function ProfileDetailPage() {
             <ExclamationCircleIcon
               className={`h-5 w-5 ${
                 churnQuery.data?.risk === "high"
-                  ? "text-destructive"
+                  ? "text-rose-600 dark:text-rose-400"
                   : churnQuery.data?.risk === "medium"
-                    ? "text-secondary"
-                    : "text-primary"
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-emerald-600 dark:text-emerald-400"
               }`}
               aria-hidden="true"
             />
@@ -519,10 +593,10 @@ export function ProfileDetailPage() {
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-medium ${
                     churnQuery.data.risk === "high"
-                      ? "bg-destructive/10 text-destructive"
+                      ? "bg-rose-500/10 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300"
                       : churnQuery.data.risk === "medium"
-                        ? "bg-amber-500/10 text-amber-600"
-                        : "bg-primary/10 text-primary"
+                        ? "bg-amber-500/10 text-amber-700 ring-1 ring-amber-500/20 dark:text-amber-300"
+                        : "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300"
                   }`}
                 >
                   {churnQuery.data.risk === "high"
@@ -552,36 +626,36 @@ export function ProfileDetailPage() {
         </div>
       </div>
 
-      <div className="mb-10 grid grid-cols-2 gap-6 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="mb-10 grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Email Open Rate
           </p>
-          <p className="mt-2 text-3xl font-light text-foreground">
+          <p className="mt-2 text-2xl font-light text-foreground sm:text-3xl">
             {emailStats.openRate}%
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Click Rate
           </p>
-          <p className="mt-2 text-3xl font-light text-foreground">
+          <p className="mt-2 text-2xl font-light text-foreground sm:text-3xl">
             {emailStats.clickRate}%
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Total Txns
           </p>
-          <p className="mt-2 text-3xl font-light text-foreground">
+          <p className="mt-2 text-2xl font-light text-foreground sm:text-3xl">
             {onchainSummary.totalTxns}
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Total Volume
           </p>
-          <p className="mt-2 text-3xl font-light text-foreground">
+          <p className="mt-2 break-words text-2xl font-light text-foreground sm:text-3xl">
             {onchainSummary.totalVolumeUsd > 0
               ? formatUsd(onchainSummary.totalVolumeUsd)
               : "Not available"}
@@ -589,186 +663,339 @@ export function ProfileDetailPage() {
         </div>
       </div>
 
-      <div className="mb-6 flex gap-1 border-b border-border">
-        {(["activity", "emails", "transactions"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab === "activity"
-              ? "Activity Timeline"
-              : tab === "emails"
-                ? "Email History"
-                : "Transactions"}
-          </button>
-        ))}
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-border">
+        {(["activity", "attributes", "emails", "transactions"] as const).map(
+          (tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`shrink-0 px-4 py-3 text-sm font-medium transition-colors sm:px-6 ${
+                activeTab === tab
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tab === "activity"
+                ? "Activity Timeline"
+                : tab === "attributes"
+                  ? "Attributes"
+                  : tab === "emails"
+                    ? "Email History"
+                    : "Transactions"}
+            </button>
+          )
+        )}
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
         {activeTab === "activity" && (
-          <div className="space-y-4">
-            {activityQuery.isLoading ? (
-              <>
-                <div className="h-16 w-full rounded-xl skeleton-wave" />
-                <div className="h-16 w-full rounded-xl skeleton-wave" />
-                <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
-              </>
-            ) : (activityQuery.data?.items ?? []).length > 0 ? (
-              (activityQuery.data?.items ?? []).map(
-                (item: AudienceProfileActivityEvent) => {
-                  const Icon = activityIconForType(item.type);
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-start gap-4 rounded-xl p-4 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground">
-                          {item.title}
-                        </p>
-                        {item.description?.length ? (
-                          <p className="text-sm text-muted-foreground">
-                            {item.description}
+          <div>
+            <RegionHeading
+              title="Activity Timeline"
+              description="Recent onchain and platform events for this contact."
+            />
+            <div className="space-y-4">
+              {activityQuery.isLoading ? (
+                <>
+                  <div className="h-16 w-full rounded-xl skeleton-wave" />
+                  <div className="h-16 w-full rounded-xl skeleton-wave" />
+                  <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
+                </>
+              ) : (activityQuery.data?.items ?? []).length > 0 ? (
+                (activityQuery.data?.items ?? []).map(
+                  (item: AudienceProfileActivityEvent) => {
+                    const Icon = activityIconForType(item.type);
+                    const relative = formatRelativeTime(item.at);
+                    const absolute = formatDateTime(item.at);
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-start gap-4 rounded-xl p-4 transition-colors hover:bg-muted/50"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                          <Icon className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-foreground">
+                            {item.title}
                           </p>
-                        ) : null}
+                          {item.description?.length ? (
+                            <p className="text-sm text-muted-foreground">
+                              {item.description}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-xs text-muted-foreground">
+                            {relative.length > 0 ? relative : item.at}
+                          </p>
+                          {absolute.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {absolute}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-xs text-muted-foreground/70">
-                        {item.at}
-                      </span>
-                    </div>
-                  );
-                }
-              )
+                    );
+                  }
+                )
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No activity recorded for this contact yet
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "attributes" && (
+          <div>
+            <RegionHeading
+              title="Attributes"
+              description="Traits derived from this wallet's onchain behavior and enrichment."
+            />
+            {profileQuery.isLoading ? (
+              <div className="space-y-3">
+                <div className="h-6 w-full rounded skeleton-wave" />
+                <div className="h-6 w-full rounded skeleton-wave" />
+                <div className="h-6 w-2/3 rounded skeleton-wave" />
+              </div>
+            ) : profileAttributes.length > 0 ? (
+              <dl className="divide-y divide-border">
+                {profileAttributes.map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between gap-4 py-2.5 text-sm"
+                  >
+                    <dt className="shrink-0 text-muted-foreground">
+                      {prettifyKey(key)}
+                    </dt>
+                    <dd className="flex min-w-0 items-center gap-1 text-right font-medium text-foreground">
+                      {isAddressLike(value) ? (
+                        <>
+                          <code
+                            className="font-mono text-xs text-foreground"
+                            title={value}
+                          >
+                            {shortenWallet(value)}
+                          </code>
+                          <CopyButton value={value} label="Copy address" />
+                        </>
+                      ) : (
+                        <span
+                          className="truncate"
+                          title={formatAttributeValue(value)}
+                        >
+                          {formatAttributeValue(value) || "—"}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             ) : (
               <div className="text-sm text-muted-foreground">
-                No activity yet
+                No attributes recorded yet — run enrichment to derive onchain
+                traits
               </div>
             )}
           </div>
         )}
 
         {activeTab === "emails" && (
-          <div className="space-y-3">
-            {emailsQuery.isLoading ? (
-              <>
-                <div className="h-16 w-full rounded-xl skeleton-wave" />
-                <div className="h-16 w-full rounded-xl skeleton-wave" />
-                <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
-              </>
-            ) : (emailsQuery.data?.items ?? []).length > 0 ? (
-              (emailsQuery.data?.items ?? []).map(
-                (emailItem: AudienceProfileEmailEvent) => (
-                  <div
-                    key={emailItem.id}
-                    className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                        {String(emailItem.status) === "clicked" ? (
-                          <CursorArrowRaysIcon
-                            className="h-4 w-4 text-primary"
-                            aria-hidden="true"
-                          />
-                        ) : String(emailItem.status) === "opened" ? (
-                          <EyeIcon
-                            className="h-4 w-4 text-secondary"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <PaperAirplaneIcon
-                            className="h-4 w-4 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        )}
+          <div>
+            <RegionHeading
+              title="Email History"
+              description="Campaign emails sent to this contact and their engagement."
+            />
+            <div className="space-y-3">
+              {emailsQuery.isLoading ? (
+                <>
+                  <div className="h-16 w-full rounded-xl skeleton-wave" />
+                  <div className="h-16 w-full rounded-xl skeleton-wave" />
+                  <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
+                </>
+              ) : (emailsQuery.data?.items ?? []).length > 0 ? (
+                (emailsQuery.data?.items ?? []).map(
+                  (emailItem: AudienceProfileEmailEvent) => {
+                    const status = String(emailItem.status);
+                    const sentAbsolute = formatDateTime(emailItem.sentAt);
+                    return (
+                      <div
+                        key={emailItem.id}
+                        className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
+                      >
+                        <div className="flex min-w-0 items-center gap-4">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                            {status === "clicked" ? (
+                              <CursorArrowRaysIcon
+                                className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
+                                aria-hidden="true"
+                              />
+                            ) : status === "opened" ? (
+                              <EyeIcon
+                                className="h-4 w-4 text-sky-600 dark:text-sky-400"
+                                aria-hidden="true"
+                              />
+                            ) : status === "bounced" ? (
+                              <ExclamationCircleIcon
+                                className="h-4 w-4 text-rose-600 dark:text-rose-400"
+                                aria-hidden="true"
+                              />
+                            ) : (
+                              <PaperAirplaneIcon
+                                className="h-4 w-4 text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-foreground">
+                              {emailItem.subject}
+                            </p>
+                            <p className="truncate text-sm text-muted-foreground">
+                              Sent{" "}
+                              {sentAbsolute.length > 0
+                                ? sentAbsolute
+                                : emailItem.sentAt}
+                              {emailItem.campaignId
+                                ? ` · Campaign ${emailItem.campaignId}`
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium capitalize ${
+                            status === "clicked"
+                              ? "bg-emerald-500/10 text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300"
+                              : status === "opened"
+                                ? "bg-sky-500/10 text-sky-700 ring-1 ring-sky-500/20 dark:text-sky-300"
+                                : status === "bounced"
+                                  ? "bg-rose-500/10 text-rose-700 ring-1 ring-rose-500/20 dark:text-rose-300"
+                                  : "bg-muted text-muted-foreground ring-1 ring-border"
+                          }`}
+                        >
+                          {status}
+                        </span>
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-foreground">
-                          {emailItem.subject}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Sent {emailItem.sentAt}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-                        String(emailItem.status) === "clicked"
-                          ? "bg-primary/20 text-primary"
-                          : String(emailItem.status) === "opened"
-                            ? "bg-secondary/20 text-secondary"
-                            : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {emailItem.status}
-                    </span>
-                  </div>
+                    );
+                  }
                 )
-              )
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                No email history
-              </div>
-            )}
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No campaign emails have been sent to this contact yet
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {activeTab === "transactions" && (
-          <div className="space-y-3">
-            {transactionsQuery.isLoading ? (
-              <>
-                <div className="h-16 w-full rounded-xl skeleton-wave" />
-                <div className="h-16 w-full rounded-xl skeleton-wave" />
-                <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
-              </>
-            ) : (transactionsQuery.data?.items ?? []).length > 0 ? (
-              (transactionsQuery.data?.items ?? []).map(
-                (tx: AudienceProfileTransaction) => (
-                  <div
-                    key={tx.hash}
-                    className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                        <CubeIcon
-                          className="h-4 w-4 text-primary"
-                          aria-hidden="true"
-                        />
+          <div>
+            <RegionHeading
+              title="Transactions"
+              description="Onchain transactions from tracked chains."
+            />
+            <div className="space-y-3">
+              {transactionsQuery.isLoading ? (
+                <>
+                  <div className="h-16 w-full rounded-xl skeleton-wave" />
+                  <div className="h-16 w-full rounded-xl skeleton-wave" />
+                  <div className="h-16 w-2/3 rounded-xl skeleton-wave" />
+                </>
+              ) : (transactionsQuery.data?.items ?? []).length > 0 ? (
+                (transactionsQuery.data?.items ?? []).map(
+                  (tx: AudienceProfileTransaction) => {
+                    const walletLower = walletFull.toLowerCase();
+                    const direction =
+                      walletLower.length > 0 &&
+                      typeof tx.from === "string" &&
+                      tx.from.toLowerCase() === walletLower
+                        ? "out"
+                        : walletLower.length > 0 &&
+                            typeof tx.to === "string" &&
+                            tx.to.toLowerCase() === walletLower
+                          ? "in"
+                          : null;
+                    const timeAbsolute = formatDateTime(tx.blockTimestamp);
+                    const timeRelative = formatRelativeTime(tx.blockTimestamp);
+                    return (
+                      <div
+                        key={tx.hash}
+                        className="flex items-center justify-between rounded-xl p-4 transition-colors hover:bg-muted/50"
+                      >
+                        <div className="flex min-w-0 items-center gap-4">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                            <CubeIcon
+                              className="h-4 w-4 text-muted-foreground"
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              {tx.chain ? (
+                                <ChainLogo chain={tx.chain} size={14} />
+                              ) : null}
+                              <code
+                                className="truncate font-mono text-sm font-medium text-foreground"
+                                title={tx.hash}
+                              >
+                                {shortenWallet(tx.hash)}
+                              </code>
+                              <CopyButton
+                                value={tx.hash}
+                                label="Copy transaction hash"
+                              />
+                              {direction === "in" ? (
+                                <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-500/20 dark:text-emerald-300">
+                                  Received
+                                </span>
+                              ) : direction === "out" ? (
+                                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-border">
+                                  Sent
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className="truncate text-sm text-muted-foreground">
+                              {shortenWallet(tx.from)} → {shortenWallet(tx.to)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-medium text-foreground">
+                            {typeof tx.valueUsd === "number"
+                              ? formatUsd(tx.valueUsd)
+                              : [tx.value, tx.asset]
+                                  .filter(
+                                    (part) =>
+                                      typeof part === "string" &&
+                                      part.length > 0
+                                  )
+                                  .join(" ") || "—"}
+                          </p>
+                          <p
+                            className="text-xs text-muted-foreground"
+                            title={
+                              timeAbsolute.length > 0 ? timeAbsolute : undefined
+                            }
+                          >
+                            {timeRelative.length > 0
+                              ? timeRelative
+                              : timeAbsolute.length > 0
+                                ? timeAbsolute
+                                : tx.blockTimestamp}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-foreground">
-                          {shortenWallet(tx.hash)}
-                        </p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {shortenWallet(tx.from)} → {shortenWallet(tx.to)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="font-medium text-foreground">
-                        {typeof tx.valueUsd === "number"
-                          ? formatUsd(tx.valueUsd)
-                          : tx.value}
-                      </p>
-                      <p className="text-xs text-muted-foreground/70">
-                        {tx.blockTimestamp}
-                      </p>
-                    </div>
-                  </div>
+                    );
+                  }
                 )
-              )
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                No transactions
-              </div>
-            )}
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No transactions recorded on tracked chains yet
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -493,11 +493,16 @@ const forward = async (
     );
   }
 
+  // Endpoints that establish a session: mirror the session token into the
+  // onchain.* cookies just like email sign-in (passkey + 2FA verification
+  // complete a sign-in too).
   const isSignInEmail =
     method === "POST" &&
     path.length >= 2 &&
-    path[0] === "sign-in" &&
-    path[1] === "email";
+    ((path[0] === "sign-in" && path[1] === "email") ||
+      (path[0] === "passkey" && path[1] === "verify-authentication") ||
+      (path[0] === "two-factor" &&
+        (path[1] === "verify-totp" || path[1] === "verify-backup-code")));
   const isSignOut =
     method === "POST" &&
     path.length >= 1 &&

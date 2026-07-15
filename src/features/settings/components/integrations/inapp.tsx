@@ -763,7 +763,7 @@ const InAppIntegration = () => {
                             )}
                           </Button>
                         </div>
-                        <code className="mt-3 block w-full rounded-xl border border-border/80 bg-card px-3 py-3 font-mono text-xs text-foreground">
+                        <code className="mt-3 block w-full break-all rounded-xl border border-border/80 bg-card px-3 py-3 font-mono text-xs text-foreground">
                           {statusQuery.isLoading ? (
                             <Skeleton className="h-4 w-44" />
                           ) : showPublishable ? (
@@ -812,7 +812,7 @@ const InAppIntegration = () => {
                             )}
                           </Button>
                         </div>
-                        <code className="mt-3 block w-full rounded-xl border border-border/80 bg-card px-3 py-3 font-mono text-xs text-foreground">
+                        <code className="mt-3 block w-full break-all rounded-xl border border-border/80 bg-card px-3 py-3 font-mono text-xs text-foreground">
                           {statusQuery.isLoading ? (
                             <Skeleton className="h-4 w-44" />
                           ) : showPublishable ? (
@@ -861,7 +861,7 @@ const InAppIntegration = () => {
                                     {k.createdAt ? ` • ${k.createdAt}` : ""}
                                   </div>
                                 </div>
-                                <code className="shrink-0 font-mono text-xs text-muted-foreground">
+                                <code className="break-all font-mono text-xs text-muted-foreground sm:shrink-0">
                                   {k.id}
                                 </code>
                               </div>

@@ -15,11 +15,27 @@ import { intelligenceService } from "../intelligence.service";
 import { CreditMeter } from "./credit-meter";
 import { EnrichmentControl } from "./enrichment-control";
 import { QueryTab } from "./query";
-import { ReportsTab } from "./reports";
+import { ReportsTab, type SavedQueryReport } from "./reports";
 import { SegmentsTab } from "./segments";
 
 export default function IntelligencePage() {
   const [activeTab, setActiveTab] = useState("chat");
+  // A saved query the user opened from the Reports tab; seeds QueryTab on its
+  // next mount (SQL runs re-open results by queryId, MCP runs pre-fill the
+  // chat composer). Cleared when leaving the chat/SQL surfaces so a later
+  // visit starts fresh.
+  const [pendingSavedQuery, setPendingSavedQuery] =
+    useState<SavedQueryReport | null>(null);
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+    if (tab !== "chat" && tab !== "sql") setPendingSavedQuery(null);
+  }, []);
+
+  const handleOpenSavedQuery = useCallback((item: SavedQueryReport) => {
+    setPendingSavedQuery(item);
+    setActiveTab(item.isMcp ? "chat" : "sql");
+  }, []);
 
   const segmentsMetricsQuery = useQuery({
     queryKey: ["intelligence", "segments", "metrics"],
@@ -52,10 +68,10 @@ export default function IntelligencePage() {
 
       <Tabs
         value={activeTab}
-        onValueChange={setActiveTab}
+        onValueChange={handleTabChange}
         className="space-y-4"
       >
-        <TabsList className="h-auto gap-1 rounded-2xl border border-border bg-card p-1.5">
+        <TabsList className="h-auto max-w-full justify-start gap-1 overflow-x-auto rounded-2xl border border-border bg-card p-1.5">
           <TabsTrigger
             value="chat"
             className="gap-2 rounded-xl px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_10px_28px_-14px_rgba(86,112,255,0.9)]"
@@ -96,7 +112,22 @@ export default function IntelligencePage() {
             <QueryTab
               activeSurface={activeTab === "chat" ? "chat" : "sql"}
               openEmailComposer={openEmailComposer}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleTabChange}
+              initialQueryId={
+                pendingSavedQuery && !pendingSavedQuery.isMcp
+                  ? pendingSavedQuery.queryId
+                  : null
+              }
+              initialSql={
+                pendingSavedQuery &&
+                !pendingSavedQuery.isMcp &&
+                pendingSavedQuery.query.length > 0
+                  ? pendingSavedQuery.query
+                  : undefined
+              }
+              initialChatPrompt={
+                pendingSavedQuery?.isMcp ? pendingSavedQuery.query : undefined
+              }
             />
           </div>
         ) : null}
@@ -110,7 +141,7 @@ export default function IntelligencePage() {
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">
-          <ReportsTab setActiveTab={setActiveTab} />
+          <ReportsTab onOpenSavedQuery={handleOpenSavedQuery} />
         </TabsContent>
       </Tabs>
     </div>

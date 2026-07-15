@@ -618,6 +618,15 @@ body {
   box-shadow: 0 30px 80px -40px rgba(23, 39, 224, 0.28);
   padding: 44px 42px;
 }
+/* Phones: keep the form usable at ~360-480px by relaxing the fixed padding. */
+@media (max-width: 480px) {
+  .os-auth-formwrap {
+    padding: 32px 16px;
+  }
+  .os-auth-card {
+    padding: 32px 20px;
+  }
+}
 
 /* header */
 .os-auth-eyebrow {

@@ -1,6 +1,10 @@
 export interface Segment {
   id: string;
   name: string;
+  /** Derived member count; `null` = rule segment resolved lazily on use. */
+  size?: number | null;
+  /** Query the segment was created from, when applicable. */
+  sourceQueryId?: string;
   matchCount?: number;
   profiles?: number;
   revenue?: string;

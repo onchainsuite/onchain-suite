@@ -3,10 +3,12 @@
 import {
   ArrowRightIcon,
   CheckCircleIcon,
+  ExclamationCircleIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -31,6 +33,9 @@ export function ResetPasswordForm({
 }: ResetPasswordFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const hasToken = typeof token === "string" && token.trim().length > 0;
 
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -44,32 +49,55 @@ export function ResetPasswordForm({
 
   const onSubmit = async (value: ResetPasswordFormData) => {
     setIsLoading(true);
+    setSubmitError(null);
     const { password } = value;
 
     try {
       const { error } = await authClient.resetPassword({
         newPassword: password,
-        token, // required
+        token,
       });
 
       if (error) {
-        toast.error(error.message);
+        const message =
+          error.message ??
+          "This reset link is invalid or has expired. Request a new one.";
+        setSubmitError(message);
+        toast.error(message);
         return;
-      } else {
-        setIsSuccess(true);
-        toast.success("Password reset successfully!");
       }
+
+      setIsSuccess(true);
+      toast.success("Password reset successfully!");
       // Redirect after success
       setTimeout(() => {
         onPasswordReset?.();
       }, 3000);
     } catch (error) {
       console.error("Reset password error:", error);
+      setSubmitError("An unexpected error occurred. Please try again.");
       toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
   };
+
+  // A reset link without a token can never succeed — say so up front
+  // instead of failing after the user has typed a new password.
+  if (!hasToken && !isSuccess) {
+    return (
+      <div className="text-center">
+        <AuthHeader
+          icon={ExclamationCircleIcon}
+          title="This reset link isn't valid"
+          subtitle="The link is missing its reset token — it may have expired or been copied incompletely."
+        />
+        <Button asChild className="h-12 w-full">
+          <Link href="/auth/forgot-password">Request a new reset link</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -105,6 +133,19 @@ export function ResetPasswordForm({
                 label="Confirm New Password"
                 placeholder="Confirm your new password"
               />
+
+              {submitError ? (
+                <div
+                  role="alert"
+                  className="border-destructive/30 bg-destructive/10 text-destructive flex items-start gap-2 rounded-md border p-3 text-sm"
+                >
+                  <ExclamationCircleIcon
+                    aria-hidden="true"
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                  />
+                  <span>{submitError}</span>
+                </div>
+              ) : null}
 
               <LoadingButton isLoading={isLoading}>
                 Reset Password

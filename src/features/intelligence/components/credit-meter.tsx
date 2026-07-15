@@ -56,17 +56,23 @@ export function CreditMeter() {
   if (isError || !meter) return null;
 
   const used = Math.max(0, Number(meter.used) || 0);
-  const limit = Math.max(0, Number(meter.limit) || 0);
+  const rawLimit = Number(meter.limit);
+  // limit === -1 is the backend's unlimited convention (internal plan,
+  // env-raised allowances) — never render it as exhausted.
+  const unlimited = rawLimit === -1;
+  const limit = unlimited ? 0 : Math.max(0, rawLimit || 0);
   const remaining = Math.max(0, limit - used);
-  const percent =
-    typeof meter.percent === "number" && Number.isFinite(meter.percent)
+  const percent = unlimited
+    ? 0
+    : typeof meter.percent === "number" && Number.isFinite(meter.percent)
       ? Math.min(100, Math.max(0, meter.percent))
       : limit > 0
         ? Math.min(100, (used / limit) * 100)
         : 0;
 
-  const status =
-    meter.status === "warn" || meter.status === "exceeded"
+  const status = unlimited
+    ? "ok"
+    : meter.status === "warn" || meter.status === "exceeded"
       ? meter.status
       : "ok";
   const tone =
@@ -99,7 +105,11 @@ export function CreditMeter() {
         <TooltipTrigger asChild>
           <button
             type="button"
-            aria-label={`AI credits: ${compact(used)} of ${compact(limit)} used`}
+            aria-label={
+              unlimited
+                ? `AI credits: ${compact(used)} used, unlimited plan`
+                : `AI credits: ${compact(used)} of ${compact(limit)} used`
+            }
             className={`relative grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full border bg-card transition-colors hover:bg-muted/40 ${tone.ring}`}
           >
             <svg
@@ -135,13 +145,17 @@ export function CreditMeter() {
           <div className="flex items-center justify-between gap-4">
             <span className="font-medium">AI credits</span>
             <span className={`font-semibold tabular-nums ${tone.text}`}>
-              {compact(used)} / {compact(limit)}
+              {unlimited
+                ? `${compact(used)} / Unlimited`
+                : `${compact(used)} / ${compact(limit)}`}
             </span>
           </div>
           <p className="mt-1">
-            {status === "exceeded"
-              ? "Limit reached — upgrade to continue."
-              : `${compact(remaining)} credits remaining this month.`}
+            {unlimited
+              ? "Unlimited plan — no monthly cap."
+              : status === "exceeded"
+                ? "Limit reached — upgrade to continue."
+                : `${compact(remaining)} credits remaining this month.`}
           </p>
           <p className="mt-1 text-muted-foreground">
             Used by AI chat, SQL generation, query suggestions and the MCP

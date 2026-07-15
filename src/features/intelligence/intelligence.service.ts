@@ -374,7 +374,13 @@ export interface IntelligenceMetricsResponse {
 export interface IntelligenceSegment {
   id: string;
   name: string;
-  size?: number;
+  /**
+   * Derived member count (wallet-list length). `null` means the segment is
+   * rule-based and lazily resolved on use; render "Resolved on use".
+   */
+  size?: number | null;
+  /** Query this segment was created/imported from, when applicable. */
+  sourceQueryId?: string | null;
   matchCount?: number;
   lastUsedAt?: string;
   updatedAt?: string;

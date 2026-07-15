@@ -85,7 +85,7 @@ export function FormsPage() {
   const isFiltering = search.trim().length > 0 || status !== "all";
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-6">
       <PageHeader
         title="Forms"
         description="Capture emails via embeddable forms — connect to the API to encrypt captures (ZK) and never expose addresses."

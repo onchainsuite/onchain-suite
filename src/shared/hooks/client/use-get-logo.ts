@@ -1,14 +1,18 @@
 import useSWR from "swr";
 
 import { authClient } from "@/lib/auth-client";
+import { resolveBrandAssetUrl } from "@/lib/brand-assets";
 import { isOrganizationConfirmed } from "@/lib/utils";
 
-const pickString = (...values: unknown[]) => {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim().length > 0) return value;
-  }
-  return undefined;
-};
+export interface LogoSet {
+  lightIcon: string;
+  darkIcon: string;
+  lightFull: string;
+  darkFull: string;
+  favicon?: string;
+  /** True when any of the URLs come from org branding (may be remote/backend-hosted). */
+  isCustom: boolean;
+}
 
 export const readBrandingData = (branding: unknown) => {
   const root =
@@ -24,21 +28,27 @@ export const readBrandingData = (branding: unknown) => {
       ? (data.logoPreview as Record<string, unknown>)
       : undefined;
 
+  // Branding URLs can be backend-relative — resolve them here so every
+  // consumer gets a URL the browser can actually load.
   return {
-    primary: pickString(
+    primary: resolveBrandAssetUrl(
       preview?.primaryUrl,
       data?.primaryLogoUrl,
       data?.primaryLogo,
       data?.logoUrl,
       data?.logo
     ),
-    dark: pickString(
+    dark: resolveBrandAssetUrl(
       preview?.darkUrl,
       data?.darkLogoUrl,
       data?.darkModeLogo,
       data?.darkLogo
     ),
-    favicon: pickString(preview?.faviconUrl, data?.faviconUrl, data?.favicon),
+    favicon: resolveBrandAssetUrl(
+      preview?.faviconUrl,
+      data?.faviconUrl,
+      data?.favicon
+    ),
   };
 };
 
@@ -52,7 +62,18 @@ const fetcher = async (url: string) => {
   }
 };
 
-export const useGetLogo = () => {
+const defaultLogos = {
+  lightIcon:
+    "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761093444/onchain_suite_bf926w.png",
+  darkIcon:
+    "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761094220/onchain_light_wylceb.png",
+  lightFull:
+    "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095341/full_logo_horizontal_coloured_dark_kpiv6u.png",
+  darkFull:
+    "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095267/full_logo_horizontal_coloured_light_kl0irx.png",
+};
+
+export const useGetLogo = (): LogoSet => {
   const { data: session } = authClient.useSession();
   const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
   const confirmed = isOrganizationConfirmed(activeOrganizationId);
@@ -62,28 +83,20 @@ export const useGetLogo = () => {
     { revalidateOnFocus: false, shouldRetryOnError: false }
   );
 
-  const defaultLogos = {
-    lightIcon:
-      "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761093444/onchain_suite_bf926w.png",
-    darkIcon:
-      "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761094220/onchain_light_wylceb.png",
-    lightFull:
-      "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095341/full_logo_horizontal_coloured_dark_kpiv6u.png",
-    darkFull:
-      "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095267/full_logo_horizontal_coloured_light_kl0irx.png",
-  };
-
   if (!branding?.success || !branding?.data) {
-    return defaultLogos;
+    return { ...defaultLogos, isCustom: false };
   }
 
   const { primary, dark, favicon } = readBrandingData(branding);
 
+  // Prefer the org's variant for the active theme, then the org's other
+  // variant, and only then the platform logo.
   return {
-    lightIcon: primary ?? defaultLogos.lightIcon,
-    darkIcon: dark ?? defaultLogos.darkIcon,
-    lightFull: primary ?? defaultLogos.lightFull,
-    darkFull: dark ?? defaultLogos.darkFull,
+    lightIcon: primary ?? dark ?? defaultLogos.lightIcon,
+    darkIcon: dark ?? primary ?? defaultLogos.darkIcon,
+    lightFull: primary ?? dark ?? defaultLogos.lightFull,
+    darkFull: dark ?? primary ?? defaultLogos.darkFull,
     favicon: favicon ?? primary ?? defaultLogos.lightIcon,
+    isCustom: Boolean(primary ?? dark ?? favicon),
   };
 };

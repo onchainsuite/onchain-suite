@@ -3,6 +3,7 @@
 import {
   ArrowRightIcon,
   ArrowTopRightOnSquareIcon,
+  Bars3Icon,
   BellIcon,
   BoltIcon,
   ChevronDownIcon,
@@ -15,6 +16,7 @@ import {
   SignalIcon,
   SparklesIcon,
   UserGroupIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
@@ -30,7 +32,15 @@ export const DOCS_URL = "https://onchainsuite-9506e41f.mintlify.app/";
 const LOGO_SRC =
   "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095341/full_logo_horizontal_coloured_dark_kpiv6u.png";
 
-export function Logo({ height = 28 }: { height?: number }) {
+export function Logo({
+  height = 28,
+  className,
+}: {
+  height?: number;
+  /** When set, sizing is left to the classes (responsive heights) instead of
+   *  the inline `height` style; `height` still provides the intrinsic ratio. */
+  className?: string;
+}) {
   return (
     <Image
       src={LOGO_SRC}
@@ -38,8 +48,8 @@ export function Logo({ height = 28 }: { height?: number }) {
       width={Math.round(height * 5.4)}
       height={height}
       priority
-      className="w-auto"
-      style={{ height, width: "auto" }}
+      className={className ?? "w-auto"}
+      style={className ? undefined : { height, width: "auto" }}
     />
   );
 }
@@ -51,15 +61,18 @@ function MenuItem({
   title,
   desc,
   href,
+  onClick,
 }: {
   icon: IconType;
   title: string;
   desc: string;
   href: string;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className="group flex items-start gap-2.5 rounded-lg p-2 transition-colors hover:bg-[color:var(--acc-soft)]"
     >
       <span
@@ -315,6 +328,7 @@ type MenuId = "platform" | "developers";
 export function Nav({ ctaWatchesHero = false }: { ctaWatchesHero?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
   // While the hero (which has its own CTA) is on screen, the nav CTA stays
   // hidden; it fades in once the user scrolls past the hero. Defaults to the
   // prop so the first paint is correct on both the landing page and pages
@@ -343,11 +357,30 @@ export function Nav({ ctaWatchesHero = false }: { ctaWatchesHero?: boolean }) {
   }, [ctaWatchesHero]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenMenu(null);
+      if (e.key === "Escape") {
+        setOpenMenu(null);
+        setMobileOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  // While the mobile menu is open: lock body scroll, and auto-close if the
+  // viewport grows past the md breakpoint (where the desktop nav takes over).
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onChange = () => {
+      if (mq.matches) setMobileOpen(false);
+    };
+    mq.addEventListener("change", onChange);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      mq.removeEventListener("change", onChange);
+    };
+  }, [mobileOpen]);
 
   const triggerCls =
     "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[13.5px] font-medium transition-colors";
@@ -362,9 +395,11 @@ export function Nav({ ctaWatchesHero = false }: { ctaWatchesHero?: boolean }) {
       }}
     >
       <nav
-        className="relative z-10 mx-auto flex items-center gap-7"
+        className="relative z-10 mx-auto flex items-center gap-4 md:gap-7"
         style={{
-          maxWidth: scrolled ? 940 : 1320,
+          // min() keeps the scrolled pill inset from the viewport edges on
+          // phones (the max-width transition falls back to a snap there).
+          maxWidth: scrolled ? "min(940px, calc(100% - 24px))" : 1320,
           height: scrolled ? 64 : 86,
           padding: scrolled ? "0 14px 0 18px" : "0 28px",
           background: scrolled
@@ -383,10 +418,16 @@ export function Nav({ ctaWatchesHero = false }: { ctaWatchesHero?: boolean }) {
       >
         <Link
           href="/"
-          className="flex items-center"
+          className="flex min-w-0 items-center"
           aria-label="OnchainSuite home"
         >
-          <Logo height={scrolled ? 40 : 52} />
+          {/* smaller on phones so logo + hamburger never overflow ~360px */}
+          <Logo
+            height={52}
+            className={
+              scrolled ? "h-8 w-auto sm:h-10" : "h-9 w-auto sm:h-[52px]"
+            }
+          />
         </Link>
         <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 md:flex">
           {(["platform", "developers"] as MenuId[]).map((id) => (
@@ -443,8 +484,94 @@ export function Nav({ ctaWatchesHero = false }: { ctaWatchesHero?: boolean }) {
           >
             Get early access
           </Link>
+          <button
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-expanded={mobileOpen}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors md:hidden"
+            style={{
+              borderColor: "var(--line)",
+              background: "var(--surface)",
+              color: "var(--ink)",
+            }}
+          >
+            {mobileOpen ? (
+              <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Bars3Icon className="h-5 w-5" aria-hidden="true" />
+            )}
+          </button>
         </div>
       </nav>
+
+      {/* mobile dropdown menu — same links as the desktop mega-menus + CTA */}
+      {mobileOpen ? (
+        <div className="mobile-menu absolute inset-x-0 top-full z-20 px-3 pt-2 md:hidden">
+          <div
+            className="max-h-[calc(100dvh-110px)] overflow-y-auto rounded-2xl border p-4 shadow-[0_30px_80px_-30px_rgba(26,24,20,0.35)]"
+            style={{ borderColor: "var(--line)", background: "var(--surface)" }}
+          >
+            <div className="mono mb-1.5 text-[10px] uppercase tracking-[0.16em] t-muted2">
+              Platform
+            </div>
+            <div className="grid grid-cols-1 gap-0.5 min-[480px]:grid-cols-2">
+              {PLATFORM_ITEMS.map((it) => (
+                <MenuItem
+                  key={it.title}
+                  {...it}
+                  onClick={() => setMobileOpen(false)}
+                />
+              ))}
+            </div>
+            <div className="mono mb-1.5 mt-4 text-[10px] uppercase tracking-[0.16em] t-muted2">
+              Developers
+            </div>
+            <div className="grid grid-cols-1 gap-0.5 min-[480px]:grid-cols-2">
+              {DEV_INTEGRATIONS.map((it) => (
+                <MenuItem
+                  key={it.title}
+                  {...it}
+                  onClick={() => setMobileOpen(false)}
+                />
+              ))}
+            </div>
+            <div
+              className="mt-4 grid grid-cols-2 gap-2 border-t pt-4"
+              style={{ borderColor: "var(--line)" }}
+            >
+              <Link
+                href="/pricing"
+                onClick={() => setMobileOpen(false)}
+                className="btn btn-ghost w-full"
+              >
+                Pricing
+              </Link>
+              <a
+                href={DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileOpen(false)}
+                className="btn btn-ghost w-full"
+              >
+                Docs
+                <ArrowTopRightOnSquareIcon
+                  className="h-3.5 w-3.5"
+                  aria-hidden="true"
+                />
+              </a>
+            </div>
+            <Link
+              href={SIGNUP}
+              onClick={() => setMobileOpen(false)}
+              className="btn btn-primary mt-2.5 w-full"
+            >
+              Get early access
+              <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       {/* hover mega-menu */}
       <AnimatePresence>
@@ -618,8 +745,9 @@ export function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="border-t py-14" style={{ borderColor: "var(--line)" }}>
-      <div className="wrap grid gap-10 md:grid-cols-[1.5fr_repeat(4,1fr)]">
-        <div>
+      {/* phones: link columns pair up 2×2 under the logo; md+: original 5-col row */}
+      <div className="wrap grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-[1.5fr_repeat(4,1fr)] md:gap-10">
+        <div className="col-span-2 md:col-span-1">
           <Logo height={50} />
           <p className="mt-3 max-w-xs text-[13px] leading-relaxed t-muted">
             The behavior-triggered retention platform for Web3.

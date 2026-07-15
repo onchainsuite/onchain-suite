@@ -40,6 +40,15 @@ vi.mock("sonner", () => ({
   toast: mocks.toast,
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
+  usePathname: () => "/intelligence",
+  useSearchParams: () => new URLSearchParams(""),
+}));
+
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children, ...props }: { children?: ReactNode }) => (

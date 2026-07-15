@@ -22,8 +22,10 @@ import {
   TableRow,
 } from "@/ui/table";
 
+import { cn } from "@/lib/utils";
+
 import type { Campaign } from "../../../campaigns/types";
-import { columns } from "./table-columns";
+import { type CampaignColumnMeta, columns } from "./table-columns";
 import { TablePagination } from "./table-pagination";
 import { TableToolbar } from "./table-toolbar";
 
@@ -72,8 +74,14 @@ export function CampaignsTable({ data }: CampaignsTableProps) {
                 className="hover:bg-transparent border-border"
               >
                 {headerGroup.headers.map((header) => {
+                  const meta = header.column.columnDef.meta as
+                    | CampaignColumnMeta
+                    | undefined;
                   return (
-                    <TableHead key={header.id} className="h-12 px-2 ">
+                    <TableHead
+                      key={header.id}
+                      className={cn("h-12 px-2", meta?.className)}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -95,7 +103,17 @@ export function CampaignsTable({ data }: CampaignsTableProps) {
                   className="border-border transition-colors duration-200"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-4">
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        "py-4",
+                        (
+                          cell.column.columnDef.meta as
+                            | CampaignColumnMeta
+                            | undefined
+                        )?.className
+                      )}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

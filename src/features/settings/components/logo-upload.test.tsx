@@ -143,7 +143,9 @@ describe("LogoUpload Component", () => {
     );
 
     expect(screen.getByText(/Upload primary logo/i)).toBeInTheDocument();
-    expect(screen.getByText(/SVG, PNG up to 100MB/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/SVG, PNG, or JPG up to 100MB/i)
+    ).toBeInTheDocument();
   });
 
   it("should handle file selection", () => {
@@ -236,6 +238,30 @@ describe("LogoUpload Component", () => {
         expect.any(Function),
         false
       );
+    });
+
+    // The optimistic updater must merge into the `{ success, data }` envelope
+    // (readBrandingData only looks at `data`).
+    const updaterCall = mockedMutate.mock.calls.find(
+      (call) => call[0] === "/api/v1/organization/branding" && call[2] === false
+    );
+    const updater = updaterCall?.[1] as (current: unknown) => unknown;
+    expect(
+      updater({
+        success: true,
+        data: { brandColor: "#123456" },
+      })
+    ).toEqual({
+      success: true,
+      data: {
+        brandColor: "#123456",
+        logoPreview: {
+          primaryUrl: "/uploads/primary-logo.png",
+          darkUrl: "/uploads/dark-logo.png",
+          faviconUrl: "/uploads/favicon.png",
+        },
+        primaryLogoUrl: "/uploads/primary-logo.png",
+      },
     });
   });
 });

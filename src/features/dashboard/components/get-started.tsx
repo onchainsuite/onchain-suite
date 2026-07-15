@@ -16,7 +16,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
 import { getSelectedOrganizationId } from "@/lib/utils";
@@ -121,8 +121,31 @@ const TASK_DEFINITIONS: TaskDefinition[] = [
   },
 ];
 
-const CARDS_PER_PAGE = 3;
-const TOTAL_PAGES = Math.ceil(TASK_DEFINITIONS.length / CARDS_PER_PAGE);
+/**
+ * Cards per carousel page tracks the page grid's column count so one "page"
+ * is exactly one screenful: 1 on mobile, 2 at `md`, 3 at `lg+`. Defaults to 3
+ * (the SSR markup) and corrects itself after hydration via matchMedia.
+ */
+function useCardsPerPage() {
+  const [cardsPerPage, setCardsPerPage] = useState(3);
+
+  useEffect(() => {
+    const mdQuery = window.matchMedia("(min-width: 768px)");
+    const lgQuery = window.matchMedia("(min-width: 1024px)");
+    const sync = () => {
+      setCardsPerPage(lgQuery.matches ? 3 : mdQuery.matches ? 2 : 1);
+    };
+    sync();
+    mdQuery.addEventListener("change", sync);
+    lgQuery.addEventListener("change", sync);
+    return () => {
+      mdQuery.removeEventListener("change", sync);
+      lgQuery.removeEventListener("change", sync);
+    };
+  }, []);
+
+  return cardsPerPage;
+}
 
 /**
  * True only for an explicit verified status. Checks pending/failed markers
@@ -399,16 +422,40 @@ export function GetStartedSection() {
   );
   const completedCount = tasks.filter((t) => t.completed).length;
 
+  const cardsPerPage = useCardsPerPage();
+  const totalPages = Math.ceil(TASK_DEFINITIONS.length / cardsPerPage);
+
+  // Re-clamp when a resize shrinks the page count (e.g. rotating a tablet).
+  useEffect(() => {
+    setCurrentIndex((prev) => Math.min(prev, totalPages - 1));
+  }, [totalPages]);
+
   const goToPrevious = () => {
     setCurrentIndex((prev) => Math.max(0, prev - 1));
   };
 
   const goToNext = () => {
-    setCurrentIndex((prev) => Math.min(TOTAL_PAGES - 1, prev + 1));
+    setCurrentIndex((prev) => Math.min(totalPages - 1, prev + 1));
   };
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
+  };
+
+  // Touch swipe between pages (the pager buttons/dots still work everywhere).
+  const touchStartXRef = useRef<number | null>(null);
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = e.touches[0]?.clientX ?? null;
+  };
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const startX = touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (startX === null) return;
+    const endX = e.changedTouches[0]?.clientX ?? startX;
+    const delta = endX - startX;
+    if (Math.abs(delta) < 48) return;
+    if (delta < 0) goToNext();
+    else goToPrevious();
   };
 
   return (
@@ -458,15 +505,15 @@ export function GetStartedSection() {
           <button
             onClick={goToPrevious}
             disabled={currentIndex === 0}
-            className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-lg bg-transparent text-muted-foreground transition-all hover:bg-accent/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+            className="flex h-10 w-10 items-center cursor-pointer justify-center rounded-lg bg-transparent text-muted-foreground transition-all hover:bg-accent/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground md:h-8 md:w-8"
             aria-label="Previous step"
           >
             <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
           </button>
           <button
             onClick={goToNext}
-            disabled={currentIndex === TOTAL_PAGES - 1}
-            className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-lg bg-transparent text-muted-foreground transition-all hover:bg-accent/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+            disabled={currentIndex === totalPages - 1}
+            className="flex h-10 w-10 items-center cursor-pointer justify-center rounded-lg bg-transparent text-muted-foreground transition-all hover:bg-accent/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground md:h-8 md:w-8"
             aria-label="Next step"
           >
             <ArrowRightIcon aria-hidden="true" className="h-4 w-4" />
@@ -474,11 +521,15 @@ export function GetStartedSection() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm md:rounded-2xl">
+      <div
+        className="overflow-hidden rounded-xl border border-border bg-card shadow-sm md:rounded-2xl"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {isChecklistLoading ? (
           <div className="min-w-full p-4 md:p-8">
             <div className="grid gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
-              {TASK_DEFINITIONS.slice(0, CARDS_PER_PAGE).map((task) => (
+              {TASK_DEFINITIONS.slice(0, cardsPerPage).map((task) => (
                 <TaskCardSkeleton key={task.id} />
               ))}
             </div>
@@ -488,10 +539,10 @@ export function GetStartedSection() {
             className="flex transition-transform duration-500 ease-in-out"
             style={{ transform: `translateX(-${currentIndex * 100}%)` }}
           >
-            {Array.from({ length: TOTAL_PAGES }).map((_, pageIndex) => {
+            {Array.from({ length: totalPages }).map((_, pageIndex) => {
               const pageTasks = tasks.slice(
-                pageIndex * CARDS_PER_PAGE,
-                (pageIndex + 1) * CARDS_PER_PAGE
+                pageIndex * cardsPerPage,
+                (pageIndex + 1) * cardsPerPage
               );
               return (
                 <div
@@ -542,19 +593,24 @@ export function GetStartedSection() {
         )}
       </div>
 
-      <div className="mt-4 flex items-center justify-center gap-2">
-        {Array.from({ length: TOTAL_PAGES }).map((_, index) => (
+      <div className="mt-4 flex items-center justify-center gap-1">
+        {Array.from({ length: totalPages }).map((_, index) => (
           <button
             // eslint-disable-next-line react/no-array-index-key
             key={index}
             onClick={() => goToSlide(index)}
-            className={`h-2 rounded-full transition-all cursor-pointer duration-300 ${
-              index === currentIndex
-                ? "w-6 bg-primary"
-                : "w-2 bg-muted/70 hover:bg-muted-foreground/90"
-            }`}
+            className="group flex cursor-pointer items-center justify-center p-2"
             aria-label={`Go to page ${index + 1}`}
-          />
+          >
+            <span
+              aria-hidden="true"
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentIndex
+                  ? "w-6 bg-primary"
+                  : "w-2 bg-muted/70 group-hover:bg-muted-foreground/90"
+              }`}
+            />
+          </button>
         ))}
       </div>
     </div>

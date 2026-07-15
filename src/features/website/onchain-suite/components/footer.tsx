@@ -61,7 +61,7 @@ export function Footer() {
 
   const y = useTransform(scrollYProgress, [0, 1], [100, 0]);
 
-  const { lightFull, darkFull } = useGetLogo();
+  const { lightFull, darkFull, isCustom } = useGetLogo();
 
   return (
     <motion.footer
@@ -89,6 +89,7 @@ export function Footer() {
                 height={100}
                 alt="OnchainSuite Logo"
                 className="dark:hidden"
+                unoptimized={isCustom}
               />
               <Image
                 src={darkFull}
@@ -96,6 +97,7 @@ export function Footer() {
                 height={100}
                 alt="OnchainSuite Logo"
                 className="hidden dark:block"
+                unoptimized={isCustom}
               />
             </Link>
             <p className="mb-4 text-sm text-muted-foreground">

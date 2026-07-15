@@ -24,34 +24,79 @@ export function getStatusIcon(status: string): ReactElement {
     case "verified":
       return (
         <CheckCircleIcon
-          className="h-3.5 w-3.5 text-primary"
+          className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
           aria-hidden="true"
         />
       );
     case "pending":
       return (
-        <ClockIcon className="h-3.5 w-3.5 text-secondary" aria-hidden="true" />
+        <ClockIcon
+          className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400"
+          aria-hidden="true"
+        />
       );
     default:
       return (
         <ExclamationCircleIcon
-          className="h-3.5 w-3.5 text-destructive"
+          className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400"
           aria-hidden="true"
         />
       );
   }
 }
 
+/**
+ * Health tiers map to the semantic status family used across the app
+ * (emerald = healthy, amber = cooling, rose = at risk), with dark: variants
+ * so both themes read clearly.
+ */
 export function getHealthColor(score: number): string {
-  if (score >= 70) return "text-primary";
-  if (score >= 40) return "text-secondary";
-  return "text-destructive";
+  if (score >= 70) return "text-emerald-700 dark:text-emerald-300";
+  if (score >= 40) return "text-amber-700 dark:text-amber-300";
+  return "text-rose-700 dark:text-rose-300";
 }
 
 export function getHealthBarColor(score: number): string {
-  if (score >= 70) return "bg-primary";
-  if (score >= 40) return "bg-secondary";
-  return "bg-destructive";
+  if (score >= 70) return "bg-emerald-500 dark:bg-emerald-400";
+  if (score >= 40) return "bg-amber-500 dark:bg-amber-400";
+  return "bg-rose-500 dark:bg-rose-400";
+}
+
+/**
+ * Contact health indicator: a fixed-height, rounded track (`bg-muted`) with
+ * a tier-colored fill. Exposes the score to assistive tech via `role="meter"`
+ * and an aria-label.
+ */
+export function HealthBar({
+  score,
+  className,
+}: {
+  score: number | null;
+  className?: string;
+}): ReactElement {
+  const clamped =
+    typeof score === "number" && Number.isFinite(score)
+      ? Math.max(0, Math.min(100, Math.round(score)))
+      : null;
+  return (
+    <div
+      role="meter"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={clamped ?? undefined}
+      aria-label={
+        clamped !== null
+          ? `Health score ${clamped} out of 100`
+          : "Health score not available"
+      }
+      className={`h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-muted ${className ?? ""}`}
+    >
+      <div
+        className={`h-full rounded-full ${getHealthBarColor(clamped ?? 0)}`}
+        style={{ width: `${clamped ?? 0}%` }}
+      />
+    </div>
+  );
 }
 
 export function normalizeTags(input: unknown): NormalizedTag[] {
@@ -180,6 +225,137 @@ export function deriveDisplayName(input: {
   if (short.length > 0) return short;
 
   return "Unnamed profile";
+}
+
+const KEY_ACRONYMS = new Set([
+  "id",
+  "url",
+  "ens",
+  "nft",
+  "usd",
+  "eth",
+  "fid",
+  "ltv",
+  "api",
+  "tx",
+]);
+
+/**
+ * Humanize a raw attribute key (`wallet_age_days`, `firstSeenAt`) into a
+ * readable label ("Wallet Age Days", "First Seen At"). Known crypto acronyms
+ * are upper-cased.
+ */
+export function prettifyKey(key: string): string {
+  const spaced = key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
+  return spaced
+    .split(/[\s._-]+/g)
+    .filter((part) => part.length > 0)
+    .map((part) => {
+      const lower = part.toLowerCase();
+      if (KEY_ACRONYMS.has(lower)) return lower.toUpperCase();
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
+const parseDate = (value: unknown): Date | null => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  if (typeof value === "string" && value.trim().length === 0) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+/** Absolute, locale-formatted timestamp ("Jul 14, 2026, 3:12 PM"). */
+export function formatDateTime(value: unknown): string {
+  const date = parseDate(value);
+  if (!date) return "";
+  try {
+    return date.toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return date.toLocaleString();
+  }
+}
+
+const RELATIVE_UNITS: Array<{
+  unit: Intl.RelativeTimeFormatUnit;
+  seconds: number;
+}> = [
+  { unit: "year", seconds: 31_536_000 },
+  { unit: "month", seconds: 2_592_000 },
+  { unit: "week", seconds: 604_800 },
+  { unit: "day", seconds: 86_400 },
+  { unit: "hour", seconds: 3_600 },
+  { unit: "minute", seconds: 60 },
+];
+
+/** Relative timestamp ("3 hours ago", "last week") for recent events. */
+export function formatRelativeTime(value: unknown): string {
+  const date = parseDate(value);
+  if (!date) return "";
+  const deltaSeconds = (date.getTime() - Date.now()) / 1000;
+  const abs = Math.abs(deltaSeconds);
+  if (abs < 60) return "just now";
+  try {
+    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+    for (const { unit, seconds } of RELATIVE_UNITS) {
+      if (abs >= seconds) {
+        return rtf.format(Math.round(deltaSeconds / seconds), unit);
+      }
+    }
+    return "just now";
+  } catch {
+    return formatDateTime(value);
+  }
+}
+
+const ISO_DATE_LIKE = /^\d{4}-\d{2}-\d{2}(T|\s|$)/;
+const HEX_ADDRESS_LIKE = /^0x[a-fA-F0-9]{40,}$/;
+
+export function isAddressLike(value: unknown): value is string {
+  return typeof value === "string" && HEX_ADDRESS_LIKE.test(value.trim());
+}
+
+/**
+ * Format an arbitrary attribute value by type: booleans → Yes/No, numbers →
+ * locale strings, ISO dates → locale date-times, addresses → shortened,
+ * arrays/objects → readable fallbacks. Unknown values are stringified rather
+ * than hidden.
+ */
+export function formatAttributeValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value.toLocaleString() : String(value);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return "";
+    if (isAddressLike(trimmed)) return shortenWallet(trimmed);
+    if (ISO_DATE_LIKE.test(trimmed)) {
+      const formatted = formatDateTime(trimmed);
+      if (formatted.length > 0) return formatted;
+    }
+    return trimmed;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => formatAttributeValue(item))
+      .filter((item) => item.length > 0)
+      .join(", ");
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 export function hashHue(input: string): number {

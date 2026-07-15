@@ -38,7 +38,7 @@ export function OnboardingLayout({
         ) : (
           <div className="grid min-h-[calc(100vh-140px)] grid-cols-1 lg:grid-cols-2">
             {/* Form Section */}
-            <div className="flex flex-col justify-center px-8 py-12 lg:px-16">
+            <div className="flex flex-col justify-center px-4 py-8 sm:px-8 sm:py-12 lg:px-16">
               {children}
             </div>
 
