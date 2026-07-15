@@ -517,6 +517,15 @@ const CreateAutomationContent = () => {
   >({});
   const [nodeSearch, setNodeSearch] = useState("");
 
+  // On phones the node library renders as an overlay covering the canvas, so
+  // start it closed there (post-mount to stay SSR/hydration safe). Desktop
+  // keeps the docked, open-by-default sidebar.
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setSidebarOpen(false);
+    }
+  }, []);
+
   const { project } = useReactFlow();
 
   const hydrateBuilderState = useCallback(
@@ -1700,23 +1709,23 @@ const CreateAutomationContent = () => {
       <Confetti show={!showConfetti} />
 
       {/* Header */}
-      <header className="flex h-20 items-center justify-between border-b border-border bg-gradient-to-b from-primary/5 to-transparent px-6">
-        <div className="flex items-center gap-4">
+      <header className="flex min-h-20 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border bg-gradient-to-b from-primary/5 to-transparent px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <Link
             href="/automations"
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <ArrowLeftIcon aria-hidden="true" className="h-4 w-4" />
           </Link>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 type="text"
                 value={automationData.name}
                 onChange={(e) =>
                   setAutomationData({ ...automationData, name: e.target.value })
                 }
-                className="rounded-md bg-transparent px-1 text-sm font-semibold tracking-tight text-foreground transition-colors hover:bg-muted/50 focus:bg-muted/50 focus:outline-none"
+                className="min-w-0 max-w-[60vw] rounded-md bg-transparent px-1 text-sm font-semibold tracking-tight text-foreground transition-colors hover:bg-muted/50 focus:bg-muted/50 focus:outline-none sm:max-w-none"
               />
               <span className="flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-primary">
                 <CheckCircleIcon aria-hidden="true" className="h-3 w-3" />
@@ -1745,9 +1754,9 @@ const CreateAutomationContent = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-[220px] grid-cols-2 border border-border bg-muted/60">
+            <TabsList className="grid w-[180px] grid-cols-2 border border-border bg-muted/60 sm:w-[220px]">
               <TabsTrigger value="builder" className="text-xs">
                 Builder
               </TabsTrigger>
@@ -1757,7 +1766,7 @@ const CreateAutomationContent = () => {
             </TabsList>
           </Tabs>
 
-          <div className="h-6 w-px bg-border" />
+          <div className="hidden h-6 w-px bg-border sm:block" />
 
           {!isNew && (
             <button
@@ -1841,7 +1850,7 @@ const CreateAutomationContent = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         {activeTab === "builder" ? (
           <>
             {/* Sidebar */}
@@ -1851,10 +1860,10 @@ const CreateAutomationContent = () => {
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: 304, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
-                  className="flex flex-col border-r border-border bg-gradient-to-b from-card to-card/60"
+                  className="absolute inset-y-0 left-0 z-20 flex max-w-full flex-col border-r border-border bg-gradient-to-b from-card to-card md:static md:z-auto md:bg-gradient-to-b md:from-card md:to-card/60"
                 >
-                  <div className="p-4 pb-3">
-                    <label className="group relative block">
+                  <div className="flex items-center gap-2 p-4 pb-3">
+                    <label className="group relative block min-w-0 flex-1">
                       <MagnifyingGlassIcon
                         aria-hidden="true"
                         className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary"
@@ -1868,6 +1877,14 @@ const CreateAutomationContent = () => {
                         className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm text-foreground shadow-sm placeholder:text-muted-foreground/70 focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => setSidebarOpen(false)}
+                      aria-label="Close node library"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"
+                    >
+                      <XMarkIcon aria-hidden="true" className="h-4 w-4" />
+                    </button>
                   </div>
 
                   <div className="scrollbar-sleek flex-1 space-y-6 overflow-y-auto px-4 pb-5">
@@ -2008,7 +2025,9 @@ const CreateAutomationContent = () => {
                 <div
                   className="absolute z-20 w-64 rounded-2xl border border-border bg-card p-2 shadow-2xl backdrop-blur"
                   style={{
-                    left: showNodeSelector.x + 250, // Offset from node
+                    // Offset from node, clamped so the menu stays on-canvas
+                    // at narrow (phone) widths.
+                    left: `min(${showNodeSelector.x + 250}px, calc(100% - 17rem))`,
                     top: showNodeSelector.y,
                   }}
                 >
@@ -2039,7 +2058,7 @@ const CreateAutomationContent = () => {
                     initial={{ x: 320, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: 320, opacity: 0 }}
-                    className="scrollbar-sleek w-[344px] overflow-y-auto border-l border-border bg-gradient-to-b from-card to-card/60 p-6"
+                    className="scrollbar-sleek absolute inset-y-0 right-0 z-30 w-[min(344px,100%)] overflow-y-auto border-l border-border bg-gradient-to-b from-card to-card p-6 shadow-2xl md:static md:z-auto md:w-[344px] md:bg-gradient-to-b md:from-card md:to-card/60 md:shadow-none"
                   >
                     <div className="mb-6 flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
@@ -2742,10 +2761,10 @@ const CreateAutomationContent = () => {
           </>
         ) : (
           /* Stats Tab Content */
-          <div className="scrollbar-sleek flex-1 overflow-y-auto bg-muted/10 p-6">
+          <div className="scrollbar-sleek flex-1 overflow-y-auto bg-muted/10 p-4 sm:p-6">
             <div className="mx-auto max-w-6xl space-y-6">
               {/* Overview Cards */}
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {[
                   {
                     label: "Entries",
@@ -2835,8 +2854,8 @@ const CreateAutomationContent = () => {
               </div>
 
               {/* Charts Row */}
-              <div className="grid grid-cols-3 gap-6">
-                <div className="col-span-2 rounded-xl border border-border bg-card p-6 shadow-sm">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:col-span-2">
                   <h3 className="mb-6 font-semibold">Performance Over Time</h3>
                   <div className="h-[300px] w-full">
                     {chartData.length > 0 ? (
@@ -2959,7 +2978,7 @@ const CreateAutomationContent = () => {
                   <h3 className="font-semibold">Recent Entries</h3>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[640px] text-sm">
                     <thead>
                       <tr className="border-b border-border/50 bg-muted/30 text-left text-xs font-medium text-muted-foreground">
                         <th className="px-6 py-3">User</th>

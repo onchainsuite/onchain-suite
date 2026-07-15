@@ -17,7 +17,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -43,6 +43,7 @@ import {
   type AudienceExportJobStatus,
   type AudienceImportExportFormat,
   type AudienceImportJobStatus,
+  type AudienceImportPreset,
   audienceService,
 } from "@/features/audience/audience.service";
 import { PageHeader } from "@/shared/components/page/page-header";
@@ -62,6 +63,9 @@ const fieldOptions = [
 // Radix Select reserves "" to clear selection, so the "Skip this column"
 // option is represented by this sentinel and mapped back to "" on change.
 const SKIP_VALUE = "__skip";
+
+// Same sentinel trick for the platform preset select's "none/custom" option.
+const PLATFORM_NONE = "__custom";
 
 type ImportStep = "upload" | "mapping" | "complete";
 type ActiveTab = "import" | "export";
@@ -254,7 +258,10 @@ function FormatHelp() {
           <InformationCircleIcon className="h-5 w-5" aria-hidden="true" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[340px] rounded-xl p-0 text-sm">
+      <PopoverContent
+        align="end"
+        className="w-[min(340px,calc(100vw-2rem))] rounded-xl p-0 text-sm"
+      >
         <div className="border-b border-border px-4 py-3">
           <p className="font-medium text-foreground">Expected file format</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -298,6 +305,51 @@ a@x.io,Ada,0xAbC…,vip`}
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/**
+ * "Import from platform" preset picker (`GET /audience/imports/presets`).
+ * Defaults to none/custom; when a platform is chosen the import POST carries
+ * `?platform=` so the backend auto-maps that platform's CSV export headers
+ * (explicit column mappings still override). Renders nothing when no presets
+ * are available (fetch failure degrades to the manual-only flow).
+ */
+function PlatformPresetSelect({
+  presets,
+  value,
+  onChange,
+}: {
+  presets: AudienceImportPreset[];
+  value: string;
+  onChange: (platform: string) => void;
+}) {
+  if (presets.length === 0) return null;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium text-muted-foreground">
+        Import from platform
+      </span>
+      <Select
+        value={value === "" ? PLATFORM_NONE : value}
+        onValueChange={(v) => onChange(v === PLATFORM_NONE ? "" : v)}
+      >
+        <SelectTrigger
+          aria-label="Import from platform"
+          className="h-9 w-52 rounded-lg border-border bg-background text-sm"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl">
+          <SelectItem value={PLATFORM_NONE}>Custom (manual mapping)</SelectItem>
+          {presets.map((preset) => (
+            <SelectItem key={preset.platform} value={preset.platform}>
+              {preset.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -367,7 +419,40 @@ export default function ImportExportPage() {
   const [filePreviewText, setFilePreviewText] = useState<string>("");
   const [filePreviewError, setFilePreviewError] = useState<string>("");
   const [previewTable, setPreviewTable] = useState<PreviewTable | null>(null);
+  // "" = none/custom (manual mapping only); otherwise a platform id whose
+  // preset the backend applies via `?platform=` on the import POST.
+  const [importPlatform, setImportPlatform] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Presets discovery is effectively static — cache it for the session and
+  // degrade silently to the manual-only flow if it fails (no toast, no gate).
+  const presetsQuery = useQuery({
+    queryKey: ["audience", "imports", "presets"],
+    queryFn: () => audienceService.listImportPresets(),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+  });
+  const importPresets = useMemo(
+    () => presetsQuery.data ?? [],
+    [presetsQuery.data]
+  );
+
+  const selectedPreset = useMemo(
+    () =>
+      importPresets.find((preset) => preset.platform === importPlatform) ??
+      null,
+    [importPresets, importPlatform]
+  );
+
+  // Headers the selected preset pre-maps (case-insensitive), when the
+  // discovery payload exposes the header map — used purely as a visual hint.
+  const presetHeaderSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const header of Object.keys(selectedPreset?.mapping ?? {})) {
+      set.add(header.trim().toLowerCase());
+    }
+    return set;
+  }, [selectedPreset]);
 
   const isCsvFile = Boolean(uploadedFile?.name?.toLowerCase().endsWith(".csv"));
   const isJsonFile = Boolean(
@@ -584,6 +669,9 @@ export default function ImportExportPage() {
         file: uploadedFile,
         format,
         mapping: format === "csv" ? mapping : undefined,
+        // Backend auto-maps this platform's CSV headers; the explicit
+        // mapping entries above still override the preset.
+        platform: importPlatform || undefined,
       });
 
       const jobId =
@@ -854,7 +942,7 @@ export default function ImportExportPage() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="space-y-6 text-foreground"
+      className="mx-auto w-full max-w-[1600px] space-y-6 text-foreground"
     >
       <Link
         href="/audience"
@@ -934,8 +1022,8 @@ export default function ImportExportPage() {
                         isActive
                           ? "text-primary"
                           : isCompleted
-                            ? "text-(--color-text)"
-                            : "text-(--color-text-muted)"
+                            ? "hidden text-(--color-text) sm:inline"
+                            : "hidden text-(--color-text-muted) sm:inline"
                       }`}
                     >
                       {step.label}
@@ -943,7 +1031,7 @@ export default function ImportExportPage() {
                   </button>
                   {!isLast && (
                     <div
-                      className={`mx-4 h-0.5 w-16 rounded-full transition-colors ${
+                      className={`mx-2 h-0.5 w-6 rounded-full transition-colors sm:mx-4 sm:w-16 ${
                         isCompleted ? "bg-primary" : "bg-(--color-border)"
                       }`}
                     />
@@ -970,18 +1058,25 @@ export default function ImportExportPage() {
                   onChange={handleFileInput}
                   className="hidden"
                 />
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-sm font-medium text-foreground">
                     Upload contacts
                   </h3>
-                  <FormatHelp />
+                  <div className="flex items-center gap-3">
+                    <PlatformPresetSelect
+                      presets={importPresets}
+                      value={importPlatform}
+                      onChange={setImportPlatform}
+                    />
+                    <FormatHelp />
+                  </div>
                 </div>
                 <div
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
-                  className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-20 text-center transition-all shadow-md hover:shadow-lg ${
+                  className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-12 text-center transition-all shadow-md hover:shadow-lg sm:p-20 ${
                     dragActive
                       ? "border-primary bg-primary/10 scale-105"
                       : "border-(--color-border) hover:border-primary/50 hover:bg-(--color-card)"
@@ -1269,6 +1364,28 @@ export default function ImportExportPage() {
               </button>
             </div>
 
+            {selectedImportFormat === "csv" && importPresets.length > 0 && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-(--color-border) bg-(--color-card) p-4">
+                <PlatformPresetSelect
+                  presets={importPresets}
+                  value={importPlatform}
+                  onChange={setImportPlatform}
+                />
+                {importPlatform && selectedPreset ? (
+                  <p className="text-xs text-muted-foreground">
+                    The {selectedPreset.label} preset maps recognized CSV
+                    headers automatically on import. Columns you map manually
+                    below override the preset.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Pick a platform to auto-map its CSV export headers, or map
+                    columns manually below.
+                  </p>
+                )}
+              </div>
+            )}
+
             {uploadedFile && (
               <div className="mb-6 rounded-2xl border border-(--color-border) bg-(--color-card) p-5">
                 <div className="flex items-start justify-between gap-4">
@@ -1325,6 +1442,12 @@ export default function ImportExportPage() {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {csvColumns.map((column, index) => {
                   const isMapped = Boolean(column.mappedTo);
+                  // Unmapped columns the platform preset covers are applied
+                  // server-side; manual selection below overrides.
+                  const isPresetMapped =
+                    !isMapped &&
+                    Boolean(importPlatform) &&
+                    presetHeaderSet.has(column.header.trim().toLowerCase());
                   return (
                     <div
                       key={column.header}
@@ -1346,6 +1469,10 @@ export default function ImportExportPage() {
                             className="h-4 w-4 shrink-0 text-primary"
                             aria-hidden="true"
                           />
+                        ) : isPresetMapped ? (
+                          <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                            Preset
+                          </span>
                         ) : (
                           <span className="shrink-0 rounded-full bg-(--color-elevated) px-2 py-0.5 text-[10px] font-medium text-(--color-text-muted)">
                             Skipped
@@ -1391,12 +1518,18 @@ export default function ImportExportPage() {
               </div>
             )}
 
-            <div className="mt-8 flex items-center justify-between border-t border-(--color-border) pt-6">
+            <div className="mt-8 flex flex-col gap-4 border-t border-(--color-border) pt-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-(--color-text-muted)">
                 {selectedImportFormat === "csv"
                   ? mappedCount > 0
-                    ? `Ready to import ${mappedCount} fields`
-                    : "Map at least one column to continue"
+                    ? `Ready to import ${mappedCount} fields${
+                        importPlatform && selectedPreset
+                          ? ` (${selectedPreset.label} preset fills the rest)`
+                          : ""
+                      }`
+                    : importPlatform && selectedPreset
+                      ? `Ready to import with the ${selectedPreset.label} preset`
+                      : "Map at least one column to continue"
                   : "Ready to import"}
               </p>
               <div className="flex gap-3">
@@ -1413,7 +1546,11 @@ export default function ImportExportPage() {
                     importMutation.isPending ||
                     !uploadedFile ||
                     !selectedImportFormat ||
-                    (selectedImportFormat === "csv" && mappedCount === 0)
+                    // A platform preset auto-maps headers server-side, so
+                    // manual mapping is only required without one.
+                    (selectedImportFormat === "csv" &&
+                      mappedCount === 0 &&
+                      !importPlatform)
                   }
                   className="rounded-xl bg-primary px-6 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >

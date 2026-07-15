@@ -89,6 +89,13 @@ function SqlResultsTableImpl({
 }: SqlResultsTableProps) {
   const cols = useMemo(() => columns.slice(0, 8), [columns]);
   const colSpan = cols.length + 2;
+  // Give each data column a readable floor so many-column results scroll
+  // horizontally inside this container instead of squishing at phone widths.
+  // (44px checkbox col + 128px actions col + ~120px per data column.)
+  const tableStyle = useMemo(
+    () => ({ minWidth: `${44 + 128 + cols.length * 120}px` }),
+    [cols.length]
+  );
 
   const parentRef = useRef<HTMLDivElement | null>(null);
   const virtualizer = useVirtualizer({
@@ -110,7 +117,7 @@ function SqlResultsTableImpl({
       className="overflow-hidden rounded-xl border border-border bg-card"
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-secondary/30 px-4 py-3">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <span className="text-sm font-medium text-foreground">
             {totalRows.toLocaleString()} results
           </span>
@@ -142,7 +149,7 @@ function SqlResultsTableImpl({
             </span>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {selectedRows.length > 0 ? (
             <span className="text-xs text-muted-foreground">
               {selectedRows.length} selected
@@ -190,7 +197,7 @@ function SqlResultsTableImpl({
       </div>
 
       <div ref={parentRef} className="max-h-[480px] overflow-auto">
-        <table className="w-full table-fixed text-sm">
+        <table className="w-full table-fixed text-sm" style={tableStyle}>
           <colgroup>
             <col className="w-11" />
             {cols.map((c) => (

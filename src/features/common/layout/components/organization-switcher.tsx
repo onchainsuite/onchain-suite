@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { readBrandingData } from "@/hooks/client/use-get-logo";
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -377,20 +378,9 @@ export function OrganizationSwitcher() {
     }
   );
 
-  const brandingPayload: unknown = branding;
-  const brandingData =
-    isJsonObject(brandingPayload) && "data" in brandingPayload
-      ? brandingPayload.data
-      : brandingPayload;
-  const brandingObj = isJsonObject(brandingData) ? brandingData : undefined;
-  const activeOrgLogo =
-    (typeof brandingObj?.primaryLogo === "string"
-      ? brandingObj.primaryLogo
-      : undefined) ??
-    (typeof brandingObj?.logoUrl === "string"
-      ? brandingObj.logoUrl
-      : undefined) ??
-    (typeof brandingObj?.logo === "string" ? brandingObj.logo : undefined);
+  // Shared reader: covers logoPreview/primaryLogoUrl fields and resolves
+  // backend-relative URLs so the avatar image actually loads.
+  const activeOrgLogo = readBrandingData(branding).primary;
 
   // Debug log if active org is missing but ID is set
   React.useEffect(() => {

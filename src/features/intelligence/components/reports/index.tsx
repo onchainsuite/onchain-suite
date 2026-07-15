@@ -5,7 +5,9 @@ import {
   ArrowTrendingUpIcon,
   BoltIcon,
   CalendarIcon,
+  ChatBubbleLeftRightIcon,
   ChevronDownIcon,
+  CodeBracketIcon,
   CpuChipIcon,
   EnvelopeIcon,
   EyeIcon,
@@ -88,6 +90,39 @@ const formatMoneyChange = (v: unknown): string => {
   return `+$${dollars.toLocaleString()}`;
 };
 
+// A query saved via POST /intelligence/query/{queryId}/save ("Save Report" in
+// the MCP chat / SQL editor). GET /intelligence/reports is campaign-backed and
+// never returns these; the documented surface for saved runs is
+// GET /intelligence/query/history, where saving writes the report `name` onto
+// the run's history row. Rows without a name are ordinary (unsaved) runs.
+export type SavedQueryReport = {
+  queryId: string;
+  name: string;
+  /** SQL text for SQL runs, the prompt for MCP runs; "" when omitted. */
+  query: string;
+  isMcp: boolean;
+  savedAt: string;
+  summary: string;
+};
+
+const toSavedQueryReport = (input: unknown): SavedQueryReport | null => {
+  if (!isJsonObject(input)) return null;
+  const r = input as Record<string, unknown>;
+  const name = asString(r.name).trim();
+  if (name.length === 0) return null;
+  const queryId = asString(r.queryId) || asString(r.id);
+  if (queryId.length === 0) return null;
+  const provider = asString(r.provider).toLowerCase();
+  return {
+    queryId,
+    name,
+    query: asString(r.query),
+    isMcp: provider.includes("goldrush") || provider.includes("mcp"),
+    savedAt: formatDate(r.createdAt ?? r.timestamp ?? r.updatedAt),
+    summary: asString(r.resultSummary) || asString(r.summary),
+  };
+};
+
 const toUiReport = (input: unknown): UiReport | null => {
   if (!isJsonObject(input)) return null;
   const r = input as Record<string, unknown>;
@@ -165,10 +200,14 @@ const toUiReport = (input: unknown): UiReport | null => {
 };
 
 interface ReportsTabProps {
-  setActiveTab: (tab: string) => void;
+  /**
+   * Re-open a saved query's data: SQL runs load into the SQL editor (results
+   * refetched by queryId), MCP runs pre-fill the chat composer for a resend.
+   */
+  onOpenSavedQuery?: (item: SavedQueryReport) => void;
 }
 
-export function ReportsTab({ setActiveTab }: ReportsTabProps) {
+export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
   const filterTriggerClassName =
     "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
 
@@ -222,6 +261,28 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
     refetchOnWindowFocus: false,
   });
 
+  // Saved query reports (chat / SQL "Save Report"). Deliberately keyed under
+  // ["intelligence","reports",…] — not the chat's ["intelligence","query",
+  // "history"] — so the save mutation's existing invalidation of
+  // ["intelligence","reports"] marks this stale and a fresh save is visible
+  // the moment this tab mounts, despite the 5-minute global staleTime.
+  const savedQueriesQuery = useQuery({
+    queryKey: ["intelligence", "reports", "saved-queries"],
+    queryFn: async () => {
+      const res = await intelligenceService.getQueryHistory();
+      const items = Array.isArray(res)
+        ? res
+        : ((res as { items?: unknown[] }).items ?? []);
+      return (Array.isArray(items) ? items : [])
+        .map(toSavedQueryReport)
+        .filter((r): r is SavedQueryReport => !!r);
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const hasAnyReports = (reportsQuery.data?.length ?? 0) > 0;
+
   const filteredReports = useMemo(() => {
     const source = reportsQuery.data ?? [];
     return source.filter((report) => {
@@ -235,6 +296,17 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
       return matchesSearch && matchesType && matchesStatus;
     });
   }, [reportSearch, reportStatusFilter, reportTypeFilter, reportsQuery.data]);
+
+  const filteredSavedQueries = useMemo(() => {
+    const source = savedQueriesQuery.data ?? [];
+    if (normalizedSearch.length === 0) return source;
+    const needle = normalizedSearch.toLowerCase();
+    return source.filter(
+      (item) =>
+        item.name.toLowerCase().includes(needle) ||
+        item.query.toLowerCase().includes(needle)
+    );
+  }, [normalizedSearch, savedQueriesQuery.data]);
 
   return (
     <div className="space-y-4">
@@ -403,6 +475,67 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
         </div>
       </div>
 
+      {filteredSavedQueries.length > 0 && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="border-b border-border px-4 py-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium">Saved queries</h3>
+              <span className="text-xs text-muted-foreground">
+                {filteredSavedQueries.length.toLocaleString()} saved from chat
+                &amp; SQL
+              </span>
+            </div>
+          </div>
+          <ul className="divide-y divide-border">
+            {filteredSavedQueries.map((item) => (
+              <li
+                key={item.queryId}
+                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/30"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  {item.isMcp ? (
+                    <ChatBubbleLeftRightIcon
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <CodeBracketIcon className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {item.name}
+                    </p>
+                    <span className="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+                      {item.isMcp ? "MCP" : "SQL"}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {item.savedAt}
+                    </span>
+                  </div>
+                  {(item.summary || item.query) && (
+                    <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                      {(item.summary || item.query).replace(/\s+/g, " ").trim()}
+                    </p>
+                  )}
+                </div>
+                {onOpenSavedQuery && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenSavedQuery(item)}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90"
+                  >
+                    <EyeIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                    {item.isMcp ? "Re-run in Chat" : "Open in SQL"}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {reportsQuery.isFetching ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
@@ -419,7 +552,7 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
               <PaperAirplaneIcon className="h-5 w-5" aria-hidden="true" />
             </div>
             <h3 className="mt-4 text-lg font-semibold text-foreground">
-              No intelligence reports yet
+              {hasAnyReports ? "No matching reports" : "No reports yet"}
             </h3>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
               {reportsQuery.error
@@ -428,16 +561,19 @@ export function ReportsTab({ setActiveTab }: ReportsTabProps) {
                       ? reportsQuery.error.message
                       : "Failed to load reports"
                   )
-                : "Run your first campaign or automation to start tracking opens, clicks, and revenue attribution here."}
+                : hasAnyReports
+                  ? "Try a different search term or filter."
+                  : "Reports are generated from your campaigns. Create your first campaign to see performance here."}
             </p>
-            <button
-              type="button"
-              onClick={() => setActiveTab("query")}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <SparklesIcon className="h-4 w-4" aria-hidden="true" />
-              Run a query
-            </button>
+            {!hasAnyReports && !reportsQuery.error && (
+              <Link
+                href="/campaigns/new"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <SparklesIcon className="h-4 w-4" aria-hidden="true" />
+                Create your first campaign
+              </Link>
+            )}
           </div>
         ) : (
           <>

@@ -1,9 +1,15 @@
+import type { SuggestedContract } from "../onboarding.service";
+
 export interface OnboardingData {
   // Organization Setup
   organizationName: string;
   websiteUrl: string;
   logoUrl?: string;
   description?: string;
+  /** Sector label driving `POST /onboarding/suggest-contracts`. */
+  sector?: string;
+  /** Contracts the user accepted from the suggestion panel (reviewed). */
+  contracts?: SuggestedContract[];
 
   // Legacy/Optional
   firstName?: string;

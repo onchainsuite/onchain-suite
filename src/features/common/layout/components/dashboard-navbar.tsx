@@ -23,7 +23,7 @@ import {
 } from "@/shared/components/ui/avatar";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
-interface NavItem {
+export interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
@@ -63,9 +63,7 @@ export function DashboardNavbar({
     userFullName && userFullName.length > 0 ? userFullName : "User";
   const avatarColor = userId ? getAvatarColor(userId) : undefined;
   const logoData = useGetLogo();
-  const { lightIcon } = logoData;
-  const { darkIcon } = logoData;
-  const favicon = "favicon" in logoData ? logoData.favicon : undefined;
+  const { lightIcon, darkIcon, favicon, isCustom } = logoData;
 
   useEffect(() => {
     if (favicon) {
@@ -86,7 +84,8 @@ export function DashboardNavbar({
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-30 transition-all duration-300",
+        // Hidden below lg — mobile navigation lives in the header's sheet menu.
+        "fixed inset-y-0 left-0 z-30 transition-all duration-300 max-lg:hidden",
         isCollapsed ? "w-20" : "w-64"
       )}
       onMouseEnter={() => {
@@ -111,12 +110,16 @@ export function DashboardNavbar({
               "relative flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground"
             )}
           >
+            {/* Org-branded logos can live on arbitrary hosts (backend/storage)
+                that aren't in next.config images.remotePatterns — skip the
+                optimizer for them so next/image doesn't reject the host. */}
             <Image
               src={lightIcon}
               width={20}
               height={20}
               alt="Onchain Logo"
               className="dark:hidden"
+              unoptimized={isCustom}
             />
             <Image
               src={darkIcon}
@@ -124,6 +127,7 @@ export function DashboardNavbar({
               height={20}
               alt="Onchain Logo"
               className="hidden dark:block"
+              unoptimized={isCustom}
             />
           </Link>
 

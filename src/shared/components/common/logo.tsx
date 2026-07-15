@@ -11,7 +11,7 @@ export function Logo({
   type?: "icon" | "full";
   className?: string;
 }) {
-  const { lightIcon, darkIcon, lightFull, darkFull } = useGetLogo();
+  const { lightIcon, darkIcon, lightFull, darkFull, isCustom } = useGetLogo();
   const lightSrc = type === "icon" ? lightIcon : lightFull;
   const darkSrc = type === "icon" ? darkIcon : darkFull;
 
@@ -23,6 +23,7 @@ export function Logo({
         height={40}
         alt="Onchain Suite Logo"
         className={cn(className, "dark:hidden")}
+        unoptimized={isCustom}
       />
       <Image
         src={darkSrc}
@@ -30,6 +31,7 @@ export function Logo({
         height={40}
         alt="Onchain Suite Logo"
         className={cn(className, "hidden dark:block")}
+        unoptimized={isCustom}
       />
     </Link>
   );

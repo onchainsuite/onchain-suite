@@ -130,7 +130,25 @@ const PlanUsage = () => {
               : undefined
           ),
         },
-      ].filter((item) => item.used > 0 || (item.limit ?? 0) > 0);
+        {
+          key: "Tracked wallets",
+          used: pickNumber(
+            isJsonObject(usageRoot.meters) &&
+              isJsonObject(usageRoot.meters.trackedWallets)
+              ? usageRoot.meters.trackedWallets.used
+              : undefined
+          ),
+          limit: pickNumber(
+            isJsonObject(usageRoot.meters) &&
+              isJsonObject(usageRoot.meters.trackedWallets)
+              ? usageRoot.meters.trackedWallets.limit
+              : undefined
+          ),
+        },
+        // limit === -1 is the backend's unlimited convention — keep those.
+      ].filter(
+        (item) => item.used > 0 || (item.limit ?? 0) > 0 || item.limit === -1
+      );
   const paymentMethodLabel = paymentMethod
     ? [
         pickString(paymentMethod.brand),
@@ -250,14 +268,15 @@ const PlanUsage = () => {
               No usage metrics are available for this billing period yet.
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">
-              {usageItems.slice(0, 3).map((quota, idx: number) => {
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+              {usageItems.slice(0, 4).map((quota, idx: number) => {
                 const quotaObj = isJsonObject(quota) ? quota : {};
                 const used = Number(quotaObj.used ?? 0);
                 const limit =
                   quotaObj.limit !== undefined ? Number(quotaObj.limit) : null;
+                const unlimited = limit === -1;
                 const percent =
-                  limit && limit > 0
+                  !unlimited && limit && limit > 0
                     ? Math.min(100, Math.round((used / limit) * 100))
                     : 0;
                 const label = String(quotaObj.key ?? "Usage");
@@ -297,7 +316,7 @@ const PlanUsage = () => {
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                         <span className="text-2xl font-semibold text-foreground">
-                          {percent}%
+                          {unlimited ? "∞" : `${percent}%`}
                         </span>
                       </div>
                     </div>
@@ -305,9 +324,11 @@ const PlanUsage = () => {
                       <div className="font-medium text-foreground">{label}</div>
                       <div className="text-sm text-muted-foreground">
                         {used.toLocaleString()}
-                        {limit && limit > 0
-                          ? ` / ${limit.toLocaleString()}`
-                          : ""}
+                        {unlimited
+                          ? " / Unlimited"
+                          : limit && limit > 0
+                            ? ` / ${limit.toLocaleString()}`
+                            : ""}
                       </div>
                     </div>
                   </motion.div>

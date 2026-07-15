@@ -1,14 +1,13 @@
 import {
   ArrowPathIcon,
   CheckIcon,
-  ClipboardDocumentIcon,
   ExclamationCircleIcon,
   LockClosedIcon,
   QrCodeIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { AnimatePresence, motion } from "framer-motion";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
 
@@ -24,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { authClient } from "@/lib/auth-client";
+
+import { CopyButton } from "@/shared/components/common/copy-button";
 
 interface TwoFactorAuthModalProps {
   open: boolean;
@@ -41,28 +42,47 @@ const TwoFactorAuthModal = ({
   const [step, setStep] = useState<"initial" | "password" | "qr" | "backup">(
     "initial"
   );
+  // What the password confirmation is for: enrolling/re-enrolling TOTP
+  // ("enable") or turning 2FA off ("disable"). Without this, "Reconfigure
+  // 2FA" and "Disable 2FA" would be indistinguishable at the password step.
+  const [pendingAction, setPendingAction] = useState<"enable" | "disable">(
+    "enable"
+  );
   const [totpURI, setTotpURI] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
-  const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState("");
+
+  // Manual-entry secret for authenticator apps that can't scan the QR code.
+  const totpSecret = useMemo(() => {
+    if (!totpURI) return "";
+    try {
+      return new URL(totpURI).searchParams.get("secret") ?? "";
+    } catch {
+      return "";
+    }
+  }, [totpURI]);
 
   // Reset state when modal opens/closes
   useEffect(() => {
     if (open) {
       setStep("initial");
+      setPendingAction("enable");
       setTwoFACode("");
       setPassword("");
       setTotpURI("");
       setBackupCodes([]);
       setError("");
+      setLoading(false);
     }
   }, [open]);
 
   const isEnabled = session?.user?.twoFactorEnabled;
 
-  const handleEnableStart = () => {
-    setStep("password");
+  const goToPasswordStep = (action: "enable" | "disable") => {
+    setPendingAction(action);
+    setPassword("");
     setError("");
+    setStep("password");
   };
 
   const handlePasswordSubmit = async () => {
@@ -76,6 +96,7 @@ const TwoFactorAuthModal = ({
       if (res.data) {
         setTotpURI(res.data.totpURI);
         setBackupCodes(res.data.backupCodes ?? []);
+        setPassword("");
         setStep("qr");
       } else if (res.error) {
         const message = res.error.message ?? "An error occurred";
@@ -119,11 +140,6 @@ const TwoFactorAuthModal = ({
   };
 
   const handleDisable = async () => {
-    if (step !== "password") {
-      setStep("password");
-      return;
-    }
-
     setLoading(true);
     setError("");
     try {
@@ -147,16 +163,9 @@ const TwoFactorAuthModal = ({
     }
   };
 
-  const copyBackupCodes = () => {
-    navigator.clipboard.writeText(backupCodes.join("\n"));
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
-    toast.success("Backup codes copied to clipboard");
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md overflow-hidden p-0 gap-0 border-border/80 bg-background/95 backdrop-blur-xl">
+      <DialogContent className="sm:max-w-md max-h-[90dvh] overflow-y-auto p-0 gap-0 border-border/80 bg-background/95 backdrop-blur-xl">
         <div className="p-6 pb-0">
           <DialogHeader>
             <DialogTitle className="text-xl font-light tracking-tight text-foreground">
@@ -203,7 +212,7 @@ const TwoFactorAuthModal = ({
                 <div className="grid gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => setStep("password")}
+                    onClick={() => goToPasswordStep("enable")}
                     className="h-11 w-full justify-start gap-3 border-border/60 hover:bg-muted/50"
                   >
                     <ArrowPathIcon
@@ -218,7 +227,7 @@ const TwoFactorAuthModal = ({
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => setStep("password")}
+                    onClick={() => goToPasswordStep("disable")}
                     className="h-11 w-full justify-start gap-3 border-border/60 hover:bg-red-50 hover:text-red-600 hover:border-red-100 dark:hover:bg-red-900/10 dark:hover:border-red-900/30 dark:hover:text-red-400 transition-colors"
                   >
                     <LockClosedIcon className="h-4 w-4" aria-hidden="true" />
@@ -254,7 +263,7 @@ const TwoFactorAuthModal = ({
                   </div>
                 </div>
                 <Button
-                  onClick={handleEnableStart}
+                  onClick={() => goToPasswordStep("enable")}
                   className="w-full h-11 shadow-lg shadow-primary/20"
                 >
                   Setup 2FA
@@ -295,13 +304,20 @@ const TwoFactorAuthModal = ({
                 <div className="flex justify-end gap-2 pt-2">
                   <Button
                     variant="ghost"
-                    onClick={() => setStep("initial")}
+                    onClick={() => {
+                      setError("");
+                      setStep("initial");
+                    }}
                     className="h-10"
                   >
                     Cancel
                   </Button>
                   <Button
-                    onClick={isEnabled ? handleDisable : handlePasswordSubmit}
+                    onClick={
+                      pendingAction === "disable"
+                        ? handleDisable
+                        : handlePasswordSubmit
+                    }
                     disabled={loading || !password}
                     className="h-10 min-w-[100px]"
                   >
@@ -311,7 +327,7 @@ const TwoFactorAuthModal = ({
                         aria-hidden="true"
                       />
                     ) : null}
-                    {isEnabled ? "Disable 2FA" : "Continue"}
+                    {pendingAction === "disable" ? "Disable 2FA" : "Continue"}
                   </Button>
                 </div>
               </motion.div>
@@ -345,6 +361,20 @@ const TwoFactorAuthModal = ({
                     Scan this QR code with your authenticator app
                   </p>
                 </div>
+
+                {totpSecret ? (
+                  <div className="rounded-lg border border-border/60 bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Can&apos;t scan? Enter this key manually:
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <code className="min-w-0 flex-1 break-all font-mono text-xs text-foreground">
+                        {totpSecret}
+                      </code>
+                      <CopyButton value={totpSecret} label="Copy setup key" />
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">
@@ -385,7 +415,11 @@ const TwoFactorAuthModal = ({
                 <div className="flex justify-end gap-2 pt-2">
                   <Button
                     variant="ghost"
-                    onClick={() => setStep("initial")}
+                    onClick={() => {
+                      setError("");
+                      setTwoFACode("");
+                      setStep("initial");
+                    }}
                     className="h-10"
                   >
                     Cancel
@@ -441,24 +475,11 @@ const TwoFactorAuthModal = ({
                       </div>
                     ))}
                   </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
+                  <CopyButton
+                    value={backupCodes.join("\n")}
+                    label="Copy backup codes"
                     className="absolute right-2 top-2 h-8 w-8 hover:bg-background/80"
-                    onClick={copyBackupCodes}
-                  >
-                    {isCopied ? (
-                      <CheckIcon
-                        className="h-4 w-4 text-emerald-500"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <ClipboardDocumentIcon
-                        className="h-4 w-4"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </Button>
+                  />
                 </div>
 
                 <Button

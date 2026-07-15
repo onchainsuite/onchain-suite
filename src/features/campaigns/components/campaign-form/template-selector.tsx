@@ -548,7 +548,7 @@ export function TemplateSelector({
             className="pl-9 h-10 rounded-xl border-border bg-background transition-all duration-300"
           />
         </div>
-        <div className="flex w-full items-center justify-between gap-3 sm:w-auto">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:flex-nowrap sm:justify-end sm:gap-3">
           <div className="flex items-center gap-1 bg-muted rounded-xl p-1">
             <Button
               variant="ghost"

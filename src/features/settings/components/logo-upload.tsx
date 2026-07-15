@@ -5,7 +5,7 @@ import {
 } from "@heroicons/react/24/outline";
 import axios from "axios";
 import { motion } from "framer-motion";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 
@@ -37,6 +37,7 @@ const LogoUpload = ({
   onUploaded,
 }: LogoUploadProps) => {
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [success, setSuccess] = useState(false);
@@ -45,6 +46,49 @@ const LogoUpload = ({
   const { mutate } = useSWRConfig();
 
   const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
+  // Reset for a fresh upload every time the dialog opens — a stale `success`
+  // from a previous upload used to lock the dialog on "Upload Complete!" and
+  // made it impossible to upload the other logo types.
+  useEffect(() => {
+    if (!showLogoUploadModal) return;
+    setFile(null);
+    setSuccess(false);
+    setSaving(false);
+    setUploadProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [showLogoUploadModal, logoUploadType]);
+
+  // Object-URL preview of the selected file; revoked on replacement/unmount.
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  /**
+   * Per-type allowed uploads. ICO is only valid for the favicon slot —
+   * primary/dark logos must be SVG/PNG/JPG.
+   */
+  const validateFileType = (candidate: File): string | null => {
+    const name = candidate.name.toLowerCase();
+    const extension = name.includes(".") ? name.split(".").pop() : "";
+    if (logoUploadType === "favicon") {
+      return extension === "ico" || extension === "png"
+        ? null
+        : "Favicons must be an ICO or PNG file.";
+    }
+    if (extension === "ico") {
+      return "ICO files can only be used for the favicon — upload an SVG, PNG, or JPG logo here.";
+    }
+    return ["svg", "png", "jpg", "jpeg"].includes(extension ?? "")
+      ? null
+      : "Logos must be an SVG, PNG, or JPG file.";
+  };
 
   const mergeBrandingPreview = (payload: unknown) => {
     const root = isJsonObject(payload) ? payload : undefined;
@@ -75,13 +119,22 @@ const LogoUpload = ({
     }
     if (Object.keys(next).length === 0) return;
 
+    // The SWR cache for this key holds the `{ success, data }` envelope —
+    // merge into `data` (a root-level merge is invisible to readBrandingData).
     mutate(
       "/api/v1/organization/branding",
       (current: unknown) => {
         const currentRoot = isJsonObject(current) ? current : {};
+        const currentData = isJsonObject(currentRoot.data)
+          ? currentRoot.data
+          : {};
         return {
           ...currentRoot,
-          ...next,
+          success: true,
+          data: {
+            ...currentData,
+            ...next,
+          },
         };
       },
       false
@@ -91,6 +144,13 @@ const LogoUpload = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const [selectedFile] = e.target.files ?? [];
     if (!selectedFile) return;
+
+    const typeError = validateFileType(selectedFile);
+    if (typeError) {
+      toast.error(typeError);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     if (selectedFile.size > MAX_FILE_SIZE) {
       toast.error("File size exceeds 100MB limit");
@@ -256,6 +316,22 @@ const LogoUpload = ({
             >
               {file ? (
                 <div className="text-center w-full">
+                  {previewUrl ? (
+                    <div
+                      className={`mx-auto mb-4 flex items-center justify-center overflow-hidden rounded-xl border border-border bg-[repeating-conic-gradient(theme(colors.muted.DEFAULT)_0%_25%,transparent_0%_50%)] bg-[length:16px_16px] p-3 ${
+                        logoUploadType === "favicon"
+                          ? "h-20 w-20"
+                          : "h-24 w-full max-w-xs"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- object URL preview of a local file */}
+                      <img
+                        src={previewUrl}
+                        alt="Logo preview"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                  ) : null}
                   <p className="font-medium text-(--brand-oxford-blue) dark:text-(--brand-alice-blue)">
                     {file.name}
                   </p>
@@ -281,7 +357,9 @@ const LogoUpload = ({
                     Drop your file here, or browse
                   </p>
                   <p className="mt-1 text-xs text-(--brand-oxford-blue)/70 dark:text-(--brand-alice-blue)/70">
-                    SVG, PNG up to 100MB
+                    {logoUploadType === "favicon"
+                      ? "ICO or PNG up to 100MB"
+                      : "SVG, PNG, or JPG up to 100MB"}
                   </p>
                 </>
               )}

@@ -204,6 +204,7 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
               : undefined
           }
           hasActiveOrganization={hasActiveOrganization}
+          navItems={navItems}
         />
       </div>
 

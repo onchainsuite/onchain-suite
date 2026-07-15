@@ -54,6 +54,27 @@ export interface ListProfilesParams {
 
 export type AudienceImportExportFormat = "csv" | "json";
 
+/**
+ * Platforms whose CSV export headers the backend auto-maps when passed as
+ * `?platform=` on `POST /audience/imports` (docs/backend.md 2026-07-16).
+ * Explicit `mapping` entries still override the preset.
+ */
+export type AudienceImportPlatform =
+  | "mailchimp"
+  | "constant_contact"
+  | "sendgrid"
+  | "sparkpost"
+  | "postmark"
+  | "hubspot";
+
+/** One platform preset from `GET /audience/imports/presets`. */
+export interface AudienceImportPreset {
+  platform: AudienceImportPlatform | string;
+  label: string;
+  /** CSV header → audience field map, when the backend exposes it. */
+  mapping?: Record<string, string>;
+}
+
 export type AudienceJobState =
   | "queued"
   | "processing"
@@ -157,6 +178,8 @@ export interface AudienceProfileTransaction {
   status?: string;
   method?: string;
   contractAddress?: string;
+  /** Chain identifier (e.g. `eth-mainnet`) when the backend includes it. */
+  chain?: string;
 }
 
 export interface AudienceProfileContractActivity {
@@ -165,6 +188,10 @@ export interface AudienceProfileContractActivity {
   label?: string;
   volumeUsd?: number;
   txCount: number;
+  /** Chain identifier (e.g. `eth-mainnet`) when the backend includes it. */
+  chain?: string;
+  /** ISO timestamp of the most recent interaction, when provided. */
+  lastInteractionAt?: string;
 }
 
 export interface AudienceProfileDappStats {
@@ -229,6 +256,73 @@ const extractItems = <T>(payload: unknown): T[] => {
   if (isJsonObject(root) && Array.isArray(root.items)) return root.items as T[];
   if (isJsonObject(root) && Array.isArray(root.data)) return root.data as T[];
   return [];
+};
+
+/** "constant_contact" → "Constant Contact". */
+const prettifyPlatformId = (platform: string) =>
+  platform
+    .split(/[_-]+/)
+    .filter((part) => part.length > 0)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+
+const toStringMap = (value: unknown): Record<string, string> | undefined => {
+  if (!isJsonObject(value)) return undefined;
+  const entries = Object.entries(value).filter(
+    (entry): entry is [string, string] => typeof entry[1] === "string"
+  );
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+};
+
+/**
+ * Normalize `GET /audience/imports/presets` into {@link AudienceImportPreset}
+ * rows. Accepts an array of preset objects, an array of platform ids, a
+ * `{ presets | platforms: [...] }` wrapper, or a platform-keyed object.
+ */
+export const normalizeImportPresets = (
+  payload: unknown
+): AudienceImportPreset[] => {
+  const root = extractData<unknown>(payload);
+  const rootObj = isJsonObject(root) ? root : undefined;
+  const list = Array.isArray(root)
+    ? root
+    : Array.isArray(rootObj?.presets)
+      ? rootObj.presets
+      : Array.isArray(rootObj?.platforms)
+        ? rootObj.platforms
+        : rootObj
+          ? Object.entries(rootObj).map(([platform, value]) => ({
+              platform,
+              ...(isJsonObject(value) ? value : {}),
+            }))
+          : [];
+
+  return list
+    .map((entry): AudienceImportPreset | null => {
+      if (typeof entry === "string" && entry.trim().length > 0) {
+        const platform = entry.trim();
+        return { platform, label: prettifyPlatformId(platform) };
+      }
+      if (!isJsonObject(entry)) return null;
+      const platform =
+        typeof entry.platform === "string" && entry.platform.trim().length > 0
+          ? entry.platform.trim()
+          : typeof entry.id === "string" && entry.id.trim().length > 0
+            ? entry.id.trim()
+            : null;
+      if (!platform) return null;
+      return {
+        platform,
+        label:
+          typeof entry.label === "string" && entry.label.trim().length > 0
+            ? entry.label.trim()
+            : typeof entry.name === "string" && entry.name.trim().length > 0
+              ? entry.name.trim()
+              : prettifyPlatformId(platform),
+        mapping: toStringMap(entry.mapping ?? entry.headers),
+      };
+    })
+    .filter((row): row is AudienceImportPreset => row !== null);
 };
 
 export const audienceService = {
@@ -467,12 +561,30 @@ export const audienceService = {
     );
   },
 
+  /**
+   * `GET /audience/imports/presets` — platform CSV-header presets for
+   * `createImportJob`'s `platform` option. Callers cache this aggressively
+   * (long `staleTime`) and degrade to the manual-only flow when it fails.
+   */
+  async listImportPresets(orgId?: string): Promise<AudienceImportPreset[]> {
+    const payload = await request<unknown>(
+      { method: "GET", url: "/audience/imports/presets" },
+      orgId
+    );
+    return normalizeImportPresets(payload);
+  },
+
   createImportJob(
     input: {
       file: File;
       format?: AudienceImportExportFormat;
       mapping?: Record<string, string>;
       options?: Record<string, unknown>;
+      /**
+       * Platform preset (`?platform=mailchimp|…`): the backend auto-maps that
+       * platform's CSV export headers; explicit `mapping` entries override.
+       */
+      platform?: AudienceImportPlatform | string;
       query?: Record<string, string | number | boolean | undefined>;
     },
     orgId?: string
@@ -488,6 +600,9 @@ export const audienceService = {
 
     const params: Record<string, unknown> = { ...(input.query ?? {}) };
     if (input.format) params.format = input.format;
+    if (input.platform && input.platform.trim().length > 0) {
+      params.platform = input.platform.trim();
+    }
 
     return request<{ jobId?: string; id?: string } & AudienceImportJobStatus>(
       {

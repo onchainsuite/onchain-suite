@@ -808,7 +808,7 @@ export function IntelligenceViz() {
                 </div>
               </>
             )}
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => setView("automation")}
@@ -1019,14 +1019,14 @@ export function ProductWindow() {
                   key={t.id}
                   type="button"
                   onClick={() => selectTab(t.id)}
-                  className="relative shrink-0 px-3.5 pb-2.5 pt-3.5 text-[15px] font-semibold transition-colors"
+                  className="relative shrink-0 px-2.5 pb-2.5 pt-3.5 text-[14px] font-semibold transition-colors sm:px-3.5 sm:text-[15px]"
                   style={{ color: isActive ? "var(--ink)" : "var(--muted)" }}
                 >
                   {t.label}
                   {isActive ? (
                     <motion.span
                       layoutId="ocs2-tab-active"
-                      className="absolute inset-x-3 bottom-1 h-[2.5px] rounded-full"
+                      className="absolute inset-x-2.5 bottom-1 h-[2.5px] rounded-full sm:inset-x-3"
                       style={{ background: "var(--acc)" }}
                       transition={{
                         type: "spring",

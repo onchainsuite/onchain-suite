@@ -55,6 +55,12 @@
   margin: 0 auto;
   padding: 0 28px;
 }
+/* phones: tighter gutters so cards keep usable width at ~360-430px */
+@media (max-width: 640px) {
+  .ocs2 .wrap {
+    padding: 0 20px;
+  }
+}
 /* wide monitors: let the hero card + sections use more of the viewport
    (mobile/tablet keep the 1180px cap above) */
 @media (min-width: 1440px) {
@@ -65,6 +71,25 @@
 @media (min-width: 1920px) {
   .ocs2 .wrap {
     max-width: 1520px;
+  }
+}
+/* TVs (2560px+): one more container step; prose stays readable because
+   sections cap their own text width (max-w-*) inside the wrap */
+@media (min-width: 2560px) {
+  .ocs2 .wrap {
+    max-width: 1720px;
+  }
+}
+
+/* ----- hero headline: fluid from phones to TVs ----- */
+.ocs2 .hero-title {
+  font-size: clamp(2.15rem, 5.4vw, 4.2rem);
+  line-height: 1.06;
+}
+@media (min-width: 2560px) {
+  .ocs2 .hero-title {
+    font-size: 4.75rem;
+    line-height: 1.04;
   }
 }
 .ocs2 .eyebrow {
@@ -176,6 +201,41 @@
   visibility: hidden;
   pointer-events: none;
 }
+/* On phones the CTA lives inside the mobile menu instead — the top bar only
+   fits logo + hamburger. (Media query, not the `hidden` utility: this file is
+   unlayered so `.ocs2 .btn { display }` would beat Tailwind's layered class.) */
+@media (max-width: 639px) {
+  .ocs2 .nav-cta {
+    display: none;
+  }
+}
+
+/* ----- mobile nav menu (hamburger dropdown) ----- */
+.ocs2 .mobile-menu {
+  animation: ocs2-menu-in 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* Single-column phones center the menu content as a column (rows stay
+   internally aligned so the icons don't stair-step); the ≥480px two-column
+   grid reads better full-width, so centering stops there. */
+@media (max-width: 479px) {
+  .ocs2 .mobile-menu .mono {
+    text-align: center;
+  }
+  .ocs2 .mobile-menu .grid {
+    max-width: 21rem;
+    margin-inline: auto;
+  }
+}
+@keyframes ocs2-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* ----- cards ----- */
 .ocs2 .card {
@@ -275,6 +335,20 @@
   background: #fff;
   border: 3px solid var(--acc);
   box-shadow: 0 2px 6px rgba(26, 24, 20, 0.18);
+}
+/* touch devices: fatter track + thumb so sliders are draggable with a finger */
+@media (pointer: coarse) {
+  .ocs2 .ocs2-range {
+    height: 8px;
+  }
+  .ocs2 .ocs2-range::-webkit-slider-thumb {
+    width: 26px;
+    height: 26px;
+  }
+  .ocs2 .ocs2-range::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+  }
 }
 
 /* ----- keyframes ----- */

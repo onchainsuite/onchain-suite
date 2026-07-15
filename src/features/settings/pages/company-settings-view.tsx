@@ -20,6 +20,7 @@ import { CopyButton } from "@/components/common/copy-button";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
+import { resolveBrandAssetUrl } from "@/lib/brand-assets";
 import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import CompanyEditForm from "@/features/settings/components/account/company-edit-form";
@@ -301,36 +302,6 @@ const resolveAuthBooleans = ({
     dkim: dkim ?? false,
     spf: spf ?? false,
   };
-};
-
-const getBackendAssetOrigin = () => {
-  const rawBase = pickString(process.env.NEXT_PUBLIC_BACKEND_URL);
-  if (!rawBase) return undefined;
-  try {
-    const parsed = new URL(rawBase);
-    return `${parsed.protocol}//${parsed.host}`;
-  } catch {
-    return undefined;
-  }
-};
-
-const resolveBrandAssetUrl = (...values: unknown[]) => {
-  const raw = pickString(...values);
-  if (!raw) return undefined;
-  if (
-    raw.startsWith("data:") ||
-    raw.startsWith("blob:") ||
-    /^https?:\/\//i.test(raw)
-  ) {
-    return raw;
-  }
-  if (raw.startsWith("//")) return `https:${raw}`;
-
-  const backendOrigin = getBackendAssetOrigin();
-  if (raw.startsWith("/")) {
-    return backendOrigin ? `${backendOrigin}${raw}` : raw;
-  }
-  return backendOrigin ? `${backendOrigin}/${raw.replace(/^\/+/, "")}` : raw;
 };
 
 const extractDomainMap = (payload: unknown) => {
@@ -679,7 +650,13 @@ const LogoTile = ({
           className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground"
         />
       </div>
-      <div className="mt-4 flex h-20 items-center justify-center overflow-hidden rounded-xl border border-dashed border-border/70 bg-muted/30">
+      <div
+        className={
+          previewUrl && !imageFailed
+            ? "mt-4 flex h-24 items-center justify-center overflow-hidden rounded-xl border border-border bg-[repeating-conic-gradient(theme(colors.muted.DEFAULT)_0%_25%,transparent_0%_50%)] bg-[length:16px_16px]"
+            : "mt-4 flex h-24 items-center justify-center overflow-hidden rounded-xl border border-dashed border-border/70 bg-muted/30"
+        }
+      >
         {previewUrl && !imageFailed ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -1452,7 +1429,7 @@ export default function CompanySettingsView() {
                   domain above, then add the sender addresses you want to use.
                 </div>
               ) : (
-                <Table>
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Sender</TableHead>
@@ -1624,7 +1601,7 @@ export default function CompanySettingsView() {
                 No team members or pending invites yet.
               </div>
             ) : (
-              <Table>
+              <Table className="min-w-[560px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>User</TableHead>
@@ -1998,7 +1975,7 @@ export default function CompanySettingsView() {
           setDomainDnsDialog((current) => ({ ...current, open }))
         }
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-medium">
               Verify {domainDnsDialog.domain || "domain"}

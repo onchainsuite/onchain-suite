@@ -1,22 +1,33 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useCallback, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { InputFormField } from "@/components/form-fields";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { apiClient } from "@/lib/api-client";
 import { authClient } from "@/lib/auth-client";
 import { isJsonObject } from "@/lib/utils";
 
+import { organizationOptions } from "../constants";
+import type { SuggestedContract } from "../onboarding.service";
 import { type OnboardingStepsProps } from "../types";
 import {
   type OrganizationSetupFormData,
   organizationSetupSchema,
 } from "../validation";
+import { ContractSuggestionsPanel } from "./contract-suggestions";
 
 const normalizeWebsiteUrl = (input?: string) => {
   const raw = (input ?? "").trim();
@@ -112,10 +123,52 @@ export function OrganizationSetupStep({
       organizationName: initialData.organizationName ?? "",
       websiteUrl: initialData.websiteUrl ?? "",
       description: initialData.description ?? "",
+      sector: initialData.sector ?? "",
     },
   });
 
+  // Targeted subscriptions: only the suggestions panel re-renders as the
+  // user types the organization name or picks a sector.
+  const watchedName = useWatch({
+    control: form.control,
+    name: "organizationName",
+  });
+  const watchedSector = useWatch({ control: form.control, name: "sector" });
+
+  // Contracts the user explicitly accepted from the suggestion panel. The
+  // backend sends `requiresReview: true`, so only accepted rows are ever
+  // committed (they ride along in this step's stepData on submit).
+  const [acceptedContracts, setAcceptedContracts] = useState<
+    SuggestedContract[]
+  >(() => initialData.contracts ?? []);
+
+  const handleAcceptContract = useCallback((contract: SuggestedContract) => {
+    setAcceptedContracts((prev) => {
+      const exists = prev.some(
+        (c) =>
+          c.name === contract.name &&
+          c.chainHint === contract.chainHint &&
+          c.address === contract.address
+      );
+      return exists ? prev : [...prev, contract];
+    });
+  }, []);
+
+  const handleRemoveContract = useCallback((contract: SuggestedContract) => {
+    setAcceptedContracts((prev) =>
+      prev.filter(
+        (c) =>
+          !(
+            c.name === contract.name &&
+            c.chainHint === contract.chainHint &&
+            c.address === contract.address
+          )
+      )
+    );
+  }, []);
+
   const onSubmit = async (data: OrganizationSetupFormData) => {
+    const stepData = { ...data, contracts: acceptedContracts };
     try {
       const slug = data.organizationName
         .toLowerCase()
@@ -191,7 +244,7 @@ export function OrganizationSetupStep({
                   organizationId: existingId,
                 });
                 await authClient.getSession();
-                await onNext(data);
+                await onNext(stepData);
                 return;
               }
             } catch (_e) {
@@ -202,7 +255,7 @@ export function OrganizationSetupStep({
               createPayload.slug = generateUniqueSlug(slug);
               await createOrganization();
               await authClient.getSession();
-              await onNext(data);
+              await onNext(stepData);
               return;
             } catch (retryErr) {
               const { message: retryMessage } = extractAxiosError(retryErr);
@@ -273,7 +326,7 @@ export function OrganizationSetupStep({
                       organizationId: existingId,
                     });
                     await authClient.getSession();
-                    await onNext(data);
+                    await onNext(stepData);
                     return;
                   }
                 } catch (_e) {
@@ -284,7 +337,7 @@ export function OrganizationSetupStep({
                   createPayload.slug = generateUniqueSlug(slug);
                   await createOrganization();
                   await authClient.getSession();
-                  await onNext(data);
+                  await onNext(stepData);
                   return;
                 } catch (_e) {
                   String(_e);
@@ -319,7 +372,7 @@ export function OrganizationSetupStep({
       // Refresh session one more time to update org state
       await authClient.getSession();
 
-      await onNext(data);
+      await onNext(stepData);
     } catch (error) {
       const { status, message } = extractAxiosError(error);
       if (status !== 409) {
@@ -365,9 +418,41 @@ export function OrganizationSetupStep({
 
           <InputFormField
             form={form}
+            name="sector"
+            label="Sector"
+            renderChild={(field) => (
+              <Select
+                value={typeof field.value === "string" ? field.value : ""}
+                onValueChange={field.onChange}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select your sector (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizationOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.label}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            description="Helps us suggest the contracts and events to track."
+          />
+
+          <InputFormField
+            form={form}
             name="description"
             label="Description"
             placeholder="Brief description..."
+          />
+
+          <ContractSuggestionsPanel
+            protocolName={watchedName ?? ""}
+            sector={watchedSector ?? ""}
+            accepted={acceptedContracts}
+            onAccept={handleAcceptContract}
+            onRemove={handleRemoveContract}
           />
 
           <Button

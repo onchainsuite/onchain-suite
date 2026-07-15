@@ -113,12 +113,21 @@ export function SegmentDetailPage() {
     setNameDraft(segment.name ?? "");
   }, [segment]);
 
-  const size =
-    typeof segment?.size === "number"
-      ? segment.size
-      : typeof segment?.matchCount === "number"
-        ? segment.matchCount
-        : 0;
+  // `size` is derived server-side: a number for wallet-list segments, `null`
+  // for rule segments that are lazily resolved on use.
+  const size: number | null =
+    segment?.size === null
+      ? null
+      : typeof segment?.size === "number"
+        ? segment.size
+        : typeof segment?.matchCount === "number"
+          ? segment.matchCount
+          : 0;
+  const sourceQueryId =
+    typeof segment?.sourceQueryId === "string" &&
+    segment.sourceQueryId.length > 0
+      ? segment.sourceQueryId
+      : null;
 
   const profiles = useMemo(() => {
     const items = profilesQuery.data?.items ?? [];
@@ -152,17 +161,29 @@ export function SegmentDetailPage() {
   const segmentName = segment.name ?? "";
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center gap-4">
+    <div className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
         <Link
           href="/intelligence"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-secondary"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-secondary"
         >
           <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{segmentName}</h1>
-          <p className="text-sm text-muted-foreground">Segment Details</p>
+        <div className="min-w-0">
+          <h1 className="break-words text-2xl font-bold tracking-tight">
+            {segmentName}
+          </h1>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground">Segment Details</p>
+            {sourceQueryId && (
+              <span
+                className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground"
+                title={`Created from query ${sourceQueryId}`}
+              >
+                From query
+              </span>
+            )}
+          </div>
         </div>
         <div className="ml-auto">
           <button
@@ -196,7 +217,15 @@ export function SegmentDetailPage() {
             />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold">{size.toLocaleString()}</span>
+            {size === null ? (
+              <span className="text-lg font-semibold text-muted-foreground">
+                Resolved on use
+              </span>
+            ) : (
+              <span className="text-2xl font-bold">
+                {size.toLocaleString()}
+              </span>
+            )}
           </div>
         </div>
         <div className="rounded-xl border border-border bg-card p-6">
@@ -270,51 +299,53 @@ export function SegmentDetailPage() {
             No profiles found for this segment.
           </div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border text-left text-xs font-medium text-muted-foreground">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Wallet</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {profiles.map((row, idx) => {
-                const rec = isJsonObject(row)
-                  ? (row as Record<string, unknown>)
-                  : {};
-                const name = deriveDisplayName({
-                  name: rec.name,
-                  fullName: rec.fullName,
-                  email: rec.email,
-                  wallet: rec.wallet,
-                  walletAddress: rec.walletAddress,
-                });
-                const email = asString(rec.email) || "—";
-                const wallet = extractWalletFields(rec).wallet || "—";
-                const { walletFull } = extractWalletFields(rec);
-                return (
-                  <tr
-                    key={asString(rec.id) || `${idx}`}
-                    className="hover:bg-secondary/20"
-                  >
-                    <td className="px-4 py-3 text-sm font-medium text-foreground">
-                      {name}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {email}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-sm text-muted-foreground"
-                      title={walletFull}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px]">
+              <thead>
+                <tr className="border-b border-border text-left text-xs font-medium text-muted-foreground">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3">Wallet</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {profiles.map((row, idx) => {
+                  const rec = isJsonObject(row)
+                    ? (row as Record<string, unknown>)
+                    : {};
+                  const name = deriveDisplayName({
+                    name: rec.name,
+                    fullName: rec.fullName,
+                    email: rec.email,
+                    wallet: rec.wallet,
+                    walletAddress: rec.walletAddress,
+                  });
+                  const email = asString(rec.email) || "—";
+                  const wallet = extractWalletFields(rec).wallet || "—";
+                  const { walletFull } = extractWalletFields(rec);
+                  return (
+                    <tr
+                      key={asString(rec.id) || `${idx}`}
+                      className="hover:bg-secondary/20"
                     >
-                      {wallet}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <td className="px-4 py-3 text-sm font-medium text-foreground">
+                        {name}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {email}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-sm text-muted-foreground"
+                        title={walletFull}
+                      >
+                        {wallet}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         <div className="flex items-center justify-between border-t border-border px-4 py-3">

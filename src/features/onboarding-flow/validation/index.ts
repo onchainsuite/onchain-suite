@@ -21,6 +21,7 @@ export const organizationSetupSchema = z.object({
       { message: "Must be a valid URL" }
     ),
   description: z.string().optional(),
+  sector: z.string().optional(),
 });
 
 export type OrganizationSetupFormData = z.infer<typeof organizationSetupSchema>;

@@ -68,7 +68,7 @@ export function FieldsEditor({
           {fields.map((field, index) => (
             <div
               key={field.key}
-              className="grid grid-cols-[1fr_1fr_auto_auto_auto] items-center gap-2 rounded-md border border-border bg-muted/30 p-2"
+              className="grid grid-cols-2 items-center gap-2 rounded-md border border-border bg-muted/30 p-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"
             >
               <Input
                 aria-label="Field key"
@@ -84,44 +84,48 @@ export function FieldsEditor({
                 placeholder="Label"
                 className="h-8 text-xs"
               />
-              <Select
-                value={field.type ?? "text"}
-                onValueChange={(v) =>
-                  update(index, { type: v as CaptureFieldSpec["type"] })
-                }
-              >
-                <SelectTrigger
-                  aria-label="Field type"
-                  className="h-8 w-[92px] text-xs"
+              {/* On phones these controls form their own full-width row;
+                  from `sm` up they flow back into the single-row grid. */}
+              <div className="col-span-2 flex items-center justify-between gap-2 sm:contents">
+                <Select
+                  value={field.type ?? "text"}
+                  onValueChange={(v) =>
+                    update(index, { type: v as CaptureFieldSpec["type"] })
+                  }
                 >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FIELD_TYPES.map((t) => (
-                    <SelectItem key={t} value={t} className="text-xs">
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-1">
-                <Switch
-                  aria-label="Required"
-                  checked={field.required ?? false}
-                  onCheckedChange={(v) => update(index, { required: v })}
-                />
-                <span className="text-[10px] text-muted-foreground">req</span>
+                  <SelectTrigger
+                    aria-label="Field type"
+                    className="h-8 w-[92px] text-xs"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIELD_TYPES.map((t) => (
+                      <SelectItem key={t} value={t} className="text-xs">
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-1">
+                  <Switch
+                    aria-label="Required"
+                    checked={field.required ?? false}
+                    onCheckedChange={(v) => update(index, { required: v })}
+                  />
+                  <span className="text-[10px] text-muted-foreground">req</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => remove(index)}
+                  className="h-8 w-8 p-0 text-destructive"
+                  aria-label="Remove field"
+                >
+                  <TrashIcon className="h-4 w-4" aria-hidden="true" />
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => remove(index)}
-                className="h-8 w-8 p-0 text-destructive"
-                aria-label="Remove field"
-              >
-                <TrashIcon className="h-4 w-4" aria-hidden="true" />
-              </Button>
             </div>
           ))}
         </div>

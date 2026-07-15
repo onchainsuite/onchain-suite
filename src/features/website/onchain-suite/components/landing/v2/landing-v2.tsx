@@ -237,13 +237,7 @@ function Hero() {
       <div className="wrap relative">
         <div className="mx-auto max-w-5xl text-center">
           <Reveal>
-            <h1
-              className="text-balance font-bold tracking-tight"
-              style={{
-                fontSize: "clamp(2.6rem, 5.4vw, 4.2rem)",
-                lineHeight: 1.04,
-              }}
-            >
+            <h1 className="hero-title text-balance font-bold tracking-tight">
               When your users act on-chain.
               <br />
               Now you can <RotatingWord />
@@ -776,7 +770,7 @@ function Monitor() {
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
           >
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span className="mono inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] t-muted2">
                 <span className="live-dot" /> Normalizing on-chain events in
                 real time
@@ -1200,47 +1194,53 @@ function Why() {
           sub="Most Web3 teams stitch together email, auth, analytics, and CSV exports. It's slow and can't automate in real time. OnchainSuite replaces all of it."
         />
         <Reveal delay={0.1}>
+          {/* phones: the 3-col grid scrolls inside the card instead of
+              crushing each column — the page body never scrolls sideways */}
           <div className="card mx-auto mt-12 overflow-hidden">
-            <div
-              className="grid grid-cols-[1.2fr_1fr_1fr] border-b text-[12px] font-semibold uppercase tracking-wide"
-              style={{ borderColor: "var(--line)" }}
-            >
-              <div className="px-5 py-3 t-muted2">Capability</div>
-              <div className="px-5 py-3 t-muted2">Patchwork stack</div>
-              <div
-                className="px-5 py-3 t-acc"
-                style={{ background: "var(--acc-soft)" }}
-              >
-                OnchainSuite
+            <div className="overflow-x-auto">
+              <div className="min-w-[560px]">
+                <div
+                  className="grid grid-cols-[1.2fr_1fr_1fr] border-b text-[12px] font-semibold uppercase tracking-wide"
+                  style={{ borderColor: "var(--line)" }}
+                >
+                  <div className="px-5 py-3 t-muted2">Capability</div>
+                  <div className="px-5 py-3 t-muted2">Patchwork stack</div>
+                  <div
+                    className="px-5 py-3 t-acc"
+                    style={{ background: "var(--acc-soft)" }}
+                  >
+                    OnchainSuite
+                  </div>
+                </div>
+                {WHY_ROWS.map((r, i) => (
+                  <motion.div
+                    key={r[0]}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ delay: i * 0.06, duration: 0.5 }}
+                    className="grid grid-cols-[1.2fr_1fr_1fr] border-b text-[13.5px] last:border-b-0"
+                    style={{ borderColor: "var(--line-2)" }}
+                  >
+                    <div className="px-5 py-4 font-medium t-ink2">{r[0]}</div>
+                    <div className="px-5 py-4 t-muted">{r[1]}</div>
+                    <div
+                      className="flex items-center gap-2 px-5 py-4 font-medium t-ink"
+                      style={{
+                        background:
+                          "color-mix(in oklab, var(--acc) 4%, transparent)",
+                      }}
+                    >
+                      <CheckIcon
+                        className="h-4 w-4 shrink-0 t-ok"
+                        aria-hidden="true"
+                      />
+                      {r[2]}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
-            {WHY_ROWS.map((r, i) => (
-              <motion.div
-                key={r[0]}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ delay: i * 0.06, duration: 0.5 }}
-                className="grid grid-cols-[1.2fr_1fr_1fr] border-b text-[13.5px] last:border-b-0"
-                style={{ borderColor: "var(--line-2)" }}
-              >
-                <div className="px-5 py-4 font-medium t-ink2">{r[0]}</div>
-                <div className="px-5 py-4 t-muted">{r[1]}</div>
-                <div
-                  className="flex items-center gap-2 px-5 py-4 font-medium t-ink"
-                  style={{
-                    background:
-                      "color-mix(in oklab, var(--acc) 4%, transparent)",
-                  }}
-                >
-                  <CheckIcon
-                    className="h-4 w-4 shrink-0 t-ok"
-                    aria-hidden="true"
-                  />
-                  {r[2]}
-                </div>
-              </motion.div>
-            ))}
           </div>
         </Reveal>
       </div>
@@ -1382,7 +1382,7 @@ function Developer() {
                   </button>
                 ))}
               </div>
-              <span className="mono ml-auto text-[11px] t-muted2">
+              <span className="mono ml-auto hidden text-[11px] t-muted2 sm:inline">
                 terminal
               </span>
             </div>
@@ -1533,7 +1533,7 @@ function Testimonials() {
           }
           sub="The first tool that actually does something when a wallet goes quiet, instead of just charting it."
         />
-        <Stagger className="mt-12 grid gap-5 md:grid-cols-3">
+        <Stagger className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {QUOTES.map((t) => (
             <StaggerItem key={t.a}>
               <figure className="card flex h-full flex-col p-6">
@@ -1652,7 +1652,7 @@ function Cta() {
       <div className="wrap">
         <Reveal>
           <div
-            className="relative overflow-hidden rounded-3xl border px-8 py-16 text-center"
+            className="relative overflow-hidden rounded-3xl border px-5 py-12 text-center sm:px-8 sm:py-16"
             style={{
               borderColor: "color-mix(in oklab, var(--acc) 18%, var(--line))",
               background:

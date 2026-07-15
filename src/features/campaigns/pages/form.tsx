@@ -471,9 +471,9 @@ function CampaignPreviewStep({
   }, [isScheduled, timezone, values.scheduleDate, values.scheduleTime]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 p-6 md:p-8 lg:p-10">
+    <div className="space-y-8 animate-in fade-in duration-500 p-4 sm:p-6 md:p-8 lg:p-10">
       <div className="space-y-2">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-balance">
           Preview campaign
         </h2>
         <p className="text-base text-muted-foreground text-pretty">
@@ -607,7 +607,7 @@ function CampaignPreviewStep({
             <div className="text-sm font-medium text-foreground">
               {isPush ? "Push preview" : "Email preview"}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {!isPush ? (
                 <>
                   <Button
@@ -1626,7 +1626,7 @@ export function CreateCampaignPage() {
                   {/* Navigation. The template step (2) replaces "Continue"
                       with the send-timing actions; the preview step (3) owns
                       the send button, so its footer only navigates back. */}
-                  <div className="flex items-center justify-between p-6 md:p-8 lg:p-10 border-t border-border">
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6 md:p-8 lg:p-10 border-t border-border">
                     <Button
                       type="button"
                       variant="ghost"
@@ -1646,7 +1646,7 @@ export function CreateCampaignPage() {
                         type="button"
                         onClick={handleNext}
                         disabled={!campaignId || isBootstrappingCampaign}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-5 md:px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
                       >
                         Continue
                         <ArrowRightIcon
@@ -1657,7 +1657,7 @@ export function CreateCampaignPage() {
                     ) : null}
 
                     {currentStep === 2 ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         {/* In-app push sends are immediate (send-inapp has no
                             scheduling), so Schedule is email-only. */}
                         {form.watch("channel") !== "in-app-push" ? (
@@ -1679,7 +1679,7 @@ export function CreateCampaignPage() {
                           type="button"
                           onClick={() => advanceToPreview("now")}
                           disabled={!campaignId || isBootstrappingCampaign}
-                          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
+                          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl px-5 md:px-8 transition-all duration-300 ease-in-out hover:shadow-lg"
                         >
                           Preview & send
                           <ArrowRightIcon

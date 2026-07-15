@@ -76,13 +76,13 @@ export function TemplateStep({
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 p-6 md:p-8 lg:p-10">
+    <div className="space-y-8 animate-in fade-in duration-500 p-4 sm:p-6 md:p-8 lg:p-10">
       <div className="flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary ring-1 ring-primary/20">
           <EnvelopeIcon className="h-5 w-5" aria-hidden="true" />
         </span>
         <div className="space-y-1">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground text-balance">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground text-balance">
             Message & Template
           </h2>
           <p className="text-base text-muted-foreground text-pretty">

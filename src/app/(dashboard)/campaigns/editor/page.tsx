@@ -1112,10 +1112,17 @@ export default function CampaignEditorPage() {
             </div>
           </div>
 
+          {/* The embedded builder is a desktop-oriented external editor; the
+              page itself never overflows, but warn small screens up front. */}
+          <p className="rounded-xl border border-border bg-card px-3 py-2 text-xs text-muted-foreground lg:hidden">
+            The email builder works best on a larger screen. You can still edit
+            here, but some tools may be cramped.
+          </p>
+
           <div
             ref={containerRef}
             className={cn(
-              "relative h-[calc(100vh-96px)] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
+              "relative h-[calc(100vh-96px)] min-h-[480px] overflow-hidden rounded-2xl border border-border bg-background shadow-sm"
             )}
           >
             {iframeFailed ? (

@@ -45,22 +45,32 @@ export function ForgotPasswordForm({
 
   const email = form.watch("email");
 
+  // better-auth responds with success even for unknown emails
+  // (anti-enumeration), so a fulfilled request always moves to the
+  // "check your email" view.
+  const requestReset = async (targetEmail: string): Promise<boolean> => {
+    const { data, error } = await authClient.requestPasswordReset({
+      email: targetEmail,
+      redirectTo: "/auth/reset-password",
+    });
+
+    if (error) {
+      toast.error(error.message ?? "Failed to send reset email");
+      return false;
+    }
+    toast.success(
+      (data as { message?: string } | null)?.message ??
+        "Password reset link sent — check your email"
+    );
+    return true;
+  };
+
   const onSubmit = async (value: ForgotPasswordFormData) => {
     setIsLoading(true);
-
-    const { email } = value;
-
     try {
-      const { data, error } = await authClient.requestPasswordReset({
-        email,
-      });
-
-      if (error) {
-        toast.error(error.message);
-      } else {
+      if (await requestReset(value.email)) {
         setIsEmailSent(true);
         setCountdown(60);
-        toast.success(data.message);
       }
     } catch (error) {
       console.error("Forgot password error:", error);
@@ -74,22 +84,10 @@ export function ForgotPasswordForm({
     if (countdown > 0) return;
 
     setIsLoading(true);
-
     try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.error ?? "Failed to send reset email");
-        return;
+      if (await requestReset(email)) {
+        setCountdown(60);
       }
-
-      setCountdown(60);
-      toast.success("Password reset email sent again!");
     } catch (error) {
       console.error("Resend error:", error);
       toast.error("An unexpected error occurred");

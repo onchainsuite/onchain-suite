@@ -265,7 +265,7 @@ export function CampaignsListsView() {
   })();
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-[1600px] space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -276,7 +276,7 @@ export function CampaignsListsView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div
             role="tablist"
             aria-label="Campaigns view"
@@ -573,7 +573,7 @@ export function CampaignsListsView() {
             className={cn(
               "gap-3 transition-all duration-300",
               templateViewMode === "grid"
-                ? "grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
                 : "flex flex-col"
             )}
           >

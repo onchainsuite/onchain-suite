@@ -95,7 +95,7 @@ export function CreateSegmentPage() {
   });
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
       <div className="flex items-center gap-4">
         <Link
           href="/intelligence"
@@ -168,7 +168,10 @@ export function CreateSegmentPage() {
 
                 <div className="space-y-3">
                   {conditions.map((condition, index) => (
-                    <div key={condition.id} className="flex items-center gap-3">
+                    <div
+                      key={condition.id}
+                      className="flex flex-wrap items-center gap-2 sm:gap-3"
+                    >
                       <span className="text-xs font-medium text-muted-foreground w-8">
                         {index === 0 ? "Where" : logicOperator}
                       </span>
@@ -177,7 +180,7 @@ export function CreateSegmentPage() {
                         onChange={(e) =>
                           updateCondition(condition.id, "field", e.target.value)
                         }
-                        className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                        className="min-w-[9rem] flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
                       >
                         <option value="wallet_balance">Wallet Balance</option>
                         <option value="last_active">Last Active</option>
@@ -206,7 +209,7 @@ export function CreateSegmentPage() {
                         onChange={(e) =>
                           updateCondition(condition.id, "value", e.target.value)
                         }
-                        className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                        className="min-w-[6rem] flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
                         placeholder="Value"
                       />
                       <button

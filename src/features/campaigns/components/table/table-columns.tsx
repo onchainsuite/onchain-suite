@@ -14,6 +14,16 @@ import { CampaignRateCell } from "./campaign-rate-cell";
 import { CampaignStatusCell } from "./campaign-status-cell";
 import { CampaignTypeCell } from "./campaign-type-cell";
 
+/**
+ * Per-column responsive visibility, applied to both the header and body
+ * cells (see components/table/index.tsx). Low-value columns collapse first
+ * on small screens; the table's own overflow-x container handles the rest.
+ */
+export interface CampaignColumnMeta {
+  /** Extra classes for this column's `<th>`/`<td>` (e.g. `hidden md:table-cell`). */
+  className?: string;
+}
+
 export const columns: ColumnDef<Campaign>[] = [
   {
     id: "select",
@@ -70,6 +80,7 @@ export const columns: ColumnDef<Campaign>[] = [
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },
+    meta: { className: "hidden md:table-cell" } satisfies CampaignColumnMeta,
   },
   {
     accessorKey: "recipients",
@@ -93,6 +104,7 @@ export const columns: ColumnDef<Campaign>[] = [
         </div>
       );
     },
+    meta: { className: "hidden sm:table-cell" } satisfies CampaignColumnMeta,
   },
   {
     accessorKey: "openRate",
@@ -111,6 +123,7 @@ export const columns: ColumnDef<Campaign>[] = [
     cell: ({ row }) => (
       <CampaignRateCell campaign={row.original} metric="openRate" />
     ),
+    meta: { className: "hidden lg:table-cell" } satisfies CampaignColumnMeta,
   },
   {
     accessorKey: "clickRate",
@@ -129,6 +142,7 @@ export const columns: ColumnDef<Campaign>[] = [
     cell: ({ row }) => (
       <CampaignRateCell campaign={row.original} metric="clickRate" />
     ),
+    meta: { className: "hidden lg:table-cell" } satisfies CampaignColumnMeta,
   },
   {
     accessorKey: "createdAt",
@@ -151,6 +165,7 @@ export const columns: ColumnDef<Campaign>[] = [
         </div>
       );
     },
+    meta: { className: "hidden xl:table-cell" } satisfies CampaignColumnMeta,
   },
   {
     id: "actions",

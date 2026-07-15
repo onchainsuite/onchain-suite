@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '@/auth': path.resolve(__dirname, './src/features/core/auth'),
       '@/ui': path.resolve(__dirname, './src/shared/components/ui'),
       '@/components': path.resolve(__dirname, './src/shared/components'),
       '@/config': path.resolve(__dirname, './src/shared/config'),

@@ -140,7 +140,7 @@ export default function SynthesisPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-6">
       <Link
         href="/audience"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -218,7 +218,7 @@ export default function SynthesisPage() {
             className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(
             ["all", "completed", "processing", "pending", "failed"] as const
           ).map((status) => (
