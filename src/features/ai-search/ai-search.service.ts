@@ -75,4 +75,15 @@ export const aiSearchService = {
       orgId
     ).then(normalizeResults);
   },
+
+  /** Relevance feedback for a RAG answer (`POST /ai/feedback`, rating 1–5). */
+  sendFeedback(
+    body: { rating: number; queryLogId?: string; comment?: string },
+    orgId?: string
+  ) {
+    return request<unknown>(
+      { method: "POST", url: "/ai/feedback", data: body },
+      orgId
+    );
+  },
 };

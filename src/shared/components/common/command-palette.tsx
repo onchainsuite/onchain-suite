@@ -9,6 +9,8 @@ import {
   DocumentTextIcon,
   EnvelopeIcon,
   FunnelIcon,
+  HandThumbDownIcon,
+  HandThumbUpIcon,
   MagnifyingGlassIcon,
   MegaphoneIcon,
   PlusCircleIcon,
@@ -354,6 +356,8 @@ export function CommandPaletteProvider({
   const [aiAnswer, setAiAnswer] = useState("");
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiQueryLogId, setAiQueryLogId] = useState<string | null>(null);
+  const [aiFeedback, setAiFeedback] = useState<"up" | "down" | null>(null);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<number | null>(null);
@@ -508,6 +512,8 @@ export function CommandPaletteProvider({
       setAiAnswer("");
       setAiError(null);
       setAiLoading(true);
+      setAiQueryLogId(null);
+      setAiFeedback(null);
 
       // Bound the stream — never hang forever.
       timeoutRef.current = window.setTimeout(() => {
@@ -531,6 +537,9 @@ export function CommandPaletteProvider({
           if (typeof d.answer === "string" && d.answer.length > 0) {
             setAiAnswer(d.answer);
           }
+          if (typeof d.queryLogId === "string" && d.queryLogId.length > 0) {
+            setAiQueryLogId(d.queryLogId);
+          }
           setAiLoading(false);
           if (timeoutRef.current !== null) {
             window.clearTimeout(timeoutRef.current);
@@ -550,6 +559,21 @@ export function CommandPaletteProvider({
       });
     },
     [session?.user]
+  );
+
+  // Fire-and-forget relevance feedback (POST /ai/feedback); the UI flips to
+  // a thank-you immediately — a lost request isn't worth surfacing.
+  const sendAiFeedback = useCallback(
+    (vote: "up" | "down") => {
+      setAiFeedback(vote);
+      aiSearchService
+        .sendFeedback({
+          rating: vote === "up" ? 5 : 1,
+          ...(aiQueryLogId ? { queryLogId: aiQueryLogId } : {}),
+        })
+        .catch(() => undefined);
+    },
+    [aiQueryLogId]
   );
 
   const options = useMemo<PaletteOption[]>(() => {
@@ -720,7 +744,39 @@ export function CommandPaletteProvider({
                   <Kbd keys={["Esc"]} />
                   Back to commands
                 </span>
-                <span>AI answers can be wrong — verify important data.</span>
+                {!aiLoading && !aiError && aiAnswer.length > 0 ? (
+                  aiFeedback ? (
+                    <span>Thanks for the feedback.</span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <span>Helpful?</span>
+                      <button
+                        type="button"
+                        aria-label="Answer was helpful"
+                        className="rounded p-1 hover:bg-muted hover:text-foreground"
+                        onClick={() => sendAiFeedback("up")}
+                      >
+                        <HandThumbUpIcon
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Answer was not helpful"
+                        className="rounded p-1 hover:bg-muted hover:text-foreground"
+                        onClick={() => sendAiFeedback("down")}
+                      >
+                        <HandThumbDownIcon
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </span>
+                  )
+                ) : (
+                  <span>AI answers can be wrong — verify important data.</span>
+                )}
               </div>
             </div>
           ) : (

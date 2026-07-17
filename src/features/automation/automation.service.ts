@@ -115,6 +115,43 @@ export type AutomationStatusUpdateBody = {
   status: "active" | "paused" | "draft" | "archived" | string;
 };
 
+export type BuilderProjectContract = {
+  chain: string;
+  address: string;
+  label?: string;
+  icon?: string;
+  foundational?: boolean;
+  streaming?: boolean;
+};
+
+export type BuilderProjectContractsResponse = {
+  defaultChain: string | null;
+  defaultContract: { chain: string; address: string } | null;
+  contracts: BuilderProjectContract[];
+};
+
+export type OnchainCatalogDefinition = {
+  id: string;
+  label: string;
+  description?: string;
+  chainFamily: string;
+  standard?: string;
+  eventName?: string;
+  topic0?: string;
+  topic0s?: string[];
+  aliases?: string[];
+  programIds?: string[];
+  instructionNames?: string[];
+  categories?: string[];
+  defaultConfig?: Record<string, unknown>;
+};
+
+export type OnchainCatalogResponse = {
+  source: string;
+  chainFamilies: { id: string; label: string; chains: string[] }[];
+  definitions: OnchainCatalogDefinition[];
+};
+
 export const automationService = {
   listAutomations(params?: AutomationsListParams, orgId?: string) {
     return request<
@@ -297,6 +334,20 @@ export const automationService = {
   resetBuilder(automationId: string, orgId?: string) {
     return request<AutomationBuilderResponse>(
       { method: "POST", url: `/automations/${automationId}/builder/reset` },
+      orgId
+    );
+  },
+
+  getBuilderProjectContracts(orgId?: string) {
+    return request<BuilderProjectContractsResponse>(
+      { method: "GET", url: "/automations/builder/project-contracts" },
+      orgId
+    );
+  },
+
+  getOnchainCatalog(orgId?: string) {
+    return request<OnchainCatalogResponse>(
+      { method: "GET", url: "/automations/builder/onchain/catalog" },
       orgId
     );
   },

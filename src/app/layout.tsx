@@ -1,4 +1,5 @@
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import {
   Instrument_Sans,
@@ -57,6 +58,7 @@ export default function RootLayout({
       >
         <RootProviders>{children}</RootProviders>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

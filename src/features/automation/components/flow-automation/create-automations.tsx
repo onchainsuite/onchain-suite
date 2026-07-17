@@ -54,7 +54,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isJsonObject } from "@/lib/utils";
 
 import "reactflow/dist/style.css";
-import { automationService } from "../../automation.service";
+import {
+  automationService,
+  type OnchainCatalogDefinition,
+} from "../../automation.service";
 import { Confetti } from "../confetti";
 import { AutoGrowTextarea } from "./auto-grow-textarea";
 import {
@@ -755,12 +758,81 @@ const CreateAutomationContent = () => {
     [senderIdentitiesQuery.data]
   );
 
+  // Builder-scoped contract list from the backend (GoldRush-supported project
+  // contracts); project settings then the static list are fallbacks only.
+  const builderContractsQuery = useQuery({
+    queryKey: ["automations", "builder", "project-contracts"],
+    queryFn: () => automationService.getBuilderProjectContracts(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
+
+  // GoldRush event catalog — backend-recommended source of truth for the
+  // event picker (normalized EVM + Solana definitions).
+  const onchainCatalogQuery = useQuery({
+    queryKey: ["automations", "builder", "onchain-catalog"],
+    queryFn: () => automationService.getOnchainCatalog(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 300_000,
+  });
+
   const contractCatalog = useMemo(() => {
+    const backendContracts = builderContractsQuery.data?.contracts ?? [];
+    if (backendContracts.length > 0) {
+      return backendContracts
+        .filter(
+          (contract) =>
+            typeof contract.address === "string" &&
+            contract.address.trim().length > 0
+        )
+        .map((contract) => {
+          const chain = contract.chain?.trim() ?? "";
+          const name = contract.label?.trim() ?? "";
+          return {
+            address: contract.address,
+            chain: chain.length > 0 ? chain : "Unknown",
+            name: name.length > 0 ? name : contract.address,
+          };
+        });
+    }
     return resolveContractCatalog(
       projectSettingsQuery.data?.contractAddresses,
       mockContracts
     );
-  }, [projectSettingsQuery.data?.contractAddresses]);
+  }, [
+    builderContractsQuery.data?.contracts,
+    projectSettingsQuery.data?.contractAddresses,
+  ]);
+
+  const eventOptions = useMemo(() => {
+    const definitions = onchainCatalogQuery.data?.definitions ?? [];
+    if (definitions.length === 0) {
+      return eventTypes.map((e) => ({ value: e, label: e }));
+    }
+    const seen = new Set<string>();
+    const options: { value: string; label: string }[] = [];
+    for (const def of definitions) {
+      const value = def.eventName ?? def.label;
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      options.push({ value, label: def.label ?? value });
+    }
+    return options;
+  }, [onchainCatalogQuery.data?.definitions]);
+
+  // Selecting a catalog event persists its GoldRush identifiers on the node,
+  // per the backend recommendation (goldrushEventId, eventStandard, topic0,
+  // programId, instructionName drive efficient runtime matching).
+  const eventDefinitionByValue = useMemo(() => {
+    const map = new Map<string, OnchainCatalogDefinition>();
+    for (const def of onchainCatalogQuery.data?.definitions ?? []) {
+      const value = def.eventName ?? def.label;
+      if (value && !map.has(value)) map.set(value, def);
+    }
+    return map;
+  }, [onchainCatalogQuery.data?.definitions]);
 
   const automationDetailQuery = useQuery({
     queryKey: ["automations", "detail", automationId],
@@ -2136,13 +2208,24 @@ const CreateAutomationContent = () => {
                             <PropertySelect
                               placeholder="Select event"
                               value={asString(selectedNodeData.event)}
-                              options={eventTypes.map((e) => ({
-                                value: e,
-                                label: e,
-                              }))}
-                              onChange={(next) =>
-                                updateSelectedNodeData({ event: next })
-                              }
+                              options={eventOptions}
+                              onChange={(next) => {
+                                const def = eventDefinitionByValue.get(next);
+                                updateSelectedNodeData({
+                                  event: next,
+                                  ...(def
+                                    ? {
+                                        goldrushEventId: def.id,
+                                        eventStandard: def.standard,
+                                        chainFamily: def.chainFamily,
+                                        topic0: def.topic0,
+                                        programId: def.programIds?.[0],
+                                        instructionName:
+                                          def.instructionNames?.[0],
+                                      }
+                                    : {}),
+                                });
+                              }}
                             />
                           </div>
                           {!isNew ? (
