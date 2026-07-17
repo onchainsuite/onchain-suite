@@ -1,15 +1,24 @@
 "use client";
 
 import {
+  ArrowPathIcon,
   ArrowUpIcon,
+  HandThumbDownIcon,
+  HandThumbUpIcon,
   MagnifyingGlassIcon,
   MicrophoneIcon,
+  SparklesIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useCommandPalette } from "@/components/common/command-palette";
 import { Button } from "@/components/ui/button";
+
+import { authClient } from "@/lib/auth-client";
+
+import { useAiAnswer } from "@/features/ai-search/use-ai-answer";
 
 type SpeechRecognitionCtor = new () => {
   continuous: boolean;
@@ -31,14 +40,15 @@ function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
 }
 
 /**
- * Dashboard command bar — the same surface as ⌘K. Typing a query and
- * submitting opens the command palette prefilled with it, which provides
- * navigation commands, semantic search over the workspace, and the
- * streamed "Ask AI" answer with all its bounded/error handling. Voice
- * input transcribes into the query.
+ * Dashboard command bar. Submitting a query streams the AI answer inline
+ * right below the bar (same bounded ask flow as ⌘K via useAiAnswer) — no
+ * redirect into the palette. An empty submit still opens ⌘K for browsing
+ * commands, and voice input transcribes into the query.
  */
 export function CommandBar() {
   const palette = useCommandPalette();
+  const { data: session } = authClient.useSession();
+  const ai = useAiAnswer();
   const [query, setQuery] = useState("");
   const [listening, setListening] = useState(false);
 
@@ -49,7 +59,11 @@ export function CommandBar() {
 
   const handleSubmit = () => {
     const q = query.trim();
-    palette.open(q.length > 0 ? q : undefined);
+    if (q.length === 0) {
+      palette.open();
+      return;
+    }
+    ai.ask(q, { user: session?.user });
     setQuery("");
   };
 
@@ -103,6 +117,8 @@ export function CommandBar() {
     };
   }, []);
 
+  const showAnswer = ai.question.length > 0;
+
   return (
     <div className="relative mx-auto w-full max-w-3xl">
       <div className="relative flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-ring">
@@ -149,11 +165,134 @@ export function CommandBar() {
           size="icon"
           className="rounded-lg"
           onClick={handleSubmit}
-          aria-label="Search"
+          aria-label="Ask AI"
         >
           <ArrowUpIcon aria-hidden="true" className="h-5 w-5" />
         </Button>
       </div>
+
+      {showAnswer ? (
+        <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2.5">
+            <span className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <SparklesIcon
+                className="h-3.5 w-3.5 text-primary"
+                aria-hidden="true"
+              />
+              AI answer
+            </span>
+            <span className="flex items-center gap-1">
+              {ai.loading ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={ai.stop}
+                >
+                  Stop
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={ai.reset}
+                aria-label="Dismiss answer"
+              >
+                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </span>
+          </div>
+
+          {/* Question */}
+          <div className="border-b border-border/60 bg-muted/20 px-4 py-2.5">
+            <p className="line-clamp-2 text-sm font-medium text-foreground">
+              {ai.question}
+            </p>
+          </div>
+
+          {/* Answer body */}
+          <div className="max-h-[min(50vh,360px)] overflow-y-auto">
+            <div
+              className="px-4 py-4 text-sm leading-relaxed text-foreground"
+              aria-live="polite"
+            >
+              {ai.error ? (
+                <div className="space-y-3">
+                  <p className="text-destructive">{ai.error}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => ai.ask(ai.question, { user: session?.user })}
+                  >
+                    <ArrowPathIcon
+                      className="mr-1.5 h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                    Try again
+                  </Button>
+                </div>
+              ) : ai.answer.length > 0 ? (
+                <div className="whitespace-pre-wrap">{ai.answer}</div>
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="flex gap-1" aria-hidden="true">
+                    {[0, 1, 2].map((d) => (
+                      <span
+                        key={d}
+                        className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary"
+                        style={{ animationDelay: `${d * 0.18}s` }}
+                      />
+                    ))}
+                  </span>
+                  Thinking…
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 border-t border-border/60 bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
+            {!ai.loading && !ai.error && ai.answer.length > 0 ? (
+              ai.feedback ? (
+                <span>Thanks for the feedback.</span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <span>Helpful?</span>
+                  <button
+                    type="button"
+                    aria-label="Answer was helpful"
+                    className="rounded p-1 hover:bg-muted hover:text-foreground"
+                    onClick={() => ai.sendFeedback("up")}
+                  >
+                    <HandThumbUpIcon
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Answer was not helpful"
+                    className="rounded p-1 hover:bg-muted hover:text-foreground"
+                    onClick={() => ai.sendFeedback("down")}
+                  >
+                    <HandThumbDownIcon
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </span>
+              )
+            ) : (
+              <span>AI answers can be wrong — verify important data.</span>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
