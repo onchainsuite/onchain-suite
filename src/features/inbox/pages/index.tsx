@@ -18,6 +18,8 @@ export function InboxPages() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedThreadIds, setSelectedThreadIds] = useState<string[]>([]);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  // Serverless hosts (Vercel) can't hold the socket — poll instead.
+  const [realtimeDown, setRealtimeDown] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const emailListRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,7 @@ export function InboxPages() {
       inboxService.listThreads({ ...listParams, page: 1, limit: 100 }),
     retry: false,
     refetchOnWindowFocus: false,
+    refetchInterval: realtimeDown ? 15000 : false,
   });
 
   const unreadQuery = useQuery({
@@ -59,6 +62,7 @@ export function InboxPages() {
     queryFn: () => inboxService.getUnreadCount(),
     retry: false,
     refetchOnWindowFocus: false,
+    refetchInterval: realtimeDown ? 15000 : false,
   });
 
   const threads = useMemo<InboxThreadListItem[]>(
@@ -203,10 +207,16 @@ export function InboxPages() {
         });
       }
     };
+    const onConnect = () => setRealtimeDown(false);
+    const onConnectError = () => setRealtimeDown(true);
+    socket.on("connect", onConnect);
+    socket.on("connect_error", onConnectError);
     socket.on("new_message", onNewMessage);
     socket.on("thread_updated", onNewMessage);
     socket.on("unread_count_changed", onNewMessage);
     return () => {
+      socket.off("connect", onConnect);
+      socket.off("connect_error", onConnectError);
       socket.off("new_message", onNewMessage);
       socket.off("thread_updated", onNewMessage);
       socket.off("unread_count_changed", onNewMessage);

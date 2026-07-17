@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import {
   Instrument_Sans,
@@ -55,6 +56,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <RootProviders>{children}</RootProviders>
+        <Analytics />
       </body>
     </html>
   );

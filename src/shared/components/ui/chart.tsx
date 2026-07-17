@@ -123,8 +123,22 @@ interface ChartTooltipContentProps<
   TName extends ChartNameType = ChartNameType,
 >
   extends
-    React.ComponentProps<typeof RechartsPrimitive.Tooltip>,
+    Omit<
+      React.ComponentProps<typeof RechartsPrimitive.Tooltip>,
+      "formatter" | "labelFormatter"
+    >,
     Omit<React.ComponentProps<"div">, "content"> {
+  formatter?: (
+    value: TValue,
+    name: TName,
+    item: ChartPayload<TValue, TName>,
+    index: number,
+    payload: ChartPayload<TValue, TName>["payload"]
+  ) => React.ReactNode;
+  labelFormatter?: (
+    label: React.ReactNode,
+    payload: ChartPayload<TValue, TName>[]
+  ) => React.ReactNode;
   hideLabel?: boolean;
   hideIndicator?: boolean;
   indicator?: "line" | "dot" | "dashed";

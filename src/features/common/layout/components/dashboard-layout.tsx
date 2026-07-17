@@ -31,6 +31,7 @@ import { DashboardNavbar } from "./dashboard-navbar";
 import { OrganizationStatusBanner } from "./organization-status-banner";
 import { PendingCheckoutBanner } from "@/features/billing/components/pending-checkout-banner";
 import { notificationsService } from "@/features/notifications/notifications.service";
+import { SiteFooter } from "@/shared/components/page/site-footer";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 import {
   getWipSection,
@@ -246,6 +247,7 @@ function DashboardLayoutInner({ children }: DashboardLayoutProps) {
             </div>
           )}
         </main>
+        <SiteFooter />
       </div>
     </div>
   );

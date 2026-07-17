@@ -5,6 +5,7 @@ import {
   Squares2X2Icon,
   UserIcon,
 } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { signOut, useSession } from "@/lib/auth-client";
 
+import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+
 export function UserMenu() {
   const { data } = useSession();
   const user = data?.user;
+  const router = useRouter();
 
   if (!user) return null;
 
@@ -57,11 +61,13 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => router.push(`${PRIVATE_ROUTES.SETTINGS}?tab=profile`)}
+        >
           <UserIcon aria-hidden="true" className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push(PRIVATE_ROUTES.SETTINGS)}>
           <Cog6ToothIcon aria-hidden="true" className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>

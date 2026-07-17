@@ -1,4 +1,4 @@
-import { Button as BaseButton } from "@react-email/components";
+import { Button as BaseButton } from "react-email";
 
 export const Button = ({ href, label }: { href: string; label: string }) => (
   <BaseButton

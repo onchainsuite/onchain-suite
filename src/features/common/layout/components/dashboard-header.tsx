@@ -8,6 +8,7 @@ import { useCommandPalette } from "@/components/common/command-palette";
 import type { NavItem } from "./dashboard-navbar";
 import { MobileNav } from "./mobile-nav";
 import { OrganizationSwitcher } from "./organization-switcher";
+import { UserMenu } from "@/onchain-suite-website/components/user-menu";
 
 export const DashboardHeader = ({
   breadcrumbs,
@@ -57,6 +58,7 @@ export const DashboardHeader = ({
         ) : null}
         {hasActiveOrganization ? <NotificationBell /> : null}
         <ThemeModeToggle />
+        <UserMenu />
       </div>
     </header>
   );
