@@ -1,10 +1,25 @@
 "use client";
-import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowRightOnRectangleIcon,
+  Cog6ToothIcon,
+  LockClosedIcon,
+  LockOpenIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -13,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { useGetLogo } from "@/hooks/client";
+import { signOut } from "@/lib/auth-client";
 import { getAvatarColor, getInitials, isValidImageUrl } from "@/lib/user-utils";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +74,7 @@ export function DashboardNavbar({
   userImageUrl,
   hasActiveOrganization = true,
 }: DashboardNavbarProps) {
+  const router = useRouter();
   const initials = userFullName ? getInitials(userFullName) : "U";
   const displayName =
     userFullName && userFullName.length > 0 ? userFullName : "User";
@@ -192,33 +209,77 @@ export function DashboardNavbar({
               <LockOpenIcon className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
-          <div className={cn("flex items-center gap-2")}>
-            <Avatar
-              className="h-8 w-8 lg:h-10 lg:w-10 ring-1 ring-border shadow-sm"
-              aria-label="User avatar"
-              title={displayName}
-            >
-              {validImage && !imgError ? (
-                <AvatarImage
-                  alt={displayName}
-                  src={userImageUrl as string}
-                  loading="lazy"
-                  onError={() => setImgError(true)}
-                  className="object-cover"
-                />
-              ) : null}
-              {!validImage || imgError ? (
-                <AvatarFallback
-                  style={{ backgroundColor: avatarColor, color: "#fff" }}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center gap-2 rounded-full",
+                  "focus-visible:outline-2 focus-visible:outline-ring"
+                )}
+                aria-label="Open user menu"
+              >
+                <Avatar
+                  className="h-8 w-8 lg:h-10 lg:w-10 ring-1 ring-border shadow-sm"
+                  aria-label="User avatar"
+                  title={displayName}
                 >
-                  {initials}
-                </AvatarFallback>
-              ) : null}
-            </Avatar>
-            {!isCollapsed && userFullName && hasActiveOrganization && (
-              <span className="text-sm font-medium">{userFullName}</span>
-            )}
-          </div>
+                  {validImage && !imgError ? (
+                    <AvatarImage
+                      alt={displayName}
+                      src={userImageUrl as string}
+                      loading="lazy"
+                      onError={() => setImgError(true)}
+                      className="object-cover"
+                    />
+                  ) : null}
+                  {!validImage || imgError ? (
+                    <AvatarFallback
+                      style={{ backgroundColor: avatarColor, color: "#fff" }}
+                    >
+                      {initials}
+                    </AvatarFallback>
+                  ) : null}
+                </Avatar>
+                {!isCollapsed && userFullName && hasActiveOrganization && (
+                  <span className="text-sm font-medium">{userFullName}</span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" side="right">
+              <DropdownMenuLabel className="font-normal">
+                <p className="text-sm font-medium leading-none">
+                  {displayName}
+                </p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() =>
+                  router.push(`${PRIVATE_ROUTES.SETTINGS}?tab=profile`)
+                }
+              >
+                <UserIcon aria-hidden="true" className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push(PRIVATE_ROUTES.SETTINGS)}
+              >
+                <Cog6ToothIcon aria-hidden="true" className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={signOut}
+                className="text-destructive focus:text-destructive"
+              >
+                <ArrowRightOnRectangleIcon
+                  aria-hidden="true"
+                  className="mr-2 h-4 w-4"
+                />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </aside>

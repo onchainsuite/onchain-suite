@@ -26,7 +26,6 @@ import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 import CompanyEditForm from "@/features/settings/components/account/company-edit-form";
 import InviteUser from "@/features/settings/components/invite-user";
 import LogoUpload from "@/features/settings/components/logo-upload";
-import { MessageTeamDialog } from "@/features/settings/components/message-team-dialog";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import {
   type AssignableRole,
@@ -684,7 +683,6 @@ export default function CompanySettingsView() {
     type: LogoType;
   }>({ open: false, type: "primary" });
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [messageOpen, setMessageOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<TeamRow | null>(null);
   const [addDomainOpen, setAddDomainOpen] = useState(false);
   const [addSenderOpen, setAddSenderOpen] = useState(false);
@@ -1103,17 +1101,6 @@ export default function CompanySettingsView() {
       ...rows,
     ];
   }, [membersQuery.data, session]);
-
-  const messageableAdmins = useMemo(() => {
-    const sessionEmail = pickString(session?.user?.email)?.toLowerCase();
-    return teamMembers
-      .filter(
-        (member) =>
-          (member.role === "OWNER" || member.role === "ADMIN") &&
-          member.email.toLowerCase() !== sessionEmail
-      )
-      .map((member) => ({ name: member.name, email: member.email }));
-  }, [teamMembers, session?.user?.email]);
 
   const senderSummary = useMemo(
     () => ({
@@ -1551,14 +1538,7 @@ export default function CompanySettingsView() {
           badge={`${teamSummary.activeMembers} active members`}
         >
           <div className="space-y-5">
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                className="rounded-xl"
-                onClick={() => setMessageOpen(true)}
-              >
-                Message admins
-              </Button>
+            <div className="flex justify-end">
               <Button
                 variant="outline"
                 className="rounded-xl"
@@ -1829,11 +1809,6 @@ export default function CompanySettingsView() {
             queryKey: ["project-settings", "branding", organizationId],
           });
         }}
-      />
-      <MessageTeamDialog
-        open={messageOpen}
-        onOpenChange={setMessageOpen}
-        admins={messageableAdmins}
       />
       <InviteUser
         open={inviteOpen}

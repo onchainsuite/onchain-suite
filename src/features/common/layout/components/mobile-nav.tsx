@@ -1,6 +1,9 @@
 "use client";
 
-import { Bars3Icon } from "@heroicons/react/24/outline";
+import {
+  ArrowRightOnRectangleIcon,
+  Bars3Icon,
+} from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,6 +12,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import { useGetLogo } from "@/hooks/client";
+import { signOut } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
 import type { NavItem } from "./dashboard-navbar";
@@ -101,6 +105,17 @@ export function MobileNav({ navItems }: { navItems: NavItem[] }) {
               </Link>
             );
           })}
+          <button
+            type="button"
+            onClick={signOut}
+            className="mt-2 flex min-h-11 items-center gap-3 rounded-xl border-t border-border px-3 py-2 text-left text-sm text-destructive hover:bg-muted"
+          >
+            <ArrowRightOnRectangleIcon
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0"
+            />
+            <span className="flex-1">Log out</span>
+          </button>
         </nav>
       </SheetContent>
     </Sheet>
