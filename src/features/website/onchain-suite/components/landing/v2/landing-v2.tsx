@@ -1039,59 +1039,13 @@ function FeatureSplit({
   );
 }
 
-/* ───────────────────────── Metrics ───────────────────────── */
-
-function Metrics() {
-  const items = [
-    {
-      v: <Counter to={100} suffix="%" />,
-      l: "of connected wallets reached by in-app push",
-    },
-    {
-      v: (
-        <>
-          <Counter to={10} /> min
-        </>
-      ),
-      l: "to your first real cohort insight",
-    },
-    { v: <Counter to={4} />, l: "chains, normalized to one event shape" },
-  ];
-  return (
-    <section className="py-14">
-      <div className="wrap">
-        <div
-          className="grid gap-px overflow-hidden rounded-2xl border md:grid-cols-3"
-          style={{ borderColor: "var(--line)", background: "var(--line)" }}
-        >
-          {items.map((it, i) => (
-            <Reveal key={it.l} delay={i * 0.08}>
-              <div className="surface flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-                <div
-                  className="font-semibold tracking-tight t-ink"
-                  style={{ fontSize: "clamp(2rem,4vw,2.8rem)" }}
-                >
-                  {it.v}
-                </div>
-                <div className="mt-2 max-w-[16rem] text-[13.5px] t-muted">
-                  {it.l}
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ───────────────────────── Channels ───────────────────────── */
 
 const CHANNELS = [
   {
     name: "In-app push",
-    tag: "SHIPS FIRST",
-    tagC: "var(--acc)",
+    tag: "LIVE",
+    tagC: "var(--ok-deep)",
     d: "Wallet address only. Reaches 100% of connected wallets via a drop-in SDK.",
   },
   {
@@ -1746,7 +1700,6 @@ export function LandingV2() {
         ]}
         visual={<IntelligenceAskCard />}
       />
-      <Metrics />
       <Channels />
       <Why />
       <Developer />

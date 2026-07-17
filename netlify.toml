@@ -2,5 +2,5 @@
   SECRETS_SCAN_OMIT_KEYS = "NODE_ENV"
 
 [build]
-  command = "next build"
+  command = "pnpm run build"
   publish = ".next"

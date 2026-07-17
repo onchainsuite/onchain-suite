@@ -133,8 +133,7 @@ export function Footer() {
           viewport={{ once: true }}
         >
           <p className="text-sm text-muted-foreground">
-            Copyright © {new Date().getFullYear()} Onchain Suite. All Rights
-            Reserved
+            © {new Date().getFullYear()} OnchainSuite Incorporated
           </p>
         </motion.div>
       </div>

@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 
 import { getSession } from "@/lib/auth-session";
+import { serverEnv } from "@/lib/env";
 
+import { BetaGate } from "@/shared/components/page/beta-gate";
 import { AUTH_ROUTES } from "@/shared/config/app-routes";
 
 // Types
@@ -44,6 +46,20 @@ export async function AuthGuard({
   // Role-based access control (optional)
   if (requireRole && session.user.role !== requireRole) {
     redirect("/unauthorized");
+  }
+
+  // Private-beta allowlist: BETA_ALLOWED_EMAILS unset/empty disables the gate.
+  const betaAllowlist = (serverEnv.BETA_ALLOWED_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => e.length > 0);
+  const sessionEmail =
+    typeof session.user.email === "string" ? session.user.email : "";
+  if (
+    betaAllowlist.length > 0 &&
+    !betaAllowlist.includes(sessionEmail.toLowerCase())
+  ) {
+    return <BetaGate email={sessionEmail} />;
   }
 
   const headersList = await headers();

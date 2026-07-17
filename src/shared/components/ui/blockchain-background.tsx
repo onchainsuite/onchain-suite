@@ -1,16 +1,17 @@
 "use client";
 
+import { type Engine, type ISourceOptions } from "@tsparticles/engine";
+import { Particles, ParticlesProvider } from "@tsparticles/react";
+import { loadSlim } from "@tsparticles/slim";
 import { useTheme } from "next-themes";
-import { type ReactNode, useCallback } from "react";
-import Particles from "react-tsparticles";
-import { type Engine, type ISourceOptions } from "tsparticles-engine";
-import { loadSlim } from "tsparticles-slim";
+import { type ReactNode } from "react";
+
+const particlesInit = async (engine: Engine) => {
+  await loadSlim(engine);
+};
 
 export const BlockchainBackground = ({ children }: { children: ReactNode }) => {
   const { resolvedTheme } = useTheme();
-  const particlesInit = useCallback(async (engine: Engine) => {
-    await loadSlim(engine);
-  }, []);
   const isDark = resolvedTheme === "dark";
 
   const particlesOptions: ISourceOptions = {
@@ -60,9 +61,11 @@ export const BlockchainBackground = ({ children }: { children: ReactNode }) => {
         },
       },
       number: {
+        // v2 `density.area: 800` ≈ an 800k px² reference box in v4
         density: {
           enable: true,
-          area: 800,
+          width: 1000,
+          height: 800,
         },
         value: 80,
       },
@@ -99,12 +102,13 @@ export const BlockchainBackground = ({ children }: { children: ReactNode }) => {
             .trim(),
         }}
       />
-      <Particles
-        id="tsparticles"
-        init={particlesInit}
-        options={particlesOptions}
-        className="absolute inset-0 z-0"
-      />
+      <ParticlesProvider init={particlesInit}>
+        <Particles
+          id="tsparticles"
+          options={particlesOptions}
+          className="absolute inset-0 z-0"
+        />
+      </ParticlesProvider>
 
       {children}
     </div>

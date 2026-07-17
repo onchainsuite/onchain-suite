@@ -6,9 +6,9 @@ import {
   Html,
   Img,
   Section,
+  Tailwind,
   Text,
-} from "@react-email/components";
-import { Tailwind } from "@react-email/tailwind";
+} from "react-email";
 
 export const BaseLayout = ({
   children,
