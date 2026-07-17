@@ -24,6 +24,41 @@ type StreamDonePayload = {
   redactions?: unknown;
 };
 
+export type AiCitation = { url: string; title: string };
+
+const hostnameOf = (url: string): string => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+};
+
+const normalizeCitations = (raw: unknown): AiCitation[] => {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const citations: AiCitation[] = [];
+  for (const entry of raw) {
+    let url: string | undefined;
+    let title: string | undefined;
+    if (typeof entry === "string") {
+      url = entry;
+    } else if (entry && typeof entry === "object") {
+      const e = entry as Record<string, unknown>;
+      url = [e.url, e.sourceUri, e.uri, e.link, e.href].find(
+        (v): v is string => typeof v === "string" && v.trim().length > 0
+      );
+      if (typeof e.title === "string" && e.title.trim().length > 0) {
+        title = e.title.trim();
+      }
+    }
+    if (!url || !/^https?:\/\//i.test(url) || seen.has(url)) continue;
+    seen.add(url);
+    citations.push({ url, title: title ?? hostnameOf(url) });
+  }
+  return citations;
+};
+
 function buildPersonalizedQuery(input: string, user: unknown): string {
   const u = user as { name?: unknown; timezone?: unknown; email?: unknown };
   const name = typeof u?.name === "string" ? u.name : "";
@@ -69,6 +104,7 @@ async function streamQueryText(args: {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let doneSeen = false;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -97,6 +133,7 @@ async function streamQueryText(args: {
             parsed.data &&
             typeof parsed.data === "object"
           ) {
+            doneSeen = true;
             args.onDone(parsed.data as StreamDonePayload);
           }
         } catch {
@@ -104,6 +141,12 @@ async function streamQueryText(args: {
         }
       }
     }
+  }
+
+  // A stream that closes without a done event is a failure — surface it now
+  // rather than letting the caller's timeout turn it into a minute of silence.
+  if (!doneSeen) {
+    throw new Error("The answer stream ended unexpectedly. Try again.");
   }
 }
 
@@ -114,6 +157,7 @@ export function useAiAnswer() {
   const [loading, setLoading] = useState(false);
   const [queryLogId, setQueryLogId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
+  const [citations, setCitations] = useState<AiCitation[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<number | null>(null);
@@ -142,6 +186,7 @@ export function useAiAnswer() {
     setLoading(true);
     setQueryLogId(null);
     setFeedback(null);
+    setCitations([]);
 
     // Bound the stream — never hang forever.
     timeoutRef.current = window.setTimeout(() => {
@@ -168,6 +213,7 @@ export function useAiAnswer() {
         if (typeof d.queryLogId === "string" && d.queryLogId.length > 0) {
           setQueryLogId(d.queryLogId);
         }
+        setCitations(normalizeCitations(d.citations));
         setLoading(false);
         if (timeoutRef.current !== null) {
           window.clearTimeout(timeoutRef.current);
@@ -175,6 +221,15 @@ export function useAiAnswer() {
         }
       },
     }).catch((e: unknown) => {
+      // Disarm the timeout so it can't fire later and overwrite this error
+      // with the generic took-too-long message.
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        if (timeoutRef.current !== null) {
+          window.clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      }
       if (controller.signal.aborted) return; // user stop or timeout
       const raw = e instanceof Error ? e.message : "AI request failed";
       const message = raw.includes("(402)")
@@ -194,6 +249,7 @@ export function useAiAnswer() {
     setError(null);
     setQueryLogId(null);
     setFeedback(null);
+    setCitations([]);
   }, [stop]);
 
   // Fire-and-forget relevance feedback (POST /ai/feedback); the UI flips to
@@ -217,6 +273,7 @@ export function useAiAnswer() {
     error,
     loading,
     feedback,
+    citations,
     ask,
     stop,
     reset,

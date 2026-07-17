@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 
 import { authClient } from "@/lib/auth-client";
 
+import { AiCitations } from "@/features/ai-search/ai-citations";
 import { useAiAnswer } from "@/features/ai-search/use-ai-answer";
 
 type SpeechRecognitionCtor = new () => {
@@ -254,6 +255,8 @@ export function CommandBar() {
               )}
             </div>
           </div>
+
+          <AiCitations citations={ai.citations} />
 
           {/* Footer */}
           <div className="flex items-center justify-end gap-3 border-t border-border/60 bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
