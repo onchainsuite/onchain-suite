@@ -27,7 +27,7 @@ import "./landing-v2.css";
 import { Reveal } from "./primitives";
 
 export const SIGNUP = "/early-access";
-export const DOCS_URL = "https://onchainsuite-9506e41f.mintlify.app/";
+export const DOCS_URL = "docs.onchainsuite.com";
 
 const LOGO_SRC =
   "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095341/full_logo_horizontal_coloured_dark_kpiv6u.png";
@@ -675,11 +675,11 @@ const FOOTER: { h: string; links: [string, string][] }[] = [
   {
     h: "Product",
     links: [
-      ["Campaigns", "/auth/signup"],
-      ["Automations", "/auth/signup"],
-      ["Audience", "/auth/signup"],
-      ["Intelligence", "/auth/signup"],
-      ["Integrations", "/#integrations"],
+      ["Campaigns", "/campaigns"],
+      ["Automations", "/automations"],
+      ["Audience", "/audience"],
+      ["Intelligence", "/intelligence"],
+      ["Integrations", "/settings?tab=integrations"],
       ["Pricing", "/pricing"],
     ],
   },

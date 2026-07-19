@@ -9,6 +9,8 @@ import {
   DocumentTextIcon,
   EnvelopeIcon,
   FunnelIcon,
+  HandThumbDownIcon,
+  HandThumbUpIcon,
   MagnifyingGlassIcon,
   MegaphoneIcon,
   PlusCircleIcon,
@@ -44,12 +46,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/dialog";
 
 import { PRIVATE_ROUTES } from "@/config/app-routes";
 import { authClient } from "@/lib/auth-client";
-import { getSelectedOrganizationId } from "@/lib/utils";
 
+import { AiCitations } from "@/features/ai-search/ai-citations";
 import { aiSearchService } from "@/features/ai-search/ai-search.service";
+import { useAiAnswer } from "@/features/ai-search/use-ai-answer";
 import { isWipHref, SHOW_WIP_SECTIONS } from "@/shared/config/wip-sections";
-
-const AI_TIMEOUT_MS = 60_000;
 
 type PaletteOptionData =
   | { kind: "navigate"; href: string }
@@ -94,98 +95,6 @@ function Kbd({ keys }: { keys: string[] }) {
       ))}
     </span>
   );
-}
-
-type StreamDonePayload = {
-  answer?: string;
-  citations?: unknown;
-  queryLogId?: string;
-  latencyMs?: number;
-  variant?: string;
-  redactions?: unknown;
-};
-
-function buildPersonalizedQuery(input: string, user: unknown): string {
-  const u = user as { name?: unknown; timezone?: unknown; email?: unknown };
-  const name = typeof u?.name === "string" ? u.name : "";
-  const tz = typeof u?.timezone === "string" ? u.timezone : "";
-  const email = typeof u?.email === "string" ? u.email : "";
-  const ctx = [
-    name ? `name=${name}` : null,
-    tz ? `timezone=${tz}` : null,
-    email ? `email=${email}` : null,
-  ]
-    .filter((v): v is string => Boolean(v && v.length > 0))
-    .join(", ");
-  if (!ctx) return input;
-  return `UserContext(${ctx})\n\n${input}`;
-}
-
-async function streamQueryText(args: {
-  query: string;
-  mode?: "fast" | "best";
-  orgId?: string | null;
-  signal?: AbortSignal;
-  onToken: (token: string) => void;
-  onDone: (done: StreamDonePayload) => void;
-}): Promise<void> {
-  const params = new URLSearchParams();
-  params.set("query", args.query);
-  if (args.mode) params.set("mode", args.mode);
-
-  const headers: Record<string, string> = {};
-  if (args.orgId) headers["x-org-id"] = args.orgId;
-
-  const res = await fetch(`/api/v1/query/text/stream?${params.toString()}`, {
-    method: "GET",
-    credentials: "include",
-    headers,
-    signal: args.signal,
-  });
-
-  if (!res.ok || !res.body) {
-    throw new Error(`AI request failed (${res.status})`);
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() ?? "";
-
-    for (const evt of events) {
-      const lines = evt.split("\n");
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const jsonText = trimmed.slice("data:".length).trim();
-        if (!jsonText) continue;
-        try {
-          const parsed = JSON.parse(jsonText) as {
-            type?: unknown;
-            token?: unknown;
-            data?: unknown;
-          };
-          if (parsed.type === "token" && typeof parsed.token === "string") {
-            args.onToken(parsed.token);
-          } else if (
-            parsed.type === "done" &&
-            parsed.data &&
-            typeof parsed.data === "object"
-          ) {
-            args.onDone(parsed.data as StreamDonePayload);
-          }
-        } catch {
-          continue;
-        }
-      }
-    }
-  }
 }
 
 const NAVIGATE_OPTIONS: PaletteOption[] = [
@@ -350,26 +259,14 @@ export function CommandPaletteProvider({
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"commands" | "answer">("commands");
   const [query, setQuery] = useState("");
-  const [askedQuestion, setAskedQuestion] = useState("");
-  const [aiAnswer, setAiAnswer] = useState("");
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
+  const ai = useAiAnswer();
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const abortRef = useRef<AbortController | null>(null);
-  const timeoutRef = useRef<number | null>(null);
   const lastShortcutAtRef = useRef<number>(0);
   const openRef = useRef<boolean>(false);
   const viewRef = useRef<"commands" | "answer">("commands");
 
-  const stopStreaming = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setAiLoading(false);
-  }, []);
+  const stopStreaming = ai.stop;
+  const resetAi = ai.reset;
 
   const backToCommands = useCallback(() => {
     stopStreaming();
@@ -405,16 +302,14 @@ export function CommandPaletteProvider({
     () => ({
       open: (prefill) => {
         setView("commands");
-        setAiAnswer("");
-        setAiError(null);
-        setAiLoading(false);
+        resetAi();
         if (typeof prefill === "string") setQuery(prefill);
         setOpen(true);
       },
       close: () => setOpen(false),
       setQuery,
     }),
-    []
+    [resetAi]
   );
 
   useEffect(() => {
@@ -479,12 +374,9 @@ export function CommandPaletteProvider({
   // Reset transient state when the palette closes; abort in-flight streams.
   useEffect(() => {
     if (!open) {
-      stopStreaming();
+      resetAi();
       setView("commands");
       setQuery("");
-      setAskedQuestion("");
-      setAiAnswer("");
-      setAiError(null);
       return;
     }
     const t = window.setTimeout(() => {
@@ -494,63 +386,18 @@ export function CommandPaletteProvider({
       input?.focus();
     }, 0);
     return () => window.clearTimeout(t);
-  }, [open, stopStreaming]);
+  }, [open, resetAi]);
 
+  const askQuestion = ai.ask;
   const askAi = useCallback(
     (question: string) => {
-      const controller = new AbortController();
-      abortRef.current?.abort();
-      abortRef.current = controller;
-      if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
-
       setView("answer");
-      setAskedQuestion(question);
-      setAiAnswer("");
-      setAiError(null);
-      setAiLoading(true);
-
-      // Bound the stream — never hang forever.
-      timeoutRef.current = window.setTimeout(() => {
-        if (abortRef.current === controller) {
-          controller.abort();
-          setAiError("The AI took too long to respond. Try again.");
-          setAiLoading(false);
-        }
-      }, AI_TIMEOUT_MS);
-
-      const enriched = buildPersonalizedQuery(question, session?.user);
-      const orgId = getSelectedOrganizationId();
-
-      streamQueryText({
-        query: enriched,
-        mode: "best",
-        orgId,
-        signal: controller.signal,
-        onToken: (t) => setAiAnswer((prev) => prev + t),
-        onDone: (d) => {
-          if (typeof d.answer === "string" && d.answer.length > 0) {
-            setAiAnswer(d.answer);
-          }
-          setAiLoading(false);
-          if (timeoutRef.current !== null) {
-            window.clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-          }
-        },
-      }).catch((e: unknown) => {
-        if (controller.signal.aborted) return; // user stop or timeout
-        const raw = e instanceof Error ? e.message : "AI request failed";
-        const message = raw.includes("(402)")
-          ? "Your organization is out of AI credits for this period — upgrade your plan or wait for the monthly reset."
-          : raw.includes("(404)") || raw.includes("(501)")
-            ? "AI search isn't available yet for this workspace."
-            : raw;
-        setAiError(message);
-        setAiLoading(false);
-      });
+      askQuestion(question, { user: session?.user });
     },
-    [session?.user]
+    [askQuestion, session?.user]
   );
+
+  const sendAiFeedback = ai.sendFeedback;
 
   const options = useMemo<PaletteOption[]>(() => {
     const q = query.trim();
@@ -652,7 +499,7 @@ export function CommandPaletteProvider({
                   AI answer
                 </div>
                 <div className="ml-auto">
-                  {aiLoading ? (
+                  {ai.loading ? (
                     <Button
                       type="button"
                       variant="ghost"
@@ -669,7 +516,7 @@ export function CommandPaletteProvider({
               {/* Question */}
               <div className="border-b border-border/60 bg-muted/20 px-4 py-2.5">
                 <p className="line-clamp-2 text-sm font-medium text-foreground">
-                  {askedQuestion}
+                  {ai.question}
                 </p>
               </div>
 
@@ -679,14 +526,14 @@ export function CommandPaletteProvider({
                   className="px-4 py-4 text-sm leading-relaxed text-foreground"
                   aria-live="polite"
                 >
-                  {aiError ? (
+                  {ai.error ? (
                     <div className="space-y-3">
-                      <p className="text-destructive">{aiError}</p>
+                      <p className="text-destructive">{ai.error}</p>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => askAi(askedQuestion)}
+                        onClick={() => askAi(ai.question)}
                       >
                         <ArrowPathIcon
                           className="mr-1.5 h-3.5 w-3.5"
@@ -695,8 +542,8 @@ export function CommandPaletteProvider({
                         Try again
                       </Button>
                     </div>
-                  ) : aiAnswer.length > 0 ? (
-                    <div className="whitespace-pre-wrap">{aiAnswer}</div>
+                  ) : ai.answer.length > 0 ? (
+                    <div className="whitespace-pre-wrap">{ai.answer}</div>
                   ) : (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <span className="flex gap-1" aria-hidden="true">
@@ -714,13 +561,47 @@ export function CommandPaletteProvider({
                 </div>
               </div>
 
+              <AiCitations citations={ai.citations} />
+
               {/* Answer footer */}
               <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Kbd keys={["Esc"]} />
                   Back to commands
                 </span>
-                <span>AI answers can be wrong — verify important data.</span>
+                {!ai.loading && !ai.error && ai.answer.length > 0 ? (
+                  ai.feedback ? (
+                    <span>Thanks for the feedback.</span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <span>Helpful?</span>
+                      <button
+                        type="button"
+                        aria-label="Answer was helpful"
+                        className="rounded p-1 hover:bg-muted hover:text-foreground"
+                        onClick={() => sendAiFeedback("up")}
+                      >
+                        <HandThumbUpIcon
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Answer was not helpful"
+                        className="rounded p-1 hover:bg-muted hover:text-foreground"
+                        onClick={() => sendAiFeedback("down")}
+                      >
+                        <HandThumbDownIcon
+                          className="h-3.5 w-3.5"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </span>
+                  )
+                ) : (
+                  <span>AI answers can be wrong — verify important data.</span>
+                )}
               </div>
             </div>
           ) : (
