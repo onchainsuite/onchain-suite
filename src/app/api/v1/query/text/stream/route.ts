@@ -36,6 +36,42 @@ const getBackendBaseUrl = () => {
   return backendUrl.replace(/\/$/, "");
 };
 
+const extractTokenFromCookie = (cookieHeader: string): string | null => {
+  const pairs = cookieHeader
+    .split(";")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((p) => {
+      const idx = p.indexOf("=");
+      if (idx === -1) return [p, ""] as const;
+      return [p.slice(0, idx), p.slice(idx + 1)] as const;
+    });
+
+  const cookieMap = new Map(pairs);
+  const raw = cookieMap.get("onchain.token") ?? null;
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
+
+const hasBetterAuthSessionCookie = (cookieHeader: string) =>
+  /(^|;\s*)(?:__Secure-|__Host-)?better-auth\.(?:session_token|sessionToken)=/.test(
+    cookieHeader
+  );
+
+const extractBearer = (authorizationHeader: string | null): string | null => {
+  if (!authorizationHeader) return null;
+  const trimmed = authorizationHeader.trim();
+  if (trimmed.length === 0) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(trimmed);
+  if (!match) return null;
+  const token = match[1]?.trim() ?? "";
+  return token.length > 0 ? token : null;
+};
+
 const getBackendApiKey = () => {
   return pickNonEmpty(
     process.env.BACKEND_API_KEY,
@@ -198,6 +234,29 @@ export async function GET(req: NextRequest) {
 
     const auth = req.headers.get("authorization");
     if (auth) upstreamHeaders.set("authorization", auth);
+
+    // Session-token normalization, mirroring the catch-all proxy's
+    // ensureBackendAuthHeaders: the app's own `onchain.token` cookie is not
+    // understood by the backend guard, so when no Bearer and no better-auth
+    // session cookie are present, promote it to an Authorization header.
+    // Without this, palette "ask AI" requests reach the backend
+    // unauthenticated and fail with 401 while every catch-all-proxied route
+    // works.
+    if (!extractBearer(auth)) {
+      const tokenFromHeader = req.headers.get("x-session-token");
+      const tokenFromCookie =
+        cookie && !hasBetterAuthSessionCookie(cookie)
+          ? extractTokenFromCookie(cookie)
+          : null;
+      const token =
+        (tokenFromHeader && tokenFromHeader.trim()) || tokenFromCookie;
+      if (token) {
+        upstreamHeaders.set("authorization", `Bearer ${token}`);
+        if (!upstreamHeaders.has("x-session-token")) {
+          upstreamHeaders.set("x-session-token", token);
+        }
+      }
+    }
 
     const apiKey = getBackendApiKey();
     if (apiKey) upstreamHeaders.set("x-api-key", apiKey);

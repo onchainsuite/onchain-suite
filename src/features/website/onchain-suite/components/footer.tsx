@@ -11,11 +11,6 @@ import { FooterLinks } from "./footer-links";
 import { FooterSocial } from "./footer-social";
 
 const footerLinks = {
-  products: [
-    { name: "R3tain", href: "#r3tain" },
-    { name: "Onch3n", href: "#onch3n" },
-    { name: "3ridge", href: "#3ridge" },
-  ],
   resources: [
     { name: "Documentation", href: "#docs" },
     { name: "API Reference", href: "#api" },
@@ -104,11 +99,6 @@ export function Footer() {
               The first integrated communication layer built natively for Web3
             </p>
             <FooterSocial />
-          </motion.div>
-
-          {/* Links Sections */}
-          <motion.div variants={itemVariants}>
-            <FooterLinks title="Products" links={footerLinks.products} />
           </motion.div>
 
           <motion.div variants={itemVariants}>
