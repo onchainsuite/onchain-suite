@@ -801,11 +801,17 @@ export default function CompanySettingsView() {
       const sendReady = isJsonObject(root)
         ? pickBooleanLike(root.sendReady)
         : undefined;
+      // "Unknown" means the live Azure probe had no signal for that check —
+      // drop those so the summary can never contradict the per-record states
+      // (which fall back to stored verification data).
       const verificationStates =
         isJsonObject(root) && isJsonObject(root.verificationStates)
           ? Object.entries(root.verificationStates)
               .filter((pair): pair is [string, string] => {
-                return typeof pair[1] === "string";
+                return (
+                  typeof pair[1] === "string" &&
+                  pair[1].toLowerCase() !== "unknown"
+                );
               })
               .map(([check, state]) => ({ check, state }))
           : [];
@@ -2041,7 +2047,9 @@ export default function CompanySettingsView() {
               </div>
             ) : (
               <div className="space-y-4">
-                {domainDnsQuery.data?.sendReady !== undefined ? (
+                {domainDnsQuery.data?.sendReady === true ||
+                (domainDnsQuery.data?.sendReady === false &&
+                  domainDnsQuery.data.verificationStates.length > 0) ? (
                   <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="text-sm font-medium text-foreground">

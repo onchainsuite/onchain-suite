@@ -6,7 +6,6 @@ import {
   LockOpenIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -32,12 +31,14 @@ import { signOut } from "@/lib/auth-client";
 import { getAvatarColor, getInitials, isValidImageUrl } from "@/lib/user-utils";
 import { cn } from "@/lib/utils";
 
+import { BrandLogo } from "./brand-logo";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@/shared/components/ui/avatar";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { defaultLogos } from "@/shared/hooks/client/use-get-logo";
 
 export interface NavItem {
   label: string;
@@ -129,19 +130,20 @@ export function DashboardNavbar({
           >
             {/* Org-branded logos can live on arbitrary hosts (backend/storage)
                 that aren't in next.config images.remotePatterns — skip the
-                optimizer for them so next/image doesn't reject the host. */}
-            <Image
+                optimizer for them, and fall back to the platform logo when
+                the branded URL fails to load. */}
+            <BrandLogo
               src={lightIcon}
-              width={20}
-              height={20}
+              fallbackSrc={defaultLogos.lightIcon}
+              size={20}
               alt="Onchain Logo"
               className="dark:hidden"
               unoptimized={isCustom}
             />
-            <Image
+            <BrandLogo
               src={darkIcon}
-              width={20}
-              height={20}
+              fallbackSrc={defaultLogos.darkIcon}
+              size={20}
               alt="Onchain Logo"
               className="hidden dark:block"
               unoptimized={isCustom}
