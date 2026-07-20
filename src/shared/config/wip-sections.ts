@@ -30,14 +30,14 @@ export const WIP_SECTIONS: WipSection[] = [
     label: "Forms",
     description:
       "Build signup and capture forms that turn visitors into wallet-first contacts — embeddable anywhere, synced straight into your audience.",
-    percentComplete: 78,
+    percentComplete: 35,
   },
   {
     prefix: "/inbox",
     label: "Inbox",
     description:
       "A shared inbox for replies to your campaigns — read, assign, and answer conversations without leaving the suite.",
-    percentComplete: 72,
+    percentComplete: 30,
   },
 ];
 

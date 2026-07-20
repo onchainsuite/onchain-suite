@@ -34,12 +34,9 @@ const notifyPendingCheckoutChanged = () => {
 
 /** Display plan name → catalog slug for POST /billing/checkout/plan. */
 const PLAN_SLUGS: Record<string, PlanCheckoutSlug> = {
-  starter: "starter",
+  launch: "launch",
   growth: "growth",
   pro: "pro",
-  "pro+": "pro_plus",
-  pro_plus: "pro_plus",
-  proplus: "pro_plus",
 };
 
 export const planCheckoutSlug = (planName: string): PlanCheckoutSlug | null => {

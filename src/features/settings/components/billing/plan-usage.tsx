@@ -39,6 +39,28 @@ const formatDate = (value: unknown) => {
   return parsed.toLocaleDateString();
 };
 
+/** Catalog slugs → display names (docs/backend.md 2026-07-25 lineup). */
+const PLAN_DISPLAY_NAMES: Record<string, string> = {
+  payg: "Pay as you go",
+  pay_as_you_go: "Pay as you go",
+  launch: "Launch",
+  growth: "Growth",
+  pro: "Pro",
+  free: "Free (legacy)",
+  starter: "Starter (legacy)",
+  pro_plus: "Pro Plus (legacy)",
+};
+
+const displayPlanName = (raw: string): string => {
+  const key = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  if (PLAN_DISPLAY_NAMES[key]) return PLAN_DISPLAY_NAMES[key];
+  const trimmed = raw.trim();
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+};
+
 const PlanUsage = () => {
   const [isOpen, setIsOpen] = useState(false);
   const overviewQuery = useQuery({
@@ -64,6 +86,37 @@ const PlanUsage = () => {
     refetchOnReconnect: false,
   });
 
+  // Exact-plan fallback: GET /billing sometimes omits the plan name — the
+  // dedicated GET /billing/plan endpoint is authoritative, so query it
+  // whenever the overview can't name the plan (fixes "Unknown plan").
+  const overviewHasPlanName = Boolean(
+    pickString(
+      typeof overviewQuery.data === "object" &&
+        overviewQuery.data !== null &&
+        "plan" in overviewQuery.data &&
+        typeof (overviewQuery.data as Record<string, unknown>).plan === "string"
+        ? (overviewQuery.data as Record<string, unknown>).plan
+        : undefined,
+      isJsonObject(overviewQuery.data) &&
+        isJsonObject((overviewQuery.data as Record<string, unknown>).plan)
+        ? (
+            (overviewQuery.data as Record<string, unknown>).plan as Record<
+              string,
+              unknown
+            >
+          ).name
+        : undefined
+    )
+  );
+  const planQuery = useQuery({
+    queryKey: ["billing", "plan"],
+    queryFn: () => billingService.getPlan(),
+    enabled: overviewQuery.isFetched && !overviewHasPlanName,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
   const overviewErrorMessage = String(
     overviewQuery.error instanceof Error ? overviewQuery.error.message : ""
   ).toLowerCase();
@@ -79,11 +132,31 @@ const PlanUsage = () => {
   const paymentMethod = isJsonObject(overview.paymentMethod)
     ? overview.paymentMethod
     : undefined;
-  const planName =
-    pickString(
-      typeof overview.plan === "string" ? overview.plan : undefined,
-      planObject?.name
-    ) || (isFreeFallback ? "Free" : "Unknown");
+  const planData: unknown = planQuery.data;
+  const planRoot = isJsonObject(planData) ? planData : {};
+  const planRootPlan = isJsonObject(planRoot.plan) ? planRoot.plan : undefined;
+  const planRootCurrent = isJsonObject(planRoot.currentPlan)
+    ? planRoot.currentPlan
+    : undefined;
+  const rawPlanName = pickString(
+    typeof overview.plan === "string" ? overview.plan : undefined,
+    planObject?.name,
+    planObject?.slug,
+    typeof planRoot.plan === "string" ? planRoot.plan : undefined,
+    planRootPlan?.name,
+    planRootPlan?.slug,
+    planRootCurrent?.name,
+    planRootCurrent?.slug,
+    planRoot.name,
+    planRoot.slug
+  );
+  const planName = rawPlanName
+    ? displayPlanName(rawPlanName)
+    : isFreeFallback
+      ? "Free (legacy)"
+      : planQuery.isLoading || !overviewQuery.isFetched
+        ? "…"
+        : "Pay as you go";
   const billingStatus = pickString(overview.status, planObject?.status);
   const billingCycle = pickString(overview.billingCycle, planObject?.interval);
   const nextBillingDate = formatDate(overview.nextBillingDate);

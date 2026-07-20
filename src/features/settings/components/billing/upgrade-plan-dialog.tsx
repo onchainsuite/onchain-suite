@@ -32,38 +32,42 @@ interface UpgradePlanDialogProps {
   trigger?: React.ReactNode;
 }
 
+/** Mirrors the sellable catalog (docs/backend.md 2026-07-25). */
 const FALLBACK_PLANS: BillingPlan[] = [
   {
-    name: "Growth",
-    price: 49,
+    name: "Launch",
+    slug: "launch",
+    price: 29,
     interval: "month",
     features: [
-      "Up to 10,000 contacts",
+      "For protocols getting started",
+      "Monthly message & credit allowance",
+      "Email + in-app channels",
+      "Overage continues at PAYG rates",
+    ],
+  },
+  {
+    name: "Growth",
+    slug: "growth",
+    price: 199,
+    interval: "month",
+    features: [
+      "Bigger allowances for scaling teams",
       "Unlimited campaigns & automations",
       "Onchain audience intelligence",
-      "Email + in-app channels",
+      "Overage continues at PAYG rates",
     ],
   },
   {
     name: "Pro",
-    price: 149,
+    slug: "pro",
+    price: 499,
     interval: "month",
     features: [
-      "Up to 100,000 contacts",
+      "High-volume allowances",
       "Advanced segmentation & UTM tracking",
       "Priority support",
       "All channels + webhooks",
-    ],
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    interval: "month",
-    features: [
-      "Unlimited contacts",
-      "Dedicated success manager",
-      "SSO & audit logs",
-      "Custom SLAs",
     ],
   },
 ];

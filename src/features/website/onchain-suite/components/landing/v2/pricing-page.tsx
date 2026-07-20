@@ -18,21 +18,27 @@ import {
   billingService,
 } from "@/features/billing/billing.service";
 
-/* Indicative usage model (matches the reference's order-of-magnitude). */
-const BASE_FEE = 19;
-const PER_WALLET = 0.012; // $ per tracked wallet / mo
-const PER_SUB = 0.05; // $ per email subscriber / mo
+/* Pay-as-you-go unit rates — the live billing meters' prices. */
+const PER_1K_MESSAGES = 1; // $1 per 1,000 messages (email + in-app)
+const PER_10K_ONCHAIN = 1; // $1 per 10,000 on-chain (GoldRush) credits
+const PER_1K_AI = 5; // $5 per 1,000 AI credits
 
-function estimate(wallets: number, subs: number) {
-  // No usage at all costs nothing — the base fee only kicks in with usage.
-  if (wallets === 0 && subs === 0) return 0;
-  return Math.round(BASE_FEE + wallets * PER_WALLET + subs * PER_SUB);
+function estimate(messages: number, onchain: number, ai: number) {
+  const raw =
+    (messages / 1000) * PER_1K_MESSAGES +
+    (onchain / 10000) * PER_10K_ONCHAIN +
+    (ai / 1000) * PER_1K_AI;
+  return Math.round(raw);
 }
 
 function Calculator() {
-  const [wallets, setWallets] = useState(10000);
-  const [subs, setSubs] = useState(2000);
-  const price = useMemo(() => estimate(wallets, subs), [wallets, subs]);
+  const [messages, setMessages] = useState(25000);
+  const [onchain, setOnchain] = useState(100000);
+  const [ai, setAi] = useState(1000);
+  const price = useMemo(
+    () => estimate(messages, onchain, ai),
+    [messages, onchain, ai]
+  );
 
   return (
     <Reveal delay={0.12}>
@@ -40,22 +46,31 @@ function Calculator() {
         <div className="grid gap-8 md:grid-cols-[1fr_auto]">
           <div className="space-y-7">
             <Slider
-              label="Tracked wallets"
-              hint="On-chain wallets you monitor"
+              label="Messages sent"
+              hint="Email + in-app push, $1 per 1,000"
               min={0}
-              max={50000}
-              step={500}
-              value={wallets}
-              onChange={setWallets}
+              max={500000}
+              step={5000}
+              value={messages}
+              onChange={setMessages}
             />
             <Slider
-              label="Email subscribers"
-              hint="10 monthly sends bundled each"
+              label="On-chain credits"
+              hint="Wallet reads & enrichment, $1 per 10,000"
               min={0}
-              max={50000}
-              step={500}
-              value={subs}
-              onChange={setSubs}
+              max={2000000}
+              step={20000}
+              value={onchain}
+              onChange={setOnchain}
+            />
+            <Slider
+              label="AI credits"
+              hint="Intelligence queries & assistants, $5 per 1,000"
+              min={0}
+              max={20000}
+              step={250}
+              value={ai}
+              onChange={setAi}
             />
           </div>
           <div
@@ -63,7 +78,7 @@ function Calculator() {
             style={{ background: "var(--acc-soft)", minWidth: 200 }}
           >
             <span className="mono text-[11px] uppercase tracking-[0.16em] t-muted2">
-              Estimated
+              Pay as you go
             </span>
             <div className="mt-1 flex items-baseline gap-1">
               <span
@@ -75,7 +90,7 @@ function Calculator() {
               <span className="text-[14px] t-muted">/mo</span>
             </div>
             <span className="mt-1 text-[11px] t-muted2">
-              indicative, usage-based
+              no base fee — usage only
             </span>
           </div>
         </div>
@@ -83,11 +98,9 @@ function Calculator() {
           className="mt-6 border-t pt-5 text-[13px] leading-relaxed t-muted"
           style={{ borderColor: "var(--line-2)" }}
         >
-          A small base fee plus your tracked wallets and email subscribers.
-          In-app push to every connected wallet is included, and email is
-          optional, so wallets with no linked email cost nothing extra.
-          Estimates are indicative; founding rates are locked in for
-          early-access teams.
+          Every workspace starts on pay-as-you-go: no monthly fee, prepaid usage
+          from a top-up wallet, and nothing to cancel. When your volume settles,
+          a flat plan below usually works out cheaper — switch anytime.
         </p>
       </div>
     </Reveal>
@@ -138,45 +151,55 @@ function Slider({
   );
 }
 
+/* Fallback mirror of the live catalog: PAYG (signup default) · Launch $29 ·
+ * Growth $199 · Pro $499. Shown when GET /billing/plans is unreachable. */
 const PROFILES = [
   {
-    name: "Small",
-    price: "~$45",
-    who: "A protocol getting started",
-    w: "500",
-    s: "500",
-    cta: "Get early access",
+    name: "Pay as you go",
+    price: "$0",
+    who: "Every new workspace starts here",
+    rows: [
+      { label: "messages", value: "$1 / 1k" },
+      { label: "on-chain · AI", value: "$1/10k · $5/1k" },
+    ],
+    cta: "Start free",
     href: SIGNUP,
     popular: false,
   },
   {
-    name: "Growing",
-    price: "~$140",
+    name: "Launch",
+    price: "$29",
+    who: "A protocol getting started",
+    rows: [
+      { label: "billing", value: "flat monthly" },
+      { label: "overage", value: "PAYG rates" },
+    ],
+    cta: "Get started",
+    href: SIGNUP,
+    popular: false,
+  },
+  {
+    name: "Growth",
+    price: "$199",
     who: "Scaling retention",
-    w: "2,000",
-    s: "1,000",
-    cta: "Get early access",
+    rows: [
+      { label: "billing", value: "flat monthly" },
+      { label: "overage", value: "PAYG rates" },
+    ],
+    cta: "Get started",
     href: SIGNUP,
     popular: true,
   },
   {
-    name: "Mid",
-    price: "~$660",
-    who: "An established protocol",
-    w: "10,000",
-    s: "10,000",
-    cta: "Get early access",
+    name: "Pro",
+    price: "$499",
+    who: "Established & high-volume",
+    rows: [
+      { label: "billing", value: "flat monthly" },
+      { label: "overage", value: "PAYG rates" },
+    ],
+    cta: "Get started",
     href: SIGNUP,
-    popular: false,
-  },
-  {
-    name: "Large",
-    price: "~$3,300",
-    who: "High-volume & ecosystems",
-    w: "50,000",
-    s: "50,000",
-    cta: "Talk to us",
-    href: "mailto:info@onchainsuite.com",
     popular: false,
   },
 ];
@@ -192,6 +215,48 @@ const planPriceLabel = (price: BillingPlan["price"]) => {
 function CatalogPlans({ plans }: { plans: BillingPlan[] }) {
   return (
     <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {/* PAYG is the signup default, not a catalog row — pin it first. */}
+      <StaggerItem key="payg">
+        <div className="card relative flex h-full flex-col p-5 transition-transform duration-200 hover:-translate-y-1">
+          <span className="text-[13px] font-semibold t-ink">Pay as you go</span>
+          <div className="mt-2 flex items-baseline gap-1">
+            <span
+              className="font-semibold tracking-tight t-ink"
+              style={{ fontSize: "1.8rem" }}
+            >
+              $0
+            </span>
+            <span className="text-[13px] t-muted">/mo + usage</span>
+          </div>
+          <p className="mt-1 text-[12.5px] t-muted">
+            Every new workspace starts here — top up and pay only for what you
+            use.
+          </p>
+          <div
+            className="my-4 space-y-1.5 border-y py-3 text-[12.5px]"
+            style={{ borderColor: "var(--line-2)" }}
+          >
+            {[
+              "$1 per 1,000 messages",
+              "$1 per 10,000 on-chain credits",
+              "$5 per 1,000 AI credits",
+              "Up to 25k contacts · 2 seats",
+            ].map((feature) => (
+              <div key={feature} className="flex items-start gap-1.5">
+                <CheckIcon
+                  aria-hidden="true"
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                  style={{ color: "var(--acc)" }}
+                />
+                <span className="t-muted">{feature}</span>
+              </div>
+            ))}
+          </div>
+          <Link href={SIGNUP} className="mt-auto btn btn-ghost w-full">
+            Start free
+          </Link>
+        </div>
+      </StaggerItem>
       {plans.map((plan, idx) => {
         const name = plan.name ?? `Plan ${idx + 1}`;
         const popular = plan.slug === "pro" || idx === 2;
@@ -299,7 +364,7 @@ function Profiles() {
           sub={
             hasCatalog
               ? "Live prices from our plan catalog — pay in USDC via crypto checkout, upgrade or downgrade anytime."
-              : "Illustrative points on a continuous curve, not fixed packages. Your exact price comes from your own wallet and subscriber counts."
+              : "Pay as you go is the default — the flat plans take over when your volume settles. Overage past any plan's allowance continues at the pay-as-you-go rates."
           }
         />
         {hasCatalog ? (
@@ -345,14 +410,14 @@ function Profiles() {
                     className="my-4 space-y-1.5 border-y py-3 text-[12.5px]"
                     style={{ borderColor: "var(--line-2)" }}
                   >
-                    <div className="flex justify-between">
-                      <span className="t-muted">tracked wallets</span>
-                      <span className="mono font-medium t-ink2">{p.w}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="t-muted">subscribers</span>
-                      <span className="mono font-medium t-ink2">{p.s}</span>
-                    </div>
+                    {p.rows.map((row) => (
+                      <div key={row.label} className="flex justify-between">
+                        <span className="t-muted">{row.label}</span>
+                        <span className="mono font-medium t-ink2">
+                          {row.value}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                   <Link
                     href={p.href}
@@ -418,7 +483,7 @@ function Included() {
 const PRICING_FAQ = [
   [
     "How does pricing work?",
-    "Usage-based, with no rigid tiers. You pay a small base fee plus two usage drivers: the email subscribers you reach and the on-chain wallets you track. The price scales smoothly from the smallest project to the largest, so you only pay for what you actually use.",
+    "Every workspace starts on pay-as-you-go: no monthly fee, prepaid usage from a top-up wallet at $1 per 1,000 messages, $1 per 10,000 on-chain credits, and $5 per 1,000 AI credits. When your volume settles, flat plans (Launch $29, Growth $199, Pro $499) usually work out cheaper — and overage past a plan's allowance simply continues at the pay-as-you-go rates.",
   ],
   [
     "What is a tracked wallet?",
@@ -430,7 +495,7 @@ const PRICING_FAQ = [
   ],
   [
     "Is there a free plan?",
-    "There is no separate free tier, but pricing starts low: a small protocol runs around $45 a month, and you only pay for the wallets and subscribers you use. Early-access teams lock in founding rates.",
+    "There is no free tier — new workspaces start on pay-as-you-go with no monthly fee, so you only ever pay for usage. Signing up costs nothing, and a small protocol's first campaigns typically run a few dollars.",
   ],
   [
     "Which channels are included, and is there SMS?",
@@ -438,7 +503,7 @@ const PRICING_FAQ = [
   ],
   [
     "What about larger protocols?",
-    "Pricing is continuous, so it keeps scaling past the reference profiles. Larger protocols and ecosystems move to a custom agreement; talk to us for an exact quote from your wallet and subscriber counts.",
+    "Pro covers most high-volume protocols, and pay-as-you-go rates apply past any plan's allowance, so nothing hard-stops. Ecosystems with bigger needs move to a custom agreement — talk to us for an exact quote from your usage.",
   ],
 ];
 
@@ -569,14 +634,14 @@ export function PricingPage() {
         />
         <div className="wrap relative">
           <Heading
-            eyebrow="Founding rates for early teams"
+            eyebrow="Start free, pay per use"
             title={
               <>
-                Usage-based pricing, priced by{" "}
-                <span className="grad">wallets and reach.</span>
+                Pay as you go, priced by{" "}
+                <span className="grad">what you actually use.</span>
               </>
             }
-            sub="A small base fee plus two usage drivers: the on-chain wallets you track and the email subscribers you reach. No rigid tiers, no SMS, no per-message fees on in-app push."
+            sub="No monthly fee to start: $1 per 1,000 messages, $1 per 10,000 on-chain credits, $5 per 1,000 AI credits — prepaid from a top-up wallet. Flat plans take over when your volume settles."
           />
           <Calculator />
         </div>

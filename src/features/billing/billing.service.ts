@@ -32,7 +32,7 @@ export interface BillingUsage {
 
 export interface BillingPlan {
   name?: string;
-  /** Catalog slug (e.g. "growth", "pro_plus") when the backend provides one. */
+  /** Catalog slug (e.g. "launch", "growth") when the backend provides one. */
   slug?: string;
   status?: string;
   description?: string;
@@ -178,7 +178,12 @@ export interface BillingUpgradeResponse {
 }
 
 /** Catalog slugs accepted by POST /billing/checkout/plan (docs/backend.md). */
-export type PlanCheckoutSlug = "starter" | "growth" | "pro" | "pro_plus";
+/**
+ * Sellable lineup per docs/backend.md 2026-07-25: Launch $29 · Growth $199 ·
+ * Pro $499 (PAYG is the signup default, not a checkout slug). `starter` and
+ * `pro_plus` were retired — checkout now 404s on them.
+ */
+export type PlanCheckoutSlug = "launch" | "growth" | "pro";
 
 export interface PlanCheckoutRequest {
   plan: PlanCheckoutSlug;
