@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BoltIcon,
   CheckIcon,
   ClipboardDocumentIcon,
   EyeIcon,
@@ -40,6 +41,16 @@ import {
 
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+
+const CUSTOM_EVENTS_CURL = `curl -X POST https://api.onchainsuite.com/api/v1/events \\
+  -H "Authorization: Bearer sk_live_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "event": "plan_upgraded",
+    "contact": { "walletAddress": "0xabc..." },
+    "attributes": { "plan": "pro" },
+    "idempotencyKey": "evt_123"
+  }'`;
 
 type InAppEnvironment = "production" | "staging" | "development";
 type SecretKeyEnvironment = "live" | "test";
@@ -320,7 +331,7 @@ const InAppIntegration = () => {
 
   const queryClient = useQueryClient();
   const [showPublishable, setShowPublishable] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<"pk" | "sk" | null>(null);
+  const [copiedKey, setCopiedKey] = useState<"pk" | "sk" | "curl" | null>(null);
   const [activePanel, setActivePanel] = useState<
     "keys" | "origins" | "test" | null
   >(null);
@@ -531,7 +542,7 @@ const InAppIntegration = () => {
     },
   });
 
-  const copyToClipboard = async (kind: "pk" | "sk", value: string) => {
+  const copyToClipboard = async (kind: "pk" | "sk" | "curl", value: string) => {
     if (!value) return;
     await navigator.clipboard.writeText(value);
     setCopiedKey(kind);
@@ -1141,6 +1152,46 @@ const InAppIntegration = () => {
                 )}
             </>
           )}
+        </div>
+      </SettingsSectionCard>
+
+      {/* Custom Events API — ingestion is fully backend-abstracted
+          (POST /events, secret-key auth); the dashboard only documents the
+          call. Events fire app_event automation triggers and land in
+          Intelligence SQL (app_events). */}
+      <SettingsSectionCard
+        title="Custom Events"
+        description="Send product events from your backend — they trigger automations and power in-app messaging."
+        icon={<BoltIcon className="h-5 w-5" aria-hidden="true" />}
+        badge="POST /events · secret-key auth"
+      >
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-border/60 bg-background/60 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <pre className="min-w-0 flex-1 overflow-x-auto whitespace-pre rounded-lg bg-muted px-3 py-2 text-xs leading-5 text-foreground">
+                {CUSTOM_EVENTS_CURL}
+              </pre>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 shrink-0 rounded-full text-xs"
+                type="button"
+                onClick={() => copyToClipboard("curl", CUSTOM_EVENTS_CURL)}
+              >
+                {copiedKey === "curl" ? "Copied" : "Copy"}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Use a secret key from above (`sk_test_` keys dry-run — nothing
+            sends). Identify the contact by wallet, email, or externalId. Events
+            match automations with an{" "}
+            <span className="font-medium">App event</span> trigger by name and
+            appear in Intelligence as{" "}
+            <code className="rounded bg-muted px-1">app_events</code>. Batch up
+            to 100 with{" "}
+            <code className="rounded bg-muted px-1">/events/batch</code>.
+          </p>
         </div>
       </SettingsSectionCard>
       <Dialog open={createSecretOpen} onOpenChange={setCreateSecretOpen}>
