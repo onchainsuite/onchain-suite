@@ -27,7 +27,7 @@ import "./landing-v2.css";
 import { Reveal } from "./primitives";
 
 export const SIGNUP = "/early-access";
-export const DOCS_URL = "docs.onchainsuite.com";
+export const DOCS_URL = "https://docs.onchainsuite.com";
 
 const LOGO_SRC =
   "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761095341/full_logo_horizontal_coloured_dark_kpiv6u.png";
