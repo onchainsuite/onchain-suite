@@ -4,7 +4,6 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,6 +14,7 @@ import { useGetLogo } from "@/hooks/client";
 import { signOut } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
+import { BrandLogo } from "./brand-logo";
 import type { NavItem } from "./dashboard-navbar";
 import {
   Sheet,
@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { defaultLogos } from "@/shared/hooks/client/use-get-logo";
 
 /**
  * Mobile navigation for the dashboard shell (below lg, where the fixed
@@ -56,21 +57,19 @@ export function MobileNav({ navItems }: { navItems: NavItem[] }) {
       <SheetContent side="left" className="w-72 p-0">
         <SheetHeader className="border-b border-border px-4 py-4">
           <SheetTitle className="flex items-center justify-center gap-2 text-sm font-semibold">
-            <Image
+            <BrandLogo
               src={lightIcon}
-              width={22}
-              height={22}
+              fallbackSrc={defaultLogos.lightIcon}
+              size={22}
               alt=""
-              aria-hidden="true"
               className="dark:hidden"
               unoptimized={isCustom}
             />
-            <Image
+            <BrandLogo
               src={darkIcon}
-              width={22}
-              height={22}
+              fallbackSrc={defaultLogos.darkIcon}
+              size={22}
               alt=""
-              aria-hidden="true"
               className="hidden dark:block"
               unoptimized={isCustom}
             />

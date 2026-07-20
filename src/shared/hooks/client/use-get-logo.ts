@@ -62,7 +62,7 @@ const fetcher = async (url: string) => {
   }
 };
 
-const defaultLogos = {
+export const defaultLogos = {
   lightIcon:
     "https://res.cloudinary.com/dwnkqkx8q/image/upload/v1761093444/onchain_suite_bf926w.png",
   darkIcon:

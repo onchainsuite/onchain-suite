@@ -806,11 +806,19 @@ const CreateAutomationContent = () => {
     projectSettingsQuery.data?.contractAddresses,
   ]);
 
+  // Custom Events API names (30-day distinct) — the app_event trigger's
+  // matching key is the plain event name, so these merge straight into the
+  // event picker alongside the on-chain catalog.
+  const eventsCatalogQuery = useQuery({
+    queryKey: ["automations", "builder", "events-catalog"],
+    queryFn: () => automationService.getEventsCatalog(),
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 300_000,
+  });
+
   const eventOptions = useMemo(() => {
     const definitions = onchainCatalogQuery.data?.definitions ?? [];
-    if (definitions.length === 0) {
-      return eventTypes.map((e) => ({ value: e, label: e }));
-    }
     const seen = new Set<string>();
     const options: { value: string; label: string }[] = [];
     for (const def of definitions) {
@@ -819,8 +827,19 @@ const CreateAutomationContent = () => {
       seen.add(value);
       options.push({ value, label: def.label ?? value });
     }
+    if (options.length === 0) {
+      for (const e of eventTypes) {
+        seen.add(e);
+        options.push({ value: e, label: e });
+      }
+    }
+    for (const name of eventsCatalogQuery.data ?? []) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      options.push({ value: name, label: `${name} · app event` });
+    }
     return options;
-  }, [onchainCatalogQuery.data?.definitions]);
+  }, [onchainCatalogQuery.data?.definitions, eventsCatalogQuery.data]);
 
   // Selecting a catalog event persists its GoldRush identifiers on the node,
   // per the backend recommendation (goldrushEventId, eventStandard, topic0,

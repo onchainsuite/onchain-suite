@@ -352,6 +352,40 @@ export const automationService = {
     );
   },
 
+  /**
+   * `GET /events/catalog` — distinct Custom Events API event names from the
+   * last 30 days, for app_event trigger autocomplete (docs/backend.md
+   * 2026-07-21). Ingestion itself is server-to-server (`POST /events`,
+   * secret-key auth) — the dashboard only ever reads the catalog.
+   */
+  async getEventsCatalog(orgId?: string): Promise<string[]> {
+    const payload = await request<unknown>(
+      { method: "GET", url: "/events/catalog" },
+      orgId
+    );
+    const root = isJsonObject(payload) ? payload : {};
+    const list = Array.isArray(payload)
+      ? payload
+      : Array.isArray(root.items)
+        ? root.items
+        : Array.isArray(root.events)
+          ? root.events
+          : Array.isArray(root.names)
+            ? root.names
+            : [];
+    return list
+      .map((entry) =>
+        typeof entry === "string"
+          ? entry
+          : isJsonObject(entry) && typeof entry.name === "string"
+            ? entry.name
+            : isJsonObject(entry) && typeof entry.event === "string"
+              ? entry.event
+              : null
+      )
+      .filter((name): name is string => Boolean(name && name.length > 0));
+  },
+
   listTriggerTypes(orgId?: string) {
     return request<{ items?: unknown[] } | unknown[]>(
       { method: "GET", url: "/automations/builder/triggers" },

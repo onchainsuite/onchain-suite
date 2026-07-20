@@ -93,15 +93,8 @@ export function isValidImageUrl(url: string | null | undefined): boolean {
     return false;
   }
 
-  const imagePatterns = [
-    /\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i,
-    /googleapis\.com/i,
-    /gravatar\.com/i,
-    /githubusercontent\.com/i,
-    /cloudinary\.com/i,
-    /imgur\.com/i,
-    /blob\.core\.windows\.net/i, // Azure Blob
-  ];
-
-  return imagePatterns.some((pattern) => pattern.test(url));
+  // Any real URL is worth attempting — a host allowlist here silently
+  // rejected OAuth avatar hosts (e.g. lh3.googleusercontent.com) in
+  // production. Broken images fall back via the <img> onError handler.
+  return /^(https?:\/\/|data:image\/|blob:|\/)/i.test(url.trim());
 }

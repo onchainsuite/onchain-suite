@@ -91,6 +91,8 @@ interface DomainDnsRow {
   ttl?: string;
   priority?: string;
   verified?: boolean;
+  /** Set for live Azure states that are neither pass nor fail. */
+  verificationLabel?: string;
   status?: SenderStatus | "unknown";
   databaseField?: string;
 }
@@ -522,12 +524,9 @@ const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
   return collectDnsEntries(payload)
     .map((entry, index): DomainDnsRow | null => {
       if (!isJsonObject(entry)) return null;
-      const host = pickString(
-        entry.host,
-        entry.hostname,
-        entry.name,
-        entry.recordName
-      );
+      const host =
+        pickString(entry.host, entry.hostname, entry.name, entry.recordName) ??
+        "@";
       const type = pickString(entry.type, entry.recordType);
       const value = pickString(
         entry.value,
@@ -535,22 +534,39 @@ const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
         entry.target,
         entry.recordValue
       );
-      if (!host || !type || !value) return null;
-      const verified = pickBooleanLike(
-        entry.verified,
-        entry.isVerified,
-        entry.valid,
-        entry.isValid,
-        entry.active,
-        entry.exists,
-        entry.present,
-        entry.configured,
-        entry.propagated,
-        entry.matched,
-        entry.recordVerified,
-        entry.recordStatus,
-        entry.status
-      );
+      if (!type || !value) return null;
+      // `verification` is the live Azure state on every record
+      // (Verified|NotStarted|VerificationInProgress|VerificationFailed|Unknown)
+      // — it wins over the legacy boolean-ish fields.
+      const verificationState = pickString(entry.verification)?.toLowerCase();
+      const verified =
+        verificationState === "verified"
+          ? true
+          : verificationState === "verificationfailed"
+            ? false
+            : (pickBooleanLike(
+                entry.verified,
+                entry.isVerified,
+                entry.valid,
+                entry.isValid,
+                entry.active,
+                entry.exists,
+                entry.present,
+                entry.configured,
+                entry.propagated,
+                entry.matched,
+                entry.recordVerified,
+                entry.recordStatus,
+                entry.status
+              ) ?? undefined);
+      const verificationLabel =
+        verified === undefined
+          ? verificationState === "verificationinprogress"
+            ? "In progress"
+            : verificationState === "notstarted"
+              ? "Not started"
+              : undefined
+          : undefined;
       return {
         id: pickString(entry.id) ?? `${host}-${type}-${index}`,
         host,
@@ -559,6 +575,7 @@ const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
         ttl: pickString(entry.ttl),
         priority: pickString(entry.priority),
         verified,
+        verificationLabel,
         status:
           verified === true
             ? "verified"
@@ -780,7 +797,29 @@ export default function CompanySettingsView() {
         `/domain/${domainDnsDialog.domainId}/dns`,
         { headers: orgHeaders }
       );
-      return { records: normalizeDomainDns(dnsResponse.data) };
+      const root = unwrapData(dnsResponse.data);
+      const sendReady = isJsonObject(root)
+        ? pickBooleanLike(root.sendReady)
+        : undefined;
+      // "Unknown" means the live Azure probe had no signal for that check —
+      // drop those so the summary can never contradict the per-record states
+      // (which fall back to stored verification data).
+      const verificationStates =
+        isJsonObject(root) && isJsonObject(root.verificationStates)
+          ? Object.entries(root.verificationStates)
+              .filter((pair): pair is [string, string] => {
+                return (
+                  typeof pair[1] === "string" &&
+                  pair[1].toLowerCase() !== "unknown"
+                );
+              })
+              .map(([check, state]) => ({ check, state }))
+          : [];
+      return {
+        records: normalizeDomainDns(dnsResponse.data),
+        sendReady,
+        verificationStates,
+      };
     },
   });
 
@@ -962,9 +1001,15 @@ export default function CompanySettingsView() {
       );
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["project-settings", "domains", organizationId],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["project-settings", "domains", organizationId],
+        }),
+        // Refresh the open DNS dialog too — record states are live now.
+        queryClient.invalidateQueries({
+          queryKey: ["project-settings", "domain-dns"],
+        }),
+      ]);
       toast.success("Domain recheck started");
     },
     onError: (error: unknown) => {
@@ -1029,12 +1074,12 @@ export default function CompanySettingsView() {
   });
 
   const resendInviteMutation = useMutation({
-    mutationFn: async (inviteId: string) => {
+    mutationFn: async ({ inviteId }: { inviteId: string; email: string }) => {
       if (!organizationId) throw new Error("No active organization selected");
       await organizationMembersService.resendInvite(organizationId, inviteId);
     },
-    onSuccess: () => {
-      toast.success("Invite email resent");
+    onSuccess: (_data, { email }) => {
+      toast.success(`Invite email resent to ${email}`);
     },
     onError: (error: unknown) => {
       // A 429 here carries the friendly 5/min rate-limit message.
@@ -1622,8 +1667,14 @@ export default function CompanySettingsView() {
                       canManageMembers &&
                       member.role !== "OWNER" &&
                       !isSelf;
+                    // Scope the resend spinner to the row actually in flight —
+                    // a shared `isPending` spins every pending-invite row at
+                    // once and reads as "resent to everyone".
+                    const isResendingThisInvite =
+                      resendInviteMutation.isPending &&
+                      resendInviteMutation.variables?.inviteId === member.id;
                     return (
-                      <TableRow key={member.email}>
+                      <TableRow key={`${member.kind}-${member.id}`}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9 ring-1 ring-border/70">
@@ -1716,12 +1767,15 @@ export default function CompanySettingsView() {
                                   variant="outline"
                                   size="sm"
                                   className="h-8 rounded-full text-xs"
-                                  disabled={resendInviteMutation.isPending}
+                                  disabled={isResendingThisInvite}
                                   onClick={() =>
-                                    resendInviteMutation.mutate(member.id)
+                                    resendInviteMutation.mutate({
+                                      inviteId: member.id,
+                                      email: member.email,
+                                    })
                                   }
                                 >
-                                  {resendInviteMutation.isPending ? (
+                                  {isResendingThisInvite ? (
                                     <ArrowPathIcon
                                       aria-hidden="true"
                                       className="mr-1 h-3.5 w-3.5 animate-spin"
@@ -1993,6 +2047,61 @@ export default function CompanySettingsView() {
               </div>
             ) : (
               <div className="space-y-4">
+                {domainDnsQuery.data?.sendReady === true ||
+                (domainDnsQuery.data?.sendReady === false &&
+                  domainDnsQuery.data.verificationStates.length > 0) ? (
+                  <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-sm font-medium text-foreground">
+                        {domainDnsQuery.data.sendReady
+                          ? "Ready to send"
+                          : "Not ready to send yet"}
+                      </div>
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getSenderStatusTone(
+                          domainDnsQuery.data.sendReady ? "verified" : "pending"
+                        )}`}
+                      >
+                        {domainDnsQuery.data.sendReady
+                          ? "Send-ready"
+                          : "Verification pending"}
+                      </span>
+                    </div>
+                    {domainDnsQuery.data.verificationStates.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {domainDnsQuery.data.verificationStates.map(
+                          ({ check, state }) => (
+                            <span
+                              key={check}
+                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+                                state.toLowerCase() === "verified"
+                                  ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                                  : state.toLowerCase() === "verificationfailed"
+                                    ? "border-destructive/40 text-destructive"
+                                    : "border-border text-muted-foreground"
+                              }`}
+                            >
+                              <span className="font-medium uppercase">
+                                {check}
+                              </span>
+                              {state.replace(/^Verification/, "")}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    ) : null}
+                    {!domainDnsQuery.data.sendReady ? (
+                      <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                        Domain, SPF, DKIM, and DKIM2 must all verify before
+                        Azure will send from this domain. SPF is required — if
+                        your DNS already has a{" "}
+                        <code className="rounded bg-muted px-1">v=spf1</code>{" "}
+                        record, merge the value into it instead of adding a
+                        second one (two SPF records invalidate both).
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
                 {domainDnsRecords.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-border/70 bg-background/50 p-6 text-sm text-muted-foreground">
                     DNS records are not available yet for this domain.
@@ -2022,6 +2131,12 @@ export default function CompanySettingsView() {
                                 className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getSenderStatusTone("failed")}`}
                               >
                                 Fail
+                              </span>
+                            ) : record.verificationLabel ? (
+                              <span
+                                className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getSenderStatusTone("pending")}`}
+                              >
+                                {record.verificationLabel}
                               </span>
                             ) : null}
                           </div>
