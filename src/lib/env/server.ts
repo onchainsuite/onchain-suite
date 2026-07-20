@@ -4,8 +4,6 @@ import { z } from "zod";
 export const serverEnv = createEnv({
   server: {
     ARCJET_KEY: z.string().min(1).optional(),
-    /** Comma-separated emails allowed into the dashboard. Empty = gate off. */
-    BETA_ALLOWED_EMAILS: z.string().optional(),
     R3TAIN_INFRA_URL: z
       .string()
       .url()
