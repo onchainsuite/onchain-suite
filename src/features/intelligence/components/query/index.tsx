@@ -478,7 +478,7 @@ const MCP_FAILURE_GUIDANCE: Array<{ match: RegExp; guidance: string }> = [
   {
     match: /plan_limit_exceeded|credit/i,
     guidance:
-      "Your organization has used its GoldRush/AI credit allowance for this period. Upgrade the plan in Settings → Billing or wait for the monthly reset.",
+      "Your organization has used its GoldRush/AI credit allowance and the usage wallet can't cover the overage. Top up the wallet or upgrade in Settings → Billing.",
   },
   {
     match: /rate limit|too many requests/i,

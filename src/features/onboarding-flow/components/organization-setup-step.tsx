@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { InputFormField } from "@/components/form-fields";
@@ -27,7 +27,8 @@ import {
   type OrganizationSetupFormData,
   organizationSetupSchema,
 } from "../validation";
-import { ContractSuggestionsPanel } from "./contract-suggestions";
+// Paused for launch alongside the panel below.
+// import { ContractSuggestionsPanel } from "./contract-suggestions";
 
 const normalizeWebsiteUrl = (input?: string) => {
   const raw = (input ?? "").trim();
@@ -127,45 +128,15 @@ export function OrganizationSetupStep({
     },
   });
 
-  // Targeted subscriptions: only the suggestions panel re-renders as the
-  // user types the organization name or picks a sector.
-  const watchedName = useWatch({
-    control: form.control,
-    name: "organizationName",
-  });
-  const watchedSector = useWatch({ control: form.control, name: "sector" });
+  // Paused with the contract-suggestions panel below — restore these
+  // useWatch subscriptions (organizationName, sector) when re-enabling it.
 
   // Contracts the user explicitly accepted from the suggestion panel. The
   // backend sends `requiresReview: true`, so only accepted rows are ever
   // committed (they ride along in this step's stepData on submit).
-  const [acceptedContracts, setAcceptedContracts] = useState<
-    SuggestedContract[]
-  >(() => initialData.contracts ?? []);
-
-  const handleAcceptContract = useCallback((contract: SuggestedContract) => {
-    setAcceptedContracts((prev) => {
-      const exists = prev.some(
-        (c) =>
-          c.name === contract.name &&
-          c.chainHint === contract.chainHint &&
-          c.address === contract.address
-      );
-      return exists ? prev : [...prev, contract];
-    });
-  }, []);
-
-  const handleRemoveContract = useCallback((contract: SuggestedContract) => {
-    setAcceptedContracts((prev) =>
-      prev.filter(
-        (c) =>
-          !(
-            c.name === contract.name &&
-            c.chainHint === contract.chainHint &&
-            c.address === contract.address
-          )
-      )
-    );
-  }, []);
+  const [acceptedContracts] = useState<SuggestedContract[]>(
+    () => initialData.contracts ?? []
+  );
 
   const onSubmit = async (data: OrganizationSetupFormData) => {
     const stepData = { ...data, contracts: acceptedContracts };
@@ -447,6 +418,8 @@ export function OrganizationSetupStep({
             placeholder="Brief description..."
           />
 
+          {/* Contract suggestions are paused for launch — re-enable by
+              restoring the import, accept/remove handlers, and this panel.
           <ContractSuggestionsPanel
             protocolName={watchedName ?? ""}
             sector={watchedSector ?? ""}
@@ -454,6 +427,7 @@ export function OrganizationSetupStep({
             onAccept={handleAcceptContract}
             onRemove={handleRemoveContract}
           />
+          */}
 
           <Button
             type="submit"

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-import { cn } from "@/lib/utils";
+import { cn, getSelectedOrganizationId } from "@/lib/utils";
 
 import { type OnboardingStepsProps } from "../types";
 import {
@@ -25,21 +25,21 @@ import {
 } from "@/features/billing/checkout";
 
 /**
- * Free starter option — onboarding must never dead-end on billing, so this
- * completes without touching the upgrade API. Paid plans come from
- * GET /billing/plans (Growth / Pro / Enterprise) with these fallbacks when
- * the endpoint is unavailable.
+ * Pay-As-You-Go starter option for small teams — replaces the old free tier.
+ * Selecting it flips the org to `plan: payg` (`POST /billing/payg/start`,
+ * one-time $5 trial credit); usage is metered from the prepaid wallet at the
+ * backend's PAYG rates, and hard caps still apply. Onboarding never
+ * dead-ends on billing — a failed start is retried from Settings → Billing.
  */
-const FREE_PLAN = {
-  name: "Free",
-  price: 0 as const,
-  interval: "month",
-  description: "Everything you need to explore Onchain Suite",
+const PAYG_PLAN = {
+  name: "Pay as you go",
+  interval: "usage-based",
+  description: "For small teams — no monthly fee, pay only for what you use",
   features: [
-    "Up to 1,000 contacts",
-    "Email + in-app push campaigns",
-    "Starter templates & capture forms",
-    "Community support",
+    "$5 trial credit to get started",
+    "$1 per 1k messages · $5 per 1k AI credits",
+    "$1 per 10k on-chain (GoldRush) credits",
+    "Up to 25k contacts · 2 seats · 3 automations",
   ],
 };
 
@@ -216,15 +216,29 @@ export function PlanSelectionStep({
       ? fetched
       : FALLBACK_PAID_PLANS;
 
-  // Any non-free selection attempts checkout; plans without a self-serve
+  // Any non-PAYG selection attempts checkout; plans without a self-serve
   // checkout slug (e.g. Enterprise) fall through to the contact-sales path.
-  const isPaidPlan = selectedPlan.length > 0 && selectedPlan !== "free";
+  const isPaidPlan = selectedPlan.length > 0 && selectedPlan !== "payg";
 
   const handleContinue = async () => {
     if (!selectedPlan || isSubmitting) return;
     setIsSubmitting(true);
     try {
       let paymentUrl = "";
+      if (selectedPlan === "payg") {
+        try {
+          const orgId = getSelectedOrganizationId();
+          if (orgId) {
+            await billingService.startPayg(orgId, { orgId });
+          }
+        } catch (e) {
+          // Backend also auto-falls-back to payg — never block onboarding.
+          console.warn("PAYG start failed during onboarding:", e);
+          toast.warning(
+            "We couldn't activate pay-as-you-go right now. You can enable it anytime in Settings → Billing."
+          );
+        }
+      }
       if (isPaidPlan) {
         try {
           // Blockradar crypto checkout — the pending reference is stored
@@ -283,8 +297,9 @@ export function PlanSelectionStep({
           Choose the plan that fits your protocol
         </h1>
         <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-          Start free and upgrade whenever you need more reach — you can change
-          your plan anytime in Settings → Billing.
+          Start pay-as-you-go with a $5 trial credit and upgrade whenever you
+          need more reach — you can change your plan anytime in Settings →
+          Billing.
         </p>
       </div>
 
@@ -304,13 +319,13 @@ export function PlanSelectionStep({
           className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
         >
           <PlanCard
-            name={FREE_PLAN.name}
-            description={FREE_PLAN.description}
-            priceText="$0"
-            interval={FREE_PLAN.interval}
-            features={FREE_PLAN.features}
-            isSelected={selectedPlan === "free"}
-            onSelect={() => setSelectedPlan("free")}
+            name={PAYG_PLAN.name}
+            description={PAYG_PLAN.description}
+            priceText="$0/mo"
+            interval={PAYG_PLAN.interval}
+            features={PAYG_PLAN.features}
+            isSelected={selectedPlan === "payg"}
+            onSelect={() => setSelectedPlan("payg")}
           />
           {paidPlans.map((plan, idx) => {
             const name =

@@ -911,13 +911,27 @@ export default function CompanySettingsView() {
         { headers: orgHeaders }
       );
     },
-    onSuccess: async () => {
+    onSuccess: async (response) => {
       setAddDomainOpen(false);
       setDomainName("");
       await queryClient.invalidateQueries({
         queryKey: ["project-settings", "domains", organizationId],
       });
       toast.success("Domain added");
+      // POST /domain now returns the full DNS record set (docs/backend.md
+      // 2026-07-23) — open the verify dialog immediately so the user can add
+      // records without hunting for the row.
+      const body = unwrapData(response?.data);
+      const created = isJsonObject(body) ? body : {};
+      const newDomainId = pickString(created.id, created.domainId);
+      const newDomainName = pickString(created.domain, created.name);
+      if (newDomainId) {
+        setDomainDnsDialog({
+          open: true,
+          domainId: newDomainId,
+          domain: newDomainName ?? "",
+        });
+      }
     },
     onError: async (error: unknown) => {
       const { status, message } = apiErrorInfo(error);

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { isJsonObject } from "@/lib/utils";
 
 import { fadeInUp, staggerContainer } from "../../utils";
+import { PaygWalletCard } from "./payg-wallet-card";
 import UpgradePlanDialog from "./upgrade-plan-dialog";
 import { billingService } from "@/features/billing/billing.service";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
@@ -234,6 +235,8 @@ const PlanUsage = () => {
               <UpgradePlanDialog currentPlan={planName} />
             </div>
           </div>
+
+          <PaygWalletCard planName={planName} />
 
           {overviewQuery.isLoading || (isOpen && usageQuery.isLoading) ? (
             <div className="grid gap-6 sm:grid-cols-3 lg:gap-8">

@@ -91,6 +91,18 @@ const wrap = (ui: ReactNode) => {
 };
 
 describe("InAppIntegration", () => {
+  /**
+   * The section renders inside a collapsed SettingsSectionCard accordion, so
+   * the inner controls are not in the DOM until the header trigger is clicked.
+   * The trigger's accessible name is the full header text; match it via the
+   * card description.
+   */
+  const expandInAppSection = () => {
+    fireEvent.click(
+      screen.getByRole("button", { name: /configure sdk keys/i })
+    );
+  };
+
   beforeEach(() => {
     vi.resetAllMocks();
 
@@ -214,6 +226,7 @@ describe("InAppIntegration", () => {
       expect(screen.getByText(/active sessions/i)).toBeInTheDocument();
     });
 
+    expandInAppSection();
     fireEvent.click(screen.getByRole("button", { name: "Manage keys" }));
     fireEvent.click(screen.getByLabelText("Toggle publishable key visibility"));
 
@@ -224,6 +237,7 @@ describe("InAppIntegration", () => {
   it("submits add origin request", async () => {
     render(wrap(<InAppIntegration />));
 
+    expandInAppSection();
     fireEvent.click(screen.getByRole("button", { name: "Manage origins" }));
     const input = await screen.findByPlaceholderText("https://app.example.com");
     fireEvent.change(input, { target: { value: "app.test.dev" } });
@@ -243,6 +257,7 @@ describe("InAppIntegration", () => {
   it("submits test push request", async () => {
     render(wrap(<InAppIntegration />));
 
+    expandInAppSection();
     fireEvent.click(screen.getByRole("button", { name: "Compose test push" }));
     fireEvent.change(screen.getByPlaceholderText("0x…"), {
       target: { value: "0xabc" },
@@ -270,6 +285,7 @@ describe("InAppIntegration", () => {
   it("creates a secret key and shows the returned token once", async () => {
     render(wrap(<InAppIntegration />));
 
+    expandInAppSection();
     fireEvent.click(screen.getByRole("button", { name: "Create secret key" }));
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
 

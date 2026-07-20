@@ -48,6 +48,22 @@ export interface CampaignPushContent {
   ctaUrl?: string;
 }
 
+/** One step of a drip sequence (delay is minutes after the previous step). */
+export interface DripStep {
+  id: string;
+  name: string;
+  subject: string;
+  delayMinutes: number;
+  content?: Record<string, unknown>;
+}
+
+export interface DripStepBody {
+  name?: string;
+  subject?: string;
+  delayMinutes?: number;
+  content?: Record<string, unknown>;
+}
+
 export interface CampaignSendInAppResult {
   campaignRunId?: string;
   recipientCount?: number;
@@ -401,6 +417,43 @@ const toRecipientCount = (
   return undefined;
 };
 
+/**
+ * Human-readable audience labels (tags / lists / segments) for the list's
+ * Recipients column, pulled from whatever shape the row carries — no extra
+ * per-row fetches. Unknown shapes just yield an empty list (count fallback).
+ */
+const toAudienceLabels = (obj: Record<string, unknown>): string[] => {
+  const labels: string[] = [];
+  const push = (value: unknown) => {
+    if (typeof value === "string" && value.trim().length > 0) {
+      labels.push(value.trim());
+    } else if (isJsonObject(value)) {
+      const name = value.name ?? value.label ?? value.title;
+      if (typeof name === "string" && name.trim().length > 0) {
+        labels.push(name.trim());
+      }
+    }
+  };
+  const pushAll = (value: unknown) => {
+    if (Array.isArray(value)) value.forEach(push);
+  };
+
+  pushAll(obj.audience);
+  pushAll(obj.tags);
+  pushAll(obj.tagNames);
+  pushAll(obj.lists);
+  pushAll(obj.listNames);
+  pushAll(obj.segments);
+  pushAll(obj.segmentNames);
+  if (isJsonObject(obj.recipients)) {
+    pushAll(obj.recipients.tags);
+    pushAll(obj.recipients.lists);
+    pushAll(obj.recipients.segments);
+  }
+
+  return [...new Set(labels)];
+};
+
 const toCampaign = (raw: unknown): Campaign => {
   const obj = isJsonObject(raw) ? raw : {};
   const createdAt = obj.createdAt
@@ -419,7 +472,7 @@ const toCampaign = (raw: unknown): Campaign => {
     type,
     status,
     subject: String(obj.subject ?? ""),
-    audience: Array.isArray(obj.audience) ? obj.audience.map(String) : [],
+    audience: toAudienceLabels(obj),
     recipients: toRecipientCount(obj, status),
     openRate: obj.openRate !== undefined ? Number(obj.openRate) : undefined,
     clickRate: obj.clickRate !== undefined ? Number(obj.clickRate) : undefined,
@@ -716,6 +769,89 @@ export const campaignsService = {
         data: overrides ?? {},
       },
       orgId
+    );
+  },
+
+  /**
+   * Drip sequence steps (docs/backend.md 2026-07-23): launch sends step 1
+   * immediately; each later step sends `delayMinutes` after the previous
+   * one, advanced by the backend campaign scheduler. CRUD lives at
+   * `/campaigns/{id}/drip/steps` with a `/drip-steps` fallback for older
+   * deployments.
+   */
+  async listDripSteps(id: string, orgId?: string): Promise<DripStep[]> {
+    const payload = await request<unknown>(
+      { method: "GET", url: `/campaigns/${id}/drip/steps` },
+      orgId
+    ).catch(() =>
+      request<unknown>(
+        { method: "GET", url: `/campaigns/${id}/drip-steps` },
+        orgId
+      )
+    );
+    return extractList(payload)
+      .map((raw): DripStep | null => {
+        const obj = isJsonObject(raw) ? raw : {};
+        const stepId = String(obj.id ?? obj.stepId ?? "");
+        if (!stepId) return null;
+        const delay = toFiniteNumber(obj.delayMinutes);
+        return {
+          id: stepId,
+          name: typeof obj.name === "string" ? obj.name : "",
+          subject: typeof obj.subject === "string" ? obj.subject : "",
+          delayMinutes: delay ?? 0,
+          content: isJsonObject(obj.content) ? obj.content : undefined,
+        };
+      })
+      .filter((step): step is DripStep => step !== null);
+  },
+
+  createDripStep(id: string, body: DripStepBody, orgId?: string) {
+    return request<unknown>(
+      { method: "POST", url: `/campaigns/${id}/drip/steps`, data: body },
+      orgId
+    ).catch(() =>
+      request<unknown>(
+        { method: "POST", url: `/campaigns/${id}/drip-steps`, data: body },
+        orgId
+      )
+    );
+  },
+
+  updateDripStep(
+    id: string,
+    stepId: string,
+    body: DripStepBody,
+    orgId?: string
+  ) {
+    return request<unknown>(
+      {
+        method: "PUT",
+        url: `/campaigns/${id}/drip/steps/${stepId}`,
+        data: body,
+      },
+      orgId
+    ).catch(() =>
+      request<unknown>(
+        {
+          method: "PATCH",
+          url: `/campaigns/${id}/drip-steps/${stepId}`,
+          data: body,
+        },
+        orgId
+      )
+    );
+  },
+
+  deleteDripStep(id: string, stepId: string, orgId?: string) {
+    return request<unknown>(
+      { method: "DELETE", url: `/campaigns/${id}/drip/steps/${stepId}` },
+      orgId
+    ).catch(() =>
+      request<unknown>(
+        { method: "DELETE", url: `/campaigns/${id}/drip-steps/${stepId}` },
+        orgId
+      )
     );
   },
 

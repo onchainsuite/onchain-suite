@@ -70,7 +70,9 @@ export function EnrichmentControl() {
         msg.toUpperCase().includes("CREDITS_EXCEEDED") ||
         msg.includes("402")
       ) {
-        toast.error("Out of credits — upgrade to run enrichment.");
+        toast.error(
+          "Out of credits — top up the usage wallet or upgrade in Settings → Billing."
+        );
         return;
       }
       toast.error(msg || "Failed to start enrichment");

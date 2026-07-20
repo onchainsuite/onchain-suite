@@ -98,9 +98,43 @@ export const columns: ColumnDef<Campaign>[] = [
     },
     cell: ({ row }) => {
       const recipients = row.getValue("recipients") as number | undefined;
+      const { audience } = row.original;
+      const shown = audience.slice(0, 3);
+      const overflow = audience.length - shown.length;
       return (
-        <div className="text-sm text-foreground">
-          {typeof recipients === "number" ? recipients.toLocaleString() : "—"}
+        <div className="space-y-1 text-sm text-foreground">
+          {shown.length > 0 ? (
+            <div className="flex max-w-56 flex-wrap gap-1">
+              {shown.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex max-w-32 truncate rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground"
+                  title={label}
+                >
+                  {label}
+                </span>
+              ))}
+              {overflow > 0 ? (
+                <span
+                  className="inline-flex rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] text-muted-foreground"
+                  title={audience.slice(3).join(", ")}
+                >
+                  +{overflow}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          {typeof recipients === "number" ? (
+            <div
+              className={
+                shown.length > 0 ? "text-xs text-muted-foreground" : undefined
+              }
+            >
+              {recipients.toLocaleString()}
+            </div>
+          ) : shown.length === 0 ? (
+            "—"
+          ) : null}
         </div>
       );
     },

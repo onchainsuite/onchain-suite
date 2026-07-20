@@ -201,6 +201,21 @@ export interface PlanCheckoutResponse {
   [key: string]: unknown;
 }
 
+/** GET /billing/payg/wallet/{orgId} — prepaid usage wallet (micro-USD ledger). */
+export interface PaygWallet {
+  balanceUsd: number;
+  rates?: Record<string, number | string>;
+  ledger?: Array<{
+    id?: string;
+    amountUsd?: number;
+    meter?: string;
+    reason?: string;
+    createdAt?: string;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
 export type InvoiceStatus = "paid" | "open" | "void" | "uncollectible" | string;
 
 export interface BillingInvoice {
@@ -514,6 +529,50 @@ export const billingService = {
   checkoutPlan(body: PlanCheckoutRequest, options?: BillingServiceOptions) {
     return billingRequest<PlanCheckoutResponse>(
       { method: "POST", url: "/billing/checkout/plan", data: body },
+      options
+    );
+  },
+
+  /**
+   * Switch the org onto Pay-As-You-Go (`POST /billing/payg/start`) — flips
+   * `organization.plan` to `payg` and grants the one-time $5 trial credit.
+   */
+  startPayg(organizationId: string, options?: BillingServiceOptions) {
+    return billingRequest<Record<string, unknown>>(
+      { method: "POST", url: "/billing/payg/start", data: { organizationId } },
+      options
+    );
+  },
+
+  /** `GET /billing/payg/wallet/{orgId}` — balance, unit rates, recent ledger. */
+  async getPaygWallet(
+    organizationId: string,
+    options?: BillingServiceOptions
+  ): Promise<PaygWallet> {
+    const payload = await billingRequest<Record<string, unknown>>(
+      { method: "GET", url: `/billing/payg/wallet/${organizationId}` },
+      options
+    );
+    const balance = Number(payload.balanceUsd);
+    return {
+      ...payload,
+      balanceUsd: Number.isFinite(balance) ? balance : 0,
+      ledger: Array.isArray(payload.ledger)
+        ? (payload.ledger as PaygWallet["ledger"])
+        : [],
+    };
+  },
+
+  /**
+   * `POST /billing/checkout/credits` — Blockradar checkout that tops up the
+   * PAYG wallet on webhook confirmation ($10–$1000).
+   */
+  checkoutCredits(
+    body: { organizationId: string; amountUsd: number },
+    options?: BillingServiceOptions
+  ) {
+    return billingRequest<PlanCheckoutResponse>(
+      { method: "POST", url: "/billing/checkout/credits", data: body },
       options
     );
   },

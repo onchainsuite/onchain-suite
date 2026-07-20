@@ -233,7 +233,7 @@ export function useAiAnswer() {
       if (controller.signal.aborted) return; // user stop or timeout
       const raw = e instanceof Error ? e.message : "AI request failed";
       const message = raw.includes("(402)")
-        ? "Your organization is out of AI credits for this period — upgrade your plan or wait for the monthly reset."
+        ? "Your organization is out of AI credits and the usage wallet can't cover it — top up or upgrade in Settings → Billing."
         : raw.includes("(404)") || raw.includes("(501)")
           ? "AI search isn't available yet for this workspace."
           : raw;
