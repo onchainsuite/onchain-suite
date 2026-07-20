@@ -23,7 +23,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/docs`,
+      url: "https://docs.onchainsuite.com",
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
