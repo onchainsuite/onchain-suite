@@ -35,6 +35,31 @@ const shortenAddress = (address: string) => {
   return `${a.slice(0, 8)}…${a.slice(-6)}`;
 };
 
+// Block-explorer address URL by chain hint, so users can confirm a suggested
+// contract is really theirs before accepting it. Falls back to Blockscan
+// (cross-chain EVM search) for unknown chains.
+const EXPLORERS: Array<[RegExp, string]> = [
+  [/base/i, "https://basescan.org/address/"],
+  [/polygon|matic/i, "https://polygonscan.com/address/"],
+  [/arbitrum/i, "https://arbiscan.io/address/"],
+  [/optimism/i, "https://optimistic.etherscan.io/address/"],
+  [/bsc|bnb|binance/i, "https://bscscan.com/address/"],
+  [/avalanche|avax/i, "https://snowtrace.io/address/"],
+  [/solana/i, "https://solscan.io/account/"],
+  [/eth|mainnet/i, "https://etherscan.io/address/"],
+];
+
+const explorerUrlFor = (
+  chainHint: string | null | undefined,
+  address: string
+) => {
+  const hint = (chainHint ?? "").trim();
+  for (const [pattern, base] of EXPLORERS) {
+    if (pattern.test(hint)) return `${base}${address}`;
+  }
+  return `https://blockscan.com/address/${address}`;
+};
+
 function SuggestionSkeleton() {
   return (
     <div className="space-y-2" aria-hidden="true">
@@ -174,17 +199,34 @@ export function ContractSuggestionsPanel({
                     ) : null}
                   </div>
                   {contract.address ? (
-                    <div className="mt-1 flex items-center gap-1">
-                      <span
-                        className="font-mono text-xs text-muted-foreground"
-                        title={contract.address}
-                      >
-                        {shortenAddress(contract.address)}
-                      </span>
-                      <CopyButton
-                        value={contract.address}
-                        label="Copy address"
-                      />
+                    <div className="mt-1">
+                      <div className="flex items-center gap-1">
+                        <span
+                          className="font-mono text-xs text-muted-foreground"
+                          title={contract.address}
+                        >
+                          {shortenAddress(contract.address)}
+                        </span>
+                        <CopyButton
+                          value={contract.address}
+                          label="Copy address"
+                        />
+                        <a
+                          href={explorerUrlFor(
+                            contract.chainHint,
+                            contract.address
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+                        >
+                          View on explorer ↗
+                        </a>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        Confirm this address belongs to your protocol before
+                        adding it.
+                      </p>
                     </div>
                   ) : (
                     <p className="mt-1 text-xs text-muted-foreground">

@@ -12,6 +12,7 @@ import { tabs } from "../utils";
 import CompanySettingsView from "./company-settings-view";
 import { PageHeader } from "@/shared/components/page/page-header";
 import { PageTabs } from "@/shared/components/page/page-tabs";
+import { useMyOrgRole } from "@/shared/hooks/client/use-my-org-role";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -19,7 +20,20 @@ export default function SettingsPage() {
   const tabFromUrl = searchParams?.get("tab") ?? null;
   const searchParamsString = searchParams?.toString() ?? "";
 
-  const tabIds = useMemo(() => new Set(tabs.map((t) => t.id)), []);
+  // Billing is owner-only (backend enforces with a 403; this hides the tab so
+  // team members never see it). Role null (loading/unknown) counts as
+  // not-owner so the tab can't flash for members.
+  const { role } = useMyOrgRole();
+  const isOwner = role === "OWNER";
+  const visibleTabs = useMemo(
+    () => (isOwner ? tabs : tabs.filter((t) => t.id !== "billing")),
+    [isOwner]
+  );
+
+  const tabIds = useMemo(
+    () => new Set(visibleTabs.map((t) => t.id)),
+    [visibleTabs]
+  );
   const [activeTab, setActiveTab] = useState("profile");
 
   useEffect(() => {
@@ -27,6 +41,11 @@ export default function SettingsPage() {
     if (!tabIds.has(tabFromUrl)) return;
     setActiveTab(tabFromUrl);
   }, [tabFromUrl, tabIds]);
+
+  // Deep-linked /settings?tab=billing for a non-owner: bounce to profile.
+  useEffect(() => {
+    if (activeTab === "billing" && !isOwner) setActiveTab("profile");
+  }, [activeTab, isOwner]);
 
   const selectTab = (id: string) => {
     setActiveTab(id);
@@ -43,7 +62,7 @@ export default function SettingsPage() {
       />
 
       <PageTabs
-        tabs={tabs}
+        tabs={visibleTabs}
         value={activeTab}
         onValueChange={selectTab}
         layoutId="settings-tabs"
@@ -60,7 +79,7 @@ export default function SettingsPage() {
         >
           {activeTab === "profile" && <ProfileSettings />}
           {activeTab === "account" && <CompanySettingsView />}
-          {activeTab === "billing" && <BillingSettings />}
+          {activeTab === "billing" && isOwner && <BillingSettings />}
           {activeTab === "integrations" && <IntegrationsSettings />}
           {activeTab === "rewards" && <RewardsSettings />}
         </motion.div>
