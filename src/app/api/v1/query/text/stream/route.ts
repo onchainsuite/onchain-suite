@@ -248,8 +248,9 @@ export async function GET(req: NextRequest) {
         cookie && !hasBetterAuthSessionCookie(cookie)
           ? extractTokenFromCookie(cookie)
           : null;
+      const headerToken = tokenFromHeader?.trim();
       const token =
-        (tokenFromHeader && tokenFromHeader.trim()) || tokenFromCookie;
+        headerToken && headerToken.length > 0 ? headerToken : tokenFromCookie;
       if (token) {
         upstreamHeaders.set("authorization", `Bearer ${token}`);
         if (!upstreamHeaders.has("x-session-token")) {

@@ -39,20 +39,6 @@ export const WIP_SECTIONS: WipSection[] = [
       "A shared inbox for replies to your campaigns — read, assign, and answer conversations without leaving the suite.",
     percentComplete: 72,
   },
-  {
-    prefix: "/automations",
-    label: "Automations",
-    description:
-      "React to onchain events automatically: trigger emails, in-app pushes, and community posts from contract activity, holdings, and behavior.",
-    percentComplete: 86,
-  },
-  {
-    prefix: "/intelligence",
-    label: "Intelligence",
-    description:
-      "Ask questions about wallets and engagement in plain language or SQL — build segments, reports, and cohorts from live onchain data.",
-    percentComplete: 90,
-  },
 ];
 
 /** The WIP section a href belongs to, or null. */
