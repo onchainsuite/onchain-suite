@@ -1,32 +1,13 @@
 "use client";
 
 import {
-  ArrowTrendingDownIcon,
-  ArrowTrendingUpIcon,
-  BoltIcon,
-  CalendarIcon,
   ChatBubbleLeftRightIcon,
-  ChevronDownIcon,
   CodeBracketIcon,
-  CpuChipIcon,
-  EnvelopeIcon,
-  EyeIcon,
-  MagnifyingGlassIcon,
-  PaperAirplaneIcon,
-  SparklesIcon,
+  PresentationChartLineIcon,
 } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -39,24 +20,6 @@ import { isJsonObject } from "@/lib/utils";
 
 import { intelligenceService } from "../../intelligence.service";
 import { ReportView } from "../query/report-view";
-
-type ReportType = "email" | "automation" | "unknown";
-type ReportStatus = "active" | "completed" | "paused" | "unknown";
-
-type UiReport = {
-  id: string;
-  name: string;
-  type: ReportType;
-  status: ReportStatus;
-  sentDate: string;
-  recipients: number;
-  openRate: number;
-  clickRate: number;
-  revenueChange: string;
-  conversions?: number;
-  exitRate?: number;
-  topTrigger?: string;
-};
 
 const asNumber = (v: unknown): number | null => {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -79,28 +42,8 @@ const formatDate = (v: unknown): string => {
   return d.toLocaleDateString();
 };
 
-const normalizeRate = (v: unknown): number => {
-  const n = asNumber(v);
-  if (n === null) return 0;
-  if (n <= 1 && n >= 0) return Math.round(n * 100);
-  return Math.round(n);
-};
-
-const formatMoneyChange = (v: unknown): string => {
-  if (typeof v === "string" && v.trim().length > 0) return v;
-  const n = asNumber(v);
-  if (n === null) return "—";
-  const dollars = Math.round(n);
-  if (dollars >= 1000) {
-    const k = Math.round((dollars / 1000) * 10) / 10;
-    return `+$${k}k`;
-  }
-  return `+$${dollars.toLocaleString()}`;
-};
-
 // A query saved via POST /intelligence/query/{queryId}/save ("Save Report" in
-// the MCP chat / SQL editor). GET /intelligence/reports is campaign-backed and
-// never returns these; the documented surface for saved runs is
+// the MCP chat / SQL editor). The documented surface for saved runs is
 // GET /intelligence/query/history, where saving writes the report `name` onto
 // the run's history row. Rows without a name are ordinary (unsaved) runs.
 export type SavedQueryReport = {
@@ -131,128 +74,24 @@ const toSavedQueryReport = (input: unknown): SavedQueryReport | null => {
   };
 };
 
-const toUiReport = (input: unknown): UiReport | null => {
-  if (!isJsonObject(input)) return null;
-  const r = input as Record<string, unknown>;
-  const id =
-    asString(r.id) ||
-    asString(r.reportId) ||
-    asString(r.campaignId) ||
-    asString(r.campaign_id);
-  if (id.length === 0) return null;
-
-  const name =
-    asString(r.name) ||
-    asString(r.title) ||
-    asString(r.subject) ||
-    `Report ${id}`;
-
-  const typeRaw =
-    asString(r.type) || asString(r.kind) || asString(r.reportType);
-  const type: ReportType =
-    typeRaw === "email"
-      ? "email"
-      : typeRaw === "automation"
-        ? "automation"
-        : "unknown";
-
-  const statusRaw =
-    asString(r.status) || asString(r.state) || asString(r.reportStatus);
-  const status: ReportStatus =
-    statusRaw === "active"
-      ? "active"
-      : statusRaw === "completed"
-        ? "completed"
-        : statusRaw === "paused"
-          ? "paused"
-          : "unknown";
-
-  const sentDate =
-    formatDate(r.sentDate) ||
-    formatDate(r.sentAt) ||
-    formatDate(r.createdAt) ||
-    "—";
-
-  const recipients =
-    asNumber(r.recipients) ??
-    asNumber(r.recipientCount) ??
-    asNumber(r.audienceSize) ??
-    0;
-
-  const openRate = normalizeRate(r.openRate ?? r.open_rate ?? r.openRatio);
-  const clickRate = normalizeRate(r.clickRate ?? r.click_rate ?? r.clickRatio);
-
-  const revenueChange = formatMoneyChange(
-    r.revenueChange ?? r.revenue_change ?? r.revenueUsd ?? r.revenue
-  );
-
-  const conversions = asNumber(r.conversions ?? r.conversionCount) ?? undefined;
-  const exitRate = normalizeRate(r.exitRate ?? r.exit_rate);
-  const topTrigger =
-    asString(r.topTrigger ?? r.trigger ?? r.top_trigger) || undefined;
-
-  return {
-    id,
-    name,
-    type,
-    status,
-    sentDate,
-    recipients,
-    openRate,
-    clickRate,
-    revenueChange,
-    conversions,
-    exitRate: exitRate > 0 ? exitRate : undefined,
-    topTrigger,
-  };
-};
-
 interface ReportsTabProps {
   /**
-   * Re-open a saved query's data: SQL runs load into the SQL editor (results
-   * refetched by queryId), MCP runs pre-fill the chat composer for a resend.
+   * Re-open the selected report's source: SQL runs load into the SQL editor
+   * (results refetched by queryId), MCP runs pre-fill the chat composer.
    */
   onOpenSavedQuery?: (item: SavedQueryReport) => void;
 }
 
+/**
+ * One unified reports surface: pick any saved query, see its charts, stats,
+ * and CSV export inline. Saving happens in the SQL editor / chat ("Save
+ * report"); this tab only visualizes.
+ */
 export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
-  const filterTriggerClassName =
-    "inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-xs text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
-
-  const [reportSearch, setReportSearch] = useState("");
-  const [reportDateRange, setReportDateRange] = useState<"30d" | "all">("30d");
-  const [reportTypeFilter, setReportTypeFilter] = useState<
-    "all" | "email" | "automation"
-  >("all");
-  const [reportStatusFilter, setReportStatusFilter] = useState<
-    "all" | "active" | "completed" | "paused"
-  >("all");
-
-  const normalizedSearch = reportSearch.trim();
-
-  const reportsQuery = useQuery({
-    queryKey: ["intelligence", "reports", { search: normalizedSearch }],
-    queryFn: async () => {
-      const res = await intelligenceService.listReports({
-        search: normalizedSearch.length > 0 ? normalizedSearch : undefined,
-        page: 1,
-        limit: 100,
-      });
-      const root = Array.isArray(res)
-        ? res
-        : ((res as { items?: unknown[] }).items ?? []);
-      const items = Array.isArray(root) ? root : [];
-      return items.map(toUiReport).filter((r): r is UiReport => !!r);
-    },
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  // Saved query reports (chat / SQL "Save Report"). Deliberately keyed under
-  // ["intelligence","reports",…] — not the chat's ["intelligence","query",
-  // "history"] — so the save mutation's existing invalidation of
-  // ["intelligence","reports"] marks this stale and a fresh save is visible
-  // the moment this tab mounts, despite the 5-minute global staleTime.
+  // Keyed under ["intelligence","reports",…] — not the chat's history key —
+  // so the save mutation's invalidation of ["intelligence","reports"] makes a
+  // fresh save visible the moment this tab mounts, despite the 5-minute
+  // global staleTime.
   const savedQueriesQuery = useQuery({
     queryKey: ["intelligence", "reports", "saved-queries"],
     queryFn: async () => {
@@ -268,573 +107,83 @@ export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
     refetchOnWindowFocus: false,
   });
 
-  const hasAnyReports = (reportsQuery.data?.length ?? 0) > 0;
-
-  // Chart source picker — defaults to the most recent saved query.
-  const [selectedChartQueryId, setSelectedChartQueryId] = useState("");
-  const effectiveChartQueryId =
-    selectedChartQueryId.length > 0
-      ? selectedChartQueryId
-      : (savedQueriesQuery.data?.[0]?.queryId ?? "");
-
-  const filteredReports = useMemo(() => {
-    const source = reportsQuery.data ?? [];
-    return source.filter((report) => {
-      const matchesSearch = report.name
-        .toLowerCase()
-        .includes(reportSearch.toLowerCase());
-      const matchesType =
-        reportTypeFilter === "all" || report.type === reportTypeFilter;
-      const matchesStatus =
-        reportStatusFilter === "all" || report.status === reportStatusFilter;
-      return matchesSearch && matchesType && matchesStatus;
-    });
-  }, [reportSearch, reportStatusFilter, reportTypeFilter, reportsQuery.data]);
-
-  const filteredSavedQueries = useMemo(() => {
-    const source = savedQueriesQuery.data ?? [];
-    if (normalizedSearch.length === 0) return source;
-    const needle = normalizedSearch.toLowerCase();
-    return source.filter(
-      (item) =>
-        item.name.toLowerCase().includes(needle) ||
-        item.query.toLowerCase().includes(needle)
-    );
-  }, [normalizedSearch, savedQueriesQuery.data]);
+  const saved = savedQueriesQuery.data ?? [];
+  const [selectedQueryId, setSelectedQueryId] = useState("");
+  const effectiveQueryId =
+    selectedQueryId.length > 0 ? selectedQueryId : (saved[0]?.queryId ?? "");
+  const selected = saved.find((item) => item.queryId === effectiveQueryId);
 
   return (
-    <div className="space-y-4">
-      {/* Charts for any saved SQL/MCP query — pick one from the dropdown and
-          the compact report layer renders inline (chart type switchable per
-          card). */}
-      {(savedQueriesQuery.data?.length ?? 0) > 0 ? (
-        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-foreground">
-                Query charts
-              </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Visualize any of your saved SQL queries.
-              </p>
-            </div>
-            <Select
-              value={effectiveChartQueryId}
-              onValueChange={setSelectedChartQueryId}
-            >
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-sm font-medium text-foreground">Reports</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Charts and stats for any saved query.
+          </p>
+        </div>
+        {saved.length > 0 ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Select value={effectiveQueryId} onValueChange={setSelectedQueryId}>
               <SelectTrigger
                 className="w-full sm:w-72"
-                aria-label="Choose a query to chart"
+                aria-label="Choose a report"
               >
-                <SelectValue placeholder="Choose a query" />
+                <SelectValue placeholder="Choose a report" />
               </SelectTrigger>
               <SelectContent>
-                {(savedQueriesQuery.data ?? []).map((item) => (
+                {saved.map((item) => (
                   <SelectItem key={item.queryId} value={item.queryId}>
                     {item.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          {effectiveChartQueryId ? (
-            <ReportView queryId={effectiveChartQueryId} compact />
-          ) : null}
-        </div>
-      ) : null}
-
-      {filteredSavedQueries.length > 0 && (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="border-b border-border px-4 py-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Saved queries</h3>
-              <span className="text-xs text-muted-foreground">
-                {filteredSavedQueries.length.toLocaleString()} saved from chat
-                &amp; SQL
-              </span>
-            </div>
-          </div>
-          <ul className="divide-y divide-border">
-            {filteredSavedQueries.map((item) => (
-              <li
-                key={item.queryId}
-                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/30"
+            {onOpenSavedQuery && selected ? (
+              <button
+                type="button"
+                onClick={() => onOpenSavedQuery(selected)}
+                className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted/40"
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  {item.isMcp ? (
-                    <ChatBubbleLeftRightIcon
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <CodeBracketIcon className="h-4 w-4" aria-hidden="true" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {item.name}
-                    </p>
-                    <span className="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                      {item.isMcp ? "MCP" : "SQL"}
-                    </span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {item.savedAt}
-                    </span>
-                  </div>
-                  {(item.summary || item.query) && (
-                    <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-                      {(item.summary || item.query).replace(/\s+/g, " ").trim()}
-                    </p>
-                  )}
-                </div>
-                {onOpenSavedQuery && (
-                  <button
-                    type="button"
-                    onClick={() => onOpenSavedQuery(item)}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90"
-                  >
-                    <EyeIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                    {item.isMcp ? "Re-run in Chat" : "Open in SQL"}
-                  </button>
+                {selected.isMcp ? (
+                  <ChatBubbleLeftRightIcon
+                    className="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <CodeBracketIcon className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                {selected.isMcp ? "Re-run in chat" : "Open in SQL"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-          <h3 className="shrink-0 font-medium">Campaign reports</h3>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative w-full sm:w-56">
-              <MagnifyingGlassIcon
-                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+      <div className="mt-4">
+        {savedQueriesQuery.isPending ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            Loading reports…
+          </div>
+        ) : saved.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
+              <PresentationChartLineIcon
+                className="h-5 w-5"
                 aria-hidden="true"
               />
-              <input
-                type="text"
-                placeholder="Search reports..."
-                value={reportSearch}
-                onChange={(e) => setReportSearch(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-              />
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className={filterTriggerClassName}>
-                    <CalendarIcon
-                      className="h-4 w-4 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <span>
-                      {reportDateRange === "30d" ? "Last 30 days" : "All time"}
-                    </span>
-                    <ChevronDownIcon
-                      className="h-4 w-4 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-                >
-                  <DropdownMenuRadioGroup
-                    value={reportDateRange}
-                    onValueChange={(value) =>
-                      setReportDateRange(value === "all" ? "all" : "30d")
-                    }
-                  >
-                    <DropdownMenuRadioItem value="30d">
-                      Last 30 days
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="all">
-                      All time
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className={filterTriggerClassName}>
-                    <span>
-                      Type:{" "}
-                      {reportTypeFilter === "all"
-                        ? "All"
-                        : reportTypeFilter === "email"
-                          ? "Email"
-                          : "Automation"}
-                    </span>
-                    <ChevronDownIcon
-                      className="h-4 w-4 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-                >
-                  <DropdownMenuRadioGroup
-                    value={reportTypeFilter}
-                    onValueChange={(value) =>
-                      setReportTypeFilter(
-                        value as "all" | "email" | "automation"
-                      )
-                    }
-                  >
-                    <DropdownMenuRadioItem value="all">
-                      All
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="email">
-                      Email
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="automation">
-                      Automation
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button type="button" className={filterTriggerClassName}>
-                    <span>
-                      Status:{" "}
-                      {reportStatusFilter === "all"
-                        ? "All"
-                        : reportStatusFilter === "active"
-                          ? "Active"
-                          : reportStatusFilter === "completed"
-                            ? "Completed"
-                            : "Paused"}
-                    </span>
-                    <ChevronDownIcon
-                      className="h-4 w-4 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-                >
-                  <DropdownMenuRadioGroup
-                    value={reportStatusFilter}
-                    onValueChange={(value) =>
-                      setReportStatusFilter(
-                        value as "all" | "active" | "completed" | "paused"
-                      )
-                    }
-                  >
-                    <DropdownMenuRadioItem value="all">
-                      All
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="active">
-                      Active
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="completed">
-                      Completed
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="paused">
-                      Paused
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-        {reportsQuery.isFetching ? (
-          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <PaperAirplaneIcon className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-foreground">
-              Loading reports…
-            </h3>
-          </div>
-        ) : filteredReports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
-              <PaperAirplaneIcon className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-foreground">
-              {hasAnyReports ? "No matching reports" : "No reports yet"}
+            <h3 className="mt-4 text-base font-semibold text-foreground">
+              No reports yet
             </h3>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              {reportsQuery.error
-                ? String(
-                    reportsQuery.error instanceof Error
-                      ? reportsQuery.error.message
-                      : "Failed to load reports"
-                  )
-                : hasAnyReports
-                  ? "Try a different search term or filter."
-                  : "Reports are generated from your campaigns. Create your first campaign to see performance here."}
+              Run a query in the SQL editor or the chat, then hit “Save report”
+              — its charts will show up here.
             </p>
-            {!hasAnyReports && !reportsQuery.error && (
-              <Link
-                href="/campaigns/new"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                <SparklesIcon className="h-4 w-4" aria-hidden="true" />
-                Create your first campaign
-              </Link>
-            )}
           </div>
-        ) : (
-          <>
-            <table className="w-full hidden md:table">
-              <thead>
-                <tr className="border-b border-border bg-secondary/30">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Sent
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Recipients
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Open Rate
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Click Rate
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Conv / Exits
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Revenue
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredReports.map((report, index) => (
-                  <motion.tr
-                    key={report.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: index * 0.03 }}
-                    className="transition-colors hover:bg-secondary/30"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                            report.type === "email"
-                              ? "bg-primary/10 text-primary"
-                              : "bg-secondary/10 text-secondary"
-                          }`}
-                        >
-                          {report.type === "email" ? (
-                            <EnvelopeIcon
-                              className="h-4 w-4"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <CpuChipIcon
-                              className="h-4 w-4"
-                              aria-hidden="true"
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {report.name}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
-                                report.type === "email"
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-secondary/10 text-secondary"
-                              }`}
-                            >
-                              {report.type === "email" ? "Email" : "Automation"}
-                            </span>
-                            <span
-                              className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
-                                report.status === "active"
-                                  ? "bg-secondary/10 text-secondary"
-                                  : report.status === "completed"
-                                    ? "bg-secondary text-muted-foreground"
-                                    : "bg-accent/10 text-accent-foreground"
-                              }`}
-                            >
-                              {report.status}
-                            </span>
-                            {report.type === "automation" &&
-                              report.topTrigger && (
-                                <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs bg-accent/10 text-accent-foreground">
-                                  <BoltIcon
-                                    className="h-3 w-3"
-                                    aria-hidden="true"
-                                  />
-                                  {report.topTrigger}
-                                </span>
-                              )}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-muted-foreground">
-                        {report.sentDate}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-medium text-foreground">
-                        {report.recipients.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 rounded-full bg-secondary">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${report.openRate}%` }}
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-primary">
-                          {report.openRate}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-foreground">
-                        {report.clickRate}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {report.type === "automation" && report.conversions ? (
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-secondary">
-                            {report.conversions.toLocaleString()} conv
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {report.exitRate ?? "—"}% exited
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm font-bold text-secondary">
-                          {report.revenueChange}
-                        </span>
-                        {report.revenueChange.includes("+") ? (
-                          <ArrowTrendingUpIcon
-                            className="h-3.5 w-3.5 text-secondary"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <ArrowTrendingDownIcon
-                            className="h-3.5 w-3.5 text-destructive"
-                            aria-hidden="true"
-                          />
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/intelligence/reports/${report.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_12px_rgba(var(--primary),0.4)]"
-                      >
-                        <EyeIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                        View Report
-                      </Link>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="md:hidden divide-y divide-border">
-              {filteredReports.map((report, index) => (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.03 }}
-                  className="p-4"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                          report.type === "email"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-secondary/10 text-secondary"
-                        }`}
-                      >
-                        {report.type === "email" ? (
-                          <EnvelopeIcon
-                            className="h-5 w-5"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <CpuChipIcon className="h-5 w-5" aria-hidden="true" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {report.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {report.sentDate}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="font-bold text-secondary">
-                      {report.revenueChange}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 mb-3 text-center">
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Recipients
-                      </p>
-                      <p className="font-medium">
-                        {report.recipients.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Open Rate</p>
-                      <p className="font-medium text-secondary">
-                        {report.openRate}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Click Rate
-                      </p>
-                      <p className="font-medium">{report.clickRate}%</p>
-                    </div>
-                  </div>
-                  <Link
-                    href={`/intelligence/reports/${report.id}`}
-                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-                  >
-                    <EyeIcon className="h-4 w-4" aria-hidden="true" />
-                    View Report
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </>
-        )}
+        ) : effectiveQueryId ? (
+          <ReportView queryId={effectiveQueryId} compact />
+        ) : null}
       </div>
     </div>
   );
