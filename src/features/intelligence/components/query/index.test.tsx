@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
     success: vi.fn(),
     error: vi.fn(),
   },
+  routerPush: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -42,11 +43,19 @@ vi.mock("sonner", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: vi.fn(),
+    push: mocks.routerPush,
     replace: vi.fn(),
   }),
   usePathname: () => "/intelligence",
   useSearchParams: () => new URLSearchParams(""),
+}));
+
+// The report layer has its own suite (report-view.test.tsx); stub it here so
+// QueryTab tests don't pull recharts/html-to-image into jsdom.
+vi.mock("./report-view", () => ({
+  ReportView: ({ queryId }: { queryId: string }) => (
+    <div data-testid="report-view" data-query-id={queryId} />
+  ),
 }));
 
 vi.mock("framer-motion", () => ({
@@ -271,7 +280,8 @@ describe("QueryTab", () => {
     mocks.intelligenceService.saveQuery.mockResolvedValue({ success: true });
     mocks.intelligenceService.createSegmentFromQuery.mockResolvedValue({
       segmentId: "segment_123",
-      profileCount: 1,
+      profileCount: 42,
+      contactsCreated: 7,
     });
     mocks.intelligenceService.createCampaignFromQuery.mockResolvedValue({
       campaignId: "campaign_123",
@@ -326,6 +336,54 @@ describe("QueryTab", () => {
 
     expect(mocks.toast.success).toHaveBeenCalledWith("Report saved");
     expect(setActiveTab).toHaveBeenCalledWith("reports");
+  });
+
+  it("renders the report view for the completed query", async () => {
+    renderQueryTab();
+
+    fireEvent.change(screen.getByLabelText("SQL query editor"), {
+      target: { value: "SELECT wallet, email FROM users LIMIT 1;" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /run/i }));
+
+    const reportView = await screen.findByTestId("report-view");
+    expect(reportView).toHaveAttribute("data-query-id", "query_123");
+  });
+
+  it("creates a segment and shows the confirmation with counts and links", async () => {
+    const { setActiveTab } = renderQueryTab();
+
+    fireEvent.change(screen.getByLabelText("SQL query editor"), {
+      target: { value: "SELECT wallet, email FROM users LIMIT 1;" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /run/i }));
+    await screen.findByRole("button", { name: /create segment/i });
+
+    fireEvent.click(screen.getByRole("button", { name: /create segment/i }));
+    fireEvent.change(screen.getByPlaceholderText("Name"), {
+      target: { value: "Whale Wallets" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
+
+    await waitFor(() => {
+      expect(
+        mocks.intelligenceService.createSegmentFromQuery
+      ).toHaveBeenCalledWith({ queryId: "query_123", name: "Whale Wallets" });
+    });
+
+    // Confirmation dialog with real counts from the backend response.
+    await screen.findByText("Segment created");
+    expect(screen.getByText("42")).toBeInTheDocument();
+    expect(screen.getByText("7")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /view segment/i }));
+    expect(setActiveTab).toHaveBeenCalledWith("segments");
+    expect(mocks.routerPush).toHaveBeenCalledWith(
+      "/intelligence/segments/detail/segment_123"
+    );
+
+    // No auto-redirect before the user picks a destination.
+    expect(mocks.routerPush).toHaveBeenCalledTimes(1);
   });
 
   it("loads starter queries into the editor via the AI assistant", async () => {

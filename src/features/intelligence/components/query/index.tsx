@@ -37,8 +37,13 @@ import {
   intelligenceService,
 } from "../../intelligence.service";
 import { McpTypingIndicator } from "./mcp-typing-indicator";
+import { ReportView } from "./report-view";
 import { SqlBlockchainLoader } from "./sql-blockchain-loader";
 import { SqlResultsTable } from "./sql-results-table";
+import {
+  dropFormattedSiblingColumns,
+  preferFormattedCell,
+} from "@/features/intelligence/utils";
 
 const DEFAULT_SQL_QUERY = "";
 
@@ -117,7 +122,7 @@ const columnsFromRows = (rows: Array<Record<string, unknown>>) => {
   for (const r of rows) {
     Object.keys(r).forEach((k) => keys.add(k));
   }
-  return Array.from(keys);
+  return dropFormattedSiblingColumns(Array.from(keys));
 };
 
 const pickUnknownArray = (value: unknown): unknown[] => {
@@ -870,6 +875,13 @@ export function QueryTab({
     "report" | "segment" | "campaign"
   >("report");
   const [nameDialogValue, setNameDialogValue] = useState("");
+  // Result of a successful "Create segment" — drives the confirmation dialog
+  // (profile/contact counts + links) instead of navigating away immediately.
+  const [segmentResult, setSegmentResult] = useState<{
+    segmentId: string;
+    profileCount?: number;
+    contactsCreated?: number;
+  } | null>(null);
   const [chatPrompt, setChatPrompt] = useState(initialChatPrompt ?? "");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
@@ -1554,10 +1566,17 @@ export function QueryTab({
         convertedToSegment: true,
         metadata: { destination: "segment" },
       });
-      setActiveTab("segments");
-      // Client-side navigation keeps the persistent dashboard layout (and the
-      // just-invalidated segments cache) instead of a full reload.
-      router.push(`/intelligence/segments/detail/${res.segmentId}`);
+      // Confirmation dialog (profileCount + contactsCreated) instead of an
+      // immediate redirect — the user chooses where to go next.
+      setSegmentResult({
+        segmentId: res.segmentId,
+        profileCount:
+          typeof res.profileCount === "number" ? res.profileCount : undefined,
+        contactsCreated:
+          typeof res.contactsCreated === "number"
+            ? res.contactsCreated
+            : undefined,
+      });
     },
     onError: (err) => {
       const message =
@@ -1809,7 +1828,7 @@ export function QueryTab({
                         {column.toLowerCase().includes("hash") ||
                         column.toLowerCase().includes("address")
                           ? asIdentifierText(row[column])
-                          : asDisplayText(row[column])}
+                          : asDisplayText(preferFormattedCell(row, column))}
                       </td>
                     ))}
                   </tr>
@@ -3240,6 +3259,16 @@ export function QueryTab({
         )
       ) : null}
 
+      {/* Visual report layer (charts, stats, exports) for the completed run. */}
+      {hasRunQuery &&
+      !isSqlRunning &&
+      !sqlRunError &&
+      status === "completed" &&
+      queryId &&
+      rows.length > 0 ? (
+        <ReportView queryId={queryId} />
+      ) : null}
+
       {(() => {
         const items = (historyQuery.data ?? [])
           .map((h) => (isJsonObject(h) ? (h as Record<string, unknown>) : {}))
@@ -3415,6 +3444,81 @@ export function QueryTab({
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={segmentResult !== null}
+        onOpenChange={(open) => {
+          if (!open) setSegmentResult(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>Segment created</DialogTitle>
+          </DialogHeader>
+          {segmentResult ? (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3">
+                <CheckCircleIcon
+                  className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500"
+                  aria-hidden="true"
+                />
+                <p className="text-sm leading-6 text-foreground">
+                  The wallets from this result are now a reusable segment, ready
+                  for campaigns and automations.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Profiles
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-foreground">
+                    {typeof segmentResult.profileCount === "number"
+                      ? segmentResult.profileCount.toLocaleString()
+                      : "—"}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                    New contacts
+                  </div>
+                  <div className="mt-1 text-lg font-semibold text-foreground">
+                    {typeof segmentResult.contactsCreated === "number"
+                      ? segmentResult.contactsCreated.toLocaleString()
+                      : "—"}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSegmentResult(null);
+                    // Segments list lives on the audience surface.
+                    router.push("/audience");
+                  }}
+                >
+                  Audience segments
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const { segmentId } = segmentResult;
+                    setSegmentResult(null);
+                    setActiveTab("segments");
+                    // Client-side navigation keeps the persistent dashboard
+                    // layout and the just-invalidated segments cache.
+                    router.push(`/intelligence/segments/detail/${segmentId}`);
+                  }}
+                >
+                  View segment
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

@@ -15,6 +15,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip";
 
 import { isJsonObject } from "@/lib/utils";
 
+import {
+  dropFormattedSiblingColumns,
+  preferFormattedCell,
+} from "@/features/intelligence/utils";
+
 export interface SqlResultsTableProps {
   rows: Array<Record<string, unknown>>;
   columns: string[];
@@ -87,7 +92,10 @@ function SqlResultsTableImpl({
   campaignPending,
   onEmail,
 }: SqlResultsTableProps) {
-  const cols = useMemo(() => columns.slice(0, 8), [columns]);
+  const cols = useMemo(
+    () => dropFormattedSiblingColumns(columns).slice(0, 8),
+    [columns]
+  );
   const colSpan = cols.length + 2;
   // Give each data column a readable floor so many-column results scroll
   // horizontally inside this container instead of squishing at phone widths.
@@ -255,9 +263,9 @@ function SqlResultsTableImpl({
                     <td
                       key={c}
                       className="truncate px-4 py-3"
-                      title={formatCell(row[c])}
+                      title={formatCell(preferFormattedCell(row, c))}
                     >
-                      {formatCell(row[c])}
+                      {formatCell(preferFormattedCell(row, c))}
                     </td>
                   ))}
                   <td className="px-4 py-3 text-right">

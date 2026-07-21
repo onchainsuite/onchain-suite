@@ -83,6 +83,23 @@ interface DomainRow {
   status: SenderStatus;
 }
 
+interface DomainDnsConflictAction {
+  action: "edit" | "delete" | "add" | string;
+  type?: string;
+  host?: string;
+  currentValue?: string;
+  newValue?: string;
+}
+
+/** A record that something already in the org's DNS blocks (docs/backend.md). */
+interface DomainDnsConflict {
+  reason?: string;
+  resolution?: string;
+  existing: string[];
+  informational: boolean;
+  actions: DomainDnsConflictAction[];
+}
+
 interface DomainDnsRow {
   id: string;
   host: string;
@@ -95,6 +112,7 @@ interface DomainDnsRow {
   verificationLabel?: string;
   status?: SenderStatus | "unknown";
   databaseField?: string;
+  conflict?: DomainDnsConflict;
 }
 
 interface TeamPermissions {
@@ -567,6 +585,37 @@ const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
               ? "Not started"
               : undefined
           : undefined;
+      const conflictRaw = isJsonObject(entry.conflict)
+        ? entry.conflict
+        : undefined;
+      const conflict: DomainDnsConflict | undefined = conflictRaw
+        ? {
+            reason: pickString(conflictRaw.reason),
+            resolution: pickString(conflictRaw.resolution),
+            existing: Array.isArray(conflictRaw.existing)
+              ? conflictRaw.existing.filter(
+                  (v): v is string => typeof v === "string" && v.length > 0
+                )
+              : [],
+            informational: pickBooleanLike(conflictRaw.informational) === true,
+            actions: Array.isArray(conflictRaw.actions)
+              ? conflictRaw.actions
+                  .filter(isJsonObject)
+                  .map((a): DomainDnsConflictAction | null => {
+                    const action = pickString(a.action);
+                    if (!action) return null;
+                    return {
+                      action,
+                      type: pickString(a.type),
+                      host: pickString(a.host),
+                      currentValue: pickString(a.currentValue),
+                      newValue: pickString(a.newValue),
+                    };
+                  })
+                  .filter((a): a is DomainDnsConflictAction => a !== null)
+              : [],
+          }
+        : undefined;
       return {
         id: pickString(entry.id) ?? `${host}-${type}-${index}`,
         host,
@@ -576,6 +625,7 @@ const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
         priority: pickString(entry.priority),
         verified,
         verificationLabel,
+        conflict,
         status:
           verified === true
             ? "verified"
@@ -815,10 +865,17 @@ export default function CompanySettingsView() {
               })
               .map(([check, state]) => ({ check, state }))
           : [];
+      const fixes =
+        isJsonObject(root) && Array.isArray(root.fixes)
+          ? root.fixes.filter(
+              (f): f is string => typeof f === "string" && f.length > 0
+            )
+          : [];
       return {
         records: normalizeDomainDns(dnsResponse.data),
         sendReady,
         verificationStates,
+        fixes,
       };
     },
   });
@@ -1112,6 +1169,9 @@ export default function CompanySettingsView() {
   const branding = brandingQuery.data ?? defaultBrandingState;
   const domains = useMemo(() => domainQuery.data ?? [], [domainQuery.data]);
   const domainDnsRecords = domainDnsQuery.data?.records ?? [];
+  const domainDnsConflictCount = domainDnsRecords.filter(
+    (record) => record.conflict && !record.conflict.informational
+  ).length;
   const senders = useMemo(() => senderQuery.data ?? [], [senderQuery.data]);
   const teamMembers = useMemo(() => {
     const rows = membersQuery.data ?? [];
@@ -2104,6 +2164,14 @@ export default function CompanySettingsView() {
                         )}
                       </div>
                     ) : null}
+                    {domainDnsConflictCount > 0 ? (
+                      <p className="mt-3 text-xs font-medium leading-5 text-amber-600 dark:text-amber-400">
+                        {domainDnsConflictCount} of your existing DNS record
+                        {domainDnsConflictCount === 1 ? "" : "s"} conflict
+                        {domainDnsConflictCount === 1 ? "s" : ""} with
+                        verification — see the fix instructions below.
+                      </p>
+                    ) : null}
                     {!domainDnsQuery.data.sendReady ? (
                       <p className="mt-3 text-xs leading-5 text-muted-foreground">
                         Domain, SPF, DKIM, and DKIM2 must all verify before
@@ -2114,6 +2182,23 @@ export default function CompanySettingsView() {
                         second one (two SPF records invalidate both).
                       </p>
                     ) : null}
+                  </div>
+                ) : null}
+                {(domainDnsQuery.data?.fixes.length ?? 0) > 0 ? (
+                  <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+                    <div className="text-sm font-medium text-foreground">
+                      How to fix your DNS
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Records already in your DNS conflict with the ones we
+                      need. Apply these changes in order — they only touch the
+                      quoted records, never anything else.
+                    </p>
+                    <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs leading-5 text-foreground">
+                      {domainDnsQuery.data?.fixes.map((fix) => (
+                        <li key={fix}>{fix}</li>
+                      ))}
+                    </ol>
                   </div>
                 ) : null}
                 {domainDnsRecords.length === 0 ? (
@@ -2193,6 +2278,73 @@ export default function CompanySettingsView() {
                                 ]
                                   .filter(Boolean)
                                   .join(" • ")}
+                              </div>
+                            ) : null}
+                            {record.conflict ? (
+                              <div
+                                className={`rounded-xl border p-3 text-xs leading-5 ${
+                                  record.conflict.informational
+                                    ? "border-border/70 bg-muted/30 text-muted-foreground"
+                                    : "border-amber-500/40 bg-amber-500/10 text-foreground"
+                                }`}
+                              >
+                                <div className="font-medium">
+                                  {record.conflict.informational
+                                    ? "Heads up — existing record found"
+                                    : "Conflicting DNS record found"}
+                                </div>
+                                {record.conflict.reason ? (
+                                  <p className="mt-1 text-muted-foreground">
+                                    {record.conflict.reason}
+                                  </p>
+                                ) : null}
+                                {record.conflict.actions.length > 0 ? (
+                                  <div className="mt-2 space-y-1.5">
+                                    {record.conflict.actions.map((action) => (
+                                      <div
+                                        key={[
+                                          action.action,
+                                          action.type,
+                                          action.host,
+                                          action.currentValue,
+                                          action.newValue,
+                                        ]
+                                          .filter(Boolean)
+                                          .join("|")}
+                                        className="flex flex-wrap items-center gap-1.5"
+                                      >
+                                        <span className="inline-flex rounded-full border border-border/70 bg-background/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase">
+                                          {action.action}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                          {[action.type, action.host]
+                                            .filter(Boolean)
+                                            .join(" @ ")}
+                                        </span>
+                                        {action.currentValue ? (
+                                          <code className="max-w-full break-all rounded bg-muted px-1.5 py-0.5 text-[11px] line-through opacity-70">
+                                            {action.currentValue}
+                                          </code>
+                                        ) : null}
+                                        {action.newValue ? (
+                                          <span className="flex min-w-0 items-center gap-1">
+                                            <code className="max-w-full break-all rounded bg-muted px-1.5 py-0.5 text-[11px]">
+                                              {action.newValue}
+                                            </code>
+                                            <CopyButton
+                                              value={action.newValue}
+                                              label="Copy value"
+                                            />
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : record.conflict.resolution ? (
+                                  <p className="mt-1">
+                                    {record.conflict.resolution}
+                                  </p>
+                                ) : null}
                               </div>
                             ) : null}
                           </div>
