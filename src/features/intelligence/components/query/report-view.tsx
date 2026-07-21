@@ -528,11 +528,17 @@ export function ReportView({ queryId, compact = false }: ReportViewProps) {
     <section aria-label="Query report" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <PresentationChartLineIcon
-            className="h-4 w-4 text-primary"
-            aria-hidden="true"
-          />
-          <span className="text-sm font-medium text-foreground">Report</span>
+          {!compact ? (
+            <>
+              <PresentationChartLineIcon
+                className="h-4 w-4 text-primary"
+                aria-hidden="true"
+              />
+              <span className="text-sm font-medium text-foreground">
+                Report
+              </span>
+            </>
+          ) : null}
           <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
             {report.rowCount.toLocaleString()} rows
           </span>
@@ -556,34 +562,51 @@ export function ReportView({ queryId, compact = false }: ReportViewProps) {
       </div>
 
       {report.stats.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {report.stats.map((stat) => (
-            <div
-              key={stat.key}
-              className="rounded-2xl border border-border bg-card p-4"
-            >
-              <div className="truncate text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                {prettifyLabel(stat.key)}
+        compact ? (
+          <div className="flex flex-wrap gap-2">
+            {report.stats.map((stat) => (
+              <span
+                key={stat.key}
+                className="inline-flex items-baseline gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs"
+                title={`Avg ${formatCompact(stat.avg)} · Min ${formatCompact(stat.min)} · Max ${formatCompact(stat.max)}`}
+              >
+                <span className="text-muted-foreground">
+                  {prettifyLabel(stat.key)}
+                </span>
+                <span className="font-semibold text-foreground">
+                  {formatCompact(stat.sum)}
+                </span>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {report.stats.map((stat) => (
+              <div
+                key={stat.key}
+                className="rounded-2xl border border-border bg-card p-4"
+              >
+                <div className="truncate text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {prettifyLabel(stat.key)}
+                </div>
+                <div className="mt-2 text-xl font-semibold tracking-tight text-foreground">
+                  {formatCompact(stat.sum)}
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                  <span>Avg {formatCompact(stat.avg)}</span>
+                  <span>Min {formatCompact(stat.min)}</span>
+                  <span>Max {formatCompact(stat.max)}</span>
+                </div>
               </div>
-              <div className="mt-2 text-xl font-semibold tracking-tight text-foreground">
-                {formatCompact(stat.sum)}
-              </div>
-              <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
-                <span>Avg {formatCompact(stat.avg)}</span>
-                <span>Min {formatCompact(stat.min)}</span>
-                <span>Max {formatCompact(stat.max)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       ) : null}
 
       {report.charts.length > 0 ? (
         <div
           className={
-            compact
-              ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-              : "grid gap-4 xl:grid-cols-2"
+            compact ? "grid gap-3 md:grid-cols-2" : "grid gap-4 xl:grid-cols-2"
           }
         >
           {report.charts.map((chart) => (

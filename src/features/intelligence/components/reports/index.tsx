@@ -217,7 +217,7 @@ interface ReportsTabProps {
 
 export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
   const filterTriggerClassName =
-    "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
+    "inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-xs text-foreground transition-colors hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/20";
 
   const [reportSearch, setReportSearch] = useState("");
   const [reportDateRange, setReportDateRange] = useState<"30d" | "all">("30d");
@@ -244,27 +244,6 @@ export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
       const items = Array.isArray(root) ? root : [];
       return items.map(toUiReport).filter((r): r is UiReport => !!r);
     },
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const metricsQuery = useQuery({
-    queryKey: ["intelligence", "reports", "metrics"],
-    queryFn: () => intelligenceService.getReportsMetrics(),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const summaryQuery = useQuery({
-    queryKey: ["intelligence", "reports", "summary"],
-    queryFn: () => intelligenceService.getReportsSummary(),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-
-  const filtersQuery = useQuery({
-    queryKey: ["intelligence", "reports", "filters"],
-    queryFn: () => intelligenceService.getReportsFilters(),
     retry: false,
     refetchOnWindowFocus: false,
   });
@@ -325,35 +304,6 @@ export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
-          <span className="text-muted-foreground">Reports</span>{" "}
-          <span className="font-medium text-foreground">
-            {typeof (metricsQuery.data as Record<string, unknown> | undefined)
-              ?.reportsCount === "number"
-              ? String(
-                  (metricsQuery.data as { reportsCount: number }).reportsCount
-                )
-              : (filteredReports.length ?? 0).toLocaleString()}
-          </span>
-        </div>
-        <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
-          <span className="text-muted-foreground">Summary</span>{" "}
-          <span className="font-medium text-foreground">
-            {typeof (summaryQuery.data as Record<string, unknown> | undefined)
-              ?.summary === "string"
-              ? String((summaryQuery.data as { summary: string }).summary)
-              : "—"}
-          </span>
-        </div>
-        <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
-          <span className="text-muted-foreground">Filters</span>{" "}
-          <span className="font-medium text-foreground">
-            {filtersQuery.data ? "Loaded" : "—"}
-          </span>
-        </div>
-      </div>
-
       {/* Charts for any saved SQL/MCP query — pick one from the dropdown and
           the compact report layer renders inline (chart type switchable per
           card). */}
@@ -392,142 +342,6 @@ export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
           ) : null}
         </div>
       ) : null}
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-md">
-          <MagnifyingGlassIcon
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <input
-            type="text"
-            placeholder="Search reports..."
-            value={reportSearch}
-            onChange={(e) => setReportSearch(e.target.value)}
-            className="h-10 w-full rounded-lg border border-border bg-card py-2 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className={filterTriggerClassName}>
-                <CalendarIcon
-                  className="h-4 w-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <span>
-                  {reportDateRange === "30d" ? "Last 30 days" : "All time"}
-                </span>
-                <ChevronDownIcon
-                  className="h-4 w-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-            >
-              <DropdownMenuRadioGroup
-                value={reportDateRange}
-                onValueChange={(value) =>
-                  setReportDateRange(value === "all" ? "all" : "30d")
-                }
-              >
-                <DropdownMenuRadioItem value="30d">
-                  Last 30 days
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="all">
-                  All time
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className={filterTriggerClassName}>
-                <span>
-                  Type:{" "}
-                  {reportTypeFilter === "all"
-                    ? "All"
-                    : reportTypeFilter === "email"
-                      ? "Email"
-                      : "Automation"}
-                </span>
-                <ChevronDownIcon
-                  className="h-4 w-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-            >
-              <DropdownMenuRadioGroup
-                value={reportTypeFilter}
-                onValueChange={(value) =>
-                  setReportTypeFilter(value as "all" | "email" | "automation")
-                }
-              >
-                <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="email">
-                  Email
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="automation">
-                  Automation
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className={filterTriggerClassName}>
-                <span>
-                  Status:{" "}
-                  {reportStatusFilter === "all"
-                    ? "All"
-                    : reportStatusFilter === "active"
-                      ? "Active"
-                      : reportStatusFilter === "completed"
-                        ? "Completed"
-                        : "Paused"}
-                </span>
-                <ChevronDownIcon
-                  className="h-4 w-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
-            >
-              <DropdownMenuRadioGroup
-                value={reportStatusFilter}
-                onValueChange={(value) =>
-                  setReportStatusFilter(
-                    value as "all" | "active" | "completed" | "paused"
-                  )
-                }
-              >
-                <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="active">
-                  Active
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="completed">
-                  Completed
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="paused">
-                  Paused
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
 
       {filteredSavedQueries.length > 0 && (
         <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -591,6 +405,150 @@ export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
       )}
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <h3 className="shrink-0 font-medium">Campaign reports</h3>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-56">
+              <MagnifyingGlassIcon
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <input
+                type="text"
+                placeholder="Search reports..."
+                value={reportSearch}
+                onChange={(e) => setReportSearch(e.target.value)}
+                className="h-9 w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={filterTriggerClassName}>
+                    <CalendarIcon
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      {reportDateRange === "30d" ? "Last 30 days" : "All time"}
+                    </span>
+                    <ChevronDownIcon
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                >
+                  <DropdownMenuRadioGroup
+                    value={reportDateRange}
+                    onValueChange={(value) =>
+                      setReportDateRange(value === "all" ? "all" : "30d")
+                    }
+                  >
+                    <DropdownMenuRadioItem value="30d">
+                      Last 30 days
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="all">
+                      All time
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={filterTriggerClassName}>
+                    <span>
+                      Type:{" "}
+                      {reportTypeFilter === "all"
+                        ? "All"
+                        : reportTypeFilter === "email"
+                          ? "Email"
+                          : "Automation"}
+                    </span>
+                    <ChevronDownIcon
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                >
+                  <DropdownMenuRadioGroup
+                    value={reportTypeFilter}
+                    onValueChange={(value) =>
+                      setReportTypeFilter(
+                        value as "all" | "email" | "automation"
+                      )
+                    }
+                  >
+                    <DropdownMenuRadioItem value="all">
+                      All
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="email">
+                      Email
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="automation">
+                      Automation
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className={filterTriggerClassName}>
+                    <span>
+                      Status:{" "}
+                      {reportStatusFilter === "all"
+                        ? "All"
+                        : reportStatusFilter === "active"
+                          ? "Active"
+                          : reportStatusFilter === "completed"
+                            ? "Completed"
+                            : "Paused"}
+                    </span>
+                    <ChevronDownIcon
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+                >
+                  <DropdownMenuRadioGroup
+                    value={reportStatusFilter}
+                    onValueChange={(value) =>
+                      setReportStatusFilter(
+                        value as "all" | "active" | "completed" | "paused"
+                      )
+                    }
+                  >
+                    <DropdownMenuRadioItem value="all">
+                      All
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="active">
+                      Active
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="completed">
+                      Completed
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="paused">
+                      Paused
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
         {reportsQuery.isFetching ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
