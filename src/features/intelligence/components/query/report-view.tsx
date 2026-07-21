@@ -101,9 +101,22 @@ const triggerDownload = (href: string, filename: string) => {
  * title, chart, footer — is what gets rasterized, so the exported image is
  * share-ready for social/investor updates.
  */
-function ReportChartCard({ chart }: { chart: IntelligenceQueryReportChart }) {
+type ChartDisplayType = "line" | "bar" | "pie";
+
+function ReportChartCard({
+  chart,
+  compact = false,
+}: {
+  chart: IntelligenceQueryReportChart;
+  compact?: boolean;
+}) {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [exporting, setExporting] = useState(false);
+  // Users can re-render the suggested chart as any type — keys are mapped
+  // across shapes (x/y ↔ label/value) below.
+  const [displayType, setDisplayType] = useState<ChartDisplayType>(
+    chart.type === "bar" || chart.type === "pie" ? chart.type : "line"
+  );
 
   const handleExportImage = useCallback(async () => {
     const node = cardRef.current;
@@ -125,22 +138,24 @@ function ReportChartCard({ chart }: { chart: IntelligenceQueryReportChart }) {
       });
       triggerDownload(
         dataUrl,
-        `onchainsuite-${chart.type}-${slugify(chart.title) || "chart"}.png`
+        `onchainsuite-${displayType}-${slugify(chart.title) || "chart"}.png`
       );
     } catch {
       toast.error("Failed to export chart image");
     } finally {
       setExporting(false);
     }
-  }, [chart.title, chart.type]);
+  }, [chart.title, displayType]);
 
-  const xKey = chart.xKey ?? "";
-  const yKey = chart.yKey ?? "";
-  const labelKey = chart.labelKey ?? "";
-  const valueKey = chart.valueKey ?? "";
+  // Axis charts need x/y; pie needs label/value — each falls back to the
+  // other pair so any suggested chart can render as any display type.
+  const xKey = chart.xKey ?? chart.labelKey ?? "";
+  const yKey = chart.yKey ?? chart.valueKey ?? "";
+  const labelKey = chart.labelKey ?? chart.xKey ?? "";
+  const valueKey = chart.valueKey ?? chart.yKey ?? "";
 
   const chartConfig =
-    chart.type === "pie"
+    displayType === "pie"
       ? { [valueKey]: { label: prettifyLabel(valueKey || "value") } }
       : {
           [yKey]: {
@@ -150,7 +165,7 @@ function ReportChartCard({ chart }: { chart: IntelligenceQueryReportChart }) {
         };
 
   let body = null;
-  if (chart.type === "line" && xKey && yKey) {
+  if (displayType === "line" && xKey && yKey) {
     body = (
       <LineChart data={chart.data} margin={{ left: 4, right: 12, top: 8 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -177,7 +192,7 @@ function ReportChartCard({ chart }: { chart: IntelligenceQueryReportChart }) {
         />
       </LineChart>
     );
-  } else if (chart.type === "bar" && xKey && yKey) {
+  } else if (displayType === "bar" && xKey && yKey) {
     body = (
       <BarChart data={chart.data} margin={{ left: 4, right: 12, top: 8 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -198,7 +213,7 @@ function ReportChartCard({ chart }: { chart: IntelligenceQueryReportChart }) {
         <Bar dataKey={yKey} fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
       </BarChart>
     );
-  } else if (chart.type === "pie" && labelKey && valueKey) {
+  } else if (displayType === "pie" && labelKey && valueKey) {
     body = (
       <PieChart>
         <ChartTooltip content={<ChartTooltipContent nameKey={labelKey} />} />
@@ -235,33 +250,59 @@ function ReportChartCard({ chart }: { chart: IntelligenceQueryReportChart }) {
             {prettifyLabel(chart.title)}
           </div>
           <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            {chart.type === "line"
+            {displayType === "line"
               ? "Trend"
-              : chart.type === "bar"
+              : displayType === "bar"
                 ? "Comparison"
                 : "Share"}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleExportImage}
-          disabled={exporting}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50"
-          aria-label={`Export ${chart.title} as image`}
-        >
-          {exporting ? (
-            <ArrowPathIcon
-              className="h-3.5 w-3.5 animate-spin"
-              aria-hidden="true"
-            />
-          ) : (
-            <PhotoIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          )}
-          Export image
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <div
+            className="inline-flex overflow-hidden rounded-lg border border-border"
+            role="group"
+            aria-label="Chart type"
+          >
+            {(["line", "bar", "pie"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setDisplayType(type)}
+                aria-pressed={displayType === type}
+                className={`px-2 py-1.5 text-[11px] font-medium capitalize transition-colors ${
+                  displayType === type
+                    ? "bg-primary/10 text-primary"
+                    : "bg-background text-muted-foreground hover:bg-muted/40"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleExportImage}
+            disabled={exporting}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50"
+            aria-label={`Export ${chart.title} as image`}
+          >
+            {exporting ? (
+              <ArrowPathIcon
+                className="h-3.5 w-3.5 animate-spin"
+                aria-hidden="true"
+              />
+            ) : (
+              <PhotoIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            Export image
+          </button>
+        </div>
       </div>
       <div className="px-2 py-3">
-        <ChartContainer config={chartConfig} className="aspect-[16/9] w-full">
+        <ChartContainer
+          config={chartConfig}
+          className={compact ? "aspect-[2/1] w-full" : "aspect-[16/9] w-full"}
+        >
           {body}
         </ChartContainer>
       </div>
@@ -414,6 +455,8 @@ function ReportTable({
 
 export interface ReportViewProps {
   queryId: string;
+  /** Denser layout: smaller charts, three-up grid, no table. */
+  compact?: boolean;
 }
 
 /**
@@ -423,7 +466,7 @@ export interface ReportViewProps {
  * a pure transformation over the stored rows, so rendering it costs no
  * GoldRush credits.
  */
-export function ReportView({ queryId }: ReportViewProps) {
+export function ReportView({ queryId, compact = false }: ReportViewProps) {
   const [csvPending, setCsvPending] = useState(false);
 
   const reportQuery = useQuery({
@@ -536,17 +579,24 @@ export function ReportView({ queryId }: ReportViewProps) {
       ) : null}
 
       {report.charts.length > 0 ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div
+          className={
+            compact
+              ? "grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+              : "grid gap-4 xl:grid-cols-2"
+          }
+        >
           {report.charts.map((chart) => (
             <ReportChartCard
               key={`${chart.type}-${chart.title}`}
               chart={chart}
+              compact={compact}
             />
           ))}
         </div>
       ) : null}
 
-      <ReportTable report={report} />
+      {!compact ? <ReportTable report={report} /> : null}
     </section>
   );
 }

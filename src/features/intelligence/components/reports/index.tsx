@@ -27,10 +27,18 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/ui/select";
 
 import { isJsonObject } from "@/lib/utils";
 
 import { intelligenceService } from "../../intelligence.service";
+import { ReportView } from "../query/report-view";
 
 type ReportType = "email" | "automation" | "unknown";
 type ReportStatus = "active" | "completed" | "paused" | "unknown";
@@ -283,6 +291,13 @@ export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
 
   const hasAnyReports = (reportsQuery.data?.length ?? 0) > 0;
 
+  // Chart source picker — defaults to the most recent saved query.
+  const [selectedChartQueryId, setSelectedChartQueryId] = useState("");
+  const effectiveChartQueryId =
+    selectedChartQueryId.length > 0
+      ? selectedChartQueryId
+      : (savedQueriesQuery.data?.[0]?.queryId ?? "");
+
   const filteredReports = useMemo(() => {
     const source = reportsQuery.data ?? [];
     return source.filter((report) => {
@@ -338,6 +353,45 @@ export function ReportsTab({ onOpenSavedQuery }: ReportsTabProps = {}) {
           </span>
         </div>
       </div>
+
+      {/* Charts for any saved SQL/MCP query — pick one from the dropdown and
+          the compact report layer renders inline (chart type switchable per
+          card). */}
+      {(savedQueriesQuery.data?.length ?? 0) > 0 ? (
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-foreground">
+                Query charts
+              </h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Visualize any of your saved SQL queries.
+              </p>
+            </div>
+            <Select
+              value={effectiveChartQueryId}
+              onValueChange={setSelectedChartQueryId}
+            >
+              <SelectTrigger
+                className="w-full sm:w-72"
+                aria-label="Choose a query to chart"
+              >
+                <SelectValue placeholder="Choose a query" />
+              </SelectTrigger>
+              <SelectContent>
+                {(savedQueriesQuery.data ?? []).map((item) => (
+                  <SelectItem key={item.queryId} value={item.queryId}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {effectiveChartQueryId ? (
+            <ReportView queryId={effectiveChartQueryId} compact />
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
