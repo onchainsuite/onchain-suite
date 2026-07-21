@@ -351,6 +351,51 @@ export interface IntelligenceGenerateSqlResponse {
 export interface IntelligenceSegmentFromQueryResponse {
   segmentId: string;
   profileCount?: number;
+  /** Contacts newly created while materializing the segment (wallet-first). */
+  contactsCreated?: number;
+}
+
+/** Column type inferred by the backend report layer. */
+export type IntelligenceReportColumnType =
+  | "number"
+  | "date"
+  | "wallet"
+  | "string";
+
+/**
+ * A backend-suggested visualization for a stored query. Line/bar charts carry
+ * `xKey`/`yKey`; pie charts carry `labelKey`/`valueKey`. `data` is chart-ready
+ * (already aggregated/sorted/bounded server-side).
+ */
+export interface IntelligenceQueryReportChart {
+  type: "line" | "bar" | "pie";
+  title: string;
+  xKey?: string;
+  yKey?: string;
+  labelKey?: string;
+  valueKey?: string;
+  data: Array<Record<string, unknown>>;
+}
+
+/** Summary stats for one numeric column of a stored query. */
+export interface IntelligenceQueryReportStat {
+  key: string;
+  count: number;
+  sum: number;
+  avg: number;
+  min: number;
+  max: number;
+}
+
+/** `GET /intelligence/query/:queryId/report-data` — chart-ready report payload. */
+export interface IntelligenceQueryReportDataResponse {
+  queryId: string;
+  generatedAt?: string;
+  rowCount: number;
+  columns: Array<{ key: string; type: IntelligenceReportColumnType }>;
+  table: { columns: string[]; rows: Array<Record<string, unknown>> };
+  charts: IntelligenceQueryReportChart[];
+  stats: IntelligenceQueryReportStat[];
 }
 
 export interface IntelligenceCampaignFromQueryResponse {
@@ -1075,6 +1120,44 @@ export const intelligenceService = {
       { method: "GET", url: `/intelligence/query/${queryId}/summary` },
       orgId
     );
+  },
+
+  /**
+   * Chart-ready report payload for a stored query (typed columns, suggested
+   * line/bar/pie charts, per-numeric-column stats, bounded table).
+   */
+  getQueryReportData(queryId: string, orgId?: string) {
+    return request<IntelligenceQueryReportDataResponse>(
+      { method: "GET", url: `/intelligence/query/${queryId}/report-data` },
+      orgId
+    );
+  },
+
+  /**
+   * Downloads the stored query results as CSV. Fetched as a blob (rather than
+   * a plain link) so the `x-org-id` header rides along with the session
+   * cookie. Returns the blob plus the filename from `Content-Disposition`.
+   */
+  async downloadQueryCsv(
+    queryId: string,
+    orgId?: string
+  ): Promise<{ blob: Blob; filename: string }> {
+    const resolvedOrgId = pickOrgId(orgId);
+    const res = await apiClient.request<Blob>({
+      method: "GET",
+      url: `/intelligence/query/${queryId}/export.csv`,
+      responseType: "blob",
+      headers: {
+        ...(resolvedOrgId ? { "x-org-id": resolvedOrgId } : {}),
+        "x-onchain-silent-error": "1",
+      },
+    });
+    const disposition = String(res.headers?.["content-disposition"] ?? "");
+    const match = /filename="?([^";]+)"?/i.exec(disposition);
+    return {
+      blob: res.data,
+      filename: match?.[1] ?? `onchainsuite-report-${queryId}.csv`,
+    };
   },
 
   listQueryCache(
