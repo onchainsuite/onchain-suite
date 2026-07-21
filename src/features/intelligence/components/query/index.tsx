@@ -37,7 +37,6 @@ import {
   intelligenceService,
 } from "../../intelligence.service";
 import { McpTypingIndicator } from "./mcp-typing-indicator";
-import { ReportView } from "./report-view";
 import { SqlBlockchainLoader } from "./sql-blockchain-loader";
 import { SqlResultsTable } from "./sql-results-table";
 import {
@@ -3257,16 +3256,6 @@ export function QueryTab({
             onEmail={handleEmailRow}
           />
         )
-      ) : null}
-
-      {/* Visual report layer (charts, stats, exports) for the completed run. */}
-      {hasRunQuery &&
-      !isSqlRunning &&
-      !sqlRunError &&
-      status === "completed" &&
-      queryId &&
-      rows.length > 0 ? (
-        <ReportView queryId={queryId} />
       ) : null}
 
       {(() => {

@@ -31,7 +31,6 @@ export function getCampaignTypeColor(type: CampaignType): string {
     announcement: "bg-primary/10 text-primary",
     automation: "bg-secondary/10 text-secondary",
     "email-blast": "bg-primary/10 text-primary",
-    "drip-campaign": "bg-secondary/10 text-secondary",
     "smart-sending": "bg-primary/10 text-primary",
   };
   return colors[type];

@@ -48,22 +48,6 @@ export interface CampaignPushContent {
   ctaUrl?: string;
 }
 
-/** One step of a drip sequence (delay is minutes after the previous step). */
-export interface DripStep {
-  id: string;
-  name: string;
-  subject: string;
-  delayMinutes: number;
-  content?: Record<string, unknown>;
-}
-
-export interface DripStepBody {
-  name?: string;
-  subject?: string;
-  delayMinutes?: number;
-  content?: Record<string, unknown>;
-}
-
 export interface CampaignSendInAppResult {
   campaignRunId?: string;
   recipientCount?: number;
@@ -261,7 +245,6 @@ const request = async <T>(
 
 const campaignTypes = new Set<Campaign["type"]>([
   "email-blast",
-  "drip-campaign",
   "smart-sending",
   "newsletter",
   "promotional",
@@ -286,7 +269,6 @@ const isCampaignStatus = (value: unknown): value is Campaign["status"] =>
 
 const apiCampaignTypeFromUi: Record<Campaign["type"], string> = {
   "email-blast": "EMAIL_BLAST",
-  "drip-campaign": "DRIP_CAMPAIGN",
   "smart-sending": "SMART_SENDING",
   newsletter: "NEWSLETTER",
   promotional: "PROMOTIONAL",
@@ -769,89 +751,6 @@ export const campaignsService = {
         data: overrides ?? {},
       },
       orgId
-    );
-  },
-
-  /**
-   * Drip sequence steps (docs/backend.md 2026-07-23): launch sends step 1
-   * immediately; each later step sends `delayMinutes` after the previous
-   * one, advanced by the backend campaign scheduler. CRUD lives at
-   * `/campaigns/{id}/drip/steps` with a `/drip-steps` fallback for older
-   * deployments.
-   */
-  async listDripSteps(id: string, orgId?: string): Promise<DripStep[]> {
-    const payload = await request<unknown>(
-      { method: "GET", url: `/campaigns/${id}/drip/steps` },
-      orgId
-    ).catch(() =>
-      request<unknown>(
-        { method: "GET", url: `/campaigns/${id}/drip-steps` },
-        orgId
-      )
-    );
-    return extractList(payload)
-      .map((raw): DripStep | null => {
-        const obj = isJsonObject(raw) ? raw : {};
-        const stepId = String(obj.id ?? obj.stepId ?? "");
-        if (!stepId) return null;
-        const delay = toFiniteNumber(obj.delayMinutes);
-        return {
-          id: stepId,
-          name: typeof obj.name === "string" ? obj.name : "",
-          subject: typeof obj.subject === "string" ? obj.subject : "",
-          delayMinutes: delay ?? 0,
-          content: isJsonObject(obj.content) ? obj.content : undefined,
-        };
-      })
-      .filter((step): step is DripStep => step !== null);
-  },
-
-  createDripStep(id: string, body: DripStepBody, orgId?: string) {
-    return request<unknown>(
-      { method: "POST", url: `/campaigns/${id}/drip/steps`, data: body },
-      orgId
-    ).catch(() =>
-      request<unknown>(
-        { method: "POST", url: `/campaigns/${id}/drip-steps`, data: body },
-        orgId
-      )
-    );
-  },
-
-  updateDripStep(
-    id: string,
-    stepId: string,
-    body: DripStepBody,
-    orgId?: string
-  ) {
-    return request<unknown>(
-      {
-        method: "PUT",
-        url: `/campaigns/${id}/drip/steps/${stepId}`,
-        data: body,
-      },
-      orgId
-    ).catch(() =>
-      request<unknown>(
-        {
-          method: "PATCH",
-          url: `/campaigns/${id}/drip-steps/${stepId}`,
-          data: body,
-        },
-        orgId
-      )
-    );
-  },
-
-  deleteDripStep(id: string, stepId: string, orgId?: string) {
-    return request<unknown>(
-      { method: "DELETE", url: `/campaigns/${id}/drip/steps/${stepId}` },
-      orgId
-    ).catch(() =>
-      request<unknown>(
-        { method: "DELETE", url: `/campaigns/${id}/drip-steps/${stepId}` },
-        orgId
-      )
     );
   },
 

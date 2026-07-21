@@ -44,7 +44,6 @@ import {
 import { campaignsService } from "@/features/campaigns/campaigns.service";
 import { AudienceStep } from "@/features/campaigns/components/campaign-form/audience-step";
 import { ConfirmationPage } from "@/features/campaigns/components/campaign-form/campaign-confirmation";
-import { DripStepsEditor } from "@/features/campaigns/components/campaign-form/drip-steps-editor";
 import { ScheduleSendDialog } from "@/features/campaigns/components/campaign-form/schedule-send-dialog";
 import { TemplateStep } from "@/features/campaigns/components/campaign-form/template-step";
 import {
@@ -71,7 +70,6 @@ import { useActiveTimezone } from "@/shared/hooks/client/use-timezones";
 const TOTAL_STEPS = 3;
 const campaignTypes = new Set<CampaignFormData["campaignType"]>([
   "email-blast",
-  "drip-campaign",
   "smart-sending",
   "newsletter",
   "promotional",
@@ -1608,23 +1606,13 @@ export function CreateCampaignPage() {
                     />
                   )}
                   {currentStep === 2 && (
-                    <>
-                      <TemplateStep
-                        form={form}
-                        campaignId={campaignId}
-                        verifiedSenderIdentities={verifiedSenderIdentities}
-                        senderIdentitiesLoading={
-                          senderIdentitiesQuery.isLoading
-                        }
-                        canSendEmail={canSendEmail}
-                      />
-                      {form.watch("campaignType") === "drip-campaign" &&
-                      campaignId ? (
-                        <div className="px-4 pb-4 sm:px-6 md:px-8 lg:px-10">
-                          <DripStepsEditor campaignId={campaignId} />
-                        </div>
-                      ) : null}
-                    </>
+                    <TemplateStep
+                      form={form}
+                      campaignId={campaignId}
+                      verifiedSenderIdentities={verifiedSenderIdentities}
+                      senderIdentitiesLoading={senderIdentitiesQuery.isLoading}
+                      canSendEmail={canSendEmail}
+                    />
                   )}
                   {currentStep === 3 && (
                     <CampaignPreviewStep

@@ -66,7 +66,7 @@ export function CampaignsListsView() {
     "all"
   );
   const [typeFilter, setTypeFilter] = useState<
-    "all" | "email-blast" | "drip-campaign" | "newsletter" | "automation"
+    "all" | "email-blast" | "smart-sending" | "newsletter" | "automation"
   >("all");
   const [dateRange, setDateRange] = useState<"all" | "30d">("30d");
   const [templateSearch, setTemplateSearch] = useState("");
@@ -237,8 +237,8 @@ export function CampaignsListsView() {
         return "Email blast";
       case "newsletter":
         return "Newsletter";
-      case "drip-campaign":
-        return "Drip campaign";
+      case "smart-sending":
+        return "Smart campaign";
       case "automation":
         return "Automation";
       default:
@@ -412,7 +412,7 @@ export function CampaignsListsView() {
                     const next = value as
                       | "all"
                       | "email-blast"
-                      | "drip-campaign"
+                      | "smart-sending"
                       | "newsletter"
                       | "automation";
                     setTypeFilter(next);
@@ -437,10 +437,10 @@ export function CampaignsListsView() {
                     Newsletter
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem
-                    value="drip-campaign"
+                    value="smart-sending"
                     className="transition-colors"
                   >
-                    Drip campaign
+                    Smart campaign
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem
                     value="automation"

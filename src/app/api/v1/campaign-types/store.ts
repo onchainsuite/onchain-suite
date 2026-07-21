@@ -33,16 +33,6 @@ const seedDefaults = (): CampaignTypeRecord[] => {
       updatedAt: now,
     },
     {
-      id: "DRIP_CAMPAIGN",
-      label: "Drip Campaign",
-      channels: ["email"],
-      supportsSchedule: true,
-      supportsSequence: true,
-      isSystem: true,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
       id: "SMART_SENDING",
       label: "Smart Campaign",
       channels: ["inapp", "telegram", "discord", "x"],

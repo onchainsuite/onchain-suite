@@ -20,12 +20,12 @@ describe("campaignsService enum mapping", () => {
   it("normalizes campaign types from API into UI values", async () => {
     requestMock.mockResolvedValueOnce({
       data: {
-        data: [{ id: "DRIP_CAMPAIGN", label: "Drip campaign" }],
+        data: [{ id: "SMART_SENDING", label: "Smart campaign" }],
       },
     });
 
     const types = await campaignsService.listCampaignTypes();
-    expect(types[0]?.id).toBe("drip-campaign");
+    expect(types[0]?.id).toBe("smart-sending");
   });
 
   it("maps UI type/status to API enum values for createCampaign and normalizes response back", async () => {

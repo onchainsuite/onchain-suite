@@ -2,7 +2,6 @@
 
 import {
   ArrowPathIcon,
-  ArrowTrendingUpIcon,
   DevicePhoneMobileIcon,
   EnvelopeIcon,
   UserGroupIcon,
@@ -32,7 +31,7 @@ import type { CampaignChannel, CampaignFormData } from "../../validations";
 
 type CampaignTypeId = Extract<
   CampaignFormData["campaignType"],
-  "email-blast" | "drip-campaign" | "smart-sending"
+  "email-blast" | "smart-sending"
 >;
 
 const CAMPAIGN_TYPE_OPTIONS: Array<{
@@ -46,12 +45,6 @@ const CAMPAIGN_TYPE_OPTIONS: Array<{
     title: "Email Blast",
     description: "Send one-off campaigns or manage a batch of emails",
     icon: EnvelopeIcon,
-  },
-  {
-    id: "drip-campaign",
-    title: "Drip campaign",
-    description: "Send messages at specific intervals in a specific audience",
-    icon: ArrowTrendingUpIcon,
   },
   {
     id: "smart-sending",
