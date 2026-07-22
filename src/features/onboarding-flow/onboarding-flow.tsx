@@ -28,6 +28,28 @@ export function OnboardingFlow() {
     }
   }, [session, isPending, push]);
 
+  // Safety net: onboarding is the OWNER's journey. The backend marks
+  // `user.onboardingCompleted` true for invited members on invite accept
+  // (docs/backend.md 2026-07-29) — anyone carrying that flag is bounced
+  // straight to the team dashboard, whatever path routed them here. New
+  // owners (auto-provisioned org, flag false) still onboard normally.
+  React.useEffect(() => {
+    if (isPending || !session) return;
+    const onboarded =
+      (session.user as { onboardingCompleted?: unknown } | undefined)
+        ?.onboardingCompleted === true;
+    if (!onboarded) return;
+    const activeOrgId = session.session?.activeOrganizationId;
+    document.cookie =
+      "onchain.onboardingComplete=1; Path=/; Max-Age=31536000; SameSite=Lax";
+    if (typeof activeOrgId === "string" && activeOrgId.length > 0) {
+      document.cookie = `onchain.selectedOrgId=${encodeURIComponent(
+        activeOrgId
+      )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    }
+    push(PRIVATE_ROUTES.DASHBOARD);
+  }, [isPending, session, push]);
+
   React.useEffect(() => {
     const reason = searchParams?.get("reason") ?? null;
     if (reason === "missing_org") {

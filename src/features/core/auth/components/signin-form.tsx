@@ -78,7 +78,13 @@ function GoogleOAuthButtons({
       const redirectTo = safeRedirectPath(redirectToRaw);
       const callbackURL = redirectTo ?? PRIVATE_ROUTES.DASHBOARD;
 
-      await signInWithGoogle({ callbackURL });
+      // A redirectTo (e.g. an invite accept link) must win for NEW users
+      // too — the default new-user destination is onboarding, which invited
+      // members should never see.
+      await signInWithGoogle({
+        callbackURL,
+        ...(redirectTo ? { newUserCallbackURL: redirectTo } : {}),
+      });
     } catch (error: unknown) {
       const message =
         error instanceof Error && error.message.trim().length > 0

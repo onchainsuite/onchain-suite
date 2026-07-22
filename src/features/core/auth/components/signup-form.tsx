@@ -109,10 +109,28 @@ export function SignUpForm({ onSwitchToSignIn }: SignUpFormProps) {
     }
   };
 
+  const safeRedirectPath = (raw: string | null): string | null => {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed.startsWith("/")) return null;
+    if (trimmed.startsWith("//")) return null;
+    return trimmed;
+  };
+
   const handleOAuthSignUp = async (provider: string) => {
     setIsLoading(true);
     try {
-      await signInWithGoogle();
+      // Invited members arrive with redirectTo (the invite accept link) —
+      // honor it for both existing and NEW users so they never land in the
+      // owner-only onboarding flow.
+      const redirectTo = safeRedirectPath(
+        searchParams?.get("redirectTo") ?? null
+      );
+      await signInWithGoogle(
+        redirectTo
+          ? { callbackURL: redirectTo, newUserCallbackURL: redirectTo }
+          : undefined
+      );
     } catch (error: unknown) {
       console.error("OAuth error:", error);
       toast.error(`Failed to sign up with ${provider}`);
