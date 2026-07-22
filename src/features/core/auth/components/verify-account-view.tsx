@@ -71,9 +71,15 @@ function VerifyAccountContent() {
         setStatus("success");
         toast.success("Email verified successfully!");
 
-        // Auto-redirect to onboarding after 5 seconds
+        // Invited members carry a redirectTo (their invite accept link) —
+        // send them there; owners continue to onboarding.
+        const redirectToRaw = searchParams?.get("redirectTo") ?? "";
+        const redirectTo =
+          redirectToRaw.startsWith("/") && !redirectToRaw.startsWith("//")
+            ? redirectToRaw
+            : null;
         const timer = setTimeout(() => {
-          router.push(AUTH_ROUTES.ONBOARDING);
+          router.push(redirectTo ?? AUTH_ROUTES.ONBOARDING);
         }, 5000);
         return () => clearTimeout(timer);
       } catch (error) {
@@ -84,7 +90,7 @@ function VerifyAccountContent() {
     };
 
     verifyEmail();
-  }, [token, router]);
+  }, [token, router, searchParams]);
 
   const handleResend = async () => {
     // Better-auth uses sendVerificationEmail
@@ -187,7 +193,12 @@ function VerifyAccountContent() {
               transition={{ delay: 0.3 }}
             >
               <Button
-                onClick={() => router.push(AUTH_ROUTES.ONBOARDING)}
+                onClick={() => {
+                  const raw = searchParams?.get("redirectTo") ?? "";
+                  const safe =
+                    raw.startsWith("/") && !raw.startsWith("//") ? raw : null;
+                  router.push(safe ?? AUTH_ROUTES.ONBOARDING);
+                }}
                 className="w-full h-12 bg-(--brand-blue) hover:bg-(--brand-blue)/90 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all duration-300"
               >
                 Go to Dashboard
