@@ -27,6 +27,26 @@ export interface PendingCheckout {
  * checkout banner) can pick it up without a remount. */
 export const PENDING_CHECKOUT_EVENT = "onchain:billing-checkout";
 
+/**
+ * Crypto deposits normally confirm within a couple of minutes. Past this we
+ * stop polling and surface a "taking longer than expected" state instead of
+ * spinning forever: an abandoned checkout must not leave the banner hitting
+ * the status endpoint every few seconds for the life of the session.
+ */
+export const PENDING_CHECKOUT_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * Hard purge window. A pending checkout older than this is dropped on read so
+ * a forgotten reference can never haunt the UI across sessions.
+ */
+const PENDING_CHECKOUT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/** True once we've waited past {@link PENDING_CHECKOUT_TTL_MS}. */
+export const isPendingCheckoutStale = (
+  pending: Pick<PendingCheckout, "startedAt">,
+  now: number = Date.now()
+): boolean => now - pending.startedAt >= PENDING_CHECKOUT_TTL_MS;
+
 const notifyPendingCheckoutChanged = () => {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event(PENDING_CHECKOUT_EVENT));
@@ -60,13 +80,22 @@ export const readPendingCheckout = (): PendingCheckout | null => {
     if (typeof parsed.reference !== "string" || parsed.reference.length === 0) {
       return null;
     }
-    return {
+    const pending: PendingCheckout = {
       reference: parsed.reference,
       plan: typeof parsed.plan === "string" ? parsed.plan : "",
       startedAt:
         typeof parsed.startedAt === "number" ? parsed.startedAt : Date.now(),
       amount: typeof parsed.amount === "string" ? parsed.amount : undefined,
     };
+
+    // Self-heal: a checkout this old is never going to confirm, so drop it
+    // rather than resurrect a stale banner on every page load.
+    if (Date.now() - pending.startedAt >= PENDING_CHECKOUT_MAX_AGE_MS) {
+      window.localStorage.removeItem(PENDING_CHECKOUT_KEY);
+      return null;
+    }
+
+    return pending;
   } catch {
     return null;
   }

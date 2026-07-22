@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { openCheckoutInNewTab } from "./checkout";
+import {
+  isPendingCheckoutStale,
+  openCheckoutInNewTab,
+  PENDING_CHECKOUT_TTL_MS,
+  readPendingCheckout,
+  writePendingCheckout,
+} from "./checkout";
 
 const PAYMENT_URL = "https://pay.example.com/checkout/abc123";
 
@@ -63,5 +69,50 @@ describe("openCheckoutInNewTab", () => {
 
     expect(openCheckoutInNewTab(PAYMENT_URL)).toBe(false);
     expect(stub.close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("pending checkout lifetime", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("is not stale while the payment is still plausibly confirming", () => {
+    const startedAt = Date.now();
+    expect(isPendingCheckoutStale({ startedAt }, startedAt + 60_000)).toBe(
+      false
+    );
+  });
+
+  it("goes stale once past the TTL, so the banner stops polling forever", () => {
+    const startedAt = Date.now();
+    expect(
+      isPendingCheckoutStale({ startedAt }, startedAt + PENDING_CHECKOUT_TTL_MS)
+    ).toBe(true);
+  });
+
+  it("round-trips a fresh pending checkout", () => {
+    writePendingCheckout({
+      reference: "ref-1",
+      plan: "launch",
+      startedAt: Date.now(),
+    });
+
+    expect(readPendingCheckout()).toMatchObject({
+      reference: "ref-1",
+      plan: "launch",
+    });
+  });
+
+  it("purges a day-old pending checkout instead of resurrecting the banner", () => {
+    writePendingCheckout({
+      reference: "ref-ancient",
+      plan: "launch",
+      startedAt: Date.now() - 25 * 60 * 60 * 1000,
+    });
+
+    expect(readPendingCheckout()).toBeNull();
+    // and it is gone from storage, not just filtered on read
+    expect(readPendingCheckout()).toBeNull();
   });
 });
