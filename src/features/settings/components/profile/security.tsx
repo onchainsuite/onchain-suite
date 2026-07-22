@@ -21,6 +21,10 @@ import SettingsSectionCard from "@/features/settings/components/settings-section
 import { Badge } from "@/shared/components/ui/badge";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
+// 2FA is disabled for now (product decision) — flip to true to restore the
+// enable/manage UI. The backend flows (/auth/two-factor/*) stay untouched.
+const TWO_FACTOR_ENABLED = false;
+
 const formatSecurityDate = (value?: string) => {
   if (!value) return null;
 
@@ -75,32 +79,46 @@ const Security = () => {
 
   return (
     <motion.div variants={staggerContainer} initial="initial" animate="animate">
-      <TwoFactorAuthModal
-        open={showTwoFAModal}
-        onOpenChange={setShowTwoFAModal}
-      />
+      {TWO_FACTOR_ENABLED ? (
+        <TwoFactorAuthModal
+          open={showTwoFAModal}
+          onOpenChange={setShowTwoFAModal}
+        />
+      ) : null}
       <SettingsSectionCard
         title="Security"
         description="Update your password and manage your sign-in protection."
         icon={<ShieldCheckIcon className="h-5 w-5" aria-hidden="true" />}
-        badge={twoFactorEnabled ? "2FA enabled" : "2FA not enabled"}
+        badge={
+          TWO_FACTOR_ENABLED
+            ? twoFactorEnabled
+              ? "2FA enabled"
+              : "2FA not enabled"
+            : "Password & passkeys"
+        }
         collapsedPreview={
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Two-factor authentication
-              </p>
-              <p className="mt-1 text-sm text-foreground">
-                {twoFactorEnabled ? "Enabled" : "Disabled"}
-              </p>
+          TWO_FACTOR_ENABLED ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  Two-factor authentication
+                </p>
+                <p className="mt-1 text-sm text-foreground">
+                  {twoFactorEnabled ? "Enabled" : "Disabled"}
+                </p>
+              </div>
+              <Badge
+                variant={twoFactorEnabled ? "default" : "outline"}
+                className="w-fit rounded-full"
+              >
+                {twoFactorEnabled ? "Protected" : "Needs setup"}
+              </Badge>
             </div>
-            <Badge
-              variant={twoFactorEnabled ? "default" : "outline"}
-              className="w-fit rounded-full"
-            >
-              {twoFactorEnabled ? "Protected" : "Needs setup"}
-            </Badge>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Manage your password and passkeys.
+            </p>
+          )
         }
       >
         {profileQuery.isPending ? (
@@ -162,25 +180,27 @@ const Security = () => {
               />
             </div>
 
-            <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-sm font-medium text-foreground">
-                    Two-factor authentication
+            {TWO_FACTOR_ENABLED ? (
+              <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-foreground">
+                      Two-factor authentication
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Add another layer of protection to your account.
+                    </p>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Add another layer of protection to your account.
-                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={toggleTwoFA}
+                    className="rounded-xl border-border/80 text-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    {twoFactorEnabled ? "Manage 2FA" : "Enable 2FA"}
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={toggleTwoFA}
-                  className="rounded-xl border-border/80 text-foreground hover:bg-muted hover:text-foreground"
-                >
-                  {twoFactorEnabled ? "Manage 2FA" : "Enable 2FA"}
-                </Button>
               </div>
-            </div>
+            ) : null}
 
             <div className="flex justify-end gap-3 border-t border-border/40 pt-4">
               <Button
@@ -229,24 +249,26 @@ const Security = () => {
                     : "Password managed securely"}
                 </p>
               </div>
-              <div>
-                <p className="mb-1 text-sm font-medium text-muted-foreground">
-                  Two-factor authentication
-                </p>
-                <div className="space-y-2">
-                  <Badge
-                    variant={twoFactorEnabled ? "default" : "outline"}
-                    className="rounded-full"
-                  >
-                    {twoFactorEnabled ? "Enabled" : "Disabled"}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground">
-                    {twoFactorEnabled
-                      ? "Using authenticator app"
-                      : "Authenticator app not configured"}
+              {TWO_FACTOR_ENABLED ? (
+                <div>
+                  <p className="mb-1 text-sm font-medium text-muted-foreground">
+                    Two-factor authentication
                   </p>
+                  <div className="space-y-2">
+                    <Badge
+                      variant={twoFactorEnabled ? "default" : "outline"}
+                      className="rounded-full"
+                    >
+                      {twoFactorEnabled ? "Enabled" : "Disabled"}
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      {twoFactorEnabled
+                        ? "Using authenticator app"
+                        : "Authenticator app not configured"}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
 
             <PasskeysSection />

@@ -207,19 +207,31 @@ export const normalizeMembers = (payload: unknown): OrganizationMember[] =>
   toArray(payload)
     .map((entry, index) => {
       if (!isJsonObject(entry)) return null;
-      const email = pickString(entry.email, entry.userEmail);
+      // Member rows arrive flat ({email, name}) or better-auth style with a
+      // nested user ({role, user: {email, name, image}}) — dropping nested
+      // rows made owners see only themselves in the team list.
+      const user = isJsonObject(entry.user) ? entry.user : undefined;
+      const email = pickString(entry.email, entry.userEmail, user?.email);
       if (!email) return null;
       const role = normalizeRole(entry.role ?? entry.roleLabel);
       return {
-        userId: pickString(entry.userId, entry.id) ?? `${email}-${index}`,
-        name: pickString(entry.name, entry.fullName, entry.userName) ?? email,
+        userId:
+          pickString(entry.userId, user?.id, entry.id) ?? `${email}-${index}`,
+        name:
+          pickString(entry.name, entry.fullName, entry.userName, user?.name) ??
+          email,
         email,
         role,
         roleLabel: normalizeRoleLabel(entry.roleLabel, role),
         twoFactorEnabled:
-          pickBoolean(entry.twoFactorEnabled, entry.twoFAEnabled) ?? false,
+          pickBoolean(
+            entry.twoFactorEnabled,
+            entry.twoFAEnabled,
+            user?.twoFactorEnabled
+          ) ?? false,
         isEnabled: pickBoolean(entry.isEnabled, entry.enabled) ?? true,
-        avatarUrl: pickString(entry.avatarUrl, entry.image) ?? null,
+        avatarUrl:
+          pickString(entry.avatarUrl, entry.image, user?.image) ?? null,
         joinedAt: pickString(entry.joinedAt, entry.createdAt) ?? null,
         permissions: normalizePermissions(entry.permissions),
       } satisfies OrganizationMember;

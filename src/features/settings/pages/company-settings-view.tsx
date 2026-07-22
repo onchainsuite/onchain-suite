@@ -2,7 +2,6 @@
 
 import {
   ArrowPathIcon,
-  CheckIcon,
   ChevronRightIcon,
   EnvelopeIcon,
   GlobeAltIcon,
@@ -902,9 +901,11 @@ export default function CompanySettingsView() {
     retry: false,
     queryFn: async () => {
       if (!organizationId) return [] as TeamRow[];
-      // Invites are Owner/Admin-only — a 403 must not sink the member list.
+      // Each list fails soft: a members 5xx/shape hiccup must not blank the
+      // whole team section (the session user is always prepended), and
+      // invites are Owner/Admin-only so a 403 must not sink members.
       const [members, invites] = await Promise.all([
-        organizationMembersService.listMembers(organizationId),
+        organizationMembersService.listMembers(organizationId).catch(() => []),
         organizationMembersService.listInvites(organizationId).catch(() => []),
       ]);
       return [...members.map(memberToTeamRow), ...invites.map(inviteToTeamRow)];
@@ -1842,7 +1843,6 @@ export default function CompanySettingsView() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>User</TableHead>
-                    <TableHead>2FA</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -1884,31 +1884,8 @@ export default function CompanySettingsView() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <span
-                            className={
-                              member.twoFactorEnabled
-                                ? "inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400"
-                                : "inline-flex items-center gap-1 text-muted-foreground"
-                            }
-                          >
-                            {member.twoFactorEnabled ? (
-                              <CheckIcon
-                                aria-hidden="true"
-                                className="h-3.5 w-3.5"
-                              />
-                            ) : member.twoFactorEnabled === null ? (
-                              <span className="h-2 w-2 rounded-full bg-amber-500" />
-                            ) : (
-                              <span className="h-2 w-2 rounded-full bg-current" />
-                            )}
-                            {member.twoFactorEnabled === null
-                              ? "Pending"
-                              : member.twoFactorEnabled
-                                ? "Enabled"
-                                : "Disabled"}
-                          </span>
-                        </TableCell>
+                        {/* 2FA column removed while 2FA is disabled
+                            product-wide (see profile/security.tsx). */}
                         <TableCell>
                           {manageable ? (
                             <Select
