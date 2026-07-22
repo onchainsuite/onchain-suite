@@ -55,8 +55,7 @@ describe("campaignsService enum mapping", () => {
     expect(created.status).toBe("draft");
 
     const call = requestMock.mock.calls.at(-1)?.[0] as
-      | { data?: unknown; method?: unknown; url?: unknown }
-      | undefined;
+      { data?: unknown; method?: unknown; url?: unknown } | undefined;
     expect(call?.method).toBe("POST");
     expect(call?.url).toBe("/campaigns");
     expect(call?.data).toMatchObject({

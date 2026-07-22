@@ -1,10 +1,5 @@
 export type CampaignStatus =
-  | "draft"
-  | "scheduled"
-  | "sending"
-  | "sent"
-  | "paused"
-  | "failed";
+  "draft" | "scheduled" | "sending" | "sent" | "paused" | "failed";
 export type CampaignType =
   | "email-blast"
   | "smart-sending"

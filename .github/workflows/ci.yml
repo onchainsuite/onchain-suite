@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [dev, main]
+    branches: [dev, main, staging]
   pull_request:
-    branches: [dev, main]
+    branches: [dev, main, staging]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -18,28 +18,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: pnpm
+          bun-version: 1.3.14
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Lint
-        run: pnpm lint
+        run: bun run lint
 
       - name: Typecheck
-        run: pnpm type-check
+        run: bun run type-check
 
       # Two suites are quarantined with pre-existing failures (MCP stream
       # mocks and the in-app integration tab). Fix them, then remove the
       # excludes so they gate again. New failures anywhere else still block.
       - name: Tests
         run: >
-          pnpm exec vitest run
+          bunx vitest run
           --exclude "src/features/intelligence/components/query/index.test.tsx"
           --exclude "src/features/settings/components/integrations/inapp.test.tsx"
 
@@ -50,15 +47,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: pnpm
+          bun-version: 1.3.14
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build
-        run: pnpm build
+        run: bun run build

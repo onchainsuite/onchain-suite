@@ -39,8 +39,8 @@ browser environments.
 ## Local Development
 
 ```bash
-pnpm install
-pnpm dev
+bun install
+bun dev
 ```
 
 Open http://localhost:3000

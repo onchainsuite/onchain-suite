@@ -12,10 +12,7 @@ interface UserData {
   trialDaysLeft?: number;
   isNewUser: boolean;
   subscriptionTier:
-    | "free_trial"
-    | "limited_free"
-    | "full_paid"
-    | "onchain_suite_only";
+    "free_trial" | "limited_free" | "full_paid" | "onchain_suite_only";
   fullName?: string;
   timezone?: string;
 }

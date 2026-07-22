@@ -1,9 +1,0 @@
-allowBuilds:
-  "@prisma/client": true
-  "@prisma/engines": true
-  "@tsparticles/engine": false
-  core-js: true
-  esbuild: true
-  prisma: true
-  sharp: true
-  unrs-resolver: true

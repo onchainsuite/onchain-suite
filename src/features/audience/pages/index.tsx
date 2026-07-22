@@ -821,10 +821,7 @@ export function AudiencePages(): ReactElement {
                           onValueChange={(value) =>
                             setProfileScopeFilter(
                               value as
-                                | "all"
-                                | "verified"
-                                | "pending"
-                                | "unverified"
+                                "all" | "verified" | "pending" | "unverified"
                             )
                           }
                         >

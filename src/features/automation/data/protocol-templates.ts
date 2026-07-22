@@ -10,10 +10,7 @@ import type { AutomationsCreateBody } from "../automation.service";
  */
 
 export type ProtocolTemplateFamily =
-  | "whale-ltv"
-  | "nft-airdrop"
-  | "churn-winback"
-  | "bridge-onboarding";
+  "whale-ltv" | "nft-airdrop" | "churn-winback" | "bridge-onboarding";
 
 export interface ProtocolTemplateFamilyMeta {
   id: ProtocolTemplateFamily;

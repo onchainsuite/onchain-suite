@@ -931,21 +931,19 @@ export function CreateCampaignPage() {
           (t): t is AudienceTag =>
             isJsonObject(t) && typeof t.name === "string" && t.name.length > 0
         )
-        .map(
-          (t): List => ({
-            id: tagSelectionId(t.name),
-            name: t.name,
-            count:
-              typeof t.count === "number"
-                ? t.count
-                : typeof t.profileCount === "number"
-                  ? t.profileCount
-                  : typeof t.countProfiles === "number"
-                    ? t.countProfiles
-                    : 0,
-            starred: false,
-          })
-        );
+        .map((t): List => ({
+          id: tagSelectionId(t.name),
+          name: t.name,
+          count:
+            typeof t.count === "number"
+              ? t.count
+              : typeof t.profileCount === "number"
+                ? t.profileCount
+                : typeof t.countProfiles === "number"
+                  ? t.countProfiles
+                  : 0,
+          starred: false,
+        }));
     },
     retry: false,
     refetchOnWindowFocus: false,
