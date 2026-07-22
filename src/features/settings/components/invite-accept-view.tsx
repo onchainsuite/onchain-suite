@@ -77,7 +77,20 @@ export function InviteAcceptView({ token }: { token: string }) {
     organizationMembersService
       .acceptInvite(token)
       .then((result) => {
-        if (!cancelled) setState({ phase: "success", result });
+        if (cancelled) return;
+        // Invited members skip onboarding entirely (docs/backend.md
+        // 2026-07-29: accept marks onboarding COMPLETE server-side and binds
+        // sessions to the inviting org) — mirror that locally and go
+        // straight to the team dashboard.
+        document.cookie =
+          "onchain.onboardingComplete=1; Path=/; Max-Age=31536000; SameSite=Lax";
+        if (result.organizationId) {
+          document.cookie = `onchain.selectedOrgId=${encodeURIComponent(
+            result.organizationId
+          )}; Path=/; Max-Age=31536000; SameSite=Lax`;
+        }
+        setState({ phase: "success", result });
+        router.replace(PRIVATE_ROUTES.DASHBOARD);
       })
       .catch((error: unknown) => {
         if (!cancelled) setState(toErrorState(error));
@@ -85,7 +98,7 @@ export function InviteAcceptView({ token }: { token: string }) {
     return () => {
       cancelled = true;
     };
-  }, [isPending, session, token]);
+  }, [isPending, session, token, router]);
 
   const goToDashboard = () => router.push(PRIVATE_ROUTES.DASHBOARD);
 

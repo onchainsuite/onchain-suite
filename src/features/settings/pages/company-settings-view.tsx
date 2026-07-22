@@ -763,6 +763,10 @@ export default function CompanySettingsView() {
     id: string;
     domain: string;
   } | null>(null);
+  const [deleteSenderTarget, setDeleteSenderTarget] = useState<{
+    id: string;
+    email: string;
+  } | null>(null);
   const [addDomainOpen, setAddDomainOpen] = useState(false);
   const [addSenderOpen, setAddSenderOpen] = useState(false);
   const [domainName, setDomainName] = useState("");
@@ -1175,6 +1179,30 @@ export default function CompanySettingsView() {
       toast.error(
         apiErrorInfo(error).message ??
           (error instanceof Error ? error.message : "Failed to delete domain")
+      );
+    },
+  });
+
+  // DELETE /sender-identities/{id} — removes a sender address (e.g. the
+  // duplicate no-reply/noreply rows a domain verification can leave behind).
+  const deleteSenderMutation = useMutation({
+    mutationFn: async (senderId: string) => {
+      if (!orgHeaders) throw new Error("No active organization selected");
+      await apiClient.delete(`/sender-identities/${senderId}`, {
+        headers: orgHeaders,
+      });
+    },
+    onSuccess: async () => {
+      setDeleteSenderTarget(null);
+      await queryClient.invalidateQueries({
+        queryKey: ["project-settings", "senders", organizationId],
+      });
+      toast.success("Sender removed");
+    },
+    onError: (error: unknown) => {
+      toast.error(
+        apiErrorInfo(error).message ??
+          (error instanceof Error ? error.message : "Failed to remove sender")
       );
     },
   });
@@ -1711,6 +1739,24 @@ export default function CompanySettingsView() {
                                 Make default
                               </Button>
                             ) : null}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 rounded-lg px-2 text-destructive hover:text-destructive"
+                              disabled={
+                                !sender.id ||
+                                deleteSenderMutation.isPending ||
+                                !canManageSenderIdentities
+                              }
+                              onClick={() =>
+                                setDeleteSenderTarget({
+                                  id: sender.id,
+                                  email: sender.email,
+                                })
+                              }
+                            >
+                              Delete
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -2052,7 +2098,7 @@ export default function CompanySettingsView() {
             </DialogTitle>
             <DialogDescription>
               {removeTarget
-                ? `${removeTarget.name} (${removeTarget.email}) will lose access to this organization. This does not delete their account.`
+                ? `${removeTarget.name} (${removeTarget.email}) will lose access to this organization and their sessions move off it immediately. Any invitations for their email are cleared too, so they can be re-invited fresh. This does not delete their account.`
                 : ""}
             </DialogDescription>
           </DialogHeader>
@@ -2137,6 +2183,51 @@ export default function CompanySettingsView() {
                 <EnvelopeIcon aria-hidden="true" className="mr-2 h-4 w-4" />
               )}
               Add sender identity
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={deleteSenderTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteSenderTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-medium">
+              Remove sender
+            </DialogTitle>
+            <DialogDescription>
+              {deleteSenderTarget
+                ? `${deleteSenderTarget.email} will no longer be usable as a sending address. Campaigns configured with it fall back to the default sender.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteSenderTarget(null)}
+              disabled={deleteSenderMutation.isPending}
+            >
+              Keep sender
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteSenderMutation.isPending}
+              onClick={() => {
+                if (deleteSenderTarget) {
+                  deleteSenderMutation.mutate(deleteSenderTarget.id);
+                }
+              }}
+            >
+              {deleteSenderMutation.isPending ? (
+                <ArrowPathIcon
+                  aria-hidden="true"
+                  className="mr-2 h-4 w-4 animate-spin"
+                />
+              ) : null}
+              Remove sender
             </Button>
           </DialogFooter>
         </DialogContent>
