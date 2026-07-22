@@ -33,7 +33,7 @@ export const PENDING_CHECKOUT_EVENT = "onchain:billing-checkout";
  * spinning forever: an abandoned checkout must not leave the banner hitting
  * the status endpoint every few seconds for the life of the session.
  */
-export const PENDING_CHECKOUT_TTL_MS = 30 * 60 * 1000;
+export const PENDING_CHECKOUT_TTL_MS = 15 * 60 * 1000;
 
 /**
  * Hard purge window. A pending checkout older than this is dropped on read so
