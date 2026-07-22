@@ -97,17 +97,12 @@ export default function UpgradePlanDialog({
     staleTime: 10 * 60 * 1000,
   });
 
-  // Every plan is self-serve payable: crypto (Blockradar, default) or card
-  // (Stripe-hosted checkout, docs/backend.md 2026-07-28).
-  const [paymentMethod, setPaymentMethod] = useState<"crypto" | "card">(
-    "crypto"
-  );
-
+  // Crypto-only for now: every plan goes straight to the Blockradar mainnet
+  // checkout (limits unlock via webhook). Card (Stripe) stays unwired until
+  // production keys exist — the service supports it when that day comes.
   const upgradeMutation = useMutation({
     mutationFn: async (plan: string) => {
-      const checkout = await startPlanCheckout(plan, undefined, {
-        paymentMethod,
-      });
+      const checkout = await startPlanCheckout(plan);
       if (!checkout?.paymentUrl) {
         throw new Error("Checkout did not return a payment link. Try again.");
       }
@@ -156,35 +151,10 @@ export default function UpgradePlanDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-muted-foreground">Pay with</span>
-          <div
-            className="inline-flex overflow-hidden rounded-lg border border-border"
-            role="group"
-            aria-label="Payment method"
-          >
-            {(
-              [
-                { id: "crypto", label: "Crypto (USDC)" },
-                { id: "card", label: "Card" },
-              ] as const
-            ).map((method) => (
-              <button
-                key={method.id}
-                type="button"
-                onClick={() => setPaymentMethod(method.id)}
-                aria-pressed={paymentMethod === method.id}
-                className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                  paymentMethod === method.id
-                    ? "bg-primary/10 text-primary"
-                    : "bg-background text-muted-foreground hover:bg-muted/40"
-                }`}
-              >
-                {method.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Pay in USDC via crypto checkout — your plan and limits unlock
+          automatically once the payment confirms on-chain.
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-3">
           {plans.map((plan, idx) => {
