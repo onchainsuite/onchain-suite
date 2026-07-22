@@ -33,6 +33,7 @@ import {
   senderIdentitiesService,
 } from "@/features/settings/sender-identities.service";
 import { AUTH_ROUTES, PRIVATE_ROUTES } from "@/shared/config/app-routes";
+import { useMyOrgRole } from "@/shared/hooks/client/use-my-org-role";
 
 const ACCOUNT_SETTINGS_HREF = `${PRIVATE_ROUTES.SETTINGS}?tab=account`;
 
@@ -374,6 +375,13 @@ export function GetStartedSection() {
   const [onboardingCompleteCookie, setOnboardingCompleteCookie] =
     useState(false);
 
+  // Onboarding is the OWNER's journey. Members (admin/editor/viewer) never
+  // completed the wizard, so both the resume-redirect and the "finish
+  // onboarding" banner must be owner-only — role null (loading/unknown)
+  // counts as not-owner so members are never yanked out of the dashboard.
+  const { role: myOrgRole } = useMyOrgRole();
+  const isOrgOwner = myOrgRole === "OWNER";
+
   const { organizationId, isSynced } = useOrganizationId();
   const { completionById, isLoading: isCompletionLoading } =
     useTaskCompletion(organizationId);
@@ -399,6 +407,7 @@ export function GetStartedSection() {
   // /onboarding to finish — at most once per browser session (see
   // RESUME_REDIRECT_SESSION_KEY), so skipping out isn't a redirect loop.
   useEffect(() => {
+    if (!isOrgOwner) return;
     if (isOnboardingLoading) return;
     if (resume?.status !== "in_progress") return;
     if (progress?.is_completed) return;
@@ -410,7 +419,13 @@ export function GetStartedSection() {
     }
     window.sessionStorage.setItem(RESUME_REDIRECT_SESSION_KEY, "1");
     router.push(AUTH_ROUTES.ONBOARDING);
-  }, [isOnboardingLoading, resume?.status, progress?.is_completed, router]);
+  }, [
+    isOrgOwner,
+    isOnboardingLoading,
+    resume?.status,
+    progress?.is_completed,
+    router,
+  ]);
 
   const tasks = useMemo(
     () =>
@@ -460,7 +475,8 @@ export function GetStartedSection() {
 
   return (
     <div className="my-6 md:my-8">
-      {!isOnboardingLoading &&
+      {isOrgOwner &&
+        !isOnboardingLoading &&
         !onboardingCompleteCookie &&
         !progress?.is_completed && (
           <div className="mb-4 rounded-xl border border-border bg-background p-4 md:mb-6 md:p-5">
