@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { isJsonObject } from "@/lib/utils";
 
 import { intelligenceService } from "../../intelligence.service";
+import { ReportView } from "../query/report-view";
 
 const asNumber = (v: unknown): number | null => {
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -113,6 +114,12 @@ export function ReportDetailPage() {
     rec.clickRate ?? rec.click_rate ?? rec.clickRatio
   );
   const revenue = formatMoney(rec.revenueUsd ?? rec.revenue);
+  // Saved reports carry the source query — the visual report layer (charts,
+  // typed table, CSV export) reads GET /intelligence/query/:id/report-data.
+  const sourceQueryId =
+    asString(rec.sourceQueryId) ||
+    asString(rec.queryId) ||
+    asString(rec.query_id);
 
   if (!report && !reportQuery.isFetching) {
     return (
@@ -227,6 +234,8 @@ export function ReportDetailPage() {
           </div>
         </div>
       </div>
+
+      {sourceQueryId ? <ReportView queryId={sourceQueryId} /> : null}
     </div>
   );
 }

@@ -72,13 +72,8 @@ export const CAMPAIGN_TYPE_OPTIONS = [
     description: "Send one-off campaigns or manage a batch of emails",
   },
   {
-    id: "drip-campaign" as const,
-    title: "Drip campaign",
-    description: "Send messages at specific intervals in a specific audience",
-  },
-  {
     id: "smart-sending" as const,
     title: "Smart sending",
-    description: "Send messages at specific intervals in a specific audience",
+    description: "Reach users where they are with in-app push notifications",
   },
 ];

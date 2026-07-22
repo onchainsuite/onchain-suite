@@ -113,6 +113,10 @@ interface DomainDnsRow {
   status?: SenderStatus | "unknown";
   databaseField?: string;
   conflict?: DomainDnsConflict;
+  /** What's live in the user's DNS right now ([] = nothing published yet). */
+  current?: string[];
+  /** The always-safe-to-paste value (e.g. the merged SPF record). */
+  recommended?: string;
 }
 
 interface TeamPermissions {
@@ -626,6 +630,10 @@ const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
         verified,
         verificationLabel,
         conflict,
+        current: Array.isArray(entry.current)
+          ? entry.current.filter((v): v is string => typeof v === "string")
+          : undefined,
+        recommended: pickString(entry.recommended),
         status:
           verified === true
             ? "verified"
@@ -751,6 +759,10 @@ export default function CompanySettingsView() {
   }>({ open: false, type: "primary" });
   const [inviteOpen, setInviteOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<TeamRow | null>(null);
+  const [deleteDomainTarget, setDeleteDomainTarget] = useState<{
+    id: string;
+    domain: string;
+  } | null>(null);
   const [addDomainOpen, setAddDomainOpen] = useState(false);
   const [addSenderOpen, setAddSenderOpen] = useState(false);
   const [domainName, setDomainName] = useState("");
@@ -1144,6 +1156,50 @@ export default function CompanySettingsView() {
     },
   });
 
+  // DELETE /domain/{id} now also removes the domain from Azure ECS
+  // (docs/backend.md 2026-07-29) — safe for pending AND verified domains, so
+  // abandoned verification attempts can be fully cleaned up in-app.
+  const deleteDomainMutation = useMutation({
+    mutationFn: async (domainId: string) => {
+      if (!orgHeaders) throw new Error("No active organization selected");
+      await apiClient.delete(`/domain/${domainId}`, { headers: orgHeaders });
+    },
+    onSuccess: async () => {
+      setDeleteDomainTarget(null);
+      await queryClient.invalidateQueries({
+        queryKey: ["project-settings", "domains", organizationId],
+      });
+      toast.success("Domain deleted — Azure resources cleaned up too");
+    },
+    onError: (error: unknown) => {
+      toast.error(
+        apiErrorInfo(error).message ??
+          (error instanceof Error ? error.message : "Failed to delete domain")
+      );
+    },
+  });
+
+  // DELETE /organization/{orgId}/invites/{inviteId} — cancels a pending
+  // invite; the token dies immediately (docs/backend.md 2026-07-29).
+  const cancelInviteMutation = useMutation({
+    mutationFn: async ({ inviteId }: { inviteId: string; email: string }) => {
+      if (!organizationId) throw new Error("No active organization selected");
+      await apiClient.delete(
+        `/organizations/${organizationId}/invites/${inviteId}`,
+        { headers: orgHeaders ?? undefined }
+      );
+    },
+    onSuccess: async (_data, { email }) => {
+      await invalidateMembers();
+      toast.success(`Invite to ${email} cancelled`);
+    },
+    onError: (error: unknown) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to cancel invite"
+      );
+    },
+  });
+
   const resendInviteMutation = useMutation({
     mutationFn: async ({ inviteId }: { inviteId: string; email: string }) => {
       if (!organizationId) throw new Error("No active organization selected");
@@ -1480,6 +1536,22 @@ export default function CompanySettingsView() {
                               />
                             )}
                             Recheck
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 rounded-lg px-2 text-destructive hover:text-destructive"
+                            disabled={
+                              !domain.id || deleteDomainMutation.isPending
+                            }
+                            onClick={() =>
+                              setDeleteDomainTarget({
+                                id: domain.id,
+                                domain: domain.domain,
+                              })
+                            }
+                          >
+                            Delete
                           </Button>
                         </div>
                       </div>
@@ -1837,26 +1909,46 @@ export default function CompanySettingsView() {
                                 ) : null}
                               </div>
                               {canManageMembers ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 rounded-full text-xs"
-                                  disabled={isResendingThisInvite}
-                                  onClick={() =>
-                                    resendInviteMutation.mutate({
-                                      inviteId: member.id,
-                                      email: member.email,
-                                    })
-                                  }
-                                >
-                                  {isResendingThisInvite ? (
-                                    <ArrowPathIcon
-                                      aria-hidden="true"
-                                      className="mr-1 h-3.5 w-3.5 animate-spin"
-                                    />
-                                  ) : null}
-                                  Resend
-                                </Button>
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 rounded-full text-xs"
+                                    disabled={isResendingThisInvite}
+                                    onClick={() =>
+                                      resendInviteMutation.mutate({
+                                        inviteId: member.id,
+                                        email: member.email,
+                                      })
+                                    }
+                                  >
+                                    {isResendingThisInvite ? (
+                                      <ArrowPathIcon
+                                        aria-hidden="true"
+                                        className="mr-1 h-3.5 w-3.5 animate-spin"
+                                      />
+                                    ) : null}
+                                    Resend
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 rounded-full text-xs text-destructive hover:text-destructive"
+                                    disabled={
+                                      cancelInviteMutation.isPending &&
+                                      cancelInviteMutation.variables
+                                        ?.inviteId === member.id
+                                    }
+                                    onClick={() =>
+                                      cancelInviteMutation.mutate({
+                                        inviteId: member.id,
+                                        email: member.email,
+                                      })
+                                    }
+                                  >
+                                    Cancel invite
+                                  </Button>
+                                </>
                               ) : null}
                             </div>
                           ) : (
@@ -2049,6 +2141,51 @@ export default function CompanySettingsView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog
+        open={deleteDomainTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteDomainTarget(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-medium">
+              Delete domain
+            </DialogTitle>
+            <DialogDescription>
+              {deleteDomainTarget
+                ? `${deleteDomainTarget.domain} will be removed from your workspace and from Azure Email Communication Services. Sender identities on this domain stop working. This cannot be undone.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDomainTarget(null)}
+              disabled={deleteDomainMutation.isPending}
+            >
+              Keep domain
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteDomainMutation.isPending}
+              onClick={() => {
+                if (deleteDomainTarget) {
+                  deleteDomainMutation.mutate(deleteDomainTarget.id);
+                }
+              }}
+            >
+              {deleteDomainMutation.isPending ? (
+                <ArrowPathIcon
+                  aria-hidden="true"
+                  className="mr-2 h-4 w-4 animate-spin"
+                />
+              ) : null}
+              Delete domain
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={addDomainOpen} onOpenChange={setAddDomainOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -2056,8 +2193,8 @@ export default function CompanySettingsView() {
               Add domain
             </DialogTitle>
             <DialogDescription>
-              Register the root domain you want to send from, then publish the
-              DNS records shown for verification.
+              Register the domain you want to send from, then publish the DNS
+              records shown for verification.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
@@ -2066,9 +2203,18 @@ export default function CompanySettingsView() {
               <Input
                 value={domainName}
                 onChange={(e) => setDomainName(e.target.value)}
-                placeholder="company.com"
+                placeholder="company.com or emails.company.com"
               />
             </div>
+            <p className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
+              <span className="font-medium text-foreground">Recommended:</span>{" "}
+              use a dedicated sending subdomain like{" "}
+              <code className="rounded bg-muted px-1">emails.company.com</code>{" "}
+              — your root domain&apos;s DNS (and any existing mail like Google
+              Workspace) is never touched. Root domains work too: verification
+              understands merged SPF records and coexists with your current
+              provider&apos;s DKIM.
+            </p>
           </div>
           <DialogFooter>
             <Button
@@ -2175,11 +2321,14 @@ export default function CompanySettingsView() {
                     {!domainDnsQuery.data.sendReady ? (
                       <p className="mt-3 text-xs leading-5 text-muted-foreground">
                         Domain, SPF, DKIM, and DKIM2 must all verify before
-                        Azure will send from this domain. SPF is required — if
-                        your DNS already has a{" "}
+                        sending starts. Already on Google Workspace or another
+                        mail provider? That&apos;s fine — keep your MX records,
+                        merge our SPF include into your existing{" "}
                         <code className="rounded bg-muted px-1">v=spf1</code>{" "}
-                        record, merge the value into it instead of adding a
-                        second one (two SPF records invalidate both).
+                        record (merged records verify correctly), and add the
+                        two DKIM selector CNAMEs — they use their own selector
+                        names, so they never clash with your provider&apos;s
+                        DKIM. Your incoming mail is untouched.
                       </p>
                     ) : null}
                   </div>
@@ -2254,16 +2403,45 @@ export default function CompanySettingsView() {
                                 />
                               </div>
                             </div>
+                            {/* Three layers when the backend provides them:
+                                what's live now, the safe-to-paste value, and
+                                (below) the surgical conflict steps. */}
+                            {record.current !== undefined ? (
+                              <div>
+                                <div className="text-xs text-muted-foreground">
+                                  Current in your DNS
+                                </div>
+                                {record.current.length === 0 ? (
+                                  <div className="mt-1 rounded-lg border border-dashed border-border/70 px-2 py-1 text-xs italic text-muted-foreground">
+                                    Nothing published yet
+                                  </div>
+                                ) : (
+                                  <div className="mt-1 space-y-1">
+                                    {record.current.map((liveValue) => (
+                                      <code
+                                        key={liveValue}
+                                        className="block min-w-0 break-all rounded-lg bg-muted/60 px-2 py-1 text-xs text-muted-foreground"
+                                      >
+                                        {liveValue}
+                                      </code>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : null}
                             <div>
                               <div className="text-xs text-muted-foreground">
-                                Value
+                                {record.recommended !== undefined ||
+                                record.current !== undefined
+                                  ? "Recommended"
+                                  : "Value"}
                               </div>
                               <div className="mt-1 flex items-start gap-1.5">
                                 <code className="block min-w-0 flex-1 break-all rounded-lg bg-muted px-2 py-1 text-xs text-foreground">
-                                  {record.value}
+                                  {record.recommended ?? record.value}
                                 </code>
                                 <CopyButton
-                                  value={record.value}
+                                  value={record.recommended ?? record.value}
                                   label="Copy value"
                                 />
                               </div>

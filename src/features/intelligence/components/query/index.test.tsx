@@ -338,7 +338,7 @@ describe("QueryTab", () => {
     expect(setActiveTab).toHaveBeenCalledWith("reports");
   });
 
-  it("renders the report view for the completed query", async () => {
+  it("does not render the report view inline — reports live in the Reports tab", async () => {
     renderQueryTab();
 
     fireEvent.change(screen.getByLabelText("SQL query editor"), {
@@ -346,8 +346,8 @@ describe("QueryTab", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /run/i }));
 
-    const reportView = await screen.findByTestId("report-view");
-    expect(reportView).toHaveAttribute("data-query-id", "query_123");
+    await screen.findByRole("button", { name: /create segment/i });
+    expect(screen.queryByTestId("report-view")).not.toBeInTheDocument();
   });
 
   it("creates a segment and shows the confirmation with counts and links", async () => {
