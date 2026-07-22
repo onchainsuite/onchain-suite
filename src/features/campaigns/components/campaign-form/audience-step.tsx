@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  ArrowPathIcon,
   ArrowTrendingUpIcon,
   InformationCircleIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
@@ -35,7 +35,16 @@ import {
 } from "../../lib/audience-sync";
 import type { List, Segment } from "../../types";
 import type { CampaignFormData } from "../../validations";
-import { AudienceSelector } from "./audience-selector";
+import { AudienceSelector, type ContactOption } from "./audience-selector";
+import {
+  type AudienceProfile,
+  audienceService,
+} from "@/features/audience/audience.service";
+import {
+  deriveDisplayName,
+  extractWalletFields,
+  isSyntheticWalletEmail,
+} from "@/features/audience/utils";
 import { PRIVATE_ROUTES } from "@/shared/config/app-routes";
 
 interface AudienceStepProps {
@@ -93,6 +102,73 @@ export function AudienceStep({
   const [isSyncing, setIsSyncing] = useState(false);
   const syncSequenceRef = useRef(0);
 
+  // Individual contacts (with a real email) selectable directly — so a
+  // campaign can be sent to specific people even with no tags/segments ready.
+  const contactsQuery = useQuery({
+    queryKey: ["audience", "profiles", "campaign-contacts"],
+    queryFn: async () => {
+      const res = await audienceService.listProfiles({ page: 1, limit: 100 });
+      const envelope = res as {
+        items?: AudienceProfile[];
+        data?: AudienceProfile[];
+      };
+      const rows: AudienceProfile[] = Array.isArray(res)
+        ? res
+        : Array.isArray(envelope.items)
+          ? envelope.items
+          : Array.isArray(envelope.data)
+            ? envelope.data
+            : [];
+      return rows
+        .map((profile): ContactOption | null => {
+          const rawEmail =
+            typeof profile.email === "string" ? profile.email.trim() : "";
+          if (rawEmail.length === 0 || isSyntheticWalletEmail(rawEmail)) {
+            return null;
+          }
+          const id = typeof profile.id === "string" ? profile.id.trim() : "";
+          if (id.length === 0) return null;
+          const { walletFull } = extractWalletFields(profile);
+          return {
+            id,
+            email: rawEmail,
+            name: deriveDisplayName({
+              name: profile.name,
+              fullName: (profile as { fullName?: unknown }).fullName,
+              email: rawEmail,
+              wallet: walletFull,
+              walletAddress: walletFull,
+            }),
+          };
+        })
+        .filter((c): c is ContactOption => c !== null);
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
+  });
+  const contacts = useMemo(
+    () => contactsQuery.data ?? [],
+    [contactsQuery.data]
+  );
+
+  // Contacts double as count-1 "lists" for the local recipient estimate and
+  // for resolving selected ids into profileIds at sync time.
+  const contactsAsLists = useMemo<List[]>(
+    () =>
+      contacts.map((c) => ({
+        id: c.id,
+        name: c.name,
+        count: 1,
+        starred: false,
+      })),
+    [contacts]
+  );
+  const profileOptions = useMemo<List[]>(
+    () => [...lists, ...contactsAsLists],
+    [lists, contactsAsLists]
+  );
+
   const selectedSegmentIds = useMemo(
     () => new Set(segments.map((segment) => segment.id)),
     [segments]
@@ -101,20 +177,20 @@ export function AudienceStep({
     () =>
       getEstimatedRecipientsFromSelection(
         selectedAudiences,
-        [...lists, ...tags],
+        [...profileOptions, ...tags],
         segments
       ),
-    [lists, tags, segments, selectedAudiences]
+    [profileOptions, tags, segments, selectedAudiences]
   );
   const unresolvedSelectionCount = useMemo(
     () =>
       selectedAudiences.filter(
         (selectedId) =>
-          !lists.some((list) => list.id === selectedId) &&
+          !profileOptions.some((p) => p.id === selectedId) &&
           !tags.some((tag) => tag.id === selectedId) &&
           !selectedSegmentIds.has(selectedId)
       ).length,
-    [lists, tags, selectedAudiences, selectedSegmentIds]
+    [profileOptions, tags, selectedAudiences, selectedSegmentIds]
   );
 
   // Assemble the UTM object sent to the backend (only when tracking is on and
@@ -141,6 +217,38 @@ export function AudienceStep({
     utmContent,
   ]);
 
+  // Stable, content-based signatures for the autosync effect. Depending on the
+  // raw arrays would re-fire the effect on every render (the `lists` prop
+  // defaults to a fresh array each time), leaving the recipient spinner
+  // rolling forever. Keys change only when the underlying data actually does.
+  const selectionKey = useMemo(
+    () => selectedAudiences.join("|"),
+    [selectedAudiences]
+  );
+  const segmentsKey = useMemo(
+    () => segments.map((s) => `${s.id}:${s.count}`).join("|"),
+    [segments]
+  );
+  const profileOptionsKey = useMemo(
+    () => profileOptions.map((p) => p.id).join("|"),
+    [profileOptions]
+  );
+  const utmKey = useMemo(() => JSON.stringify(utmParams ?? null), [utmParams]);
+
+  // Latest values read inside the effect without widening its deps.
+  const syncInputsRef = useRef({
+    selectedAudiences,
+    segments,
+    profileOptions,
+    utmParams,
+  });
+  syncInputsRef.current = {
+    selectedAudiences,
+    segments,
+    profileOptions,
+    utmParams,
+  };
+
   // Live autosync. The backend rate-limits these endpoints (3 requests/10s),
   // so this only sends payloads that actually changed (see audience-sync.ts):
   // the first run seeds the change cache from hydrated state and just fetches
@@ -158,8 +266,13 @@ export function AudienceStep({
     let retryTimeout: number | undefined;
 
     const buildPayloads = async () => {
+      const inputs = syncInputsRef.current;
       const { listIds, segmentIds, profileIds, tagNames } =
-        partitionAudienceSelection(selectedAudiences, segments, lists);
+        partitionAudienceSelection(
+          inputs.selectedAudiences,
+          inputs.segments,
+          inputs.profileOptions
+        );
       // Tag selections expand to the tagged contacts' profile ids — the
       // backend audience contract only knows profiles + segments.
       const tagProfileIds = await resolveTagsToProfileIds(tagNames);
@@ -171,7 +284,7 @@ export function AudienceStep({
         tracking: {
           smartSending: Boolean(smartSending),
           trackingParameters: Boolean(trackingParameters),
-          ...(utmParams ? { utm: utmParams } : {}),
+          ...(inputs.utmParams ? { utm: inputs.utmParams } : {}),
         },
       };
     };
@@ -223,13 +336,12 @@ export function AudienceStep({
   }, [
     campaignId,
     canSync,
-    lists,
-    tags,
-    segments,
-    selectedAudiences,
+    selectionKey,
+    segmentsKey,
+    profileOptionsKey,
     smartSending,
     trackingParameters,
-    utmParams,
+    utmKey,
   ]);
 
   const displayedEstimatedRecipients =
@@ -262,17 +374,16 @@ export function AudienceStep({
             <h3 className="text-xl font-semibold text-foreground">Audience</h3>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-border bg-background">
-              {isSyncing ? (
-                <ArrowPathIcon
-                  aria-hidden="true"
-                  className="h-4 w-4 animate-spin"
-                />
-              ) : (
-                <span className="text-sm font-semibold">
-                  {displayedEstimatedRecipients}
-                </span>
-              )}
+            <div
+              aria-busy={isSyncing}
+              title={isSyncing ? "Updating estimate…" : undefined}
+              className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-border bg-background transition-opacity ${
+                isSyncing ? "opacity-50" : "opacity-100"
+              }`}
+            >
+              <span className="text-sm font-semibold tabular-nums">
+                {displayedEstimatedRecipients}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <span className="text-sm font-medium">Estimated recipients</span>
@@ -294,15 +405,16 @@ export function AudienceStep({
                   lists={lists}
                   tags={tags}
                   segments={segments}
+                  contacts={contacts}
                   isSegmentsLoading={segmentsLoading}
+                  isContactsLoading={contactsQuery.isLoading}
                   unresolvedSelectionCount={unresolvedSelectionCount}
                 />
               </FormControl>
               <FormDescription>
-                Campaigns send to segments — named groups of contacts (like
-                &quot;test-cohort&quot;) created in Intelligence → Segments.
-                Individual contacts aren&apos;t selected here; add them to a
-                segment first.{" "}
+                Pick individual contacts by email, or send to a tag or segment —
+                named groups of contacts created in Intelligence → Segments. No
+                tags ready? Just select the emails directly.{" "}
                 <a
                   href={UTM_HELP_URL}
                   target="_blank"

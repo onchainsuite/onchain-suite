@@ -13,12 +13,15 @@ import {
   ExclamationCircleIcon,
   EyeIcon,
   PaperAirplaneIcon,
+  PlusIcon,
   TagIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { ChainLogo } from "@/components/common/chain-logo";
 import { CopyButton } from "@/components/common/copy-button";
@@ -33,6 +36,8 @@ import {
   type AudienceProfileTransaction,
   audienceService,
 } from "@/features/audience/audience.service";
+import { ApplyTagsPopover } from "@/features/audience/components/apply-tags-popover";
+import { ComposeEmailDialog } from "@/features/audience/components/compose-email-dialog";
 import {
   deriveDisplayName,
   extractWalletFields,
@@ -88,7 +93,9 @@ export function ProfileDetailPage() {
   const params = useParams();
   const id = typeof params?.id === "string" ? params.id : "";
 
+  const queryClient = useQueryClient();
   const [copiedWallet, setCopiedWallet] = useState(false);
+  const [composeOpen, setComposeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "activity" | "attributes" | "emails" | "transactions"
   >("activity");
@@ -166,6 +173,68 @@ export function ProfileDetailPage() {
     () => extractWalletFields(profile),
     [profile]
   );
+
+  const tagsQuery = useQuery({
+    queryKey: ["audience", "tags"],
+    queryFn: async () => {
+      const res = await audienceService.listTags();
+      const rows: unknown[] = Array.isArray(res)
+        ? res
+        : ((res as { items?: unknown[]; data?: unknown[] }).items ??
+          (res as { data?: unknown[] }).data ??
+          []);
+      return rows
+        .map((row) =>
+          isJsonObject(row) && typeof row.name === "string" ? row.name : ""
+        )
+        .filter((n) => n.length > 0);
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
+  const availableTags = tagsQuery.data ?? [];
+
+  const invalidateProfile = () =>
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ["audience", "profile", id],
+      }),
+      queryClient.invalidateQueries({ queryKey: ["audience", "tags"] }),
+    ]);
+
+  const addTagsMutation = useMutation({
+    mutationFn: async (nextTags: string[]) => {
+      const cleaned = Array.from(
+        new Set(nextTags.map((t) => t.trim()).filter((t) => t.length > 0))
+      );
+      if (cleaned.length === 0) return;
+      const known = new Set(availableTags.map((t) => t.toLowerCase()));
+      await Promise.all(
+        cleaned
+          .filter((t) => !known.has(t.toLowerCase()))
+          .map((n) =>
+            audienceService.createTag({ name: n }).catch(() => undefined)
+          )
+      );
+      await audienceService.addTagsToProfile(id, { tags: cleaned });
+    },
+    onSuccess: async () => {
+      await invalidateProfile();
+      toast.success("Tags added");
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to add tags"),
+  });
+
+  const removeTagMutation = useMutation({
+    mutationFn: (tag: string) => audienceService.removeTagFromProfile(id, tag),
+    onSuccess: async () => {
+      await invalidateProfile();
+    },
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Failed to remove tag"),
+  });
 
   const email = typeof profile?.email === "string" ? profile.email.trim() : "";
   // Wallet-only contacts carry a synthetic placeholder email — treat them as
@@ -409,13 +478,14 @@ export function ProfileDetailPage() {
           </div>
         </div>
         {hasEmailChannel ? (
-          <a
-            href={`mailto:${email}`}
+          <button
+            type="button"
+            onClick={() => setComposeOpen(true)}
             className="flex shrink-0 items-center gap-2 self-start rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <EnvelopeIcon className="h-4 w-4" aria-hidden="true" />
             Send Email
-          </a>
+          </button>
         ) : (
           <button
             disabled
@@ -428,24 +498,62 @@ export function ProfileDetailPage() {
         )}
       </div>
 
-      <div className="mb-10 flex flex-wrap gap-2">
+      <ComposeEmailDialog
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        recipients={
+          hasEmailChannel ? [{ id: profile?.id ?? id, name, email }] : []
+        }
+      />
+
+      <div className="mb-10 flex flex-wrap items-center gap-2">
         {isLoading ? (
           <>
             <div className="h-7 w-20 rounded-full skeleton-wave" />
             <div className="h-7 w-28 rounded-full skeleton-wave" />
             <div className="h-7 w-24 rounded-full skeleton-wave" />
           </>
-        ) : tags.length > 0 ? (
-          tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm"
-            >
-              {tag}
-            </span>
-          ))
         ) : (
-          <span className="text-sm text-muted-foreground">No tags</span>
+          <>
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card py-1.5 pl-3 pr-1.5 text-xs font-medium text-muted-foreground shadow-sm"
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTagMutation.mutate(tag)}
+                  disabled={removeTagMutation.isPending}
+                  aria-label={`Remove tag ${tag}`}
+                  className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+                >
+                  <XMarkIcon className="h-3 w-3" aria-hidden="true" />
+                </button>
+              </span>
+            ))}
+            {tags.length === 0 && (
+              <span className="text-sm text-muted-foreground">No tags</span>
+            )}
+            {hasId && (
+              <ApplyTagsPopover
+                availableTags={availableTags}
+                activeTags={tags}
+                isApplying={addTagsMutation.isPending}
+                align="start"
+                onApply={(next) => addTagsMutation.mutateAsync(next)}
+                trigger={
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                  >
+                    <PlusIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                    Add tag
+                  </button>
+                }
+              />
+            )}
+          </>
         )}
       </div>
 
