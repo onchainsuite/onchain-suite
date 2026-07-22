@@ -98,7 +98,7 @@ describe("AudienceStep links", () => {
     );
   });
 
-  it("explains that recipients come from segments, not individual contacts", () => {
+  it("explains recipients can be individual contacts, tags or segments", () => {
     const client = new QueryClient();
     render(
       <QueryClientProvider client={client}>
@@ -106,9 +106,9 @@ describe("AudienceStep links", () => {
       </QueryClientProvider>
     );
 
-    expect(screen.getByText(/Campaigns send to segments/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Individual contacts aren't selected here/i)
+      screen.getByText(/Pick individual contacts by email/i)
     ).toBeInTheDocument();
+    expect(screen.getByText(/select the emails directly/i)).toBeInTheDocument();
   });
 });

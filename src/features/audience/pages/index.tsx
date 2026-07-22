@@ -10,9 +10,11 @@ import {
   ChevronRightIcon,
   ChevronUpIcon,
   ClipboardDocumentIcon,
+  EnvelopeIcon,
   EyeIcon,
   MagnifyingGlassIcon,
   SparklesIcon,
+  TagIcon,
   TrashIcon,
   UserPlusIcon,
   XMarkIcon,
@@ -61,6 +63,11 @@ import {
   type AudienceProfile,
   audienceService,
 } from "@/features/audience/audience.service";
+import { ApplyTagsPopover } from "@/features/audience/components/apply-tags-popover";
+import {
+  ComposeEmailDialog,
+  type EmailRecipient,
+} from "@/features/audience/components/compose-email-dialog";
 import {
   deriveDisplayName,
   extractSocialHandles,
@@ -182,6 +189,7 @@ export function AudiencePages(): ReactElement {
   const [animatedScore, setAnimatedScore] = useState(0);
   const [isRefreshSpinning, setIsRefreshSpinning] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [composeOpen, setComposeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [profileScopeFilter, setProfileScopeFilter] = useState<
@@ -559,6 +567,56 @@ export function AudiencePages(): ReactElement {
     if (selectedIds.length === 0) return;
     deleteProfilesMutation.mutate(selectedIds);
   };
+
+  const applyTagsMutation = useMutation({
+    mutationFn: async (tags: string[]) => {
+      const cleaned = Array.from(
+        new Set(tags.map((t) => t.trim()).filter((t) => t.length > 0))
+      );
+      if (cleaned.length === 0 || selectedIds.length === 0) return;
+      // Register any brand-new tag names first (idempotent — ignore
+      // "already exists" errors), then attach the full set to each profile.
+      const known = new Set(availableTags.map((t) => t.toLowerCase()));
+      await Promise.all(
+        cleaned
+          .filter((t) => !known.has(t.toLowerCase()))
+          .map((name) =>
+            audienceService.createTag({ name }).catch(() => undefined)
+          )
+      );
+      await Promise.all(
+        selectedIds.map((id) =>
+          audienceService.addTagsToProfile(id, { tags: cleaned })
+        )
+      );
+    },
+    onSuccess: async (_data, tags) => {
+      const count = selectedIds.length;
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["audience", "profiles"] }),
+        queryClient.invalidateQueries({ queryKey: ["audience", "tags"] }),
+      ]);
+      toast.success(
+        `Tagged ${count} profile${count === 1 ? "" : "s"} with ${tags.length} tag${
+          tags.length === 1 ? "" : "s"
+        }`
+      );
+    },
+    onError: (err) => {
+      const message =
+        err instanceof Error ? err.message : "Failed to apply tags";
+      toast.error(message);
+    },
+  });
+
+  // Selected profiles that have a real email channel — the direct-send set.
+  const emailRecipients = useMemo<EmailRecipient[]>(
+    () =>
+      profiles
+        .filter((p) => selectedIds.includes(p.id) && p.email.length > 0)
+        .map((p) => ({ id: p.id, name: p.name, email: p.email })),
+    [profiles, selectedIds]
+  );
 
   const handleBulkExport = () => {
     const selectedProfiles = profiles.filter((p) => selectedIds.includes(p.id));
@@ -1537,6 +1595,39 @@ export function AudiencePages(): ReactElement {
                           {selectedIds.length} selected
                         </span>
                         <div className="h-4 w-px bg-border" />
+                        <ApplyTagsPopover
+                          availableTags={availableTags}
+                          isApplying={applyTagsMutation.isPending}
+                          onApply={(tags) =>
+                            applyTagsMutation.mutateAsync(tags)
+                          }
+                          trigger={
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                            >
+                              <TagIcon className="h-4 w-4" aria-hidden="true" />
+                              Tag
+                            </button>
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setComposeOpen(true)}
+                          disabled={emailRecipients.length === 0}
+                          title={
+                            emailRecipients.length === 0
+                              ? "None of the selected profiles have an email channel"
+                              : `Send an email to ${emailRecipients.length} recipient${emailRecipients.length === 1 ? "" : "s"}`
+                          }
+                          className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <EnvelopeIcon
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          />
+                          Send email
+                        </button>
                         <button
                           onClick={handleBulkExport}
                           className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
@@ -1598,6 +1689,14 @@ export function AudiencePages(): ReactElement {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <ComposeEmailDialog
+          open={composeOpen}
+          onOpenChange={setComposeOpen}
+          recipients={emailRecipients}
+          skippedCount={selectedIds.length - emailRecipients.length}
+          onSent={() => setSelectedIds([])}
+        />
       </div>
     </TooltipProvider>
   );
