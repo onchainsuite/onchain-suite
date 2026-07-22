@@ -18,12 +18,7 @@ interface MenuItem {
 interface ReusableDropdownMenuProps {
   triggerText: string;
   triggerVariant?:
-    | "default"
-    | "outline"
-    | "secondary"
-    | "ghost"
-    | "link"
-    | "destructive";
+    "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
   menuItems: MenuItem[];
   contentWidth?: string;
   align?: "start" | "center" | "end";

@@ -76,11 +76,7 @@ export interface AudienceImportPreset {
 }
 
 export type AudienceJobState =
-  | "queued"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  "queued" | "processing" | "completed" | "failed" | "cancelled";
 
 export interface AudienceImportJobStatus {
   jobId: string;

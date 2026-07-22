@@ -44,11 +44,7 @@ const request = async <T>(
 };
 
 export type AutomationsStatus =
-  | "draft"
-  | "active"
-  | "paused"
-  | "archived"
-  | string;
+  "draft" | "active" | "paused" | "archived" | string;
 
 export type AutomationsListParams = {
   status?: "draft" | "active" | "paused" | string;
