@@ -255,8 +255,8 @@ export function PlanSelectionStep({
           if (checkout) {
             ({ paymentUrl } = checkout);
           } else {
-            toast.info(
-              "This plan is activated with our sales team — we'll reach out. You can also upgrade in Settings → Billing."
+            toast.warning(
+              "We couldn't start checkout right now. You can upgrade anytime in Settings → Billing."
             );
           }
         } catch (e) {

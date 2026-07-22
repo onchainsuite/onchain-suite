@@ -39,8 +39,15 @@ const PLAN_SLUGS: Record<string, PlanCheckoutSlug> = {
   pro: "pro",
 };
 
-export const planCheckoutSlug = (planName: string): PlanCheckoutSlug | null => {
-  return PLAN_SLUGS[planName.trim().toLowerCase()] ?? null;
+/**
+ * Every displayed plan is self-serve payable — unknown names normalize to a
+ * slug and the backend is the authority (404 Unknown plan on a bad one).
+ * Null only for an empty name.
+ */
+export const planCheckoutSlug = (planName: string): string | null => {
+  const key = planName.trim().toLowerCase();
+  if (key.length === 0) return null;
+  return PLAN_SLUGS[key] ?? key.replace(/[^a-z0-9]+/g, "_");
 };
 
 export const readPendingCheckout = (): PendingCheckout | null => {
@@ -137,14 +144,15 @@ export interface StartPlanCheckoutResult {
 }
 
 /**
- * Start a Blockradar checkout for a display plan name ("Growth", "Pro", …).
- * Persists the pending reference locally and returns the hosted payment URL
- * to redirect to. Returns null when the plan has no self-serve checkout
- * (e.g. Enterprise — contact sales).
+ * Start a plan checkout for a display plan name ("Growth", "Pro", …) — crypto
+ * (Blockradar, default) or card (Stripe-hosted). Persists the pending
+ * reference locally and returns the hosted payment URL to redirect to.
+ * Every plan is payable; null only for an empty plan name.
  */
 export async function startPlanCheckout(
   planName: string,
-  organizationId?: string
+  organizationId?: string,
+  options?: { paymentMethod?: "crypto" | "card" }
 ): Promise<StartPlanCheckoutResult | null> {
   const slug = planCheckoutSlug(planName);
   if (!slug) return null;
@@ -158,15 +166,24 @@ export async function startPlanCheckout(
       plan: slug,
       organizationId: orgId,
       billingCycle: "monthly",
+      ...(options?.paymentMethod === "card"
+        ? { paymentMethod: "card" as const }
+        : {}),
     });
   } catch (error) {
-    // "Failed to create payment link" here means the backend couldn't mint
-    // the Blockradar link — usually missing operator setup (API key, master
-    // wallet, webhook) in this environment, not a user problem.
     const message =
       error instanceof Error ? error.message : "Couldn't start checkout.";
+    if (message.includes("FIAT_CHECKOUT_UNAVAILABLE")) {
+      throw new Error(
+        "Card payments aren't available yet — switch to crypto checkout.",
+        { cause: error }
+      );
+    }
+    // "Failed to create payment link" here means the backend couldn't mint
+    // the payment link — usually missing operator setup (API key, master
+    // wallet, webhook) in this environment, not a user problem.
     throw new Error(
-      `${message} If this keeps happening, crypto checkout isn't configured for this environment yet — contact support or try again later.`,
+      `${message} If this keeps happening, checkout isn't configured for this environment yet — contact support or try again later.`,
       { cause: error }
     );
   }
