@@ -113,6 +113,10 @@ interface DomainDnsRow {
   status?: SenderStatus | "unknown";
   databaseField?: string;
   conflict?: DomainDnsConflict;
+  /** What's live in the user's DNS right now ([] = nothing published yet). */
+  current?: string[];
+  /** The always-safe-to-paste value (e.g. the merged SPF record). */
+  recommended?: string;
 }
 
 interface TeamPermissions {
@@ -626,6 +630,10 @@ const normalizeDomainDns = (payload: unknown): DomainDnsRow[] => {
         verified,
         verificationLabel,
         conflict,
+        current: Array.isArray(entry.current)
+          ? entry.current.filter((v): v is string => typeof v === "string")
+          : undefined,
+        recommended: pickString(entry.recommended),
         status:
           verified === true
             ? "verified"
@@ -2395,16 +2403,45 @@ export default function CompanySettingsView() {
                                 />
                               </div>
                             </div>
+                            {/* Three layers when the backend provides them:
+                                what's live now, the safe-to-paste value, and
+                                (below) the surgical conflict steps. */}
+                            {record.current !== undefined ? (
+                              <div>
+                                <div className="text-xs text-muted-foreground">
+                                  Current in your DNS
+                                </div>
+                                {record.current.length === 0 ? (
+                                  <div className="mt-1 rounded-lg border border-dashed border-border/70 px-2 py-1 text-xs italic text-muted-foreground">
+                                    Nothing published yet
+                                  </div>
+                                ) : (
+                                  <div className="mt-1 space-y-1">
+                                    {record.current.map((liveValue) => (
+                                      <code
+                                        key={liveValue}
+                                        className="block min-w-0 break-all rounded-lg bg-muted/60 px-2 py-1 text-xs text-muted-foreground"
+                                      >
+                                        {liveValue}
+                                      </code>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : null}
                             <div>
                               <div className="text-xs text-muted-foreground">
-                                Value
+                                {record.recommended !== undefined ||
+                                record.current !== undefined
+                                  ? "Recommended"
+                                  : "Value"}
                               </div>
                               <div className="mt-1 flex items-start gap-1.5">
                                 <code className="block min-w-0 flex-1 break-all rounded-lg bg-muted px-2 py-1 text-xs text-foreground">
-                                  {record.value}
+                                  {record.recommended ?? record.value}
                                 </code>
                                 <CopyButton
-                                  value={record.value}
+                                  value={record.recommended ?? record.value}
                                   label="Copy value"
                                 />
                               </div>
