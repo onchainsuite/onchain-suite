@@ -4,10 +4,7 @@ import { apiClient } from "@/lib/api-client";
 import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 export type IntelligenceQueryStatus =
-  | "running"
-  | "completed"
-  | "failed"
-  | string;
+  "running" | "completed" | "failed" | string;
 
 export interface IntelligenceQueryRunResponse {
   queryId: string;
@@ -357,10 +354,7 @@ export interface IntelligenceSegmentFromQueryResponse {
 
 /** Column type inferred by the backend report layer. */
 export type IntelligenceReportColumnType =
-  | "number"
-  | "date"
-  | "wallet"
-  | "string";
+  "number" | "date" | "wallet" | "string";
 
 /**
  * A backend-suggested visualization for a stored query. Line/bar charts carry

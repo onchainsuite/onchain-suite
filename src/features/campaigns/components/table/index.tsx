@@ -75,8 +75,7 @@ export function CampaignsTable({ data }: CampaignsTableProps) {
               >
                 {headerGroup.headers.map((header) => {
                   const meta = header.column.columnDef.meta as
-                    | CampaignColumnMeta
-                    | undefined;
+                    CampaignColumnMeta | undefined;
                   return (
                     <TableHead
                       key={header.id}
@@ -109,8 +108,7 @@ export function CampaignsTable({ data }: CampaignsTableProps) {
                         "py-4",
                         (
                           cell.column.columnDef.meta as
-                            | CampaignColumnMeta
-                            | undefined
+                            CampaignColumnMeta | undefined
                         )?.className
                       )}
                     >

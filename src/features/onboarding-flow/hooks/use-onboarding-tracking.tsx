@@ -26,9 +26,7 @@ interface OnboardingProgress {
 }
 
 export type OnboardingResumeStatus =
-  | "not_started"
-  | "in_progress"
-  | "completed";
+  "not_started" | "in_progress" | "completed";
 
 /**
  * Resumable-onboarding block from `GET /onboarding/progress`

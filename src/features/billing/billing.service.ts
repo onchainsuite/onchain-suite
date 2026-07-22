@@ -512,11 +512,9 @@ export const billingService = {
     return billingRequest<unknown>(
       { method: "GET", url: "/billing/plans" },
       options
-    ).then(
-      (payload): BillingPlansResponse => ({
-        plans: normalizeBillingPlans(payload),
-      })
-    );
+    ).then((payload): BillingPlansResponse => ({
+      plans: normalizeBillingPlans(payload),
+    }));
   },
 
   /**

@@ -13,12 +13,7 @@ interface SplitButtonProps {
   dropdownContent: React.ReactNode;
   onMainClick?: () => void;
   variant?:
-    | "default"
-    | "outline"
-    | "secondary"
-    | "ghost"
-    | "link"
-    | "destructive";
+    "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
 }

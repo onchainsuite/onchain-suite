@@ -68,8 +68,7 @@ export function PropertySelect({
   useEffect(() => {
     if (!open || activeIndex < 0) return;
     const node = listRef.current?.children[activeIndex] as
-      | HTMLElement
-      | undefined;
+      HTMLElement | undefined;
     node?.scrollIntoView({ block: "nearest" });
   }, [open, activeIndex]);
 

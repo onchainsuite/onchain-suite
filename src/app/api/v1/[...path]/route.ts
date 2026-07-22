@@ -15,11 +15,7 @@ export const dynamic = "force-dynamic";
 
 type AudienceImportExportFormat = "csv" | "json";
 type AudienceJobState =
-  | "queued"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  "queued" | "processing" | "completed" | "failed" | "cancelled";
 
 type AudienceImportError = {
   rowNumber?: number;

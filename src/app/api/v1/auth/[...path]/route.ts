@@ -137,8 +137,7 @@ const getRedirectUrlFromResponse = (payload: unknown): string | null => {
     redirectObj?.location,
   ];
   const direct = directCandidates.find((v) => typeof v === "string") as
-    | string
-    | undefined;
+    string | undefined;
   if (direct && direct.length > 0) return direct;
 
   const looksLikeUrl = (v: unknown): v is string =>

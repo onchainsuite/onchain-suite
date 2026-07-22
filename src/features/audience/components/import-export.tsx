@@ -77,18 +77,10 @@ interface CSVColumn {
 }
 
 type ImportHistoryStatus =
-  | "queued"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  "queued" | "processing" | "completed" | "failed" | "cancelled";
 
 type ExportHistoryStatus =
-  | "queued"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  "queued" | "processing" | "completed" | "failed" | "cancelled";
 
 interface ImportHistoryItem {
   jobId: string;

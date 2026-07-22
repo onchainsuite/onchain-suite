@@ -14,13 +14,7 @@ interface StatCardProps {
     label: string;
   };
   variant?:
-    | "primary"
-    | "teal"
-    | "violet"
-    | "red"
-    | "blue"
-    | "yellow"
-    | "default";
+    "primary" | "teal" | "violet" | "red" | "blue" | "yellow" | "default";
   iconColor?: string;
   borderColor?: string;
   bgGradient?: string;

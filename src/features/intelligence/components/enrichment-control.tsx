@@ -42,8 +42,7 @@ export function EnrichmentControl() {
     refetchOnWindowFocus: false,
     refetchInterval: (q) => {
       const d = q.state.data as
-        | { pending?: number; idle?: boolean }
-        | undefined;
+        { pending?: number; idle?: boolean } | undefined;
       return d && (d.pending ?? 0) > 0 && d.idle === false ? 3000 : false;
     },
   });
