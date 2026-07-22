@@ -86,13 +86,43 @@ export const clearPendingCheckout = (): void => {
 
 /**
  * Open the hosted payment page in a new tab so the app stays alive to track
- * the payment. Returns false when a popup blocker intervened — callers
- * should fall back to same-tab navigation.
+ * the payment. Returns false only when a popup blocker actually intervened —
+ * callers fall back to same-tab navigation.
+ *
+ * Do NOT pass "noopener" in the features string: per the HTML spec
+ * `window.open()` returns null whenever noopener is set, even on success. That
+ * made callers read a successful open as "blocked" and navigate the current
+ * tab to the payment URL as well, so paying opened two tabs. Instead open a
+ * blank tab (same-origin, so the handle is readable), sever `opener` there,
+ * then navigate it to the payment page.
  */
 export const openCheckoutInNewTab = (paymentUrl: string): boolean => {
   if (typeof window === "undefined") return false;
-  const win = window.open(paymentUrl, "_blank", "noopener,noreferrer");
-  return win !== null;
+
+  const win = window.open("", "_blank");
+  if (!win) return false;
+
+  try {
+    // Severed while the tab is still about:blank, so the payment page can't
+    // reach back into the app (reverse tabnabbing).
+    win.opener = null;
+  } catch {
+    // Some engines disallow the write; navigation below still works.
+  }
+
+  try {
+    win.location.replace(paymentUrl);
+  } catch {
+    // Never strand an empty tab — close it and let the caller fall back.
+    try {
+      win.close();
+    } catch {
+      /* already gone */
+    }
+    return false;
+  }
+
+  return true;
 };
 
 export type CheckoutUpgradeStatus = "pending" | "completed" | "failed";
