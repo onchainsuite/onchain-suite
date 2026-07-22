@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 
 import { fadeInUp } from "../../utils";
+import DangerZone from "./danger-zone";
 import PersonalDetails from "./personal-details";
 import Security from "./security";
 
@@ -19,6 +20,8 @@ export default function ProfileSettings() {
       <PersonalDetails />
 
       <Security />
+
+      <DangerZone />
     </motion.div>
   );
 }

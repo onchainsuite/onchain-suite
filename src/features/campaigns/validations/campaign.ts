@@ -12,7 +12,6 @@ export const campaignFormSchema = z
     campaignName: z.string().min(1, "Campaign name is required"),
     campaignType: z.enum([
       "email-blast",
-      "drip-campaign",
       "smart-sending",
       "newsletter",
       "promotional",

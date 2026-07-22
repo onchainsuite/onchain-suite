@@ -53,9 +53,22 @@ const toUiSegment = (input: IntelligenceSegment): Segment => {
       : typeof input.lastUsedAt === "string"
         ? input.lastUsedAt
         : undefined;
+  const raw = input as unknown as Record<string, unknown>;
   return {
-    id: input.id,
-    name: input.name,
+    id:
+      typeof input.id === "string" && input.id.length > 0
+        ? input.id
+        : typeof raw.segmentId === "string"
+          ? (raw.segmentId as string)
+          : typeof raw._id === "string"
+            ? (raw._id as string)
+            : "",
+    name:
+      typeof input.name === "string" && input.name.length > 0
+        ? input.name
+        : typeof raw.title === "string" && (raw.title as string).length > 0
+          ? (raw.title as string)
+          : "Untitled segment",
     size,
     sourceQueryId:
       typeof input.sourceQueryId === "string" && input.sourceQueryId.length > 0
@@ -88,10 +101,27 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
         page: 1,
         limit: 100,
       });
-      const root = Array.isArray(res)
+      // The list arrives in several envelope shapes depending on backend
+      // version ({items}, {segments}, {data}, {data:{items}}, bare array) —
+      // accepting them all is what makes the section actually render.
+      const r = res as Record<string, unknown>;
+      const nested =
+        r && typeof r === "object" && !Array.isArray(res)
+          ? ((r.items ?? r.segments ?? r.data) as unknown)
+          : res;
+      const nestedObj = nested as Record<string, unknown> | unknown[];
+      const list = Array.isArray(res)
         ? res
-        : ((res as { items?: IntelligenceSegment[] }).items ?? []);
-      return (Array.isArray(root) ? root : []).map(toUiSegment);
+        : Array.isArray(nested)
+          ? nested
+          : nestedObj &&
+              typeof nestedObj === "object" &&
+              Array.isArray((nestedObj as Record<string, unknown>).items)
+            ? ((nestedObj as Record<string, unknown>).items as unknown[])
+            : [];
+      return (list as IntelligenceSegment[])
+        .map(toUiSegment)
+        .filter((seg) => seg.id.length > 0);
     },
     retry: false,
     refetchOnWindowFocus: false,

@@ -53,7 +53,7 @@ describe("Campaign Types API", () => {
     expect(Array.isArray(json.data)).toBe(true);
     const ids = (json.data as Array<{ id: string }>).map((x) => x.id);
     expect(ids).toContain("EMAIL_BLAST");
-    expect(ids).toContain("DRIP_CAMPAIGN");
+    expect(ids).toContain("SMART_SENDING");
     expect(ids).toContain("SMART_SENDING");
   });
 

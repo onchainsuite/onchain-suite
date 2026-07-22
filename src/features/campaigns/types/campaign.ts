@@ -7,7 +7,6 @@ export type CampaignStatus =
   | "failed";
 export type CampaignType =
   | "email-blast"
-  | "drip-campaign"
   | "smart-sending"
   | "newsletter"
   | "promotional"
