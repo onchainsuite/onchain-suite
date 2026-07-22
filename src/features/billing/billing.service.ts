@@ -186,9 +186,16 @@ export interface BillingUpgradeResponse {
 export type PlanCheckoutSlug = "launch" | "growth" | "pro";
 
 export interface PlanCheckoutRequest {
-  plan: PlanCheckoutSlug;
+  /** Known catalog slugs, or any backend-provided slug string. */
+  plan: PlanCheckoutSlug | (string & {});
   organizationId: string;
   billingCycle?: "monthly" | "annual";
+  /**
+   * "crypto" (Blockradar, default) or "card" (Stripe-hosted checkout —
+   * docs/backend.md 2026-07-28). Card returns `mode: "stripe_checkout"`;
+   * 400 FIAT_CHECKOUT_UNAVAILABLE when Stripe isn't configured.
+   */
+  paymentMethod?: "crypto" | "card";
 }
 
 /**

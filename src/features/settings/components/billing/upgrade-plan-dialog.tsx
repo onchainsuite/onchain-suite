@@ -15,11 +15,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { isJsonObject } from "@/lib/utils";
-
 import {
   type BillingPlan,
-  type BillingPlanName,
   billingService,
 } from "@/features/billing/billing.service";
 import {
@@ -100,47 +97,29 @@ export default function UpgradePlanDialog({
     staleTime: 10 * 60 * 1000,
   });
 
+  // Crypto-only for now: every plan goes straight to the Blockradar mainnet
+  // checkout (limits unlock via webhook). Card (Stripe) stays unwired until
+  // production keys exist — the service supports it when that day comes.
   const upgradeMutation = useMutation({
-    // Crypto-first: Blockradar checkout is the payment rail (fiat checkout
-    // is disabled server-side in production, and cards are intentionally not
-    // offered for now).
     mutationFn: async (plan: string) => {
-      try {
-        return await startPlanCheckout(plan);
-      } catch (checkoutError) {
-        // Fall back to the legacy fiat upgrade only if it can actually
-        // produce a checkout link (e.g. non-production environments).
-        const res = await billingService
-          .upgradeFiat({ plan: plan as BillingPlanName })
-          .catch(() => null);
-        const checkoutUrl =
-          isJsonObject(res) && typeof res.checkoutUrl === "string"
-            ? res.checkoutUrl
-            : "";
-        if (checkoutUrl) return { paymentUrl: checkoutUrl, reference: "" };
-        throw checkoutError instanceof Error
-          ? checkoutError
-          : new Error("Couldn't start the upgrade.");
+      const checkout = await startPlanCheckout(plan);
+      if (!checkout?.paymentUrl) {
+        throw new Error("Checkout did not return a payment link. Try again.");
       }
+      return checkout;
     },
     onSuccess: (checkout) => {
-      if (checkout?.paymentUrl) {
-        // New tab keeps the app alive so the pending-checkout banner can
-        // confirm the payment; same-tab fallback when popups are blocked.
-        if (openCheckoutInNewTab(checkout.paymentUrl)) {
-          toast.success(
-            "Complete your payment in the new tab — your plan unlocks automatically once it confirms."
-          );
-          setOpen(false);
-        } else {
-          window.location.href = checkout.paymentUrl;
-        }
-        return;
+      // New tab keeps the app alive so the pending-checkout banner can
+      // confirm the payment; same-tab fallback when popups are blocked.
+      if (openCheckoutInNewTab(checkout.paymentUrl)) {
+        toast.success(
+          "Complete your payment in the new tab — your plan unlocks automatically once it confirms."
+        );
+        queryClient.invalidateQueries({ queryKey: ["billing"] });
+        setOpen(false);
+      } else {
+        window.location.href = checkout.paymentUrl;
       }
-      // No self-serve checkout for this plan (e.g. Enterprise).
-      toast.info("Contact sales to activate this plan.");
-      queryClient.invalidateQueries({ queryKey: ["billing"] });
-      setOpen(false);
     },
     onError: (e) => {
       toast.error(
@@ -171,6 +150,11 @@ export default function UpgradePlanDialog({
             Upgrade to unlock more contacts, channels, and intelligence.
           </DialogDescription>
         </DialogHeader>
+
+        <p className="text-xs text-muted-foreground">
+          Pay in USDC via crypto checkout — your plan and limits unlock
+          automatically once the payment confirms on-chain.
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-3">
           {plans.map((plan, idx) => {
@@ -234,11 +218,7 @@ export default function UpgradePlanDialog({
                   onClick={() => upgradeMutation.mutate(plan.slug ?? name)}
                   className="mt-5 w-full rounded-xl"
                 >
-                  {isCurrent
-                    ? "Current plan"
-                    : isCustom
-                      ? "Contact sales"
-                      : `Upgrade to ${name}`}
+                  {isCurrent ? "Current plan" : `Upgrade to ${name}`}
                 </Button>
               </div>
             );
