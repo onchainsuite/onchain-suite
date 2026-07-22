@@ -2,7 +2,7 @@
   "name": "onchain-suite",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.13.1",
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,19 +14,19 @@
     "commit": "cz",
     "prepare": "husky",
     "pre-commit": "lint-staged",
-    "pre-push": "PM=$(sh scripts/pm.sh); $PM run lint && $PM run build",
-    "validate": "PM=$(sh scripts/pm.sh); $PM run type-check && $PM run lint && $PM run prettier",
+    "pre-push": "bun run lint && bun run build",
+    "validate": "bun run type-check && bun run lint && bun run prettier",
     "rename:kebab-files": "find . -name '*.ts' -o -name '*.tsx' | grep -v node_modules | grep -v .next | grep -v .git | while read file; do newname=$(echo \"$file\" | sed 's/\\([A-Z]\\)/-\\L\\1/g' | sed 's/^-//' | sed 's/\\/-/-/g'); [ \"$file\" != \"$newname\" ] && mv \"$file\" \"$newname\" 2>/dev/null || true; done",
     "rename:kebab-dirs": "find . -type d \\( -path './node_modules' -o -path './.next' -o -path './.git' \\) -prune -o -type d -print | grep -E '[A-Z]' | sort -r | while read dir; do newdir=$(echo \"$dir\" | sed 's|/\\([A-Z]\\)|/-\\L\\1|g' | sed 's|^-||' | sed 's|/-|/|g'); [ \"$dir\" != \"$newdir\" ] && mv \"$dir\" \"$newdir\" 2>/dev/null || true; done",
-    "rename:kebab-all": "PM=$(sh scripts/pm.sh); $PM run rename:kebab-dirs && $PM run rename:kebab-files",
+    "rename:kebab-all": "bun run rename:kebab-dirs && bun run rename:kebab-files",
     "imports:check": "eslint . --no-fix --rule 'no-restricted-imports: [error, { patterns: [{ group: [../*], message: Use absolute imports with @/ instead of relative parent imports (../) }] }]'",
     "imports:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml,css,scss,html}\"",
     "lint:fix": "eslint . --fix",
     "test": "vitest",
     "test:e2e:google-oauth": "vitest run src/test/google-oauth.e2e.test.ts",
-    "check-all": "PM=$(sh scripts/pm.sh); $PM run lint && $PM run format",
-    "email:dev": "$(sh scripts/pm.sh) exec email dev --root src/shared/emails"
+    "check-all": "bun run lint && bun run format",
+    "email:dev": "bunx email dev --root src/shared/emails"
   },
   "dependencies": {
     "@arcjet/inspect": "^1.9.1",
@@ -148,6 +148,15 @@
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
+  "trustedDependencies": [
+    "@prisma/client",
+    "@prisma/engines",
+    "core-js",
+    "esbuild",
+    "prisma",
+    "sharp",
+    "unrs-resolver"
+  ],
   "config": {
     "commitizen": {
       "path": "cz-conventional-changelog"
