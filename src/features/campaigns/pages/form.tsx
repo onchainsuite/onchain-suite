@@ -55,6 +55,7 @@ import {
   isRateLimitError,
   syncAudienceSettings,
 } from "@/features/campaigns/lib/audience-sync";
+import { parseSenderNotVerified } from "@/features/campaigns/lib/launch-errors";
 import type { List, Segment } from "@/features/campaigns/types";
 import {
   type IntelligenceSegment,
@@ -68,6 +69,12 @@ import { useActiveTimezone } from "@/shared/hooks/client/use-timezones";
 // name/type are collected up front in the create-campaign sheet, and send
 // timing (now vs schedule) is chosen on the template step.
 const TOTAL_STEPS = 3;
+/**
+ * Domain verification lives in the account tab's "Sender verification"
+ * section, which is collapsed by default — `section=` expands and scrolls to
+ * it so the link lands on the thing the user was told to do.
+ */
+const SENDER_VERIFICATION_HREF = `${PRIVATE_ROUTES.SETTINGS}?tab=account&section=sender-verification`;
 const campaignTypes = new Set<CampaignFormData["campaignType"]>([
   "email-blast",
   "smart-sending",
@@ -1512,6 +1519,29 @@ export function CreateCampaignPage() {
       await campaignsService.launchCampaign(campaignId);
       setShowConfirmation(true);
     } catch (e) {
+      // An unverified sender domain is the one launch failure the user can
+      // fix themselves — point them at the verification flow rather than
+      // showing a raw backend string.
+      const senderIssue = parseSenderNotVerified(e);
+      if (senderIssue) {
+        const label = senderIssue.domain || senderIssue.sender;
+        toast.error(
+          label
+            ? `Verify ${label} before sending.`
+            : "Verify your sender domain before sending.",
+          {
+            description: senderIssue.sender
+              ? `${senderIssue.sender} isn't verified for this organization yet.`
+              : undefined,
+            action: {
+              label: "Verify domain",
+              onClick: () => router.push(SENDER_VERIFICATION_HREF),
+            },
+            duration: 10_000,
+          }
+        );
+        return;
+      }
       const message =
         e instanceof Error ? e.message : "Failed to launch campaign";
       toast.error(message);
