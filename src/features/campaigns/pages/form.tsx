@@ -821,6 +821,7 @@ export function CreateCampaignPage() {
       channel: "email",
       selectedAudiences: [],
       smartSending: true,
+      smartSendingWindowHours: "",
       trackingParameters: true,
       utmSource: "onchain_suite",
       utmMedium: "email",
@@ -1180,6 +1181,12 @@ export function CreateCampaignPage() {
           const { smartSending, trackingParameters, utm } = tObj;
           if (typeof smartSending === "boolean") {
             nextValues.smartSending = smartSending;
+          }
+          // GET /campaigns/{id}/tracking echoes the per-campaign override.
+          if (typeof tObj.smartSendingWindowHours === "number") {
+            nextValues.smartSendingWindowHours = String(
+              tObj.smartSendingWindowHours
+            );
           }
           if (typeof trackingParameters === "boolean") {
             nextValues.trackingParameters = trackingParameters;

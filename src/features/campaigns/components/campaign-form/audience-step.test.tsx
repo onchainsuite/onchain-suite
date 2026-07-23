@@ -98,7 +98,7 @@ describe("AudienceStep links", () => {
     expect(PRIVATE_ROUTES.INTELLIGENCE_SEGMENTS).toContain("tab=segments");
   });
 
-  it("does not promise a Smart Sending threshold setting that does not exist", () => {
+  it("points Smart Sending at the org settings page that now exists", () => {
     const client = new QueryClient();
     render(
       <QueryClientProvider client={client}>
@@ -106,15 +106,27 @@ describe("AudienceStep links", () => {
       </QueryClientProvider>
     );
 
-    // Smart Sending is a per-campaign boolean; there is no thresholds
-    // endpoint and no settings screen to send people to.
-    expect(
-      screen.queryByRole("link", { name: /account settings/i })
-    ).not.toBeInTheDocument();
+    // GET/PUT /organization/settings/smart-sending shipped 2026-08-02, so the
+    // "account settings" link finally has a real destination.
+    const link = screen.getByRole("link", { name: /account settings/i });
+    expect(link).toHaveAttribute(
+      "href",
+      `${PRIVATE_ROUTES.SETTINGS}?tab=account`
+    );
+  });
+
+  it("does not hardcode a suppression window when the org setting is unavailable", () => {
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <Wrapper />
+      </QueryClientProvider>
+    );
+
+    // The window is read from the org setting; with no value resolved we say
+    // "suppression window" rather than inventing a number like the old copy.
     expect(screen.queryByText(/10 hours/i)).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Skips profiles who recently received a message/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/suppression window/i)).toBeInTheDocument();
   });
 
   it("explains recipients can be individual contacts, tags or segments", () => {
