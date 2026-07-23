@@ -1162,15 +1162,24 @@ export function CreateCampaignPage() {
           const aObj: Record<string, unknown> = isJsonObject(audienceRes.value)
             ? audienceRes.value
             : {};
-          const { listIds: listIdsRaw, segmentIds: segmentIdsRaw } = aObj;
-          const listIds = Array.isArray(listIdsRaw)
-            ? listIdsRaw.map(String)
-            : [];
-          const segmentIds = Array.isArray(segmentIdsRaw)
-            ? segmentIdsRaw.map(String)
-            : [];
-          if (listIds.length || segmentIds.length) {
-            nextValues.selectedAudiences = [...listIds, ...segmentIds];
+          // GET /campaigns/{id}/audience returns { profileIds, segmentIds }.
+          // Reading only listIds meant a saved contact selection never
+          // hydrated, so reopening a campaign showed an empty audience — and
+          // the next Continue saved that emptiness back over it. listIds is
+          // kept purely as a fallback for anything persisted by older builds.
+          const {
+            profileIds: profileIdsRaw,
+            listIds: listIdsRaw,
+            segmentIds: segmentIdsRaw,
+          } = aObj;
+          const toIds = (value: unknown) =>
+            Array.isArray(value) ? value.map(String) : [];
+          const profileIds = [...toIds(profileIdsRaw), ...toIds(listIdsRaw)];
+          const segmentIds = toIds(segmentIdsRaw);
+          if (profileIds.length || segmentIds.length) {
+            nextValues.selectedAudiences = Array.from(
+              new Set([...profileIds, ...segmentIds])
+            );
           }
         }
 
@@ -1341,11 +1350,10 @@ export function CreateCampaignPage() {
     try {
       if (currentStep === 1) {
         const data = form.getValues();
-        const { listIds, segmentIds, profileIds, tagNames } =
-          partitionAudienceSelection(
-            data.selectedAudiences,
-            audienceSegmentsQuery.data ?? []
-          );
+        const { segmentIds, profileIds, tagNames } = partitionAudienceSelection(
+          data.selectedAudiences,
+          audienceSegmentsQuery.data ?? []
+        );
         const tagProfileIds = await resolveTagsToProfileIds(tagNames);
         const mergedProfileIds = Array.from(
           new Set([...profileIds, ...tagProfileIds])
@@ -1363,7 +1371,7 @@ export function CreateCampaignPage() {
           addUtm("content", data.utmContent);
         }
         const syncOptions = {
-          audience: { listIds, segmentIds, profileIds: mergedProfileIds },
+          audience: { segmentIds, profileIds: mergedProfileIds },
           tracking: {
             smartSending: Boolean(data.smartSending),
             trackingParameters: Boolean(data.trackingParameters),

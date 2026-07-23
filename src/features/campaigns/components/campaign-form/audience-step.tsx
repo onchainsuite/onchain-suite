@@ -296,12 +296,10 @@ export function AudienceStep({
 
     const buildPayloads = async () => {
       const inputs = syncInputsRef.current;
-      const { listIds, segmentIds, profileIds, tagNames } =
-        partitionAudienceSelection(
-          inputs.selectedAudiences,
-          inputs.segments,
-          inputs.profileOptions
-        );
+      const { segmentIds, profileIds, tagNames } = partitionAudienceSelection(
+        inputs.selectedAudiences,
+        inputs.segments
+      );
       // Tag selections expand to the tagged contacts' profile ids — the
       // backend audience contract only knows profiles + segments.
       const tagProfileIds = await resolveTagsToProfileIds(tagNames);
@@ -309,7 +307,7 @@ export function AudienceStep({
         new Set([...profileIds, ...tagProfileIds])
       );
       return {
-        audience: { listIds, segmentIds, profileIds: mergedProfileIds },
+        audience: { segmentIds, profileIds: mergedProfileIds },
         tracking: {
           smartSending: Boolean(smartSending),
           trackingParameters: Boolean(trackingParameters),

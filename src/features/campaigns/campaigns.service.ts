@@ -20,11 +20,17 @@ export interface CampaignCalendarItem {
   [key: string]: unknown;
 }
 
+/**
+ * Canonical body of `PUT /campaigns/{id}/audience` — `{ profileIds,
+ * segmentIds }`. Legacy `listIds` is accepted when reading a previously saved
+ * selection but is never sent; the backend ignores it.
+ */
 export interface CampaignAudienceSelection {
-  listIds: string[];
   segmentIds: string[];
   /** Explicit profile/contact ids — backend requires the key to be an array. */
   profileIds?: string[];
+  /** @deprecated Read-only fallback for audiences saved by older builds. */
+  listIds?: string[];
 }
 
 export interface CampaignAudienceEstimate {
@@ -531,10 +537,10 @@ export const campaignsService = {
   },
 
   setAudience(id: string, body: CampaignAudienceSelection, orgId?: string) {
-    // The backend DTO requires `profileIds` to be present as an array (of
-    // strings) even when targeting only lists/segments.
+    // Canonical body is { profileIds, segmentIds } — both keys must be
+    // present as arrays. There is no `listIds` in the contract; sending one
+    // is ignored, which is how contact selections used to vanish.
     const payload = {
-      listIds: Array.isArray(body.listIds) ? body.listIds : [],
       segmentIds: Array.isArray(body.segmentIds) ? body.segmentIds : [],
       profileIds: Array.isArray(body.profileIds) ? body.profileIds : [],
     };
