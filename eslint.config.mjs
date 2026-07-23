@@ -64,6 +64,9 @@ const eslintConfig = [
       // tsconfig's project, so linting them fails on every file and blocks
       // the pre-push hook.
       ".claude/**",
+      // Design-system reference bundle (standalone .jsx mockups + assets, not
+      // app source). Outside tsconfig's project, so it fails the same way.
+      "Onchain Suite Design System v2/**",
     ],
   },
 
