@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/ui/alert-dialog";
 
+import { formatDateTime, formatRelativeTime } from "@/lib/date";
 import { isJsonObject } from "@/lib/utils";
 
 import {
@@ -301,9 +302,14 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
                       >
                         {segment.name}
                       </Link>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
+                      <p
+                        className="mt-0.5 text-xs text-muted-foreground"
+                        title={formatDateTime(segment.lastUpdated)}
+                      >
                         {formatSegmentSize(segment.size)}
-                        {segment.lastUpdated ? ` · ${segment.lastUpdated}` : ""}
+                        {formatRelativeTime(segment.lastUpdated)
+                          ? ` · updated ${formatRelativeTime(segment.lastUpdated)}`
+                          : ""}
                       </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
@@ -443,8 +449,11 @@ export function SegmentsTab({ openEmailComposer }: SegmentsTabProps) {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-muted-foreground">
-                          {segment.lastUpdated ?? "—"}
+                        <span
+                          className="text-xs text-muted-foreground"
+                          title={formatDateTime(segment.lastUpdated)}
+                        >
+                          {formatDateTime(segment.lastUpdated) || "—"}
                         </span>
                       </td>
                       <td className="px-4 py-3">
