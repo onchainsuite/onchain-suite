@@ -83,7 +83,7 @@ describe("AudienceStep links", () => {
     }
   });
 
-  it("links account settings to settings page with account tab", () => {
+  it("links Segments to the Intelligence tab that actually exists", () => {
     const client = new QueryClient();
     render(
       <QueryClientProvider client={client}>
@@ -91,11 +91,30 @@ describe("AudienceStep links", () => {
       </QueryClientProvider>
     );
 
-    const link = screen.getByRole("link", { name: /account settings/i });
-    expect(link).toHaveAttribute(
-      "href",
-      `${PRIVATE_ROUTES.SETTINGS}?tab=account`
+    // /intelligence/segments has no route — Segments is a tab on
+    // /intelligence — so the link must carry the ?tab= deep link.
+    const link = screen.getByRole("link", { name: /Intelligence.*Segments/i });
+    expect(link).toHaveAttribute("href", PRIVATE_ROUTES.INTELLIGENCE_SEGMENTS);
+    expect(PRIVATE_ROUTES.INTELLIGENCE_SEGMENTS).toContain("tab=segments");
+  });
+
+  it("does not promise a Smart Sending threshold setting that does not exist", () => {
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <Wrapper />
+      </QueryClientProvider>
     );
+
+    // Smart Sending is a per-campaign boolean; there is no thresholds
+    // endpoint and no settings screen to send people to.
+    expect(
+      screen.queryByRole("link", { name: /account settings/i })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/10 hours/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Skips profiles who recently received a message/i)
+    ).toBeInTheDocument();
   });
 
   it("explains recipients can be individual contacts, tags or segments", () => {

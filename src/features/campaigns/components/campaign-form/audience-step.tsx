@@ -86,7 +86,6 @@ export function AudienceStep({
 }: AudienceStepProps) {
   const UTM_HELP_URL =
     "https://support.google.com/analytics/answer/1033863?hl=en";
-  const accountSettingsHref = `${PRIVATE_ROUTES.SETTINGS}?tab=account`;
   // Segments live as a tab on /intelligence, not their own route.
   const segmentsHref = PRIVATE_ROUTES.INTELLIGENCE_SEGMENTS;
   const selectedAudiences = form.watch("selectedAudiences");
@@ -463,18 +462,14 @@ export function AudienceStep({
                     Run on Smart Sending
                   </FormLabel>
                 </div>
+                {/* The suppression window is enforced server-side and is not
+                    configurable — there is no thresholds endpoint — so don't
+                    quote a specific number or promise a setting to change it.
+                    The estimate above already reflects who gets excluded. */}
                 <FormDescription>
-                  This campaign will not be sent to profiles who received a
-                  message from you in the last{" "}
-                  <span className="font-medium text-foreground">10 hours</span>.
-                  Smart Sending (thresholds) can be updated in{" "}
-                  <Link
-                    href={accountSettingsHref}
-                    className="text-primary hover:underline"
-                  >
-                    account settings
-                  </Link>
-                  .
+                  Skips profiles who recently received a message from you, so
+                  the same people aren&apos;t over-contacted. Anyone excluded is
+                  already reflected in the estimated recipient count.
                 </FormDescription>
               </div>
             </FormItem>
