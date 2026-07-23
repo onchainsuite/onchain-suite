@@ -1316,14 +1316,38 @@ export default function CompanySettingsView() {
     [senders]
   );
 
-  const domainSummary = useMemo(
-    () => ({
-      total: domains.length,
-      verified: domains.filter((domain) => domain.status === "verified").length,
-      pending: domains.filter((domain) => domain.status === "pending").length,
-    }),
-    [domains]
-  );
+  const domainSummary = useMemo(() => {
+    const total = domains.length;
+    const verified = domains.filter(
+      (domain) => domain.status === "verified"
+    ).length;
+    const pending = domains.filter(
+      (domain) => domain.status === "pending"
+    ).length;
+    const failed = total - verified - pending;
+    return {
+      total,
+      verified,
+      pending,
+      failed,
+      // "Ready" must mean every domain is verified — not merely "nothing
+      // pending". With zero domains, or any failed one, `pending` is 0 but the
+      // org still can't send from a branded domain, so this stays false.
+      allVerified: total > 0 && verified === total,
+    };
+  }, [domains]);
+
+  // Only claim "Verified" when every domain actually is; otherwise surface
+  // what's outstanding instead of a misleading "Ready".
+  const domainBadgeLabel = useMemo(() => {
+    if (domainSummary.total === 0) return "Not set up";
+    if (domainSummary.allVerified) return "Verified";
+    if (domainSummary.pending > 0) return `${domainSummary.pending} pending`;
+    if (domainSummary.failed > 0) {
+      return `${domainSummary.failed} need attention`;
+    }
+    return `${domainSummary.verified}/${domainSummary.total} verified`;
+  }, [domainSummary]);
   const teamSummary = useMemo(() => {
     const activeMembers = teamMembers.filter(
       (member) => member.kind === "member"
@@ -1417,11 +1441,7 @@ export default function CompanySettingsView() {
           title="Sender verification"
           description="Verify domains and set up sender infrastructure for branded organization sending."
           icon={<KeyIcon aria-hidden="true" className="h-5 w-5" />}
-          badge={
-            domainSummary.pending > 0
-              ? `${domainSummary.pending} pending`
-              : "Ready"
-          }
+          badge={domainBadgeLabel}
         >
           <div className="space-y-5">
             <div className="flex flex-wrap justify-end gap-2">
@@ -1484,9 +1504,7 @@ export default function CompanySettingsView() {
                   </p>
                 </div>
                 <Badge variant="outline" className="rounded-full">
-                  {domainSummary.pending > 0
-                    ? `${domainSummary.pending} pending`
-                    : "Ready"}
+                  {domainBadgeLabel}
                 </Badge>
               </div>
 
