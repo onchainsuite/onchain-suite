@@ -23,6 +23,7 @@ import { resolveBrandAssetUrl } from "@/lib/brand-assets";
 import { getSelectedOrganizationId, isJsonObject } from "@/lib/utils";
 
 import CompanyEditForm from "@/features/settings/components/account/company-edit-form";
+import { SmartSendingCard } from "@/features/settings/components/account/smart-sending-card";
 import InviteUser from "@/features/settings/components/invite-user";
 import LogoUpload from "@/features/settings/components/logo-upload";
 import SettingsSectionCard from "@/features/settings/components/settings-section-card";
@@ -2033,6 +2034,8 @@ export default function CompanySettingsView() {
             )}
           </div>
         </SettingsSectionCard>
+
+        <SmartSendingCard />
       </motion.div>
 
       <LogoUpload

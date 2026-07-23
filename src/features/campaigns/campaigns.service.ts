@@ -120,6 +120,18 @@ export interface CampaignAnalyticsOverview {
 export interface CampaignTrackingSettings {
   smartSending: boolean;
   trackingParameters: boolean;
+  /**
+   * Optional per-campaign override of the Smart Sending suppression window
+   * (integer 1–168). Omitted → the org setting applies
+   * (`PUT /organization/settings/smart-sending`), then the platform 10h
+   * default. Same resolution at send time and in the recipient estimate.
+   */
+  smartSendingWindowHours?: number;
+  /**
+   * Campaign-authored UTM values. Since 2026-08-02 `trackingParameters: true`
+   * already applies product defaults (`utm_source=onchainsuite`,
+   * `utm_medium=email`, `utm_campaign=<id>`); anything here overrides them.
+   */
   utm?: Record<string, unknown>;
   [key: string]: unknown;
 }
