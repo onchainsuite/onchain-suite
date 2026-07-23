@@ -59,6 +59,11 @@ const eslintConfig = [
       ".env*",
       "*.config.js",
       "*.config.mjs",
+      // Agent scratch space, incl. git worktrees checked out under
+      // .claude/worktrees. Those are full copies of the repo that sit outside
+      // tsconfig's project, so linting them fails on every file and blocks
+      // the pre-push hook.
+      ".claude/**",
     ],
   },
 
