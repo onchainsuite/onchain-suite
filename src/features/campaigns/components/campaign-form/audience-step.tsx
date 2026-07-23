@@ -87,6 +87,8 @@ export function AudienceStep({
   const UTM_HELP_URL =
     "https://support.google.com/analytics/answer/1033863?hl=en";
   const accountSettingsHref = `${PRIVATE_ROUTES.SETTINGS}?tab=account`;
+  // Segments live as a tab on /intelligence, not their own route.
+  const segmentsHref = PRIVATE_ROUTES.INTELLIGENCE_SEGMENTS;
   const selectedAudiences = form.watch("selectedAudiences");
   const smartSending = form.watch("smartSending");
   const trackingParameters = form.watch("trackingParameters");
@@ -413,17 +415,14 @@ export function AudienceStep({
               </FormControl>
               <FormDescription>
                 Pick individual contacts by email, or send to a tag or segment —
-                named groups of contacts created in Intelligence → Segments. No
-                tags ready? Just select the emails directly.{" "}
-                <a
-                  href={UTM_HELP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                named groups of contacts created in{" "}
+                <Link
+                  href={segmentsHref}
                   className="text-primary hover:underline"
                 >
-                  Learn more about UTM
-                </a>
-                .
+                  Intelligence → Segments
+                </Link>
+                . No tags ready? Just select the emails directly.
               </FormDescription>
               {segmentsError ? (
                 <p className="text-sm text-amber-400">
